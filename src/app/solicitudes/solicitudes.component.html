@@ -1,0 +1,62 @@
+<div class="container mx-auto my-4 p-4">
+    <h1 class="text-2xl text-green-800 font-bold">Solicitud de Artículos</h1>
+
+    <div class="mt-4 space-y-2 relative">
+
+        <div class="relative">
+            <input type="text" placeholder="Clave (mínimo 3 caracteres)" maxlength="15" [(ngModel)]="claveInput"
+                (input)="onClaveInput()" (keydown)="onInputKeyDown($event)" class="border rounded p-2 w-full" />
+
+            <ul *ngIf="autocompleteResults.length"
+                class="border rounded bg-white max-h-52 overflow-auto absolute top-12 left-0 right-0 z-10 shadow-md">
+                <li *ngFor="let item of autocompleteResults; let i = index" #resultItem
+                    [class.bg-gray-200]="i === selectedIndex" (click)="selectArticulo(item)"
+                    class="cursor-pointer hover:bg-gray-200 p-2">
+                    {{item.clave}} - {{item.descripcion}} ({{item.presentacion}})
+                </li>
+                <li *ngIf="moreResults" class="text-sm text-gray-500 p-2">
+                    Mostrando 12 de {{totalResults}} resultados...
+                </li>
+            </ul>
+        </div>
+
+        <textarea placeholder="Descripción" maxlength="500" [(ngModel)]="descripcionInput"
+            class="border rounded p-2 w-full"></textarea>
+
+        <input type="text" placeholder="Unidad de Medida" maxlength="50" [(ngModel)]="unidadInput"
+            class="border rounded p-2 w-full" />
+
+        <input type="number" placeholder="Cantidad" min="1" max="32000" [(ngModel)]="cantidadInput"
+            class="border rounded p-2 w-full" />
+
+        <button (click)="agregarArticulo()"
+            class="bg-green-800 text-white p-2 rounded">
+            Agregar +
+        </button>
+    </div>
+
+
+    <div class="border rounded mt-4 p-2" *ngIf="articulosSolicitados.length">
+        <h2 class="font-bold text-green-800">Artículos capturados</h2>
+        <table class="w-full text-sm mt-2">
+            <thead class="bg-green-600 text-white">
+                <tr>
+                    <th class="p-2">Clave</th>
+                    <th class="p-2">Descripción</th>
+                    <th class="p-2">Unidad</th>
+                    <th class="p-2">Cantidad</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let articulo of articulosSolicitados" class="border-b">
+                    <td class="p-2">{{ articulo.clave }}</td>
+                    <td class="p-2">{{ articulo.descripcion }}</td>
+                    <td class="p-2">{{ articulo.unidadMedida }}</td>
+                    <td class="p-2">{{ articulo.cantidad }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+
+</div>
