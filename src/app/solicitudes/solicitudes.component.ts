@@ -1,10 +1,11 @@
 import { ArticuloSolicitud } from '../models/articulo-solicitud';
 import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import initSqlJs, { Database } from 'sql.js';
+//import initSqlJs, { Database } from 'sql.js/dist/sql-wasm.js';
 import { debounceTime, Subject } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import * as XLSX from 'xlsx';
+
 
 @Component({
   selector: 'app-solicitudes',
@@ -22,7 +23,7 @@ export class SolicitudesComponent implements OnInit {
   modalCallback?: () => void;
   modalSoloInfo = false;
   articulosSolicitados: ArticuloSolicitud[] = [];
-  db!: Database;
+  db!: any;
 
   claveInput = '';
   descripcionInput = '';
@@ -57,10 +58,17 @@ export class SolicitudesComponent implements OnInit {
       this.articulosSolicitados = JSON.parse(guardados);
     }
 
+    // ⬇️ Importación dinámica desde CDN
+    // @ts-ignore
+    const SQLModule = await import('https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.mjs');
+    const initSqlJs = SQLModule.default;
+
+    // ⬇️ Carga del archivo .wasm desde /public/sqljs/sql-wasm.wasm
     const SQL = await initSqlJs({
-      locateFile: () => 'https://sql.js.org/dist/sql-wasm.wasm'
+      locateFile: () => '/sqljs/sql-wasm.wasm'
     });
 
+    // ⬇️ Carga tu base de datos
     const dbData = await fetch('/data/articulos.sqlite').then(res => res.arrayBuffer());
     this.db = new SQL.Database(new Uint8Array(dbData));
 

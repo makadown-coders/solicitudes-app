@@ -1,59 +1,106 @@
-# SolicitudesApp
+# Solicitudes App 🧾
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.3.
+Aplicación en Angular 17 para capturar solicitudes de artículos tipo todo-list, con búsqueda autocompletada desde una base de datos SQLite embebida en el navegador.
 
-## Development server
+## 🚀 Características
 
-To start a local development server, run:
+- Captura dinámica de artículos (clave, descripción, unidad, cantidad).
+- Búsqueda autocompletada por clave o descripción usando SQLite (sql.js).
+- Almacenamiento persistente con `localStorage`.
+- Botón "Agregar" habilitado solo cuando los datos son válidos.
+- Eliminación individual de renglones capturados.
+- Exportación a Excel.
+- Uso de modales estilo Tailwind CSS para UX amigable.
+- Estilizado institucional con Tailwind (`green-800`, `yellow-400`, etc).
 
-```bash
-ng serve
-```
+## 🛠️ Stack Tecnológico
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+- Angular 17 (Standalone Components)
+- Tailwind CSS 3.4.17
+- SQLite vía `sql.js` desde CDN
+- xlsx.js para exportar Excel
 
-## Code scaffolding
+---
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+## 📦 Instalación local
 
 ```bash
-ng build
+git clone https://github.com/tu-usuario/solicitudes-app.git
+cd solicitudes-app
+npm install
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+## 🔧 Compilar en desarrollo
 
 ```bash
-ng test
+ng serve -o
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+## 🏗️ Compilación para producción
 
 ```bash
-ng e2e
+ng build --configuration production
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## 📁 Estructura esperada para producción
 
-## Additional Resources
+- `public/sqljs/sql-wasm.wasm`: Archivo WASM requerido por sql.js
+- `public/data/articulos.sqlite`: Base de datos de solo lectura
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Puedes obtener el `.wasm` así:
+
+```bash
+mkdir -p public/sqljs
+curl -o public/sqljs/sql-wasm.wasm https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.wasm
+```
+
+---
+
+## ☁️ Deploy en Netlify
+
+1. Crea un archivo `netlify.toml` en la raíz:
+
+```toml
+[build]
+  publish = "dist/solicitudes-app"
+  command = "npm run build"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+```
+
+2. Realiza el build:
+
+```bash
+ng build --configuration production
+```
+
+3. Sube la carpeta `/dist/solicitudes-app` a Netlify o conecta tu repo vía GitHub.
+
+---
+
+## 📦 Notas sobre sql.js
+
+Usamos `sql.js` **vía CDN ESM** para evitar errores de build por dependencias Node.js (`fs`, `path`, `crypto`).  
+Importación dinámica en el componente:
+
+```ts
+// @ts-ignore
+const SQLModule = await import('https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.mjs');
+const initSqlJs = SQLModule.default;
+```
+
+---
+
+## 🧠 Créditos
+
+Desarrollado por Mario 🧑‍💻  
+
+---
+
+
+
+
+
