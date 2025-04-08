@@ -1,9 +1,10 @@
 import { ArticuloSolicitud } from '../models/articulo-solicitud';
-import { Component, OnInit, ViewChildren, QueryList, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import initSqlJs, { Database } from 'sql.js';
 import { debounceTime, Subject } from 'rxjs';
 import { CommonModule } from '@angular/common';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-solicitudes',
@@ -12,6 +13,14 @@ import { CommonModule } from '@angular/common';
   templateUrl: './solicitudes.component.html'
 })
 export class SolicitudesComponent implements OnInit {
+  mostrarModal = false;
+  modalVisible = false;
+  modalTitulo = '';
+  modalMensaje = '';
+  modalConfirmarTexto = '';
+  modalCancelarTexto = '';
+  modalCallback?: () => void;
+  modalSoloInfo = false;
   articulosSolicitados: ArticuloSolicitud[] = [];
   db!: Database;
 
@@ -19,6 +28,10 @@ export class SolicitudesComponent implements OnInit {
   descripcionInput = '';
   unidadInput = '';
   cantidadInput!: number;
+
+  modalPedirNombreArchivo = false;
+  nombreArchivo = '';
+
 
   autocompleteResults: any[] = [];
   moreResults = false;
@@ -29,13 +42,21 @@ export class SolicitudesComponent implements OnInit {
   private searchSubject = new Subject<string>();
 
   @ViewChildren('resultItem') resultItems!: QueryList<ElementRef>;
+  @ViewChild('inputClave') inputClaveRef!: ElementRef<HTMLInputElement>;
+
+  @HostListener('document:keydown.escape', ['$event'])
+  onKeydownHandler(event: KeyboardEvent) {
+    if (this.modalVisible) {
+      this.cerrarModal();
+    }
+  }
 
   async ngOnInit() {
     const guardados = localStorage.getItem('articulosSolicitados');
     if (guardados) {
       this.articulosSolicitados = JSON.parse(guardados);
     }
-    
+
     const SQL = await initSqlJs({
       locateFile: () => 'https://sql.js.org/dist/sql-wasm.wasm'
     });
@@ -132,23 +153,148 @@ export class SolicitudesComponent implements OnInit {
   }
 
   agregarArticulo() {
-    if (this.claveInput && this.descripcionInput && this.unidadInput && this.cantidadInput > 0) {
-      this.articulosSolicitados.push({
-        clave: this.claveInput,
-        descripcion: this.descripcionInput,
-        unidadMedida: this.unidadInput,
-        cantidad: this.cantidadInput
-      });
+    const clave = this.claveInput.trim().toUpperCase();
 
-      // Guarda en LocalStorage
-      localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
-
-      // Limpia inputs para siguiente captura
-      this.claveInput = '';
-      this.descripcionInput = '';
-      this.unidadInput = '';
-      this.cantidadInput = 0;
+    if (!clave || !this.descripcionInput || !this.unidadInput || this.cantidadInput <= 0) {
+      return; // Validación básica
     }
+
+    // Evitar duplicados por clave (case-insensitive)
+    const existe = this.articulosSolicitados.some(a => a.clave.toUpperCase() === clave);
+    if (existe) {
+      this.abrirModalInfo(
+        'Clave repetida',
+        `Ya capturaste un artículo con la clave "${clave}".`
+      );
+      return;
+    }
+
+
+    this.articulosSolicitados.push({
+      clave,
+      descripcion: this.descripcionInput.trim(),
+      unidadMedida: this.unidadInput.trim(),
+      cantidad: this.cantidadInput
+    });
+
+    localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+
+    // Limpiar inputs
+    this.claveInput = '';
+    this.descripcionInput = '';
+    this.unidadInput = '';
+    this.cantidadInput = 0;
+    this.selectedIndex = -1;
+    
+    setTimeout(() => {
+      this.inputClaveRef?.nativeElement.focus();
+    }, 0);
+  }
+
+  abrirModal() {
+    this.mostrarModal = true;
+  }
+
+  confirmarLimpieza() {
+    this.articulosSolicitados = [];
+    localStorage.removeItem('articulosSolicitados');
+    this.cerrarModal();
+  }
+
+  abrirModalInfo(titulo: string, mensaje: string, confirmarTexto = 'Aceptar') {
+    this.modalTitulo = titulo;
+    this.modalMensaje = mensaje;
+    this.modalConfirmarTexto = confirmarTexto;
+    this.modalSoloInfo = true;
+    this.modalVisible = true;
+  }
+
+  abrirModalConfirmacion(
+    titulo: string,
+    mensaje: string,
+    confirmarTexto: string,
+    cancelarTexto: string,
+    callback: () => void
+  ) {
+    this.modalTitulo = titulo;
+    this.modalMensaje = mensaje;
+    this.modalConfirmarTexto = confirmarTexto;
+    this.modalCancelarTexto = cancelarTexto;
+    this.modalCallback = callback;
+    this.modalSoloInfo = false;
+    this.modalVisible = true;
+  }
+
+  cerrarModal() {
+    this.modalVisible = false;
+    this.modalCallback = undefined;
+  }
+
+  modalAceptar() {
+    if (this.modalCallback) {
+      this.modalCallback();
+    }
+    this.cerrarModal();
+  }
+
+  confirmarLimpiezaModal() {
+    this.abrirModalConfirmacion(
+      '¿Estás seguro?',
+      'Esta acción eliminará todos los artículos capturados. ¿Deseas continuar?',
+      'Sí, limpiar todo',
+      'Cancelar',
+      () => this.confirmarLimpieza()
+    );
+  }
+
+  exportarExcel(nombreArchivo: string) {
+    const worksheet = XLSX.utils.json_to_sheet(this.articulosSolicitados);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Solicitudes');
+
+    const nombreFinal = nombreArchivo.endsWith('.xlsx') ? nombreArchivo : `${nombreArchivo}.xlsx`;
+
+    XLSX.writeFile(workbook, nombreFinal);
+
+    this.abrirModalInfo(
+      'Archivo descargado',
+      'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
+    );
+  }
+
+  mostrarModalExportar() {
+    this.nombreArchivo = `HGT-Medicamento-${new Date().toISOString().slice(0, 7)}`;
+    this.modalPedirNombreArchivo = true;
+  }
+
+  confirmarExportacion() {
+    this.modalPedirNombreArchivo = false;
+    this.exportarExcel(this.nombreArchivo);
+  }
+
+  eliminarArticulo(index: number) {
+    this.articulosSolicitados.splice(index, 1);
+    localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+  }
+
+  eliminarArticuloConConfirmacion(index: number) {
+    this.abrirModalConfirmacion(
+      '¿Eliminar artículo?',
+      `¿Deseas eliminar el artículo "${this.articulosSolicitados[index].clave}"?`,
+      'Sí, eliminar',
+      'Cancelar',
+      () => this.eliminarArticulo(index)
+    );
+  }
+
+  get formularioValido(): boolean {
+    return (
+      this.claveInput.trim().length > 0 &&
+      this.descripcionInput.trim().length > 0 &&
+      this.unidadInput.trim().length > 0 &&
+      this.cantidadInput > 0 &&
+      this.cantidadInput < 32000
+    );
   }
 
 }
