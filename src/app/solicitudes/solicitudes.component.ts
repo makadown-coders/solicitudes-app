@@ -60,7 +60,7 @@ export class SolicitudesComponent implements OnInit {
 
     // ⬇️ Importación dinámica desde CDN
     // @ts-ignore
-    const SQLModule = await import('https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.mjs');
+    const SQLModule = await import('https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js');
     const initSqlJs = SQLModule.default;
 
     // ⬇️ Carga del archivo .wasm desde /public/sqljs/sql-wasm.wasm
