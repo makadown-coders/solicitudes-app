@@ -1,12 +1,12 @@
-# Solicitudes App 🧾
+# Solicitudes App (frontend) 🧾
 
-Aplicación en Angular 17 para capturar solicitudes de artículos tipo todo-list, con búsqueda autocompletada desde una base de datos SQLite embebida en el navegador.
+Aplicación en Angular 17 para capturar solicitudes de artículos tipo todo-list, con búsqueda autocompletada desde una base de datos SQLite consultada desde un backend Express desplegado en Railway.
 
 ## 🚀 Características
 
 - Captura dinámica de artículos (clave, descripción, unidad, cantidad).
-- Búsqueda autocompletada por clave o descripción usando SQLite (sql.js).
-- Almacenamiento persistente con `localStorage`.
+- Búsqueda autocompletada por clave o descripción usando un backend Express + SQLite.
+- Almacenamiento persistente con `localStorage` en el navegador.
 - Botón "Agregar" habilitado solo cuando los datos son válidos.
 - Eliminación individual de renglones capturados.
 - Exportación a Excel.
@@ -17,24 +17,26 @@ Aplicación en Angular 17 para capturar solicitudes de artículos tipo todo-list
 
 - Angular 17 (Standalone Components)
 - Tailwind CSS 3.4.17
-- SQLite vía `sql.js` desde CDN
+- Backend: Express.js + SQLite (desplegado en Railway)
 - xlsx.js para exportar Excel
 
 ---
 
-## 📦 Instalación local
+## 📦 Instalación local del frontend
 
 ```bash
-git clone https://github.com/tu-usuario/solicitudes-app.git
-cd solicitudes-app
+git clone https://github.com/tu-usuario/solicitudes-frontend.git
+cd solicitudes-frontend
 npm install
 ```
 
-## 🔧 Compilar en desarrollo
+### 🔧 Ejecutar en desarrollo
 
 ```bash
 ng serve -o
 ```
+
+---
 
 ## 🏗️ Compilación para producción
 
@@ -42,17 +44,7 @@ ng serve -o
 ng build --configuration production
 ```
 
-## 📁 Estructura esperada para producción
-
-- `public/sqljs/sql-wasm.wasm`: Archivo WASM requerido por sql.js
-- `public/data/articulos.sqlite`: Base de datos de solo lectura
-
-Puedes obtener el `.wasm` así:
-
-```bash
-mkdir -p public/sqljs
-curl -o public/sqljs/sql-wasm.wasm https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.wasm
-```
+Esto usará el archivo `environment.prod.ts` para apuntar al backend en Railway.
 
 ---
 
@@ -61,10 +53,6 @@ curl -o public/sqljs/sql-wasm.wasm https://cdn.jsdelivr.net/npm/sql.js@1.10.3/di
 1. Crea un archivo `netlify.toml` en la raíz:
 
 ```toml
-[build]
-  publish = "dist/solicitudes-app"
-  command = "npm run build"
-
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -77,30 +65,77 @@ curl -o public/sqljs/sql-wasm.wasm https://cdn.jsdelivr.net/npm/sql.js@1.10.3/di
 ng build --configuration production
 ```
 
-3. Sube la carpeta `/dist/solicitudes-app` a Netlify o conecta tu repo vía GitHub.
+3. conecta tu repo a Netlify vía GitHub.
 
 ---
 
-## 📦 Notas sobre sql.js
+## 🧠 Backend Express + SQLite (Railway)
 
-Usamos `sql.js` **vía CDN ESM** para evitar errores de build por dependencias Node.js (`fs`, `path`, `crypto`).  
-Importación dinámica en el componente:
+El backend está desarrollado en Node.js usando Express, y consulta una base de datos SQLite local. Se encarga de exponer el endpoint:
 
-```ts
-// @ts-ignore
-const SQLModule = await import('https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.mjs');
-const initSqlJs = SQLModule.default;
+```
+GET /api/articulos?q=termino
+```
+
+Este endpoint retorna hasta 12 resultados coincidentes, junto con un conteo total.
+
+### 📄 Variables de entorno
+
+- `PORT=3000`
+- `DB_PATH=./db/articulos.sqlite`
+
+### 📦 Deploy en Railway
+
+Sigue los pasos de la guía oficial:
+👉 [https://docs.railway.app/guides/express](https://docs.railway.app/guides/express)
+
+Railway proporciona una URL como:
+
+```
+https://solicitudes-backend.up.railway.app/api/articulos?q=paracetamol
 ```
 
 ---
 
-## 🧠 Créditos
+## 🌐 Configuración de entornos en Angular
 
-Desarrollado por Mario 🧑‍💻  
+### 📁 `src/environments/environment.development.ts`
+
+```ts
+export const environment = {
+  production: false,
+  apiUrl: 'http://localhost:3000'
+};
+```
+
+### 📁 `src/environments/environment.ts`
+
+```ts
+export const environment = {
+  production: true,
+  apiUrl: 'https://solicitudes-backend.up.railway.app'
+};
+```
+
+Angular utiliza automáticamente el archivo correspondiente según si estás en desarrollo o producción.
 
 ---
 
+## 🧠 Notas
 
+- Ya no se utiliza sql.js en el frontend.
+- La base de datos SQLite está protegida y solo es accedida desde el backend.
+- Toda la comunicación ahora es a través de HTTP.
 
+---
 
+## 🧑 Autor
+
+Desarrollado por Mario 🧑‍💻
+
+---
+
+## 📄 Licencia
+
+MIT
 
