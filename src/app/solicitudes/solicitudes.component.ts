@@ -1,10 +1,10 @@
 import { ArticuloSolicitud } from '../models/articulo-solicitud';
 import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-//import initSqlJs, { Database } from 'sql.js/dist/sql-wasm.js';
 import { debounceTime, Subject } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import * as XLSX from 'xlsx';
+import { environment } from '../../environments/environment';
 
 
 @Component({
@@ -22,8 +22,7 @@ export class SolicitudesComponent implements OnInit {
   modalCancelarTexto = '';
   modalCallback?: () => void;
   modalSoloInfo = false;
-  articulosSolicitados: ArticuloSolicitud[] = [];
-  db!: any;
+  articulosSolicitados: ArticuloSolicitud[] = [];  
 
   claveInput = '';
   descripcionInput = '';
@@ -58,20 +57,6 @@ export class SolicitudesComponent implements OnInit {
       this.articulosSolicitados = JSON.parse(guardados);
     }
 
-    // ⬇️ Importación dinámica desde CDN
-    // @ts-ignore
-    const SQLModule = await import('https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js');
-    const initSqlJs = SQLModule.default;
-
-    // ⬇️ Carga del archivo .wasm desde /public/sqljs/sql-wasm.wasm
-    const SQL = await initSqlJs({
-      locateFile: () => '/sqljs/sql-wasm.wasm'
-    });
-
-    // ⬇️ Carga tu base de datos
-    const dbData = await fetch('/data/articulos.sqlite').then(res => res.arrayBuffer());
-    this.db = new SQL.Database(new Uint8Array(dbData));
-
     this.searchSubject.pipe(debounceTime(1000)).subscribe(texto => {
       if (texto.length > 2) {
         this.buscarEnDB(texto);
@@ -89,29 +74,19 @@ export class SolicitudesComponent implements OnInit {
   }
 
   buscarEnDB(texto: string) {
-    const stmt = this.db.prepare(`
-      SELECT clave, descripcion, presentacion FROM ARTICULOS
-      WHERE clave LIKE $texto OR descripcion LIKE $texto
-      LIMIT 13
-    `);
-
-    const textoLike = `%${texto}%`;
-    stmt.bind({ $texto: textoLike });
-
-    const results: any[] = [];
-    while (stmt.step()) {
-      const row = stmt.getAsObject();
-      results.push(row);
-    }
-    stmt.free();
-
-    this.moreResults = results.length > 12;
-    this.totalResults = results.length;
-    this.autocompleteResults = results.slice(0, 12);
-
-    // Inicializa selección automática en primer elemento
-    this.selectedIndex = 0;
-    setTimeout(() => this.focusSelectedItem(), 0);
+    fetch(`${environment.apiUrl}/api/articulos?q=${encodeURIComponent(texto)}`)
+    .then(res => res.json())
+    .then(data => {
+      this.autocompleteResults = data.resultados || [];
+      this.totalResults = data.total || 0;
+      this.moreResults = this.totalResults > 12;
+      this.selectedIndex = 0;
+      setTimeout(() => this.focusSelectedItem(), 0);
+    })
+    .catch(err => {
+      console.error('Error al consultar el backend:', err);
+      this.autocompleteResults = [];
+    });
   }
 
   selectArticulo(item: any) {
