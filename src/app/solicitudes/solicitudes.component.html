@@ -6,7 +6,7 @@
         <div class="relative">
             <input #inputClave type="text" placeholder="Clave (mínimo 3 caracteres)" maxlength="15"
                 [(ngModel)]="claveInput" (input)="onClaveInput()" (keydown)="onInputKeyDown($event)"
-                class="border rounded p-2 w-full" />
+                class="border rounded p-2 w-full" [disabled]="modoEdicionIndex !== null" />
 
             <ul *ngIf="autocompleteResults.length"
                 class="border rounded bg-white max-h-52 overflow-auto absolute top-12 left-0 right-0 z-10 shadow-md">
@@ -22,25 +22,29 @@
         </div>
 
         <textarea placeholder="Descripción" maxlength="500" [(ngModel)]="descripcionInput"
-            class="border rounded p-2 w-full"></textarea>
+            class="border rounded p-2 w-full" [disabled]="modoEdicionIndex !== null"></textarea>
 
         <input type="text" placeholder="Unidad de Medida" maxlength="50" [(ngModel)]="unidadInput"
-            class="border rounded p-2 w-full" />
+            class="border rounded p-2 w-full" [disabled]="modoEdicionIndex !== null" />
 
-        <input type="number" placeholder="Cantidad" min="1" max="32000" [(ngModel)]="cantidadInput"
-            class="border rounded p-2 w-full" />
+        <input type="number" placeholder="Cantidad" min="1" max="99999" [(ngModel)]="cantidadInput"
+            class="border rounded p-2 w-full" [disabled]="modoEdicionIndex !== null" />
 
-        <button (click)="agregarArticulo()" [disabled]="!formularioValido" [ngClass]="formularioValido 
-                ? 'bg-green-800 hover:bg-green-900 text-white' 
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'" class="p-2 rounded w-full mt-2">
+        <button (click)="agregarArticulo()" [disabled]="!formularioValido || modoEdicionIndex !== null" [ngClass]="(formularioValido && modoEdicionIndex === null)
+              ? 'bg-green-800 hover:bg-green-900 text-white'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'" class="p-2 rounded w-full mt-2">
             Agregar +
         </button>
         <button *ngIf="articulosSolicitados.length > 0" (click)="confirmarLimpiezaModal()"
-            class="bg-yellow-400 text-green-900 p-2 rounded mt-4 hover:bg-yellow-500 ml-2">
+            class="bg-yellow-400 text-green-900 p-2 rounded mt-4 hover:bg-yellow-500 ml-2"
+            [disabled]="modoEdicionIndex !== null"
+            [ngClass]="modoEdicionIndex !== null ? 'opacity-50 cursor-not-allowed' : ''">
             Limpiar captura
         </button>
-        <button *ngIf="articulosSolicitados.length > 1" (click)="mostrarModalExportar()"
-            class="bg-green-600 text-white p-2 rounded mt-4 hover:bg-green-700 ml-2">
+        <button *ngIf="articulosSolicitados.length > 0" (click)="mostrarModalExportar()"
+            class="bg-green-600 text-white p-2 rounded mt-4 hover:bg-green-700 ml-2"
+            [disabled]="modoEdicionIndex !== null"
+            [ngClass]="modoEdicionIndex !== null ? 'opacity-50 cursor-not-allowed' : ''">
             Finalizar y Exportar
         </button>
 
@@ -48,34 +52,13 @@
 
 
     <div class="border rounded mt-4 p-2" *ngIf="articulosSolicitados.length">
-        <h2 class="font-bold text-green-800">Artículos capturados</h2>
-        <table class="w-full text-sm mt-2">
-            <thead class="bg-green-600 text-white">
-                <tr>
-                    <th class="p-2">Clave</th>
-                    <th class="p-2">Descripción</th>
-                    <th class="p-2">Unidad</th>
-                    <th class="p-2">Cantidad</th>
-                    <th class="p-2 text-center">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr *ngFor="let articulo of articulosSolicitados; let i = index" class="border-b">
-                    <td class="p-2">{{ articulo.clave }}</td>
-                    <td class="p-2">{{ articulo.descripcion }}</td>
-                    <td class="p-2">{{ articulo.unidadMedida }}</td>
-                    <td class="p-2">{{ articulo.cantidad }}</td>
-                    <td class="p-2 text-center">
-                        <button (click)="eliminarArticuloConConfirmacion(i)" class="text-red-600 hover:text-red-800"
-                            title="Eliminar">
-                            🗑️
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <app-tabla-articulos [articulosSolicitados]="articulosSolicitados" [modoEdicionIndex]="modoEdicionIndex"
+            [cantidadTemporal]="cantidadTemporal" (cantidadTemporalChange)="cambiarCantidad($event)"
+            (confirmar)="confirmarEdicion($event)" (cancelar)="cancelarEdicion()" (editar)="activarEdicion($event)"
+            (eliminar)="eliminarArticuloConConfirmacion($event)" />
+
     </div>
-    <button *ngIf="articulosSolicitados.length > 1" (click)="mostrarModalExportar()"
+    <button *ngIf="articulosSolicitados.length > 0" (click)="mostrarModalExportar()"
         class="bg-green-600 text-white p-2 rounded mt-4 hover:bg-green-700">
         Finalizar y Exportar
     </button>
@@ -83,43 +66,13 @@
 </div>
 
 <!-- Modal reutilizable con Tailwind -->
-<div *ngIf="modalVisible" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
-        <h2 class="text-xl font-bold text-green-800 mb-4">{{ modalTitulo }}</h2>
-        <p class="text-gray-700 mb-6">{{ modalMensaje }}</p>
+<app-confirmacion-modal *ngIf="modalVisible" [titulo]="modalTitulo" [mensaje]="modalMensaje"
+    [textoCancelar]="modalCancelarTexto" [textoConfirmar]="modalConfirmarTexto" [soloInfo]="modalSoloInfo"
+    (confirmar)="modalAceptar()" (cancelar)="cerrarModal()" />
 
-        <div class="flex justify-end space-x-2">
-            <button *ngIf="!modalSoloInfo" (click)="cerrarModal()"
-                class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
-                {{ modalCancelarTexto || 'Cancelar' }}
-            </button>
-
-            <button (click)="modalAceptar()" class="px-4 py-2"
-                [ngClass]="modalSoloInfo ? 'bg-green-800 text-white' : 'bg-red-600 text-white hover:bg-red-700 rounded'">
-                {{ modalConfirmarTexto || 'Aceptar' }}
-            </button>
-        </div>
-    </div>
-</div>
 
 
 <!-- Modal para nombrar archivo -->
-<div *ngIf="modalPedirNombreArchivo" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
-        <h2 class="text-xl font-bold text-green-800 mb-4">Exportar a Excel</h2>
-        <p class="text-gray-700 mb-4">Escriba el nombre del archivo:</p>
-
-        <input [(ngModel)]="nombreArchivo" placeholder="ej. HGT-Medicamento-2025-04"
-            class="border p-2 rounded w-full mb-4" />
-
-        <div class="flex justify-end space-x-2">
-            <button (click)="modalPedirNombreArchivo = false" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
-                Cancelar
-            </button>
-            <button (click)="confirmarExportacion()"
-                class="px-4 py-2 bg-green-800 text-white rounded hover:bg-green-900">
-                Descargar Excel
-            </button>
-        </div>
-    </div>
-</div>
+<app-nombrar-archivo-modal *ngIf="modalPedirNombreArchivo" [(nombreArchivo)]="nombreArchivo"
+    [(usarTemplate)]="usarTemplate"
+    (aceptar)="confirmarExportacion()" (cancelarCerrar)="cerrarModalArchivo()" />

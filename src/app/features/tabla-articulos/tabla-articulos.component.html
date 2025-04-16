@@ -1,0 +1,66 @@
+<h2 class="font-bold text-green-800">Artículos capturados</h2>
+<table class="w-full text-sm mt-2">
+    <thead class="bg-green-600 text-white">
+        <tr>
+            <th class="p-2">No.</th>
+            <th class="p-2">Clave</th>
+            <th class="p-2">Descripción</th>
+            <th class="p-2">Unidad</th>
+            <th class="p-2">Cantidad</th>
+            <th class="p-2 text-center">Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @for (articulo of articulosSolicitados; track articulo.clave; let i = $index)
+        {
+        <tr class="border-b transition-all duration-300 ease-in-out" [class.bg-yellow-100]="modoEdicionIndex === i"
+            [class.opacity-50]="modoEdicionIndex !== null && modoEdicionIndex !== i">
+
+            <td class="p-2 text-center font-semibold text-gray-700">{{ i + 1 }}</td>
+            <td class="p-2">{{ articulo.clave }}</td>
+            <td class="p-2">{{ articulo.descripcion }}</td>
+            <td class="p-2">{{ articulo.unidadMedida }}</td>
+            <td class="p-2">
+                <ng-container *ngIf="modoEdicionIndex === i; else cantidadNormal">
+                    <div class="relative inline-block w-24">
+                        <input type="number" [(ngModel)]="cantidadTemporal" min="1" max="99999"
+                            [class.border-red-500]="esCantidadInvalida()" [class.animate-pulse]="esCantidadInvalida()"
+                            class="border px-2 py-1 w-full rounded text-center transition-all duration-300" />
+                        <!-- Popup de error -->
+                        <div *ngIf="esCantidadInvalida()"
+                            class="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 bg-red-600 text-white text-xs px-3 py-1 rounded shadow-lg z-10 min-w-[180px] text-center">
+                            Debe ser un número entre 1 y 99999
+                        </div>
+                    </div>
+                </ng-container>
+                <ng-template #cantidadNormal>
+                    {{ articulo.cantidad }}
+                </ng-template>
+            </td>
+            <td class="p-2 text-center">
+                <ng-container *ngIf="modoEdicionIndex === i; else accionesNormales">
+                    <button (click)="mandarConfirmacion(i)" title="Guardar"
+                        class="text-green-600 hover:text-green-800 mx-1" [disabled]="esCantidadInvalida()">
+                        ✅
+                    </button>
+                    <button (click)="cancelar.emit()" title="Cancelar" class="text-gray-600 hover:text-gray-800 mx-1">
+                        ❌
+                    </button>
+                </ng-container>
+
+                <ng-template #accionesNormales>
+                    <button (click)="editar.emit(i)" class="text-blue-600 hover:text-blue-800 mx-1" title="Editar"
+                        [disabled]="modoEdicionIndex !== null">
+                        ✏️
+                    </button>
+                    <button (click)="eliminar.emit(i)" class="text-red-600 hover:text-red-800 mx-1"
+                        title="Eliminar" [disabled]="modoEdicionIndex !== null">
+                        🗑️
+                    </button>
+                </ng-template>
+            </td>
+
+        </tr>
+        }
+    </tbody>
+</table>

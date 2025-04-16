@@ -1,4 +1,4 @@
-# Solicitudes App (frontend) 🧾
+# Solicitudes App 🧾
 
 Aplicación en Angular 17 para capturar solicitudes de artículos tipo todo-list, con búsqueda autocompletada desde una base de datos SQLite consultada desde un backend Express desplegado en Railway.
 
@@ -9,8 +9,9 @@ Aplicación en Angular 17 para capturar solicitudes de artículos tipo todo-list
 - Almacenamiento persistente con `localStorage` en el navegador.
 - Botón "Agregar" habilitado solo cuando los datos son válidos.
 - Eliminación individual de renglones capturados.
-- Exportación a Excel.
-- Uso de modales estilo Tailwind CSS para UX amigable.
+- Modo edición por renglón: solo permite editar cantidad.
+- Exportación a Excel con confirmación del nombre de archivo.
+- Uso de modales personalizados con Tailwind CSS.
 - Estilizado institucional con Tailwind (`green-800`, `yellow-400`, etc).
 
 ## 🛠️ Stack Tecnológico
@@ -53,6 +54,10 @@ Esto usará el archivo `environment.prod.ts` para apuntar al backend en Railway.
 1. Crea un archivo `netlify.toml` en la raíz:
 
 ```toml
+[build]
+  publish = "dist/solicitudes-frontend"
+  command = "npm run build"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -65,7 +70,7 @@ Esto usará el archivo `environment.prod.ts` para apuntar al backend en Railway.
 ng build --configuration production
 ```
 
-3. conecta tu repo a Netlify vía GitHub.
+3. Sube la carpeta `dist/solicitudes-frontend` a Netlify o conecta tu repo vía GitHub.
 
 ---
 
@@ -99,21 +104,21 @@ https://solicitudes-backend.up.railway.app/api/articulos?q=paracetamol
 
 ## 🌐 Configuración de entornos en Angular
 
-### 📁 `src/environments/environment.development.ts`
-
-```ts
-export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:3000'
-};
-```
-
 ### 📁 `src/environments/environment.ts`
 
 ```ts
 export const environment = {
+  production: false,
+  apiUrl: 'http://localhost:3000/api'
+};
+```
+
+### 📁 `src/environments/environment.prod.ts`
+
+```ts
+export const environment = {
   production: true,
-  apiUrl: 'https://solicitudes-backend.up.railway.app'
+  apiUrl: 'https://solicitudes-backend.up.railway.app/api'
 };
 ```
 
@@ -121,17 +126,74 @@ Angular utiliza automáticamente el archivo correspondiente según si estás en 
 
 ---
 
-## 🧠 Notas
+## 🧩 shared/
 
-- Ya no se utiliza sql.js en el frontend.
-- La base de datos SQLite está protegida y solo es accedida desde el backend.
-- Toda la comunicación ahora es a través de HTTP.
+Este folder contiene componentes reutilizables para mostrar modales personalizados con estilos Tailwind CSS.
+
+### 📁 `NombrarArchivoModalComponent`
+
+🧠 Modal para que el usuario nombre un archivo antes de exportar.
+
+#### 📦 Importación:
+```ts
+import { NombrarArchivoModalComponent } from './shared/nombrar-archivo-modal/nombrar-archivo-modal.component';
+```
+
+#### 🧬 Uso:
+```html
+<app-nombrar-archivo-modal
+  [(nombreArchivo)]="nombreArchivo"
+  (aceptar)="confirmarExportacion()"
+  (cancelarCerrar)="modalPedirNombreArchivo = false"
+/>
+```
+
+- `[(nombreArchivo)]`: binding bidireccional para el nombre ingresado
+- `(aceptar)`: se emite cuando el usuario confirma
+- `(cancelarCerrar)`: se emite al cancelar o cerrar
+
+### 📁 `ConfirmacionModalComponent`
+
+🧠 Modal reutilizable para confirmaciones, alertas o mensajes informativos.
+
+#### 📦 Importación:
+```ts
+import { ConfirmacionModalComponent } from './shared/confirmacion-modal/confirmacion-modal.component';
+```
+
+#### 🧬 Uso:
+```html
+<app-confirmacion-modal
+  [titulo]="modalTitulo"
+  [mensaje]="modalMensaje"
+  [textoCancelar]="modalCancelarTexto"
+  [textoConfirmar]="modalConfirmarTexto"
+  [soloInfo]="modalSoloInfo"
+  (confirmar)="modalAceptar()"
+  (cancelar)="cerrarModal()"
+/>
+```
+
+- `titulo`: Título del modal
+- `mensaje`: Cuerpo del mensaje
+- `textoCancelar`: Texto personalizado del botón cancelar
+- `textoConfirmar`: Texto personalizado del botón confirmar
+- `soloInfo`: true = solo botón de aceptar
+- `(confirmar)`: Emitido al hacer clic en aceptar
+- `(cancelar)`: Emitido al cancelar
+
+### 🧠 Notas Generales sobre `/shared`
+- Todos los modales son componentes `standalone`
+- Se usan estilos institucionales (verde IMSS, dorado, etc.)
+- No se usa SweetAlert, todo está hecho con Tailwind y lógica Angular
 
 ---
 
 ## 🧑 Autor
 
 Desarrollado por Mario 🧑‍💻
+
+Para uso institucional en solicitudes de insumos y abasto.
 
 ---
 

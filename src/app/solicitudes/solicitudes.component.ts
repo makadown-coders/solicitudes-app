@@ -1,19 +1,27 @@
 import { ArticuloSolicitud } from '../models/articulo-solicitud';
-import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, Subject } from 'rxjs';
 import { CommonModule } from '@angular/common';
-import * as XLSX from 'xlsx';
-import { environment } from '../../environments/environment';
+import { NombrarArchivoModalComponent } from '../shared/nombrar-archivo-modal/nombrar-archivo-modal.component';
+import { ConfirmacionModalComponent } from '../shared/confirmacion-modal/confirmacion-modal.component';
+import { TablaArticulosComponent } from '../features/tabla-articulos/tabla-articulos.component';
+import { ArticulosService } from '../services/articulos.service';
+import { ExcelService } from '../services/excel.service';
 
 
 @Component({
   selector: 'app-solicitudes',
   standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './solicitudes.component.html'
+  imports: [CommonModule, FormsModule, 
+            NombrarArchivoModalComponent,
+            ConfirmacionModalComponent,
+            TablaArticulosComponent],
+  templateUrl: './solicitudes.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SolicitudesComponent implements OnInit {
+export class SolicitudesComponent implements OnInit, AfterViewInit {  
+  
   mostrarModal = false;
   modalVisible = false;
   modalTitulo = '';
@@ -22,7 +30,7 @@ export class SolicitudesComponent implements OnInit {
   modalCancelarTexto = '';
   modalCallback?: () => void;
   modalSoloInfo = false;
-  articulosSolicitados: ArticuloSolicitud[] = [];  
+  articulosSolicitados: ArticuloSolicitud[] = [];
 
   claveInput = '';
   descripcionInput = '';
@@ -40,9 +48,18 @@ export class SolicitudesComponent implements OnInit {
   selectedIndex = -1;
 
   private searchSubject = new Subject<string>();
+  articulosService = inject(ArticulosService);
+  excelService = inject(ExcelService);
 
   @ViewChildren('resultItem') resultItems!: QueryList<ElementRef>;
   @ViewChild('inputClave') inputClaveRef!: ElementRef<HTMLInputElement>;
+
+  modoEdicionIndex: number | null = null;
+  cantidadTemporal: number = 0;
+
+  usarTemplate: boolean = true;
+
+  private cdRef = inject(ChangeDetectorRef);
 
   @HostListener('document:keydown.escape', ['$event'])
   onKeydownHandler(event: KeyboardEvent) {
@@ -69,30 +86,68 @@ export class SolicitudesComponent implements OnInit {
     });
   }
 
+  ngAfterViewInit(): void {
+    this.cdRef.detectChanges();
+  }
+
   onClaveInput() {
     this.searchSubject.next(this.claveInput.trim());
   }
 
   buscarEnDB(texto: string) {
-    fetch(`${environment.apiUrl}/api/articulos?q=${encodeURIComponent(texto)}`)
-    .then(res => res.json())
-    .then(data => {
-      this.autocompleteResults = data.resultados || [];
-      this.totalResults = data.total || 0;
-      this.moreResults = this.totalResults > 12;
-      this.selectedIndex = 0;
-      setTimeout(() => this.focusSelectedItem(), 0);
-    })
-    .catch(err => {
-      console.error('Error al consultar el backend:', err);
-      this.autocompleteResults = [];
+    this.buscarArticulosConFallback(texto);
+  }
+
+  buscarArticulosConFallback(texto: string) {
+    const timestampFallback = localStorage.getItem('usarFallbackLocal');
+    const ahora = Date.now();
+    const unDiaMs = 24 * 60 * 60 * 1000;
+  
+    if (timestampFallback && ahora - Number(timestampFallback) < unDiaMs) {
+      // 🔁 Usa fallback directamente
+      this.usarBusquedaLocal(texto);
+      return;
+    }
+  
+    // 🔌 Intenta con backend Railway
+    this.articulosService.buscarArticulos(texto).subscribe({
+      next: (data) => {
+        this.autocompleteResults = data.resultados || [];
+        this.totalResults = data.total || 0;
+        this.moreResults = this.totalResults > 12;
+        this.selectedIndex = 0;
+        setTimeout(() => this.focusSelectedItem(), 0);
+      },
+      error: (error) => {
+        console.warn('⚠️ Backend no disponible, usando fallback por 24h');
+        localStorage.setItem('usarFallbackLocal', ahora.toString());
+        this.usarBusquedaLocal(texto);
+      }
     });
   }
+  
+  usarBusquedaLocal(texto: string) {
+    this.articulosService.buscarArticulosv2(texto).subscribe({
+      next: (data) => {
+        this.autocompleteResults = data.resultados || [];
+        this.totalResults = data.total || 0;
+        this.moreResults = this.totalResults > 12;
+        this.selectedIndex = 0;
+        setTimeout(() => this.focusSelectedItem(), 0);
+      },
+      error: (fallbackError) => {
+        console.error('Error en búsqueda local:', fallbackError);
+        this.autocompleteResults = [];
+        this.totalResults = 0;
+      }
+    });
+  }
+  
 
   selectArticulo(item: any) {
     this.claveInput = item.clave;
-    this.descripcionInput = item.descripcion;
-    this.unidadInput = item.presentacion;
+    this.descripcionInput = item.descripcion??'';
+    this.unidadInput = item.unidadMedida?? (item.presentacion??'');
     this.autocompleteResults = [];
     this.selectedIndex = -1;
   }
@@ -168,7 +223,7 @@ export class SolicitudesComponent implements OnInit {
     this.unidadInput = '';
     this.cantidadInput = 0;
     this.selectedIndex = -1;
-    
+
     setTimeout(() => {
       this.inputClaveRef?.nativeElement.focus();
     }, 0);
@@ -231,13 +286,7 @@ export class SolicitudesComponent implements OnInit {
   }
 
   exportarExcel(nombreArchivo: string) {
-    const worksheet = XLSX.utils.json_to_sheet(this.articulosSolicitados);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Solicitudes');
-
-    const nombreFinal = nombreArchivo.endsWith('.xlsx') ? nombreArchivo : `${nombreArchivo}.xlsx`;
-
-    XLSX.writeFile(workbook, nombreFinal);
+    this.excelService.exportarExcel(nombreArchivo, this.articulosSolicitados);
 
     this.abrirModalInfo(
       'Archivo descargado',
@@ -245,14 +294,80 @@ export class SolicitudesComponent implements OnInit {
     );
   }
 
+  exportarExcelConTemplate(nombreArchivo: string): void {
+    this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo, this.articulosSolicitados);
+    /*const B1 = 'Aquí va el nombre del hospital!';
+    const D4 = 'Aquí va tipos de insumo!';
+    const E5 = 'Aquí va periodo!';
+    ExcelTable.replaceInExcel("template.xlsx", {  
+      B1,  
+      D4,  
+      E5,
+      data: JSON.stringify(this.articulosSolicitados),
+    }, {
+      fileName: nombreArchivo
+    });*/
+  /*
+    fetch('template.xlsx')
+      .then((res) => res.arrayBuffer())
+      .then((buffer) => {
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const hoja = workbook.Sheets[workbook.SheetNames[0]];
+  
+        // 👉 Insertar valores clave
+        hoja['B1'] = { t: 's', v: B1 };
+        hoja['D4'] = { t: 's', v: D4 };
+        hoja['E5'] = { t: 's', v: E5 };
+  
+        // 👉 Insertar los artículos comenzando desde B13
+        const startRow = 13;
+  
+        this.articulosSolicitados.forEach((articulo, index) => {
+          const fila = startRow + index;
+  
+          hoja[`B${fila}`] = { t: 's', v: articulo.clave };
+          hoja[`C${fila}`] = { t: 's', v: articulo.descripcion };
+          hoja[`D${fila}`] = { t: 's', v: articulo.unidadMedida };
+          hoja[`E${fila}`] = { t: 'n', v: articulo.cantidad };
+        });
+  
+        // Generar nombre final con .xlsx si no lo incluye
+        const nombreFinal = nombreArchivo.endsWith('.xlsx') ? nombreArchivo : `${nombreArchivo}.xlsx`;
+  
+        // Descargar archivo
+        const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbout], { type: 'application/octet-stream' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = nombreFinal;
+        a.click();
+  
+        // Modal final de info
+        this.abrirModalInfo(
+          'Archivo descargado',
+          'Por favor cerciórese que la información descargada esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
+        );
+      })
+      .catch((error) => {
+        console.error('❌ Error al exportar con template:', error);
+        this.abrirModalInfo('Error', 'No se pudo generar el archivo usando la plantilla.');
+      });*/
+  }
+  
+
   mostrarModalExportar() {
-    this.nombreArchivo = `HGT-Medicamento-${new Date().toISOString().slice(0, 7)}`;
+    this.nombreArchivo = `Solicitud-${new Date().toISOString().slice(0, 7)}`;
     this.modalPedirNombreArchivo = true;
   }
 
   confirmarExportacion() {
     this.modalPedirNombreArchivo = false;
-    this.exportarExcel(this.nombreArchivo);
+  
+    if (this.usarTemplate) {
+      this.exportarExcelConTemplate(this.nombreArchivo);
+    } else {
+      this.exportarExcel(this.nombreArchivo);
+    }
   }
 
   eliminarArticulo(index: number) {
@@ -276,8 +391,36 @@ export class SolicitudesComponent implements OnInit {
       this.descripcionInput.trim().length > 0 &&
       this.unidadInput.trim().length > 0 &&
       this.cantidadInput > 0 &&
-      this.cantidadInput < 32000
+      this.cantidadInput < 99999
     );
+  }
+
+  activarEdicion(index: number) {
+    this.modoEdicionIndex = index;
+    this.cantidadTemporal = this.articulosSolicitados[index].cantidad;
+  }
+
+  cambiarCantidad(cantidad: number) {
+    this.cantidadTemporal = cantidad;    
+  }
+  
+  cancelarEdicion() {
+    this.modoEdicionIndex = null;
+    this.cantidadTemporal = 0;
+  }
+  
+  confirmarEdicion(index: number) {
+    this.articulosSolicitados[index].cantidad = this.cantidadTemporal;
+    this.modoEdicionIndex = null;
+    localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+  }
+
+  esCantidadInvalida(): boolean {
+    return this.cantidadTemporal <= 0 || this.cantidadTemporal > 99999;
+  } 
+
+  cerrarModalArchivo() {
+    this.modalPedirNombreArchivo = false;
   }
 
 }
