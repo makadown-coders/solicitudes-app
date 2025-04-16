@@ -59,7 +59,8 @@
 
     </div>
     <button *ngIf="articulosSolicitados.length > 0" (click)="mostrarModalExportar()"
-        class="bg-green-600 text-white p-2 rounded mt-4 hover:bg-green-700">
+        class="bg-green-600 text-white p-2 rounded mt-4 hover:bg-green-700 ml-2" [disabled]="modoEdicionIndex !== null"
+        [ngClass]="modoEdicionIndex !== null ? 'opacity-50 cursor-not-allowed' : ''">
         Finalizar y Exportar
     </button>
 

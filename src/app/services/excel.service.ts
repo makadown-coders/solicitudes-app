@@ -2,14 +2,11 @@ import { Injectable } from '@angular/core';
 import { ArticuloSolicitud } from '../models/articulo-solicitud';
 import * as XLSX from 'xlsx';
 import * as ExcelJS from 'exceljs';
-import { Observable, from } from 'rxjs';
-import { switchMap, map } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
 
     exportarExcel(nombreArchivo: string, articulosSolicitados: ArticuloSolicitud[]) {
-        console.log('entrando a exportarExcel()');
         const worksheet = XLSX.utils.json_to_sheet(articulosSolicitados);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Solicitudes');
@@ -27,10 +24,6 @@ export class ExcelService {
         const B1 = 'Aquí va el nombre del hospital!';
         const D4 = 'Aquí va tipos de insumo!';
         const E5 = 'Aquí va periodo!';
-        /* const workbookJS = new ExcelJS.Workbook();        
-         console.log("a leer el template", templateUrl);
-         const workbook = await workbookJS.xlsx.load(templateUrl);
-        */
         const workbook = new ExcelJS.Workbook();
         const response = await fetch(templateUrl);
         const arrayBuffer = await response.arrayBuffer();

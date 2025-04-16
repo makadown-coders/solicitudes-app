@@ -1,13 +1,13 @@
-import { ArticuloSolicitud } from '../models/articulo-solicitud';
+import { ArticuloSolicitud } from '../../models/articulo-solicitud';
 import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, Subject } from 'rxjs';
 import { CommonModule } from '@angular/common';
-import { NombrarArchivoModalComponent } from '../shared/nombrar-archivo-modal/nombrar-archivo-modal.component';
-import { ConfirmacionModalComponent } from '../shared/confirmacion-modal/confirmacion-modal.component';
-import { TablaArticulosComponent } from '../features/tabla-articulos/tabla-articulos.component';
-import { ArticulosService } from '../services/articulos.service';
-import { ExcelService } from '../services/excel.service';
+import { NombrarArchivoModalComponent } from '../../shared/nombrar-archivo-modal/nombrar-archivo-modal.component';
+import { ConfirmacionModalComponent } from '../../shared/confirmacion-modal/confirmacion-modal.component';
+import { TablaArticulosComponent } from '../tabla-articulos/tabla-articulos.component';
+import { ArticulosService } from '../../services/articulos.service';
+import { ExcelService } from '../../services/excel.service';
 
 
 @Component({
@@ -289,71 +289,18 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   exportarExcel(nombreArchivo: string) {
     this.excelService.exportarExcel(nombreArchivo, this.articulosSolicitados);
-
     this.abrirModalInfo(
-      'Archivo descargado',
+      'Archivo generado',
       'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
     );
   }
 
   exportarExcelConTemplate(nombreArchivo: string): void {
     this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo, this.articulosSolicitados);
-    /*const B1 = 'Aquí va el nombre del hospital!';
-    const D4 = 'Aquí va tipos de insumo!';
-    const E5 = 'Aquí va periodo!';
-    ExcelTable.replaceInExcel("template.xlsx", {  
-      B1,  
-      D4,  
-      E5,
-      data: JSON.stringify(this.articulosSolicitados),
-    }, {
-      fileName: nombreArchivo
-    });*/
-  /*
-    fetch('template.xlsx')
-      .then((res) => res.arrayBuffer())
-      .then((buffer) => {
-        const workbook = XLSX.read(buffer, { type: 'array' });
-        const hoja = workbook.Sheets[workbook.SheetNames[0]];
-  
-        // 👉 Insertar valores clave
-        hoja['B1'] = { t: 's', v: B1 };
-        hoja['D4'] = { t: 's', v: D4 };
-        hoja['E5'] = { t: 's', v: E5 };
-  
-        // 👉 Insertar los artículos comenzando desde B13
-        const startRow = 13;
-  
-        this.articulosSolicitados.forEach((articulo, index) => {
-          const fila = startRow + index;
-  
-          hoja[`B${fila}`] = { t: 's', v: articulo.clave };
-          hoja[`C${fila}`] = { t: 's', v: articulo.descripcion };
-          hoja[`D${fila}`] = { t: 's', v: articulo.unidadMedida };
-          hoja[`E${fila}`] = { t: 'n', v: articulo.cantidad };
-        });
-  
-        // Generar nombre final con .xlsx si no lo incluye
-        const nombreFinal = nombreArchivo.endsWith('.xlsx') ? nombreArchivo : `${nombreArchivo}.xlsx`;
-  
-        // Descargar archivo
-        const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([wbout], { type: 'application/octet-stream' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = nombreFinal;
-        a.click();
-  
-        // Modal final de info
-        this.abrirModalInfo(
-          'Archivo descargado',
-          'Por favor cerciórese que la información descargada esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
-        );
-      })
-      .catch((error) => {
-        console.error('❌ Error al exportar con template:', error);
-        this.abrirModalInfo('Error', 'No se pudo generar el archivo usando la plantilla.');
-      });*/
+    this.abrirModalInfo(
+      'Archivo generado',
+      'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
+    );
   }
   
 

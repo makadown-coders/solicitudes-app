@@ -1,0 +1,71 @@
+<h2 class="text-xl font-bold text-green-800 mb-4">Datos de la CLUES</h2>
+
+<div class="space-y-4">
+    <div class="relative mb-6">
+        <label class="block font-semibold text-gray-700 mb-1">Nombre del hospital</label>
+
+        <!-- Input + lista cuando no hay hospital seleccionado -->
+        <ng-container *ngIf="!selectedHospital; else hospitalResumen">
+            <input type="text" [(ngModel)]="nombreHospital" (input)="onInputHospital(nombreHospital)"
+                (keydown)="onHospitalKeyDown($event)" class="border rounded w-full p-2"
+                placeholder="Buscar por nombre, cluesimb o cluesssa" />
+
+            <!-- Lista de sugerencias -->
+            <ul *ngIf="autocompleteHospitales.length"
+                class="absolute z-10 w-full bg-white border rounded shadow max-h-60 overflow-auto mt-1">
+                <li *ngFor="let h of autocompleteHospitales; let i = index" (click)="selectHospital(h)"
+                    [class.bg-gray-200]="i === selectedIndex" class="p-2 hover:bg-gray-200 cursor-pointer">
+                    
+                    {{ h.cluesssa }} | {{ h.cluesimb }} - {{ h.nombre }}
+                </li>
+            </ul>
+        </ng-container>
+
+        <!-- Resumen cuando ya hay hospital seleccionado -->
+        <ng-template #hospitalResumen>
+            <div
+                class="flex items-center justify-between bg-green-50 border border-green-700 rounded px-3 py-2 text-sm text-green-900">
+                <div class="flex items-center">
+                    <lucide-angular [img]="HospitalIcon" class="w-5 h-5 mr-2" />
+                    <span class="font-semibold">{{ selectedHospital.nombre }}</span>
+                </div>
+                <button type="button" class="text-green-800 text-xs underline hover:text-green-900"
+                    (click)="selectedHospital = null; nombreHospital = ''">
+                    Cambiar
+                </button>
+            </div>
+
+            <!-- CLUES SSA e IMB solo si ya hay hospital seleccionado -->
+            <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">CLUES SSA</label>
+                    <div class="mt-1 bg-gray-50 border rounded px-3 py-2 text-sm text-gray-800">
+                        {{ selectedHospital.cluesssa }}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">CLUES IMB</label>
+                    <div class="mt-1 bg-gray-50 border rounded px-3 py-2 text-sm text-gray-800">
+                        {{ selectedHospital.cluesimb }}
+                    </div>
+                </div>
+            </div>
+        </ng-template>
+    </div>
+
+
+    <div>
+        <label class="block font-semibold text-gray-700">Tipo de insumo</label>
+        <input [(ngModel)]="tipoInsumo" class="border rounded w-full p-2" placeholder="Ej. Medicamento" />
+    </div>
+
+    <div>
+        <label class="block font-semibold text-gray-700">Periodo</label>
+        <input [(ngModel)]="periodo" class="border rounded w-full p-2" placeholder="Ej. Abril 2025" />
+    </div>
+
+    <button (click)="avanzar()" class="bg-green-800 hover:bg-green-900 text-white px-4 py-2 rounded mt-4">
+        Siguiente →
+    </button>
+</div>

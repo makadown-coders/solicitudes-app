@@ -28,8 +28,3 @@ export interface Hospital {
   nombre: string
 }
 
-export interface TemplateData {
-  nombre: string; // nombre del hospital
-  tipoDeInsumo: string[]; // tipo de insumo 
-  fecha: string; // periodo de captura (ej. 01-30 Abr 2025)    
-}
