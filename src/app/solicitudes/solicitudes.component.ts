@@ -133,6 +133,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
         this.totalResults = data.total || 0;
         this.moreResults = this.totalResults > 12;
         this.selectedIndex = 0;
+        this.cdRef.detectChanges();
         setTimeout(() => this.focusSelectedItem(), 0);
       },
       error: (fallbackError) => {
