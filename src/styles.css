@@ -2,3 +2,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+@layer components {
+    .cal-btn {
+      @apply rounded px-2 py-1 transition hover:bg-green-200;
+    }
+  
+    .cal-cell-active {
+      @apply bg-green-600 text-white font-bold;
+    }
+  
+    .cal-cell-hover {
+      @apply bg-green-100 text-green-800;
+    }
+  
+    .cal-cell-range {
+      @apply bg-green-300 text-green-900;
+    }
+  }
