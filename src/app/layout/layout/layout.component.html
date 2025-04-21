@@ -1,36 +1,33 @@
 <div class="container mx-auto p-4">
-    <div class="flex border-b border-gray-300 mb-4">
-      <button
-        class="px-4 py-2"
-        [ngClass]="{
+  <div class="flex border-b border-gray-300 mb-4">
+    <button class="px-4 py-2" [ngClass]="{
           'border-b-2 border-green-800 text-green-800 font-bold': activeTab === 'clues',
           'text-gray-600': activeTab !== 'clues'
-        }"
-        (click)="activeTab = 'clues'"
-      >
-        CLUES
-      </button>
-      <button
-        class="px-4 py-2 ml-4"
-        [ngClass]="{
-          'border-b-2 border-green-800 text-green-800 font-bold': activeTab === 'solicitud',
-          'text-gray-600': activeTab !== 'solicitud'
-        }"
-        (click)="activeTab = 'solicitud'"
-      >
-        SOLICITUD
-      </button>
-    </div>
-  
-    <ng-container *ngIf="activeTab === 'clues'">
-        <app-captura-clues
-        (datosCapturados)="onDatosCluesCapturados($event)"
-        (irASolicitud)="irASolicitud()"
-      />
-    </ng-container>
-  
-    <ng-container *ngIf="activeTab === 'solicitud'">
-      <app-solicitudes />
-    </ng-container>
+        }" (click)="setTabActivo('clues')">
+      CLUES
+    </button>
+    <button (click)="setTabActivo('solicitud')"
+     [disabled]="!esFormularioCluesValido()" [ngClass]="{
+    'text-green-800 border-b-2 border-green-800 font-bold': activeTab === 'solicitud',
+    'text-gray-400 cursor-not-allowed': !esFormularioCluesValido()
+    }" class="px-4 py-2" >
+      SOLICITUD
+    </button>
+
   </div>
-  
+
+  <ng-container>
+    <div [hidden]="activeTab !== 'clues'" class="transition-opacity duration-300"
+      [class.opacity-100]="activeTab === 'clues'" [class.opacity-0]="activeTab !== 'clues'">
+      <app-captura-clues (datosCapturados)="onDatosCluesCapturados($event)"
+      (irASolicitud)="irASolicitud()" />
+    </div>
+  </ng-container>
+
+  <ng-container>
+    <div [hidden]="activeTab !== 'solicitud'" class="transition-opacity duration-300"
+      [class.opacity-100]="activeTab === 'solicitud'" [class.opacity-0]="activeTab !== 'solicitud'">
+      <app-solicitudes />
+    </div>
+  </ng-container>
+</div>

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { ArticuloSolicitud } from '../models/articulo-solicitud';
 import * as XLSX from 'xlsx';
 import * as ExcelJS from 'exceljs';
+import { DatosClues } from '../models/datos-clues';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
@@ -21,9 +22,18 @@ export class ExcelService {
         nombreArchivo: string,
         articulosSolicitados: ArticuloSolicitud[]) {
 
-        const B1 = 'Aquí va el nombre del hospital!';
-        const D4 = 'Aquí va tipos de insumo!';
-        const E5 = 'Aquí va periodo!';
+        let B1 = '';
+        let D4 = '';
+        let E5 = '';
+
+        const datosCluesStr = localStorage.getItem('datosClues');
+        if (datosCluesStr) {
+            const datosClues = JSON.parse(datosCluesStr) as DatosClues;
+            B1 = datosClues.nombreHospital;
+            D4 = datosClues.tipoInsumo;
+            E5 = datosClues.periodo;
+        }
+
         const workbook = new ExcelJS.Workbook();
         const response = await fetch(templateUrl);
         const arrayBuffer = await response.arrayBuffer();

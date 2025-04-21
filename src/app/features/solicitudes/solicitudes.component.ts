@@ -238,6 +238,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   confirmarLimpieza() {
     this.articulosSolicitados = [];
     localStorage.removeItem('articulosSolicitados');
+    localStorage.removeItem('datosClues');
+    localStorage.setItem('activeTab', 'clues');
     this.cerrarModal();
   }
 
