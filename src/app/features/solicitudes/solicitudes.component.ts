@@ -8,20 +8,21 @@ import { ConfirmacionModalComponent } from '../../shared/confirmacion-modal/conf
 import { TablaArticulosComponent } from '../tabla-articulos/tabla-articulos.component';
 import { ArticulosService } from '../../services/articulos.service';
 import { ExcelService } from '../../services/excel.service';
+import { DatosClues } from '../../models/datos-clues';
 
 
 @Component({
   selector: 'app-solicitudes',
   standalone: true,
-  imports: [CommonModule, FormsModule, 
-            NombrarArchivoModalComponent,
-            ConfirmacionModalComponent,
-            TablaArticulosComponent],
+  imports: [CommonModule, FormsModule,
+    NombrarArchivoModalComponent,
+    ConfirmacionModalComponent,
+    TablaArticulosComponent],
   templateUrl: './solicitudes.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SolicitudesComponent implements OnInit, AfterViewInit {  
-  
+export class SolicitudesComponent implements OnInit, AfterViewInit {
+
   mostrarModal = false;
   modalVisible = false;
   modalTitulo = '';
@@ -102,13 +103,13 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     const timestampFallback = localStorage.getItem('usarFallbackLocal');
     const ahora = Date.now();
     const unDiaMs = 24 * 60 * 60 * 1000;
-  
+
     if (timestampFallback && ahora - Number(timestampFallback) < unDiaMs) {
       // 🔁 Usa fallback directamente
       this.usarBusquedaLocal(texto);
       return;
     }
-  
+
     // 🔌 Intenta con backend Railway
     this.articulosService.buscarArticulos(texto).subscribe({
       next: (data) => {
@@ -126,7 +127,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       }
     });
   }
-  
+
   usarBusquedaLocal(texto: string) {
     this.articulosService.buscarArticulosv2(texto).subscribe({
       next: (data) => {
@@ -144,12 +145,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       }
     });
   }
-  
+
 
   selectArticulo(item: any) {
     this.claveInput = item.clave;
-    this.descripcionInput = item.descripcion??'';
-    this.unidadInput = item.unidadMedida?? (item.presentacion??'');
+    this.descripcionInput = item.descripcion ?? '';
+    this.unidadInput = item.unidadMedida ?? (item.presentacion ?? '');
     this.autocompleteResults = [];
     this.selectedIndex = -1;
   }
@@ -304,7 +305,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
     );
   }
-  
+
 
   mostrarModalExportar() {
     this.nombreArchivo = `Solicitud-${new Date().toISOString().slice(0, 7)}`;
@@ -313,11 +314,21 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   confirmarExportacion() {
     this.modalPedirNombreArchivo = false;
-  
+
+    const cluesStr = localStorage.getItem('datosClues');
+    let nombreArchivoCompleto = this.nombreArchivo;
+    if (cluesStr) {
+      const datosClues = JSON.parse(cluesStr) as DatosClues;
+      
+      nombreArchivoCompleto = datosClues.nombreHospital.replace(/\s+/g, '-');
+      nombreArchivoCompleto += datosClues.tipoInsumo.split('-');
+      nombreArchivoCompleto += datosClues.periodo.replace(/\s+/g, '-');
+    }
+
     if (this.usarTemplate) {
-      this.exportarExcelConTemplate(this.nombreArchivo);
+      this.exportarExcelConTemplate(nombreArchivoCompleto);
     } else {
-      this.exportarExcel(this.nombreArchivo);
+      this.exportarExcel(nombreArchivoCompleto);
     }
   }
 
@@ -352,14 +363,14 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   }
 
   cambiarCantidad(cantidad: number) {
-    this.cantidadTemporal = cantidad;    
+    this.cantidadTemporal = cantidad;
   }
-  
+
   cancelarEdicion() {
     this.modoEdicionIndex = null;
     this.cantidadTemporal = 0;
   }
-  
+
   confirmarEdicion(index: number) {
     this.articulosSolicitados[index].cantidad = this.cantidadTemporal;
     this.modoEdicionIndex = null;
@@ -368,7 +379,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   esCantidadInvalida(): boolean {
     return this.cantidadTemporal <= 0 || this.cantidadTemporal > 99999;
-  } 
+  }
 
   cerrarModalArchivo() {
     this.modalPedirNombreArchivo = false;
