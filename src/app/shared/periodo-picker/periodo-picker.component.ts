@@ -1,12 +1,11 @@
 import { ChangeDetectorRef, Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NombreMesPipe } from '../nombre-mes.pipe';
 import { PeriodoFechasService } from '../periodo-fechas.service';
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-periodo-picker',
-  imports: [CommonModule, NombreMesPipe, FormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './periodo-picker.component.html',
   styleUrl: './periodo-picker.component.css'
 })
@@ -23,8 +22,8 @@ export class PeriodoPickerComponent {
   fechaInicioAnterior: Date | null = null;
   fechaFinAnterior: Date | null = null;
   mostrarCalendario = false;
-  mesActual: number = new Date().getMonth(); // 0 = enero
-  anioActual: number = new Date().getFullYear();
+  mesElegido: number = new Date().getMonth(); // 0 = enero
+  anioElegido: number = new Date().getFullYear();
   hoveredDate: Date | null = null;
   private cdRef = inject(ChangeDetectorRef);
 
@@ -49,13 +48,13 @@ export class PeriodoPickerComponent {
   }
 
   cambiarMes(delta: number) {
-    this.mesActual += delta;
-    if (this.mesActual > 11) {
-      this.mesActual = 0;
-      this.anioActual++;
-    } else if (this.mesActual < 0) {
-      this.mesActual = 11;
-      this.anioActual--;
+    this.mesElegido += delta;
+    if (this.mesElegido > 11) {
+      this.mesElegido = 0;
+      this.anioElegido++;
+    } else if (this.mesElegido < 0) {
+      this.mesElegido = 11;
+      this.anioElegido--;
     }
   }
 
@@ -85,16 +84,16 @@ export class PeriodoPickerComponent {
 
 
   crearFecha(dia: number): Date {
-    return new Date(this.anioActual, this.mesActual, dia);
+    return new Date(this.anioElegido, this.mesElegido, dia);
   }
 
   getDiasDelMes(): (number | null)[] {
     const dias: (number | null)[] = [];
 
-    const primerDia = new Date(this.anioActual, this.mesActual, 1);
+    const primerDia = new Date(this.anioElegido, this.mesElegido, 1);
     const diaSemana = primerDia.getDay(); // 0 = domingo, 1 = lunes, ...
 
-    const diasEnMes = new Date(this.anioActual, this.mesActual + 1, 0).getDate();
+    const diasEnMes = new Date(this.anioElegido, this.mesElegido + 1, 0).getDate();
 
     // Agrega espacios vacíos al inicio
     for (let i = 0; i < diaSemana; i++) {
@@ -110,25 +109,27 @@ export class PeriodoPickerComponent {
   }
 
   esInicio(dia: number): boolean {
-    return !!(
+    const retorno = !!(
       this.fechaInicio &&
       this.fechaInicio.getDate() === dia &&
-      this.fechaInicio.getMonth() === this.mesActual &&
-      this.fechaInicio.getFullYear() === this.anioActual
+      this.fechaInicio.getMonth() === this.mesElegido &&
+      this.fechaInicio.getFullYear() === this.anioElegido
     );
+    return retorno;
   }
 
   esFin(dia: number): boolean {
-    return !!(
-      this.fechaFin &&
+    const retorno = this.fechaFin !== null && (
       this.fechaFin.getDate() === dia &&
-      this.fechaFin.getMonth() === this.mesActual &&
-      this.fechaFin.getFullYear() === this.anioActual
+      this.fechaFin.getMonth() === this.mesElegido as number &&
+      this.fechaFin.getFullYear() === this.anioElegido
     );
+    return retorno;
   }
 
   esInicioOFin(dia: number): boolean {
-    return this.esInicio(dia) || this.esFin(dia);
+    const retorno = this.esInicio(dia) || this.esFin(dia);
+    return retorno;
   }
 
   esHoverFin(dia: number): boolean {
@@ -137,15 +138,15 @@ export class PeriodoPickerComponent {
       !this.fechaFin &&
       this.hoveredDate &&
       this.hoveredDate.getDate() === dia &&
-      this.hoveredDate.getMonth() === this.mesActual &&
-      this.hoveredDate.getFullYear() === this.anioActual
+      this.hoveredDate.getMonth() === this.mesElegido &&
+      this.hoveredDate.getFullYear() === this.anioElegido
     );
   }
 
   isBetween(dia: number): boolean {
     if (!this.fechaInicio || !this.fechaFin) return false;
 
-    const actual = new Date(this.anioActual, this.mesActual, dia).getTime();
+    const actual = new Date(this.anioElegido, this.mesElegido, dia).getTime();
     return (
       actual > this.fechaInicio.getTime() &&
       actual < this.fechaFin.getTime()
@@ -155,7 +156,7 @@ export class PeriodoPickerComponent {
   isHovered(dia: number): boolean {
     if (!this.fechaInicio || this.fechaFin || !this.hoveredDate) return false;
 
-    const actual = new Date(this.anioActual, this.mesActual, dia).getTime();
+    const actual = new Date(this.anioElegido, this.mesElegido, dia).getTime();
     const inicio = this.fechaInicio.getTime();
     const hover = this.hoveredDate.getTime();
 
@@ -163,15 +164,13 @@ export class PeriodoPickerComponent {
   }
 
   onMesCambiado(nuevoMes: number) {
-    console.log('mes actual', this.mesActual);
-    console.log('mes cambiado', nuevoMes);
-    this.mesActual = nuevoMes;
+    this.mesElegido = +nuevoMes; // forzando a número porque viene como string quien sabe porqué :/ 
     this.hoveredDate = null; // limpiar si estaba seleccionando
     this.cdRef.detectChanges();
   }
 
   onAnioCambiado(nuevoAnio: number) {
-    this.anioActual = nuevoAnio;
+    this.anioElegido = nuevoAnio;
     this.hoveredDate = null;
     this.cdRef.detectChanges();
   }

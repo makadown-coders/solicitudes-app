@@ -6,21 +6,28 @@
         }" (click)="setTabActivo('clues')">
       CLUES
     </button>
-    <button (click)="setTabActivo('solicitud')"
-     [disabled]="!esFormularioCluesValido()" [ngClass]="{
+    <button (click)="setTabActivo('solicitud')" [disabled]="!esFormularioCluesValido()" [ngClass]="{
     'text-green-800 border-b-2 border-green-800 font-bold': activeTab === 'solicitud',
     'text-gray-400 cursor-not-allowed': !esFormularioCluesValido()
-    }" class="px-4 py-2" >
+    }" class="px-4 py-2">
       SOLICITUD
     </button>
-
+    <!-- Logo -->
+    <img src="imssb-logo.svg" alt="IMSS Bienestar" class="h-10 md:h-12 ml-auto" />
+    <div class="flex items-center gap-2">      
+      <!-- Ícono de ayuda -->
+      <button (click)="mostrarGuia()" title="Ayuda contextual">
+        <lucide-angular [img]="CircleHelp" [color]="'#006341'" class="w-8 h-8 mr-2 mt-1" />
+      </button>
+    </div>
   </div>
+
+
 
   <ng-container>
     <div [hidden]="activeTab !== 'clues'" class="transition-opacity duration-300"
       [class.opacity-100]="activeTab === 'clues'" [class.opacity-0]="activeTab !== 'clues'">
-      <app-captura-clues (datosCapturados)="onDatosCluesCapturados($event)"
-      (irASolicitud)="irASolicitud()" />
+      <app-captura-clues (datosCapturados)="onDatosCluesCapturados($event)" (irASolicitud)="irASolicitud()" />
     </div>
   </ng-container>
 
@@ -30,4 +37,36 @@
       <app-solicitudes />
     </div>
   </ng-container>
+</div>
+
+
+
+<!-- Modal de guía contextual -->
+<div *ngIf="guiaVisible" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+  <div class="bg-white max-w-xl w-full rounded-lg p-6 shadow-lg relative">
+    <h2 class="text-xl font-bold text-green-800 mb-4">Ayuda rápida: {{ activeTab | titlecase }}</h2>
+
+    <ng-container [ngSwitch]="activeTab">
+      <!-- Sección de CLUES -->
+      <div *ngSwitchCase="'clues'" class="space-y-2 text-sm text-gray-700">
+        <p><strong>Nombre del hospital:</strong> Escribe una parte del nombre o CLUES para buscar.</p>
+        <p><strong>Tipo de insumo:</strong> Puedes seleccionar uno o más tipos que correspondan a tu solicitud.</p>
+        <p><strong>Periodo:</strong> Selecciona un rango válido de fechas.</p>
+        <p><strong>Tipo de pedido:</strong> Selecciona si es una solicitud Ordinaria o Extraordinaria.</p>
+        <p><strong>Responsable:</strong> Ingresa tu nombre completo para registro interno.</p>
+      </div>
+
+      <!-- Sección de SOLICITUD -->
+      <div *ngSwitchCase="'solicitud'" class="space-y-2 text-sm text-gray-700">
+        <p><strong>Clave:</strong> Escribe al menos 3 caracteres para activar el autocompletado.</p>
+        <p><strong>Descripción y unidad:</strong> Se llenan automáticamente, pero puedes editarlas.</p>
+        <p><strong>Cantidad:</strong> Solo se permiten cantidades mayores a 0 y menores a 99999.</p>
+        <p><strong>Edición:</strong> Puedes modificar cualquier renglón antes de exportar.</p>
+        <p><strong>Exportación:</strong> Al finalizar, nombra el archivo y se descargará en Excel.</p>
+      </div>
+    </ng-container>
+
+    <button (click)="guiaVisible = false"
+      class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-lg font-bold">×</button>
+  </div>
 </div>

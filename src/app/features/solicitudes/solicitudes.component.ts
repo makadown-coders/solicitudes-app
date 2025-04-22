@@ -309,26 +309,40 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   mostrarModalExportar() {
     this.nombreArchivo = `Solicitud-${new Date().toISOString().slice(0, 7)}`;
-    this.modalPedirNombreArchivo = true;
-  }
-
-  confirmarExportacion() {
-    this.modalPedirNombreArchivo = false;
-
     const cluesStr = localStorage.getItem('datosClues');
     let nombreArchivoCompleto = this.nombreArchivo;
     if (cluesStr) {
       const datosClues = JSON.parse(cluesStr) as DatosClues;
-      
-      nombreArchivoCompleto = datosClues.nombreHospital.replace(/\s+/g, '-');
-      nombreArchivoCompleto += datosClues.tipoInsumo.split('-');
-      nombreArchivoCompleto += datosClues.periodo.replace(/\s+/g, '-');
-    }
 
+      nombreArchivoCompleto = this.iniciales(datosClues.nombreHospital);
+      nombreArchivoCompleto += '-' + datosClues.tipoInsumo.split('-');
+      nombreArchivoCompleto += '-' + datosClues.tipoPedido;
+      nombreArchivoCompleto += '_' +datosClues.periodo.replace(/\s+/g, '-');
+      this.nombreArchivo = nombreArchivoCompleto;
+    }
+    this.modalPedirNombreArchivo = true;
+  }
+
+  iniciales(original: string): string {
+    // 1. Filtrar palabras relevantes (ignorando "de", "y", "el", etc.)
+    const palabrasRelevantes = original
+      .split(' ')
+      .filter(palabra => !['de', 'y', 'el', 'la', 'los'].includes(palabra.toLowerCase()));
+
+    // 2. Obtener iniciales y ponerlas en mayúscula
+    const iniciales = palabrasRelevantes
+      .map(palabra => palabra.charAt(0).toUpperCase())
+      .join('');
+
+    return iniciales;
+  }
+
+  confirmarExportacion() {
+    this.modalPedirNombreArchivo = false;
     if (this.usarTemplate) {
-      this.exportarExcelConTemplate(nombreArchivoCompleto);
+      this.exportarExcelConTemplate(this.nombreArchivo);
     } else {
-      this.exportarExcel(nombreArchivoCompleto);
+      this.exportarExcel(this.nombreArchivo);
     }
   }
 

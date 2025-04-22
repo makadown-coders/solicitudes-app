@@ -25,6 +25,8 @@ export class ExcelService {
         let B1 = '';
         let D4 = '';
         let E5 = '';
+        let E8 = '';
+        let E9 = '';
 
         const datosCluesStr = localStorage.getItem('datosClues');
         if (datosCluesStr) {
@@ -32,6 +34,8 @@ export class ExcelService {
             B1 = datosClues.nombreHospital;
             D4 = datosClues.tipoInsumo;
             E5 = datosClues.periodo;
+            E8 = datosClues?.tipoPedido ?? 'Ordinario';
+            E9 = datosClues?.responsableCaptura ?? '';
         }
 
         const workbook = new ExcelJS.Workbook();
