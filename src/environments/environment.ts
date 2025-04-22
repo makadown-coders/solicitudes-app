@@ -1,4 +1,4 @@
 export const environment = {
     production: false,
-    apiUrl: 'https://app-service-production-2c8e.up.railway.app/api'
+    apiUrl: 'https://minor-flossy-imssb-737587a4.koyeb.app/api'
 };
