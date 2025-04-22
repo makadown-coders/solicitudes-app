@@ -22,7 +22,7 @@ export class ExcelService {
         nombreArchivo: string,
         articulosSolicitados: ArticuloSolicitud[]) {
 
-        let B1 = '';
+        let B4 = '';
         let D4 = '';
         let E5 = '';
         let E8 = '';
@@ -31,7 +31,7 @@ export class ExcelService {
         const datosCluesStr = localStorage.getItem('datosClues');
         if (datosCluesStr) {
             const datosClues = JSON.parse(datosCluesStr) as DatosClues;
-            B1 = datosClues.nombreHospital;
+            B4 = datosClues.nombreHospital;
             D4 = datosClues.tipoInsumo;
             E5 = datosClues.periodo;
             E8 = datosClues?.tipoPedido ?? 'Ordinario';
@@ -46,13 +46,32 @@ export class ExcelService {
         const hojas = workbook.worksheets;
         console.log('hojas', hojas);
         const worksheet = hojas[0];
-        worksheet!.getCell('B1').value = B1;
+
+        // Cargar la imagen SVG como buffer
+        const imgBuffer = await fetch('imssb-logo.png')
+            .then(res => res.arrayBuffer())
+            .then(buffer => new Uint8Array(buffer));
+
+        const imageId = workbook.addImage({
+            buffer: imgBuffer,
+            extension: 'png',
+        });
+        worksheet!.getCell('B1').value = '';
+        // Posicionar en la celda B1 (col: 2, row: 1)
+        worksheet.addImage(imageId, {
+            tl: { col: 1, row: 0 }, // top-left (col: 1 = B)
+            ext: { width: 150, height: 40 }, // tamaño en píxeles
+            editAs: 'oneCell',
+        });
+        worksheet!.getCell('B4').value = B4;
         worksheet!.getCell('D4').value = D4;
         worksheet!.getCell('E5').value = E5;
-        // A partir de B13 iterar los artículos desde B hasta F donde 
+        worksheet!.getCell('E8').value = E8;
+        worksheet!.getCell('E9').value = E9;
+        // A partir de B14 iterar los artículos desde B hasta F donde 
         // B = # de renglon, C = clave, D = descripción, E = unidad, F = cantidad
         for (let i = 0; i < articulosSolicitados.length; i++) {
-            const renglon = i + 13;
+            const renglon = i + 14;
             worksheet!.getCell(`B${renglon}`).value = i + 1;
             worksheet!.getCell(`C${renglon}`).value = articulosSolicitados[i].clave;
             worksheet!.getCell(`D${renglon}`).value = articulosSolicitados[i].descripcion;
