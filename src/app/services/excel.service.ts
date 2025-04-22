@@ -20,7 +20,9 @@ export class ExcelService {
     async exportarExcelConTemplate(
         templateUrl: string,
         nombreArchivo: string,
-        articulosSolicitados: ArticuloSolicitud[]) {
+        articulosSolicitados: ArticuloSolicitud[],
+        standalone: boolean
+    ) {
 
         let B4 = '';
         let D4 = '';
@@ -29,7 +31,7 @@ export class ExcelService {
         let E9 = '';
 
         const datosCluesStr = localStorage.getItem('datosClues');
-        if (datosCluesStr) {
+        if (datosCluesStr && !standalone) {
             const datosClues = JSON.parse(datosCluesStr) as DatosClues;
             B4 = datosClues.nombreHospital;
             D4 = datosClues.tipoInsumo;

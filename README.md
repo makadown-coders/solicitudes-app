@@ -96,4 +96,68 @@ npm run dev  # o ng serve
 MIT © 2025 Mario Arturo Serrano Flores
 Consulta el archivo LICENSE para más información.
 
+¡Claro que sí, Mario! Aquí tienes un documento justificado técnica y estratégicamente, ideal para presentar ante tus superiores, justificar auditorías técnicas o simplemente tener claridad institucional sobre el uso de Netlify en tu app de solicitudes:
+
+---
+
+## 📘 Justificación Técnica: Uso de Netlify como plataforma de despliegue para "Solicitudes App"
+
+---
+
+### 🧩 ¿Qué es Netlify?
+
+**Netlify** es una plataforma de despliegue especializada en aplicaciones frontend modernas (Angular, React, Vue, etc.). Ofrece hosting estático rápido, seguro y con HTTPS automático sin necesidad de servidores backend.
+
+---
+
+### ✅ Razones para elegir Netlify en este proyecto
+
+| Criterio                              | Evaluación                                                             |
+|---------------------------------------|------------------------------------------------------------------------|
+| 🧾 **Frecuencia de uso**              | Aproximadamente **1 vez al mes por 15 unidades médicas**, con posibilidad de otras 15 extraordinarias |
+| 📦 **Peso de archivo generado (.xlsx)** | Menor a **200 KB por solicitud**                                      |
+| 💡 **Ancho de banda mensual estimado**| ≈ 6 MB (muy por debajo del límite gratuito de 100 GB)                |
+| 🔒 **Seguridad**                      | HTTPS automático con Let’s Encrypt incluido                          |
+| 🌐 **Dominio personalizado**          | Posibilidad de usar `.gob.mx` institucional si se requiere            |
+| 💸 **Costo**                          | **$0 pesos mensuales** — completamente dentro del plan gratuito       |
+| ⚙️ **Facilidad de mantenimiento**     | Deploys automáticos vía GitHub con cada push                         |
+| 🚀 **Tiempo de carga**                | Ultra rápido, gracias a su red CDN global                             |
+
+---
+
+### 📈 Escenarios previstos
+
+| Escenario | ¿Netlify sigue siendo viable? |
+|-----------|-------------------------------|
+| Uso moderado (<50 descargas/mes) | ✅ Sí |
+| Usuarios institucionales en navegador web moderno | ✅ Sí |
+| Necesidad de autoguardado sin backend | ✅ Sí (via localStorage) |
+| Carga masiva o almacenamiento de archivos históricos | ⚠️ Considerar alternativa como Firebase o AWS S3 |
+
+---
+
+### 🛑 Lo que **no** es Netlify (y no se necesita aquí)
+
+- No es un backend (Express, SQL, etc.) → ya resuelto en Railway
+- No es una base de datos → no es necesaria en esta etapa
+- No tiene almacenamiento persistente de archivos → pero la app solo genera archivos para descarga inmediata
+
+---
+
+### 📍 Conclusión
+
+**Netlify es una opción técnica, económica y operativa ideal** para el despliegue actual de *Solicitudes App*.
+
+Permite:
+
+- Asegurar tiempos de carga rápidos y experiencia fluida
+- Mantener costos operativos nulos
+- Evitar infraestructuras complejas
+- Escalar fácilmente si llegara a necesitarse
+
+---
+
+✅ Recomendación: seguir usando Netlify como plataforma principal hasta que el volumen de uso supere los **10,000 usuarios únicos o 5 GB/mes de transferencia activa**, lo cual está muy lejos del contexto actual.
+
+---
 

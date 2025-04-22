@@ -9,6 +9,7 @@ import { TablaArticulosComponent } from '../tabla-articulos/tabla-articulos.comp
 import { ArticulosService } from '../../services/articulos.service';
 import { ExcelService } from '../../services/excel.service';
 import { DatosClues } from '../../models/datos-clues';
+import { Router, RouterModule } from '@angular/router';
 
 
 @Component({
@@ -17,7 +18,8 @@ import { DatosClues } from '../../models/datos-clues';
   imports: [CommonModule, FormsModule,
     NombrarArchivoModalComponent,
     ConfirmacionModalComponent,
-    TablaArticulosComponent],
+    TablaArticulosComponent,
+    RouterModule],
   templateUrl: './solicitudes.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -40,7 +42,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   modalPedirNombreArchivo = false;
   nombreArchivo = '';
-
+  modoStandalone = false;
 
   autocompleteResults: any[] = [];
   moreResults = false;
@@ -61,6 +63,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   usarTemplate: boolean = true;
 
   private cdRef = inject(ChangeDetectorRef);
+  private router = inject(Router);
 
   @HostListener('document:keydown.escape', ['$event'])
   onKeydownHandler(event: KeyboardEvent) {
@@ -70,6 +73,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   }
 
   async ngOnInit() {
+    if (this.router.url === '/solicitudv1') {
+      // Podrías activar un modo simplificado si lo deseas
+      this.modoStandalone = true;
+    } else {
+      this.modoStandalone = false;
+    }
     const guardados = localStorage.getItem('articulosSolicitados');
     if (guardados) {
       this.articulosSolicitados = JSON.parse(guardados);
@@ -239,8 +248,10 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   confirmarLimpieza() {
     this.articulosSolicitados = [];
     localStorage.removeItem('articulosSolicitados');
-    localStorage.removeItem('datosClues');
-    localStorage.setItem('activeTab', 'clues');
+    if (!this.modoStandalone) {
+      localStorage.removeItem('datosClues');
+      localStorage.setItem('activeTab', 'clues');
+    }
     this.cerrarModal();
   }
 
@@ -299,7 +310,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   }
 
   exportarExcelConTemplate(nombreArchivo: string): void {
-    this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo, this.articulosSolicitados);
+    this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo, this.articulosSolicitados, this.modoStandalone);
     this.abrirModalInfo(
       'Archivo generado',
       'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
@@ -311,13 +322,13 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     this.nombreArchivo = `Solicitud-${new Date().toISOString().slice(0, 7)}`;
     const cluesStr = localStorage.getItem('datosClues');
     let nombreArchivoCompleto = this.nombreArchivo;
-    if (cluesStr) {
+    if (cluesStr && !this.modoStandalone) {
       const datosClues = JSON.parse(cluesStr) as DatosClues;
 
       nombreArchivoCompleto = this.iniciales(datosClues.nombreHospital);
       nombreArchivoCompleto += '-' + datosClues.tipoInsumo.split('-');
       nombreArchivoCompleto += '-' + datosClues.tipoPedido;
-      nombreArchivoCompleto += '_' +datosClues.periodo.replace(/\s+/g, '-');
+      nombreArchivoCompleto += '_' + datosClues.periodo.replace(/\s+/g, '-');
       this.nombreArchivo = nombreArchivoCompleto;
     }
     this.modalPedirNombreArchivo = true;
