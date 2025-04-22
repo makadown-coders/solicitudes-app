@@ -2,7 +2,7 @@
 
 Aplicación desarrollada con Angular 17 + TailwindCSS para capturar solicitudes de insumos hospitalarios de IMSS-Bienestar.  
 Incluye autocompletado, validación progresiva, persistencia con `localStorage` y exportación avanzada a Excel con plantilla institucional.
-
+![alt text](image.png)
 ![MIT License](https://img.shields.io/badge/license-MIT-green)
 
 ---
@@ -64,7 +64,7 @@ La información capturada se exporta a un archivo basado en una plantilla visual
 | `E5`  | Periodo (ej. 01-30 ABRIL 2025)                      |
 | `E8`  | Tipo de pedido (Ordinario / Extraordinario)         |
 | `E9`  | Responsable de la captura                           |
-| `B13+`| Lista de artículos solicitados                      |
+| `B14+`| Lista de artículos solicitados                      |
 
 ---
 
@@ -88,7 +88,7 @@ git clone https://github.com/makadown-coders/solicitudes-app.git
 cd solicitudes-app
 npm install
 npm run dev  # o ng serve
-
+```
 ---
 
 ## 📄 Licencia
@@ -96,13 +96,8 @@ npm run dev  # o ng serve
 MIT © 2025 Mario Arturo Serrano Flores
 Consulta el archivo LICENSE para más información.
 
-¡Claro que sí, Mario! Aquí tienes un documento justificado técnica y estratégicamente, ideal para presentar ante tus superiores, justificar auditorías técnicas o simplemente tener claridad institucional sobre el uso de Netlify en tu app de solicitudes:
 
----
-
-## 📘 Justificación Técnica: Uso de Netlify como plataforma de despliegue para "Solicitudes App"
-
----
+## 📘 Justificación Técnica: Uso de Netlify como plataforma de despliegue 
 
 ### 🧩 ¿Qué es Netlify?
 
