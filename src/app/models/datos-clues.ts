@@ -8,13 +8,6 @@ export interface DatosClues {
   hospital: Hospital | null;
   fechaInicio: Date | null; // ← en formato ISO
   fechaFin: Date | null;
+  tipoPedido: string;           // Ordinario / Extraordinario
+  responsableCaptura: string;   // Responsable de captura
 }
-
-/*
-export interface TemplateData {
-nombre: string; // nombre del hospital
-tipoDeInsumo: string[]; // tipo de insumo 
-fecha: string; // periodo de captura (ej. 01-30 Abr 2025)
-}
- 
-*/

@@ -13,17 +13,17 @@ import { Hospital } from '../../models/articulo-solicitud';
   templateUrl: './captura-clues.component.html',
   styleUrl: './captura-clues.component.css'
 })
-export class CapturaCluesComponent implements OnInit{
+export class CapturaCluesComponent implements OnInit {
   readonly HospitalIcon = HospitalIcon;
   nombreHospital = '';
-  tipoInsumo = '';  
+  tipoInsumo = '';
   periodo = '';
   fechaInicio: Date | null = null;
   fechaFin: Date | null = null;
   //@Output() cluesValido = new EventEmitter<DatosClues>();
 
   selectedHospital: Hospital | null = null;
-  
+
   autocompleteHospitales: any[] = [];
   selectedIndex = -1;
 
@@ -35,6 +35,9 @@ export class CapturaCluesComponent implements OnInit{
     'Material de Curación',
     'Laboratorio'
   ];
+
+  tipoPedido = 'Ordinario';
+  responsableCaptura = '';
 
   tiposInsumoSeleccionados: string[] = [];
 
@@ -49,7 +52,7 @@ export class CapturaCluesComponent implements OnInit{
   }
 
   ngOnInit() {
-  
+
     const cluesStr = localStorage.getItem('datosClues');
     if (cluesStr) {
       const datosClues = JSON.parse(cluesStr) as DatosClues;
@@ -57,15 +60,18 @@ export class CapturaCluesComponent implements OnInit{
       this.nombreHospital = datosClues.nombreHospital;
       this.tiposInsumoSeleccionados = datosClues.tipoInsumo.split(', ');
       this.periodoFormateado = datosClues.periodo;
-      if (datosClues.fechaInicio ) {
+      if (datosClues.fechaInicio) {
         this.fechaInicio = new Date(datosClues.fechaInicio);
       }
       if (datosClues.fechaFin) {
         this.fechaFin = new Date(datosClues.fechaFin);
       }
-      if ( !this.selectedHospital) {
+      if (!this.selectedHospital) {
         this.selectedHospital = datosClues.hospital;
       }
+      this.tipoPedido = datosClues?.tipoPedido ?? 'Ordinario';
+      this.responsableCaptura = datosClues?.responsableCaptura ?? '';
+
     }
   }
 
@@ -77,7 +83,9 @@ export class CapturaCluesComponent implements OnInit{
       periodo: this.periodoFormateado,
       hospital: this.selectedHospital,
       fechaInicio: this.fechaInicio,
-      fechaFin: this.fechaFin
+      fechaFin: this.fechaFin,
+      tipoPedido: this.tipoPedido,
+      responsableCaptura: this.responsableCaptura,
     });
     this.irASolicitud.emit();
   }
@@ -87,7 +95,7 @@ export class CapturaCluesComponent implements OnInit{
       this.autocompleteHospitales = [];
       this.selectedIndex = 0;
       return;
-    }  
+    }
 
     const term = query.toLowerCase();
     this.autocompleteHospitales = hospitalesData.filter(h =>
@@ -128,7 +136,7 @@ export class CapturaCluesComponent implements OnInit{
     this.periodoFormateado = texto;
     this.fechaInicio = fechaInicio;
     this.fechaFin = fechaFin;
-  }  
+  }
 
   get esValido(): boolean {
     return !!(

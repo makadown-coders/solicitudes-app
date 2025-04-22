@@ -8,20 +8,23 @@ import { ConfirmacionModalComponent } from '../../shared/confirmacion-modal/conf
 import { TablaArticulosComponent } from '../tabla-articulos/tabla-articulos.component';
 import { ArticulosService } from '../../services/articulos.service';
 import { ExcelService } from '../../services/excel.service';
+import { DatosClues } from '../../models/datos-clues';
+import { Router, RouterModule } from '@angular/router';
 
 
 @Component({
   selector: 'app-solicitudes',
   standalone: true,
-  imports: [CommonModule, FormsModule, 
-            NombrarArchivoModalComponent,
-            ConfirmacionModalComponent,
-            TablaArticulosComponent],
+  imports: [CommonModule, FormsModule,
+    NombrarArchivoModalComponent,
+    ConfirmacionModalComponent,
+    TablaArticulosComponent,
+    RouterModule],
   templateUrl: './solicitudes.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SolicitudesComponent implements OnInit, AfterViewInit {  
-  
+export class SolicitudesComponent implements OnInit, AfterViewInit {
+
   mostrarModal = false;
   modalVisible = false;
   modalTitulo = '';
@@ -39,7 +42,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   modalPedirNombreArchivo = false;
   nombreArchivo = '';
-
+  modoStandalone = false;
 
   autocompleteResults: any[] = [];
   moreResults = false;
@@ -60,6 +63,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   usarTemplate: boolean = true;
 
   private cdRef = inject(ChangeDetectorRef);
+  private router = inject(Router);
 
   @HostListener('document:keydown.escape', ['$event'])
   onKeydownHandler(event: KeyboardEvent) {
@@ -69,6 +73,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   }
 
   async ngOnInit() {
+    if (this.router.url === '/solicitudv1') {
+      // Podrías activar un modo simplificado si lo deseas
+      this.modoStandalone = true;
+    } else {
+      this.modoStandalone = false;
+    }
     const guardados = localStorage.getItem('articulosSolicitados');
     if (guardados) {
       this.articulosSolicitados = JSON.parse(guardados);
@@ -102,13 +112,13 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     const timestampFallback = localStorage.getItem('usarFallbackLocal');
     const ahora = Date.now();
     const unDiaMs = 24 * 60 * 60 * 1000;
-  
+
     if (timestampFallback && ahora - Number(timestampFallback) < unDiaMs) {
       // 🔁 Usa fallback directamente
       this.usarBusquedaLocal(texto);
       return;
     }
-  
+
     // 🔌 Intenta con backend Railway
     this.articulosService.buscarArticulos(texto).subscribe({
       next: (data) => {
@@ -126,7 +136,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       }
     });
   }
-  
+
   usarBusquedaLocal(texto: string) {
     this.articulosService.buscarArticulosv2(texto).subscribe({
       next: (data) => {
@@ -144,12 +154,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       }
     });
   }
-  
+
 
   selectArticulo(item: any) {
     this.claveInput = item.clave;
-    this.descripcionInput = item.descripcion??'';
-    this.unidadInput = item.unidadMedida?? (item.presentacion??'');
+    this.descripcionInput = item.descripcion ?? '';
+    this.unidadInput = item.unidadMedida ?? (item.presentacion ?? '');
     this.autocompleteResults = [];
     this.selectedIndex = -1;
   }
@@ -238,8 +248,10 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   confirmarLimpieza() {
     this.articulosSolicitados = [];
     localStorage.removeItem('articulosSolicitados');
-    localStorage.removeItem('datosClues');
-    localStorage.setItem('activeTab', 'clues');
+    if (!this.modoStandalone) {
+      localStorage.removeItem('datosClues');
+      localStorage.setItem('activeTab', 'clues');
+    }
     this.cerrarModal();
   }
 
@@ -298,22 +310,46 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   }
 
   exportarExcelConTemplate(nombreArchivo: string): void {
-    this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo, this.articulosSolicitados);
+    this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo, this.articulosSolicitados, this.modoStandalone);
     this.abrirModalInfo(
       'Archivo generado',
       'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
     );
   }
-  
+
 
   mostrarModalExportar() {
     this.nombreArchivo = `Solicitud-${new Date().toISOString().slice(0, 7)}`;
+    const cluesStr = localStorage.getItem('datosClues');
+    let nombreArchivoCompleto = this.nombreArchivo;
+    if (cluesStr && !this.modoStandalone) {
+      const datosClues = JSON.parse(cluesStr) as DatosClues;
+
+      nombreArchivoCompleto = this.iniciales(datosClues.nombreHospital);
+      nombreArchivoCompleto += '-' + datosClues.tipoInsumo.split('-');
+      nombreArchivoCompleto += '-' + datosClues.tipoPedido;
+      nombreArchivoCompleto += '_' + datosClues.periodo.replace(/\s+/g, '-');
+      this.nombreArchivo = nombreArchivoCompleto;
+    }
     this.modalPedirNombreArchivo = true;
+  }
+
+  iniciales(original: string): string {
+    // 1. Filtrar palabras relevantes (ignorando "de", "y", "el", etc.)
+    const palabrasRelevantes = original
+      .split(' ')
+      .filter(palabra => !['de', 'y', 'el', 'la', 'los'].includes(palabra.toLowerCase()));
+
+    // 2. Obtener iniciales y ponerlas en mayúscula
+    const iniciales = palabrasRelevantes
+      .map(palabra => palabra.charAt(0).toUpperCase())
+      .join('');
+
+    return iniciales;
   }
 
   confirmarExportacion() {
     this.modalPedirNombreArchivo = false;
-  
     if (this.usarTemplate) {
       this.exportarExcelConTemplate(this.nombreArchivo);
     } else {
@@ -352,14 +388,14 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   }
 
   cambiarCantidad(cantidad: number) {
-    this.cantidadTemporal = cantidad;    
+    this.cantidadTemporal = cantidad;
   }
-  
+
   cancelarEdicion() {
     this.modoEdicionIndex = null;
     this.cantidadTemporal = 0;
   }
-  
+
   confirmarEdicion(index: number) {
     this.articulosSolicitados[index].cantidad = this.cantidadTemporal;
     this.modoEdicionIndex = null;
@@ -368,7 +404,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   esCantidadInvalida(): boolean {
     return this.cantidadTemporal <= 0 || this.cantidadTemporal > 99999;
-  } 
+  }
 
   cerrarModalArchivo() {
     this.modalPedirNombreArchivo = false;

@@ -56,23 +56,51 @@
 
 
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de insumo</label>
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Tipo de Insumo -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de insumo</label>
+                    <div class="space-y-2">
+                        <div *ngFor="let tipo of tiposInsumoDisponibles" class="flex items-center">
+                            <input type="checkbox" [id]="tipo" [value]="tipo"
+                                [checked]="tiposInsumoSeleccionados.includes(tipo)"
+                                (change)="toggleTipoInsumo(tipo, $event)"
+                                class="mr-2 text-green-800 focus:ring-green-600" />
+                            <label [for]="tipo" class="text-sm text-gray-800">{{ tipo }}</label>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="space-y-2">
-                <div *ngFor="let tipo of tiposInsumoDisponibles" class="flex items-center">
-                    <input type="checkbox" [id]="tipo" [value]="tipo"
-                        [checked]="tiposInsumoSeleccionados.includes(tipo)" (change)="toggleTipoInsumo(tipo, $event)"
-                        class="mr-2 text-green-800 focus:ring-green-600" />
-                    <label [for]="tipo" class="text-sm text-gray-800">{{ tipo }}</label>
+                <!-- Tipo de Pedido -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Pedido</label>
+                    <div class="flex flex-col gap-1 mt-1">
+                        <label class="inline-flex items-center">
+                            <input type="radio" [(ngModel)]="tipoPedido" value="Ordinario" class="mr-2" />
+                            Ordinario
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" [(ngModel)]="tipoPedido" value="Extraordinario" class="mr-2" />
+                            Extraordinario
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
 
+
+
+        <div class="mt-4">
+            <label for="responsableCaptura" class="block text-sm font-medium text-gray-700 mb-1">
+                Responsable de Captura
+            </label>
+            <input type="text" id="responsableCaptura" maxlength="255" [(ngModel)]="responsableCaptura"
+                class="w-full border rounded px-3 py-2 text-sm" placeholder="Nombre completo del responsable" />
+        </div>
+
         <div>
-            <app-periodo-picker 
-            [fechaInicio]="fechaInicio"
-            [fechaFin]="fechaFin"
-            (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)"/>
+            <app-periodo-picker [fechaInicio]="fechaInicio" [fechaFin]="fechaFin"
+                (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)" />
             <div *ngIf="periodoFormateado" class="mt-2 text-sm text-gray-600">
                 Periodo seleccionado: <span class="font-semibold">{{ periodoFormateado }}</span>
             </div>
