@@ -1,0 +1,99 @@
+<div class="p-4">
+  <h1 class="text-2xl font-bold mb-4">CITAS ABASTO (TEST)</h1>
+
+  <div *ngIf="isLoading" class="flex items-center justify-center py-8">
+    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+  </div>
+
+  <div *ngIf="!isLoading">
+    <!-- Aquí ponemos el buscador y la tabla -->
+    <div class="mb-4 flex gap-2">
+      <input type="text" [(ngModel)]="searchTerm" (keyup.enter)="buscar()" placeholder="Buscar..."
+        class="border px-4 py-2 rounded w-64" />
+      <button (click)="buscar()" class="bg-blue-600 text-white px-4 py-2 rounded">Buscar</button>
+    </div>
+
+    <div class="bg-white rounded shadow p-4 overflow-auto max-h-[calc(100vh-200px)]">
+      <table class="min-w-full text-xs text-left border-collapse">
+        <thead class="sticky top-0 bg-gray-100">
+          <tr>
+            <th class="px-4 py-2 border">Ejercicio</th>
+            <th class="px-4 py-2 border">Orden de Suministro</th>
+            <th class="px-4 py-2 border">Institución</th>
+            <th class="px-4 py-2 border">Tipo de Entrega</th>
+            <th class="px-4 py-2 border">CLUES Destino</th>
+            <th class="px-4 py-2 border">Unidad</th>
+            <th class="px-4 py-2 border">Fuente Formato</th>
+            <th class="px-4 py-2 border">Proveedor</th>
+            <th class="px-4 py-2 border">Clave CNIS</th>
+            <th class="px-4 py-2 border">Descripción</th>
+            <th class="px-4 py-2 border">Compra</th>
+            <th class="px-4 py-2 border">Tipo de Red</th>
+            <th class="px-4 py-2 border">Tipo de Insumo</th>
+            <th class="px-4 py-2 border">Grupo Terapéutico</th>
+            <th class="px-4 py-2 border">Precio Unitario</th>
+            <th class="px-4 py-2 border">Piezas Emitidas</th>
+            <th class="px-4 py-2 border">Fecha Límite Entrega</th>
+            <th class="px-4 py-2 border">Piezas Recibidas</th>
+            <th class="px-4 py-2 border">Fecha Recepción Almacén</th>
+            <th class="px-4 py-2 border">Número de Remisión</th>
+            <th class="px-4 py-2 border">Lote</th>
+            <th class="px-4 py-2 border">Caducidad</th>
+            <th class="px-4 py-2 border">Estatus</th>
+            <th class="px-4 py-2 border">Folio Abasto</th>
+            <th class="px-4 py-2 border">Hospital que Recibió</th>
+            <th class="px-4 py-2 border">Evidencia</th>
+            <th class="px-4 py-2 border">Carga</th>
+            <th class="px-4 py-2 border">Fecha de Cita</th>
+            <th class="px-4 py-2 border">Observación</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let cita of citas">
+            <td class="border px-2 py-1">{{ cita.ejercicio }}</td>
+            <td class="border px-2 py-1">{{ cita.orden_de_suministro }}</td>
+            <td class="border px-2 py-1">{{ cita.institucion }}</td>
+            <td class="border px-2 py-1">{{ cita.tipo_de_entrega }}</td>
+            <td class="border px-2 py-1">{{ cita.clues_destino }}</td>
+            <td class="border px-2 py-1">{{ cita.unidad }}</td>
+            <td class="border px-2 py-1">{{ cita.fte_fmto }}</td>
+            <td class="border px-2 py-1">{{ cita.proveedor }}</td>
+            <td class="border px-2 py-1">{{ cita.clave_cnis }}</td>
+            <td class="border px-2 py-1">{{ cita.descripcion }}</td>
+            <td class="border px-2 py-1">{{ cita.compra }}</td>
+            <td class="border px-2 py-1">{{ cita.tipo_de_red }}</td>
+            <td class="border px-2 py-1">{{ cita.tipo_de_insumo }}</td>
+            <td class="border px-2 py-1">{{ cita.grupo_terapeutico }}</td>
+            <td class="border px-2 py-1">{{ cita.precio_unitario }}</td>
+            <td class="border px-2 py-1">{{ cita.no_de_piezas_emitidas }}</td>
+            <td class="border px-2 py-1">{{ cita.fecha_limite_de_entrega | date:'yyyy-MM-dd' }}</td>
+            <td class="border px-2 py-1">{{ cita.pzas_recibidas_por_la_entidad }}</td>
+            <td class="border px-2 py-1">{{ cita.fecha_recepcion_almacen }}</td>
+            <td class="border px-2 py-1">{{ cita.numero_de_remision }}</td>
+            <td class="border px-2 py-1">{{ cita.lote }}</td>
+            <td class="border px-2 py-1">{{ cita.caducidad }}</td>
+            <td class="border px-2 py-1">{{ cita.estatus }}</td>
+            <td class="border px-2 py-1">{{ cita.folio_abasto }}</td>
+            <td class="border px-2 py-1">{{ cita.almacen_hospital_que_recibio }}</td>
+            <td class="border px-2 py-1">{{ cita.evidencia }}</td>
+            <td class="border px-2 py-1">{{ cita.carga }}</td>
+            <td class="border px-2 py-1">{{ cita.fecha_de_cita | date:'yyyy-MM-dd' }}</td>
+            <td class="border px-2 py-1">{{ cita.observacion }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+
+    <div class="flex justify-between items-center mt-4">
+      <button (click)="anterior()" [disabled]="page <= 1" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">
+        Anterior
+      </button>
+      <span>Página {{ page }} de {{ totalPages }}</span>
+      <button (click)="siguiente()" [disabled]="page >= totalPages"
+        class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">
+        Siguiente
+      </button>
+    </div>
+  </div>
+</div>
