@@ -2,7 +2,7 @@
   <h1 class="text-2xl font-bold mb-4">CITAS ABASTO (TEST)</h1>
 
   <div *ngIf="isLoading" class="flex items-center justify-center py-8">
-    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600"></div>
   </div>
 
   <div *ngIf="!isLoading">
@@ -10,75 +10,195 @@
     <div class="mb-4 flex gap-2">
       <input type="text" [(ngModel)]="searchTerm" (keyup.enter)="buscar()" placeholder="Buscar..."
         class="border px-4 py-2 rounded w-64" />
-      <button (click)="buscar()" class="bg-blue-600 text-white px-4 py-2 rounded">Buscar</button>
+      <button (click)="buscar()" class="bg-green-600 text-white px-4 py-2 rounded">Buscar</button>
     </div>
 
     <div class="bg-white rounded shadow p-4 overflow-auto max-h-[calc(100vh-200px)]">
       <table class="min-w-full text-xs text-left border-collapse">
         <thead class="sticky top-0 bg-gray-100">
           <tr>
-            <th class="px-4 py-2 border">Ejercicio</th>
-            <th class="px-4 py-2 border">Orden de Suministro</th>
-            <th class="px-4 py-2 border">Institución</th>
-            <th class="px-4 py-2 border">Tipo de Entrega</th>
-            <th class="px-4 py-2 border">CLUES Destino</th>
-            <th class="px-4 py-2 border">Unidad</th>
-            <th class="px-4 py-2 border">Fuente Formato</th>
-            <th class="px-4 py-2 border">Proveedor</th>
-            <th class="px-4 py-2 border">Clave CNIS</th>
-            <th class="px-4 py-2 border">Descripción</th>
-            <th class="px-4 py-2 border">Compra</th>
-            <th class="px-4 py-2 border">Tipo de Red</th>
-            <th class="px-4 py-2 border">Tipo de Insumo</th>
-            <th class="px-4 py-2 border">Grupo Terapéutico</th>
-            <th class="px-4 py-2 border">Precio Unitario</th>
-            <th class="px-4 py-2 border">Piezas Emitidas</th>
-            <th class="px-4 py-2 border">Fecha Límite Entrega</th>
-            <th class="px-4 py-2 border">Piezas Recibidas</th>
-            <th class="px-4 py-2 border">Fecha Recepción Almacén</th>
-            <th class="px-4 py-2 border">Número de Remisión</th>
-            <th class="px-4 py-2 border">Lote</th>
-            <th class="px-4 py-2 border">Caducidad</th>
-            <th class="px-4 py-2 border">Estatus</th>
-            <th class="px-4 py-2 border">Folio Abasto</th>
-            <th class="px-4 py-2 border">Hospital que Recibió</th>
-            <th class="px-4 py-2 border">Evidencia</th>
-            <th class="px-4 py-2 border">Carga</th>
-            <th class="px-4 py-2 border">Fecha de Cita</th>
-            <th class="px-4 py-2 border">Observación</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Ejercicio</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Orden de Suministro</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Institución</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Tipo de Entrega</th>
+            <th class="border px-2 py-1 whitespace-nowrap">CLUES Destino</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Unidad</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Fuente Formato</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Proveedor</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Clave CNIS</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Descripción</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Compra</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Tipo de Red</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Tipo de Insumo</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Grupo Terapéutico</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Precio Unitario</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Piezas Emitidas</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Fecha Límite Entrega</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Piezas Recibidas</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Fecha Recepción Almacén</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Número de Remisión</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Lote</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Caducidad</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Estatus</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Folio Abasto</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Hospital que Recibió</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Evidencia</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Carga</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Fecha de Cita</th>
+            <th class="border px-2 py-1 whitespace-nowrap">Observación</th>
+          </tr>
+          <!-- Arriba de <thead>, pondremos un segundo <tr> solo con inputs correspondiente a cada columna.-->
+          <tr>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="number" [(ngModel)]="filtros['ejercicio']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['orden_de_suministro']" (keyup.enter)="buscar()"
+                placeholder="Buscar..." class="border px-2 py-1 rounded w-64" />
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['institucion']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['tipo_de_entrega']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['clues_destino']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['unidad']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['fte_fmto']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['proveedor']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['clave_cnis']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['descripcion']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['compra']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['tipo_de_red']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['tipo_de_insumo']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['grupo_terapeutico']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['precio_unitario']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['no_de_piezas_emitidas']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['fecha_limite_de_entrega']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['pzas_recibidas_por_la_entidad']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['fecha_recepcion_almacen']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['numero_de_remision']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['lote']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['caducidad']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['estatus']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['folio_abasto']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['almacen_hospital_que_recibio']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['evidencia']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['carga']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['fecha_de_cita']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
+            <td class="border px-2 py-1 whitespace-nowrap">
+              <input type="text" [(ngModel)]="filtros['observacion']" (keyup.enter)="buscar()" placeholder="Buscar..."
+                class="border px-2 py-1 rounded w-64" />                
+            </td>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let cita of citas">
-            <td class="border px-2 py-1">{{ cita.ejercicio }}</td>
-            <td class="border px-2 py-1">{{ cita.orden_de_suministro }}</td>
-            <td class="border px-2 py-1">{{ cita.institucion }}</td>
-            <td class="border px-2 py-1">{{ cita.tipo_de_entrega }}</td>
-            <td class="border px-2 py-1">{{ cita.clues_destino }}</td>
-            <td class="border px-2 py-1">{{ cita.unidad }}</td>
-            <td class="border px-2 py-1">{{ cita.fte_fmto }}</td>
-            <td class="border px-2 py-1">{{ cita.proveedor }}</td>
-            <td class="border px-2 py-1">{{ cita.clave_cnis }}</td>
-            <td class="border px-2 py-1">{{ cita.descripcion }}</td>
-            <td class="border px-2 py-1">{{ cita.compra }}</td>
-            <td class="border px-2 py-1">{{ cita.tipo_de_red }}</td>
-            <td class="border px-2 py-1">{{ cita.tipo_de_insumo }}</td>
-            <td class="border px-2 py-1">{{ cita.grupo_terapeutico }}</td>
-            <td class="border px-2 py-1">{{ cita.precio_unitario }}</td>
-            <td class="border px-2 py-1">{{ cita.no_de_piezas_emitidas }}</td>
-            <td class="border px-2 py-1">{{ cita.fecha_limite_de_entrega | date:'yyyy-MM-dd' }}</td>
-            <td class="border px-2 py-1">{{ cita.pzas_recibidas_por_la_entidad }}</td>
-            <td class="border px-2 py-1">{{ cita.fecha_recepcion_almacen }}</td>
-            <td class="border px-2 py-1">{{ cita.numero_de_remision }}</td>
-            <td class="border px-2 py-1">{{ cita.lote }}</td>
-            <td class="border px-2 py-1">{{ cita.caducidad }}</td>
-            <td class="border px-2 py-1">{{ cita.estatus }}</td>
-            <td class="border px-2 py-1">{{ cita.folio_abasto }}</td>
-            <td class="border px-2 py-1">{{ cita.almacen_hospital_que_recibio }}</td>
-            <td class="border px-2 py-1">{{ cita.evidencia }}</td>
-            <td class="border px-2 py-1">{{ cita.carga }}</td>
-            <td class="border px-2 py-1">{{ cita.fecha_de_cita | date:'yyyy-MM-dd' }}</td>
-            <td class="border px-2 py-1">{{ cita.observacion }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.ejercicio }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.orden_de_suministro }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.institucion }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.tipo_de_entrega }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.clues_destino }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.unidad }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.fte_fmto }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.proveedor }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.clave_cnis }}</td>
+            <td class="border px-2 py-1 max-w-[450px] whitespace-nowrap overflow-hidden text-ellipsis"
+            [title]="cita.descripcion">{{ cita.descripcion }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.compra }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.tipo_de_red }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.tipo_de_insumo }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.grupo_terapeutico }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.precio_unitario }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.no_de_piezas_emitidas }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.fecha_limite_de_entrega | date:'yyyy-MM-dd' }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.pzas_recibidas_por_la_entidad }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.fecha_recepcion_almacen }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.numero_de_remision }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.lote }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.caducidad }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.estatus }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.folio_abasto }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.almacen_hospital_que_recibio }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.evidencia }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.carga }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.fecha_de_cita | date:'yyyy-MM-dd' }}</td>
+            <td class="border px-2 py-1 whitespace-nowrap">{{ cita.observacion }}</td>
           </tr>
         </tbody>
       </table>

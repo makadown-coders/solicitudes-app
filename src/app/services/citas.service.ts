@@ -51,15 +51,28 @@ export class CitasService {
 
   constructor(private http: HttpClient) {}
 
-  obtenerCitas(page = 1, limit = 10, search = ''): Observable<PaginacionCitas> {
+  obtenerCitas(
+    page = 1,
+    limit = 10,
+    filtros: Partial<Cita> = {},
+    search = ''
+  ): Observable<PaginacionCitas> {
     let params = new HttpParams()
       .set('page', page)
       .set('limit', limit);
-
+  
     if (search.trim()) {
       params = params.set('search', search.trim());
     }
-
+  
+    // Agregar todos los filtros como query params
+    Object.entries(filtros).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        params = params.set(key, value.toString());
+      }
+    });
+  
     return this.http.get<PaginacionCitas>(this.apiUrl, { params });
   }
+  
 }
