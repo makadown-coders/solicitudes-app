@@ -17,6 +17,14 @@ export class ExcelService {
         XLSX.writeFile(workbook, nombreFinal);
     }
 
+    /**
+     * Exporta un archivo de Excel con un template institucional
+     * Usado solamente para solicitud de artículos
+     * @param templateUrl 
+     * @param nombreArchivo 
+     * @param articulosSolicitados 
+     * @param standalone 
+     */
     async exportarExcelConTemplate(
         templateUrl: string,
         nombreArchivo: string,
@@ -83,6 +91,47 @@ export class ExcelService {
         const buffer = await workbook.xlsx.writeBuffer();
         this.descargarArchivo(buffer, nombreArchivo);
     }
+
+    async exportarCitasConTemplate(
+        templateUrl: string,
+        nombreArchivo: string,
+        encabezado: string,
+        registros: any[]
+      ) {
+        const workbook = new ExcelJS.Workbook();
+        const response = await fetch(templateUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        await workbook.xlsx.load(arrayBuffer);
+      
+        const worksheet = workbook.worksheets[0];
+      
+        // Set encabezado en A1
+        worksheet.getCell('A1').value = encabezado;
+      
+        // Escribe a partir de A3 (row = 3)
+        registros.forEach((reg, index) => {
+          const rowIndex = 3 + index;
+          worksheet.getCell(`A${rowIndex}`).value = 'BAJA CALIFORNIA';
+          worksheet.getCell(`B${rowIndex}`).value = reg.orden_de_suministro;
+          worksheet.getCell(`C${rowIndex}`).value = reg.clues_destino;
+          worksheet.getCell(`D${rowIndex}`).value = reg.unidad;
+          worksheet.getCell(`E${rowIndex}`).value = reg.proveedor;
+          worksheet.getCell(`F${rowIndex}`).value = reg.clave_cnis;
+          worksheet.getCell(`G${rowIndex}`).value = reg.descripcion;
+          worksheet.getCell(`H${rowIndex}`).value = reg.tipo_de_red;
+          worksheet.getCell(`I${rowIndex}`).value = +reg.cantidad || 0;
+          worksheet.getCell(`J${rowIndex}`).value = reg.tarimas || '';
+          worksheet.getCell(`K${rowIndex}`).value = reg.fecha || '';
+          worksheet.getCell(`L${rowIndex}`).value = reg.hora || '';
+          worksheet.getCell(`M${rowIndex}`).value = reg.cita_atendida || '';
+          worksheet.getCell(`N${rowIndex}`).value = reg.estatus_excel || '';
+          worksheet.getCell(`O${rowIndex}`).value = reg.fecha_de_cita || '';
+        });
+      
+        const buffer = await workbook.xlsx.writeBuffer();
+        this.descargarArchivo(buffer, nombreArchivo);
+      }
+      
 
     // Función auxiliar para descargar
     descargarArchivo(buffer: ArrayBuffer, nombreArchivo: string) {

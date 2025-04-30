@@ -75,5 +75,9 @@ export class CitasService {
   
     return this.http.get<PaginacionCitas>(this.apiUrl, { params });
   }
+
+  buscarOrdenes(q: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/buscar-orden?q=${encodeURIComponent(q)}`);
+  }
   
 }
