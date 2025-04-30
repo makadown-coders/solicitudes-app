@@ -97,41 +97,85 @@ export class ExcelService {
         nombreArchivo: string,
         encabezado: string,
         registros: any[]
-      ) {
+    ) {
         const workbook = new ExcelJS.Workbook();
         const response = await fetch(templateUrl);
         const arrayBuffer = await response.arrayBuffer();
         await workbook.xlsx.load(arrayBuffer);
-      
+
         const worksheet = workbook.worksheets[0];
-      
+
+        //  worksheet.mergeCells('A1:O1'); // Asegura que A1 esté mergeada si aún no lo está
         // Set encabezado en A1
         worksheet.getCell('A1').value = encabezado;
-      
+        /* const celdaTitulo = worksheet.getCell('A1');
+           celdaTitulo.value = encabezado;
+           celdaTitulo.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+           celdaTitulo.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 14 };
+           celdaTitulo.fill = {
+               type: 'pattern',
+               pattern: 'solid',
+               fgColor: { argb: 'FF006341' } // Verde oscuro
+           };
+           */
+
+        const formatFecha = (fecha: string | Date | null): string => {
+            if (!fecha) return '';
+            const date = new Date(fecha);
+            if (isNaN(date.getTime())) return '';
+            const dia = String(date.getDate()).padStart(2, '0');
+            const mes = String(date.getMonth() + 1).padStart(2, '0');
+            const anio = date.getFullYear();
+            return `${dia}/${mes}/${anio}`;
+        };
+
         // Escribe a partir de A3 (row = 3)
         registros.forEach((reg, index) => {
-          const rowIndex = 3 + index;
-          worksheet.getCell(`A${rowIndex}`).value = 'BAJA CALIFORNIA';
-          worksheet.getCell(`B${rowIndex}`).value = reg.orden_de_suministro;
-          worksheet.getCell(`C${rowIndex}`).value = reg.clues_destino;
-          worksheet.getCell(`D${rowIndex}`).value = reg.unidad;
-          worksheet.getCell(`E${rowIndex}`).value = reg.proveedor;
-          worksheet.getCell(`F${rowIndex}`).value = reg.clave_cnis;
-          worksheet.getCell(`G${rowIndex}`).value = reg.descripcion;
-          worksheet.getCell(`H${rowIndex}`).value = reg.tipo_de_red;
-          worksheet.getCell(`I${rowIndex}`).value = +reg.cantidad || 0;
-          worksheet.getCell(`J${rowIndex}`).value = reg.tarimas || '';
-          worksheet.getCell(`K${rowIndex}`).value = reg.fecha || '';
-          worksheet.getCell(`L${rowIndex}`).value = reg.hora || '';
-          worksheet.getCell(`M${rowIndex}`).value = reg.cita_atendida || '';
-          worksheet.getCell(`N${rowIndex}`).value = reg.estatus_excel || '';
-          worksheet.getCell(`O${rowIndex}`).value = reg.fecha_de_cita || '';
+            const rowIndex = 3 + index;
+            worksheet.getCell(`A${rowIndex}`).value = 'BAJA CALIFORNIA';
+            worksheet.getCell(`B${rowIndex}`).value = reg.orden_de_suministro;
+            worksheet.getCell(`C${rowIndex}`).value = reg.clues_destino;
+            worksheet.getCell(`D${rowIndex}`).value = reg.unidad;
+            worksheet.getCell(`E${rowIndex}`).value = reg.proveedor;
+            worksheet.getCell(`F${rowIndex}`).value = reg.clave_cnis;
+            worksheet.getCell(`G${rowIndex}`).value = reg.descripcion;
+            worksheet.getCell(`H${rowIndex}`).value = reg.tipo_de_red;
+            worksheet.getCell(`I${rowIndex}`).value = +reg.cantidad || 0;
+            worksheet.getCell(`J${rowIndex}`).value = reg.tarimas || '';
+            worksheet.getCell(`K${rowIndex}`).value = reg.fecha || '';
+            /*worksheet.getCell(`L${rowIndex}`).value = reg.hora || '';*/
+            const celdaHora = worksheet.getCell(`L${rowIndex}`);
+            const [hh, mm] = reg.hora.split(':');
+            const isPM = +hh >= 12;
+            const hora12 = (+hh % 12 || 12).toString().padStart(2, '0');
+            const horaFormateada = `${hora12}:${mm}:00 ${isPM ? 'p.m.' : 'a.m.'}`;
+            worksheet.getCell(`L${rowIndex}`).value = horaFormateada;
+
+            worksheet.getCell(`M${rowIndex}`).value = reg.cita_atendida || '';
+            worksheet.getCell(`N${rowIndex}`).value = reg.estatus_excel || '';
+            worksheet.getCell(`O${rowIndex}`).value =
+                reg.fecha_de_cita ? formatFecha(reg.fecha_de_cita) : '';
+
+            for (let col = 1; col <= 15; col++) {
+                const cell = worksheet.getCell(rowIndex, col);
+                cell.font = { size: 9 };
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' },
+                };
+                cell.alignment = {
+                    vertical: 'middle',
+                    horizontal: col === 12 ? 'right' : 'center'
+                };
+            }
         });
-      
+
         const buffer = await workbook.xlsx.writeBuffer();
         this.descargarArchivo(buffer, nombreArchivo);
-      }
-      
+    }
+
 
     // Función auxiliar para descargar
     descargarArchivo(buffer: ArrayBuffer, nombreArchivo: string) {

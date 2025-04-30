@@ -17,6 +17,7 @@ export class SuministrosComponent implements OnInit {
 
   highlightedIndex: number | null = null;
   mostrarModalInfo = false;
+  mostrarModalLimpiar = false;
   mensajeModalInfo = '';
 
   autocompleteIndex = -1;
@@ -30,7 +31,21 @@ export class SuministrosComponent implements OnInit {
   // --- Datos del formulario ---
   ordenDeSuministro = '';
   autocompleteResults: any[] = [];
+  /**
+   * Campos editables del formulario superior
+   */
   filtros = {
+    tarimas: '',
+    fecha: '',
+    hora: '',
+    cita_atendida: 'SI',
+    estatus_excel: 'Pendiente'
+  };
+
+  /**
+   * Campos editables para renglón de tabla al editar
+   */
+  filtrosEdit = {
     tarimas: '',
     fecha: '',
     hora: '',
@@ -140,8 +155,7 @@ export class SuministrosComponent implements OnInit {
     if (duplicadoIndex !== -1) {
       this.highlightedIndex = duplicadoIndex;
 
-      this.mensajeModalInfo = '⚠️ Esta orden de suministro ya fue agregada.';
-      this.mostrarModalInfo = true;
+      this.abrirModalInfo('⚠️ Esta orden de suministro ya fue agregada.');
 
       setTimeout(() => {
         this.highlightedIndex = null;
@@ -171,15 +185,50 @@ export class SuministrosComponent implements OnInit {
 
   editar(index: number): void {
     this.isEditingIndex = index;
+  
+    const r = this.registrosCapturados[index];
+    this.filtrosEdit = {
+      tarimas: r.tarimas,
+      fecha: r.fecha,
+      hora: r.hora,
+      cita_atendida: r.cita_atendida,
+      estatus_excel: r.estatus_excel
+    };
   }
+  
 
   guardarEdicion(index: number): void {
-    this.isEditingIndex = null;
+    if (!this.validarFechaInput(this.filtrosEdit.fecha) || !this.validarHoraInput(this.filtrosEdit.hora)) {
+      this.abrirModalInfo('⚠️ Fecha u hora con formato incorrecto.');
+      return;
+    }
+  
+    const cita = this.registrosCapturados[index];
+    cita.tarimas = this.filtrosEdit.tarimas;
+    cita.fecha = this.filtrosEdit.fecha;
+    cita.hora = this.filtrosEdit.hora;
+    cita.cita_atendida = this.filtrosEdit.cita_atendida;
+    cita.estatus_excel = this.filtrosEdit.estatus_excel;
+  
     this.guardarEnLocalStorage();
+    this.isEditingIndex = null;
   }
+
+  abrirModalInfo(mensaje: string) {
+    this.mensajeModalInfo = mensaje;
+    this.mostrarModalInfo = true;
+  }
+  
 
   cancelarEdicion(): void {
     this.isEditingIndex = null;
+    this.filtrosEdit = {
+      tarimas: '',
+      fecha: '',
+      hora: '',
+      cita_atendida: 'SI',
+      estatus_excel: 'Pendiente'
+    };
   }
 
   limpiarFormulario(): void {
@@ -197,15 +246,15 @@ export class SuministrosComponent implements OnInit {
     };
   }
 
-  limpiarListado(): void {
+  /*limpiarListado(): void {
     if (confirm('¿Estás seguro que deseas borrar todos los registros capturados?')) {
       this.registrosCapturados = [];
       this.guardarEnLocalStorage();
     }
-  }  
+  }  */
 
   exportarExcel(): void {
-    const template = '/assets/template-citas.xlsx';
+    const template = 'template-citas.xlsx';
     const nombreFinal = this.nombreArchivoExcel.endsWith('.xlsx')
       ? this.nombreArchivoExcel
       : `${this.nombreArchivoExcel}.xlsx`;
@@ -258,5 +307,13 @@ export class SuministrosComponent implements OnInit {
   guardarEnLocalStorage(): void {
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.registrosCapturados));
   }
+
+  confirmarLimpiarListado(): void {
+    this.registrosCapturados = [];
+    this.guardarEnLocalStorage();
+    this.limpiarFormulario();
+    this.mostrarModalLimpiar = false;
+  }
+
 
 }

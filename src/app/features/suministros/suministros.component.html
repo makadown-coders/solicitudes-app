@@ -5,11 +5,11 @@
         <div>
             <label class="block font-semibold text-sm">Orden de suministro</label>
             <input type="text" [(ngModel)]="ordenDeSuministro" (input)="buscarOrdenDebounced()"
-                (keydown)="navegarAutocomplete($event)" class="w-full border px-2 py-1 rounded"
-                placeholder="Buscar orden..." />
+                [disabled]="isEditingIndex !== null" (keydown)="navegarAutocomplete($event)"
+                class="w-full border px-2 py-1 rounded" placeholder="Buscar orden..." />
 
             <!-- Resultados del autocompletado -->
-            <ul *ngIf="autocompleteResults.length > 0"
+            <ul *ngIf="autocompleteResults.length > 0 && isEditingIndex === null"
                 class="border rounded mt-1 bg-white shadow max-h-60 overflow-y-auto">
                 <li *ngFor="let result of autocompleteResults; let i = index" (click)="seleccionarOrden(result)"
                     [ngClass]="{
@@ -23,7 +23,7 @@
             </ul>
         </div>
 
-        <div *ngIf="seleccionActual" class="space-y-2">
+        <div *ngIf="seleccionActual && isEditingIndex === null" class="space-y-2">
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="block text-sm font-medium">CLUES</label>
@@ -72,7 +72,7 @@
     </div>
 
     <!-- Campos adicionales -->
-    <div *ngIf="seleccionActual" class="grid md:grid-cols-2 gap-4 border-t pt-4 mt-4">
+    <div *ngIf="seleccionActual && isEditingIndex === null" class="grid md:grid-cols-2 gap-4 border-t pt-4 mt-4">
         <div>
             <label class="block text-sm font-medium">Tarimas</label>
             <input type="text" [(ngModel)]="filtros.tarimas" class="w-full border px-2 py-1 rounded" />
@@ -116,22 +116,26 @@
 
     <!-- Botones -->
     <div class="mt-4 flex gap-2 flex-wrap">
-        <button (click)="agregarRegistro()" [disabled]="!puedeAgregar()"
+        <button (click)="agregarRegistro()" [disabled]="!puedeAgregar() || isEditingIndex !== null"
             class="bg-[#006341] text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed">
             Agregar
         </button>
 
-        <button (click)="limpiarFormulario()" class="bg-gray-300 px-4 py-2 rounded">
+        <button (click)="limpiarFormulario()"
+            class="bg-gray-300 px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            [disabled]="isEditingIndex !== null">
             Limpiar Formulario
         </button>
 
-        <button (click)="limpiarListado()" [disabled]="registrosCapturados.length === 0"
-            class="bg-red-500 text-white px-4 py-2 rounded">
-            Limpiar Todo
+        <button (click)="mostrarModalLimpiar = true"
+            [disabled]="registrosCapturados.length === 0 || isEditingIndex !== null"
+            class="bg-red-500 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed">
+            Limpiar Listado
         </button>
 
-        <button (click)="showModalFinalizar = true" [disabled]="registrosCapturados.length === 0"
-            class="bg-[#CBA135] text-white px-4 py-2 rounded">
+        <button (click)="showModalFinalizar = true"
+            [disabled]="registrosCapturados.length === 0 || isEditingIndex !== null"
+            class="bg-[#CBA135] text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed">
             Finalizar y Exportar
         </button>
     </div>
@@ -160,7 +164,10 @@
                 </tr>
             </thead>
             <tbody>
-                <tr *ngFor="let reg of registrosCapturados; let i = index" [ngClass]="{
+                <tr *ngFor="let reg of registrosCapturados; let i = index"
+                    class="border-b transition-all duration-300 ease-in-out"
+                    [class.bg-yellow-100]="isEditingIndex === i"
+                    [class.opacity-50]="isEditingIndex !== null && isEditingIndex !== i" [ngClass]="{
     'even:bg-gray-50': true,
     'bg-yellow-200 animate-pulse': highlightedIndex === i
   }">
@@ -170,27 +177,31 @@
                     <td class="px-2 py-1 border">{{ reg.unidad }}</td>
                     <td class="px-2 py-1 border">{{ reg.proveedor }}</td>
                     <td class="px-2 py-1 border">{{ reg.clave_cnis }}</td>
-                    <td class="px-2 py-1 border">{{ reg.descripcion }}</td>
+                    <td
+                        class="border px-2 py-1 break-words max-w-[300px] whitespace-nowrap overflow-hidden text-ellipsis">
+                        <span [title]="reg.descripcion">{{ reg.descripcion }}</span>
+                    </td>
                     <td class="px-2 py-1 border">{{ reg.tipo_de_red }}</td>
                     <td class="px-2 py-1 border">{{ reg.cantidad }}</td>
                     <td class="px-2 py-1 border">
-                        <input *ngIf="isEditingIndex === i" [(ngModel)]="reg.tarimas" class="w-full border px-1" />
+                        <input *ngIf="isEditingIndex === i" [(ngModel)]="filtrosEdit.tarimas"
+                            class="w-full border px-1" />
                         <span *ngIf="isEditingIndex !== i">{{ reg.tarimas }}</span>
                     </td>
-                    <td class="px-2 py-1 border">
-                        <input *ngIf="isEditingIndex === i" [(ngModel)]="reg.fecha"
-                            [ngClass]="{'border-red-500': reg.fecha && !validarFechaInput(reg.fecha)}"
-                            class="w-full border px-1" placeholder="DD/MM/AAAA" />
+                    <td class="border px-2 py-1 whitespace-nowrap">
+                        <input *ngIf="isEditingIndex === i" [(ngModel)]="filtrosEdit.fecha"
+                            class="border rounded px-2 py-1 w-28"
+                            [class.border-red-500]="!validarFechaInput(filtrosEdit.fecha)" placeholder="DD/MM/AAAA" />
                         <span *ngIf="isEditingIndex !== i">{{ formatoDDMMYYYY(reg.fecha) }}</span>
                     </td>
-                    <td class="px-2 py-1 border">
-                        <input *ngIf="isEditingIndex === i" [(ngModel)]="reg.hora"
-                            [ngClass]="{'border-red-500': reg.hora && !validarHoraInput(reg.hora)}" placeholder="HH:mm"
-                            class="w-full border px-1" />
+                    <td class="border px-2 py-1 whitespace-nowrap">
+                        <input *ngIf="isEditingIndex === i" [(ngModel)]="filtrosEdit.hora"
+                            class="border rounded px-2 py-1 w-20"
+                            [class.border-red-500]="!validarHoraInput(filtrosEdit.hora)" placeholder="hh:mm" />
                         <span *ngIf="isEditingIndex !== i">{{ reg.hora }}</span>
                     </td>
                     <td class="px-2 py-1 border">
-                        <select *ngIf="isEditingIndex === i" [(ngModel)]="reg.cita_atendida" class="w-full border px-1">
+                        <select *ngIf="isEditingIndex === i" [(ngModel)]="filtrosEdit.cita_atendida" class="w-full border px-1">
                             <option>SI</option>
                             <option>NO</option>
                             <option>EN PROCESO</option>
@@ -198,20 +209,23 @@
                         <span *ngIf="isEditingIndex !== i">{{ reg.cita_atendida }}</span>
                     </td>
                     <td class="px-2 py-1 border">
-                        <select *ngIf="isEditingIndex === i" [(ngModel)]="reg.estatus_excel" class="w-full border px-1">
+                        <select *ngIf="isEditingIndex === i" [(ngModel)]="filtrosEdit.estatus_excel" class="w-full border px-1">
                             <option>Pendiente</option>
                             <option>Recibido</option>
                         </select>
                         <span *ngIf="isEditingIndex !== i">{{ reg.estatus_excel }}</span>
                     </td>
                     <td class="px-2 py-1 border">{{ formatearFecha(reg.fecha_de_cita) }}</td>
-                    <td class="px-2 py-1 border">
-                        <button *ngIf="isEditingIndex !== i" (click)="editar(i)" class="text-blue-500">✏️</button>
-                        <button *ngIf="isEditingIndex === i" (click)="guardarEdicion(i)"
-                            class="text-green-600">✔️</button>
-                        <button *ngIf="isEditingIndex === i" (click)="cancelarEdicion()"
-                            class="text-red-500">✖️</button>
-                        <button (click)="eliminar(i)" class="text-red-500 ml-1">🗑️</button>
+                    <td class="border px-2 py-1 whitespace-nowrap">
+                        <div class="flex items-center justify-end gap-2">
+                            <button *ngIf="isEditingIndex !== i" (click)="editar(i)"
+                                class="text-blue-600 hover:underline">✏️</button>
+                            <button *ngIf="isEditingIndex === i" (click)="guardarEdicion(i)"
+                                class="text-green-600 hover:underline">✅</button>
+                            <button *ngIf="isEditingIndex === i" (click)="cancelarEdicion()"
+                                class="text-yellow-600 hover:underline">❌</button>
+                            <button (click)="eliminar(i)" class="text-red-600 hover:underline">🗑️</button>
+                        </div>
                     </td>
                 </tr>
             </tbody>
@@ -246,3 +260,6 @@
 <app-confirmacion-modal *ngIf="mostrarModalInfo" [mensaje]="mensajeModalInfo" [soloInfo]="true"
     (confirmar)="mostrarModalInfo = false">
 </app-confirmacion-modal>
+
+<app-confirmacion-modal *ngIf="mostrarModalLimpiar" mensaje="¿Deseas eliminar todo el listado y limpiar el formulario?"
+    (confirmar)="confirmarLimpiarListado()" (cancelar)="mostrarModalLimpiar = false" />
