@@ -55,11 +55,12 @@ export class CitasService {
     page = 1,
     limit = 10,
     filtros: Partial<Cita> = {},
-    search = ''
-  ): Observable<PaginacionCitas> {
-    let params = new HttpParams()
-      .set('page', page)
-      .set('limit', limit);
+    search = '', sortBy = 'fecha_de_cita', sortOrder: 'ASC' | 'DESC' = 'DESC') {
+      let params = new HttpParams()
+        .set('page', page)
+        .set('limit', limit)
+        .set('sortBy', sortBy)
+        .set('sortOrder', sortOrder);
   
     if (search.trim()) {
       params = params.set('search', search.trim());

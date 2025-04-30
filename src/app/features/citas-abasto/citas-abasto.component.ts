@@ -12,8 +12,23 @@ import { FormsModule } from '@angular/forms';
 export class CitasAbastoComponent {
   isLoading = false;
 
+  sortBy: string = 'fecha_de_cita';
+  sortOrder: 'ASC' | 'DESC' = 'DESC';
+
+  ordenarPor(campo: string): void {
+    if (this.sortBy === campo) {
+      this.sortOrder = this.sortOrder === 'ASC' ? 'DESC' : 'ASC';
+    } else {
+      this.sortBy = campo;
+      this.sortOrder = 'ASC';
+    }
+    this.page = 1;
+    this.buscar();
+  }
+
+
   citas: Cita[] = [];
-  
+
   filtros: Record<string, string> = {
     ejercicio: '',
     orden_de_suministro: '',
@@ -54,23 +69,27 @@ export class CitasAbastoComponent {
   constructor(private citasService: CitasService) { }
 
   ngOnInit(): void {
+    const guardado = localStorage.getItem('citas_limit');
+    if (guardado) {
+      this.limit = parseInt(guardado, 10);
+    }
     this.buscar();
   }
 
   buscar(): void {
     this.isLoading = true;
-    this.citasService.obtenerCitas(this.page, this.limit, this.filtros, this.searchTerm)
-    .subscribe({
-      next: (res) => {
-        this.citas = res.data;
-        this.total = res.total;
-        this.isLoading = false;
-      },
-      error: (err) => {
-        console.error('Error al cargar citas:', err);
-        this.isLoading = false;
-      }
-    });
+    this.citasService.obtenerCitas(this.page, this.limit, this.filtros, this.searchTerm, this.sortBy, this.sortOrder)
+      .subscribe({
+        next: (res) => {
+          this.citas = res.data;
+          this.total = res.total;
+          this.isLoading = false;
+        },
+        error: (err) => {
+          console.error('Error al cargar citas:', err);
+          this.isLoading = false;
+        }
+      });
   }
 
   anterior(): void {
@@ -90,4 +109,59 @@ export class CitasAbastoComponent {
   get totalPages(): number {
     return Math.ceil(this.total / this.limit);
   }
+
+  limpiarFiltros(): void {
+    this.searchTerm = '';
+    this.page = 1;
+
+    // Limpia todos los campos del objeto `filtros`
+    for (const key in this.filtros) {
+      if (Object.prototype.hasOwnProperty.call(this.filtros, key)) {
+        this.filtros[key as keyof typeof this.filtros] = '';
+      }
+    }
+
+    this.buscar();
+  }
+
+  get paginasVisibles(): number[] {
+    const totalPages = this.totalPages;
+    const current = this.page;
+    const delta = 2;
+
+    const range: number[] = [];
+
+    const start = Math.max(2, current - delta);
+    const end = Math.min(totalPages - 1, current + delta);
+
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) range.push(i);
+    } else {
+      if (current > 3) range.push(1); // Primer botón fijo
+      if (start > 2) range.push(-1); // -1 será "..."
+
+      for (let i = start; i <= end; i++) range.push(i);
+
+      if (end < totalPages - 1) range.push(-2); // -2 será "..."
+      if (current < totalPages - 2) range.push(totalPages); // Último botón fijo
+    }
+
+    return range;
+  }
+
+  cambiarLimite(): void {
+    localStorage.setItem('citas_limit', this.limit.toString());
+    this.page = 1; // Reiniciar a la primera página
+    this.buscar();
+  }
+
+
+  irAPagina(pagina: number): void {
+    if (pagina !== this.page && pagina > 0 && pagina <= this.totalPages) {
+      this.page = pagina;
+      this.buscar();
+    }
+  }
+
+
 }
