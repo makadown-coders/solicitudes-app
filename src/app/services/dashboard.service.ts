@@ -35,17 +35,20 @@ export class DashboardService {
     const url = `${environment.apiUrl}/citas/full`;
     this.http.get<Cita[]>(url).subscribe({
       next: (data) => {
-        console.log('data', data); 
+        console.log('Recibiendo datos...'); 
+        console.log('serializando y comprimiendo');
         // 1) Serializar y comprimir
         const raw = JSON.stringify(data);
         const compressed = LZString.compress(raw);
         try {
+          console.log('Guardando en localStorage...');
           localStorage.setItem(this.STORAGE_KEY, compressed);
         } catch {
           console.warn('😱 localStorage lleno, omitiendo guardado');
         }
         // 2) Emitir
         console.log('✅ Datos del dashboard actualizados.');
+        console.log('data emitida desde servicio:', data);
         this.citasSubject.next(data as Cita[]);
       },
       error: (err) => {

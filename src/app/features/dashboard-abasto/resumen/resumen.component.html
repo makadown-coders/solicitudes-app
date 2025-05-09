@@ -1,41 +1,37 @@
 <div class="p-6 space-y-6">
+  <!-- Título -->
+  <div class="flex justify-between items-center">
+    <h2 class="text-2xl font-semibold tracking-tight">Resumen general</h2>
+  </div>
 
-    <!-- KPI Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-green-100 text-green-900 p-4 rounded shadow">
-        <h3 class="text-lg font-bold">Total piezas recibidas</h3>
-        @let totalPiezas = getTotalPiezas();
-        <p class="text-2xl">{{ totalPiezas }}</p>
-      </div>
-      <div class="bg-yellow-100 text-yellow-900 p-4 rounded shadow">
-        <h3 class="text-lg font-bold">Órdenes atendidas</h3>
-        @let totalOrdenes = getTotalOrdenes();
-        <p class="text-2xl">{{ totalOrdenes }}</p>
-      </div>
-      <div class="bg-blue-100 text-blue-900 p-4 rounded shadow">
-        <h3 class="text-lg font-bold">Hospitales receptores</h3>
-        @let totalHospitales = getTotalHospitales();
-        <p class="text-2xl">{{ totalHospitales }}</p>
-      </div>
+  <!-- KPI Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="rounded-lg border bg-white p-4 shadow-sm">
+      <div class="text-sm text-gray-500">Total piezas recibidas</div>
+      <div class="text-2xl font-bold text-green-700">{{ totalPiezas | number }}</div>
     </div>
-  
-    <!-- Gráficas -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="bg-white p-4 shadow rounded">
-        <h4 class="font-semibold mb-2">Piezas por hospital</h4>
-        <canvas baseChart 
-                [data]="barChartData"
-                [type]="'bar'">
-        </canvas>
-      </div>
-  
-      <div class="bg-white p-4 shadow rounded">
-        <h4 class="font-semibold mb-2">Tendencia diaria de recepción</h4>
-        <canvas baseChart 
-                [data]="lineChartData"
-                [type]="'line'">
-        </canvas>
-      </div>
+
+    <div class="rounded-lg border bg-white p-4 shadow-sm">
+      <div class="text-sm text-gray-500">Órdenes distintas</div>
+      <div class="text-2xl font-bold text-yellow-600">{{ totalOrdenes | number }}</div>
+    </div>
+
+    <div class="rounded-lg border bg-white p-4 shadow-sm">
+      <div class="text-sm text-gray-500">Hospitales receptores</div>
+      <div class="text-2xl font-bold text-blue-600">{{ totalHospitales | number }}</div>
     </div>
   </div>
-  
+
+  <!-- Gráficas -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="rounded-lg border bg-white p-4 shadow-sm">
+      <h4 class="text-sm text-gray-500 font-medium mb-2">Piezas por hospital</h4>
+      <canvas baseChart [data]="barChartData" [type]="'bar'"></canvas>
+    </div>
+
+    <div class="rounded-lg border bg-white p-4 shadow-sm">
+      <h4 class="text-sm text-gray-500 font-medium mb-2">Tendencia diaria de recepción</h4>
+      <canvas baseChart [data]="lineChartData" [type]="'line'"></canvas>
+    </div>
+  </div>
+</div>

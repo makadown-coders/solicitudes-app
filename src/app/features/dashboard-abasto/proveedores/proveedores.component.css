@@ -1,0 +1,50 @@
+:host {
+    display: block;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #006341; /* Verde oscuro institucional */
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151; /* gray-700 */
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+  
+  th, td {
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb; /* gray-200 */
+    vertical-align: top;
+  }
+  
+  tr:nth-child(even) {
+    background-color: #f3f4f6; /* gray-100 */
+  }
+  
+  tr:hover {
+    background-color: #edf6f2; /* verde claro institucional */
+  }
+  
+  .border {
+    border-color: #e5e7eb;
+  }
+  
+  .bg-green-100 {
+    background-color: #d1fae5;
+  }
+  
+  .text-green-900 {
+    color: #064e3b;
+  }
+  

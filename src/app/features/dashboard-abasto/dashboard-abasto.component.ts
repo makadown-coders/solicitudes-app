@@ -6,6 +6,8 @@ import { BaseChartDirective } from 'ng2-charts';
 import { ResumenComponent } from './resumen/resumen.component';
 import { Cita } from '../../models/Cita';
 import { DashboardService } from '../../services/dashboard.service';
+import { ProveedoresComponent } from './proveedores/proveedores.component';
+import { CitasPendientesComponent } from './citas-pendientes/citas-pendientes.component';
 
 @Component({
   selector: 'app-dashboard-abasto',
@@ -13,6 +15,8 @@ import { DashboardService } from '../../services/dashboard.service';
     FormsModule,
     ResumenComponent,
     RouterModule,
+    ProveedoresComponent,
+    CitasPendientesComponent
   ],
   templateUrl: './dashboard-abasto.component.html',
   styleUrl: './dashboard-abasto.component.css'
@@ -23,23 +27,28 @@ export class DashboardAbastoComponent {
   isLoading: boolean = true;
 
   // controla la pestaña activa
-  activeTab: 'resumen' | 'otro' = 'resumen';
+  tabs = ['Resumen', 'Proveedores y entregas', 'Citas pendientes'];
+  activeTab = 'Resumen';
 
   constructor(private dashboardService: DashboardService) { }
 
   ngOnInit(): void {
     // 1) Suscríbete al BehaviorSubject para recibir actualizaciones
-    this.dashboardService.citas$.subscribe({      
+    this.dashboardService.citas$.subscribe({
       next: (data: Cita[]) => {
+        console.log('recibiendo data en componente dashboardAbasto desde subscripcion al BehaviorSubject');
+        console.log('asignado data a this.citas');
         this.citas = data as Cita[];
+        console.log('this.citas', this.citas);
         this.isLoading = false;
-      } 
+      }
     });
 
     // TODO: Refactorizar para recargar manualmente
     if (this.citas.length === 0) {
       // 2) Dispara la carga inicial desde el endpoint     
-      this.onRefresh();
+      console.log('disparando carga inicial...');
+      this.onRefresh();      
     }
   }
 
@@ -47,5 +56,9 @@ export class DashboardAbastoComponent {
   onRefresh() {
     this.isLoading = true;
     this.dashboardService.refrescarDatos();
+  }
+
+  seleccionarTab(tab: string) {
+    this.activeTab = tab;
   }
 }

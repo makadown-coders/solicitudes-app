@@ -32,4 +32,14 @@ export class PeriodoFechasService {
       return `${ini.dia} ${ini.mes} ${ini.anio} - ${finF.dia} ${finF.mes} ${finF.anio}`;
     }
   }
+
+  fechaEnRango(fechaTexto: string | null, inicio: Date, fin: Date): boolean {
+    if (!fechaTexto || fechaTexto.trim().length === 0) return false;
+  
+    return fechaTexto.split('/')
+      .map(f => new Date(f.trim()))
+      .some(fecha => {
+        return !isNaN(fecha.getTime()) && fecha >= inicio && fecha <= fin;
+      });
+  }
 }

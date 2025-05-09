@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { ChartConfiguration } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { Cita } from '../../../models/Cita';
@@ -10,8 +10,12 @@ import { Cita } from '../../../models/Cita';
   templateUrl: './resumen.component.html',
   styleUrl: './resumen.component.css'
 })
-export class ResumenComponent {
+export class ResumenComponent implements OnChanges {
+  
   @Input() citas: Cita[] = [];
+  totalPiezas = 0;
+  totalOrdenes = 0;
+  totalHospitales = 0;
 
   // KPI calculados a partir de this.citas
   getTotalPiezas() {
@@ -26,6 +30,13 @@ export class ResumenComponent {
 
   getTotalHospitales() {
     return new Set((this.citas as Cita[]).map(c => c.almacen_hospital_que_recibio)).size;
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    console.log('ngOnChanges');
+    this.totalPiezas = this.getTotalPiezas();
+    this.totalOrdenes = this.getTotalOrdenes();
+    this.totalHospitales = this.getTotalHospitales();
   }
 
   // Datos para barra: piezas por hospital

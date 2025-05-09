@@ -8,9 +8,9 @@
   </div>
 </div>
 
-<div class="p-6 opacity-75" [class.opacity-50]="isLoading">
-  <!-- Header con botón de refrescar -->
-  <div class="flex justify-between items-center mb-4">
+<div class="p-6" [class.opacity-50]="isLoading">
+   <!-- Header con botón de refrescar -->
+   <div class="flex justify-between items-center mb-4">
     <h1 class="text-2xl font-bold">Dashboard Abasto</h1>
     <button (click)="onRefresh()"
             [disabled]="isLoading"
@@ -19,24 +19,28 @@
     </button>
   </div>
 
-  <!-- Resto de tu template -->
-  <div class="flex space-x-2 mb-6">
-    <button (click)="activeTab = 'resumen'"
-            [class.font-bold]="activeTab==='resumen'"
-            class="px-4 py-2 rounded hover:bg-gray-100">
-      Resumen
-    </button>
-    <button (click)="activeTab = 'otro'"
-            [class.font-bold]="activeTab==='otro'"
-            class="px-4 py-2 rounded hover:bg-gray-100">
-      Otro tab
-    </button>
+  <div class="border-b border-gray-200 mb-6">
+    <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+      <button
+        *ngFor="let tab of tabs"
+        (click)="seleccionarTab(tab)"
+        [class]="
+          'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ' +
+          (activeTab === tab
+            ? 'border-green-800 text-green-800'
+            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300')
+        "
+      >
+        {{ tab }}
+      </button>
+    </nav>
   </div>
 
-  <ng-container *ngIf="activeTab === 'resumen'">
-    <app-resumen [citas]="citas"></app-resumen>
-  </ng-container>
-  <ng-container *ngIf="activeTab === 'otro'">
-    <p class="text-gray-500">Próximamente...</p>
-  </ng-container>
+
+  <div *ngIf="!isLoading">
+    <app-resumen *ngIf="activeTab === 'Resumen'" [citas]="citas"></app-resumen>
+    <app-proveedores *ngIf="activeTab === 'Proveedores y entregas'" [citas]="citas"></app-proveedores>
+    <app-citas-pendientes *ngIf="activeTab === 'Citas pendientes'" [citas]="citas"></app-citas-pendientes>
+     
+  </div>
 </div>

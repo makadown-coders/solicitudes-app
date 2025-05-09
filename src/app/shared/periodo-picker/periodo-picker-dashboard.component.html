@@ -1,0 +1,64 @@
+<div>
+    <button type="button" (click)="toggleCalendario()"
+        class="border rounded px-4 py-2 w-full text-left flex items-center justify-between hover:bg-green-50">
+        <span>
+            {{
+            fechaInicio && fechaFin
+            ? '📅 ' +
+            ( (fechaInicio | date : 'dd MMMM yyyy') + ' - ' + (fechaFin | date : 'dd MMMM yyyy') | uppercase)
+            : '📅 Selecciona un rango de fechas'
+            }}
+        </span>
+    </button>
+
+    <div *ngIf="mostrarCalendario" class="picker-panel absolute right-50 mt-2 z-10 bg-white border rounded shadow w-[300px]">
+        <p class="text-gray-700 mb-2"> {{ titulo }} </p>
+        
+        <div class="flex justify-center items-center gap-3 mb-3">
+            <select [ngModel]="mesElegido" (ngModelChange)="onMesCambiado($event)"
+                class="border rounded px-2 py-1 text-sm bg-white text-gray-800">
+                <option *ngFor="let mes of meses; let i = index" [value]="i">{{ mes }}</option>
+            </select>
+
+            <select [ngModel]="anioElegido" (ngModelChange)="onAnioCambiado($event)"
+                class="border rounded px-2 py-1 text-sm bg-white text-gray-800">
+                <option *ngFor="let anio of anios" [value]="anio">{{ anio }}</option>
+            </select>
+        </div>
+        <p *ngIf="fechaInicio && !fechaFin" class="text-sm text-yellow-700 bg-yellow-100 px-3 py-2 rounded mb-3">
+            Selecciona una <strong>fecha final</strong> para completar el rango
+        </p>
+        <p *ngIf="fechaInicio && fechaFin" class="text-sm text-green-700 bg-green-100 px-3 py-2 rounded mb-3">
+            ✅ {{ fechaInicio | date: 'dd/MMMM/yyyy' | uppercase }} - {{ fechaFin | date: 'dd/MMMM/yyyy' | uppercase }}
+        </p>
+        <div class="grid grid-cols-7 gap-1 text-center">
+            <span class="font-bold text-gray-600" *ngFor="let dia of ['D', 'L', 'M', 'M', 'J', 'V', 'S']">{{ dia
+                }}</span>
+
+            <!-- Generador simple de días del mes actual -->
+            @let diasDelMes = getDiasDelMes();
+
+            <ng-container *ngFor="let dia of diasDelMes">
+                @let inicioOFin = dia && esInicioOFin(dia);
+                @let hoverFin = dia && esHoverFin(dia);
+                @let esBetween = dia && isBetween(dia);
+                @let esHovered = dia && isHovered(dia);
+                <button *ngIf="dia !== null" type="button" class="rounded px-2 py-1 transition-all" [ngClass]="{
+                    'bg-green-600 text-white font-bold': inicioOFin,
+                    'bg-red-600 text-white font-bold': hoverFin,
+                    'bg-green-300 text-green-900': esBetween,
+                    'bg-green-100 text-green-800': esHovered
+                  }" (click)="seleccionarFecha(crearFecha(dia))" (mouseenter)="hoveredDate = crearFecha(dia)"
+                    (mouseleave)="hoveredDate = null">
+                    {{ dia }}
+                </button>
+                <div *ngIf="dia === null"></div>
+            </ng-container>
+        </div>
+        <div *ngIf="fechaInicioAnterior && fechaFinAnterior" class="mt-4 flex justify-end">
+            <button (click)="cancelarEdicionRango()" class="text-sm text-gray-600 hover:underline hover:text-gray-800">
+                Cancelar edición y conservar rango
+            </button>
+        </div>
+    </div>
+</div>

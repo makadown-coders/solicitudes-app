@@ -1,0 +1,16 @@
+:host {
+    position: relative;
+    display: inline-block; /* para que solo ocupe lo necesario */
+  }
+
+  .picker-panel {
+    position: absolute;
+    right: 50;
+    top: 100%; /* justo debajo del botón */
+    z-index: 50;
+    background-color: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border: 1px solid #ccc;
+    border-radius: 0.5rem;
+    width: 320px;
+  }
