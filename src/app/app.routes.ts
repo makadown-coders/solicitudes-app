@@ -2,6 +2,11 @@ import { Routes } from '@angular/router';
 
 export const routes: Routes = [
   {
+    path: 'dashboard',
+    loadComponent: () => import('./features/dashboard-abasto/dashboard-abasto.component')
+        .then(m => m.DashboardAbastoComponent)
+  },  
+  {
     path: 'citas-abasto', // nombre provisional
     loadComponent: () => import('./features/citas-abasto/citas-abasto.component')
         .then(m => m.CitasAbastoComponent) // CitasAbastoComponent

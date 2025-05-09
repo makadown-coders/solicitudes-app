@@ -1,0 +1,42 @@
+<!-- Loading overlay -->
+<div *ngIf="isLoading" id="loader" class="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-80">
+  <div class="flex flex-col items-center space-y-4">
+    <!-- Spinner -->
+    <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    <!-- Texto -->
+    <p class="text-lg font-semibold text-gray-700">Cargando...</p>
+  </div>
+</div>
+
+<div class="p-6 opacity-75" [class.opacity-50]="isLoading">
+  <!-- Header con botón de refrescar -->
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">Dashboard Abasto</h1>
+    <button (click)="onRefresh()"
+            [disabled]="isLoading"
+            class="bg-[#006341] text-white px-3 py-1 rounded disabled:opacity-50">
+      🔄 Refrescar datos
+    </button>
+  </div>
+
+  <!-- Resto de tu template -->
+  <div class="flex space-x-2 mb-6">
+    <button (click)="activeTab = 'resumen'"
+            [class.font-bold]="activeTab==='resumen'"
+            class="px-4 py-2 rounded hover:bg-gray-100">
+      Resumen
+    </button>
+    <button (click)="activeTab = 'otro'"
+            [class.font-bold]="activeTab==='otro'"
+            class="px-4 py-2 rounded hover:bg-gray-100">
+      Otro tab
+    </button>
+  </div>
+
+  <ng-container *ngIf="activeTab === 'resumen'">
+    <app-resumen [citas]="citas"></app-resumen>
+  </ng-container>
+  <ng-container *ngIf="activeTab === 'otro'">
+    <p class="text-gray-500">Próximamente...</p>
+  </ng-container>
+</div>

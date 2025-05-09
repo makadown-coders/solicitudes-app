@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { Cita, CitasService, PaginacionCitas } from '../../services/citas.service';
+import { CitasService } from '../../services/citas.service';
+import { PaginacionCitas } from '../../models/PaginacionCitas';
+import { Cita } from '../../models/Cita';
 import { FormsModule } from '@angular/forms';
 
 @Component({
