@@ -1,0 +1,7 @@
+/* src/app/shared/detalle-cita-modal/detalle-cita-modal.component.css */
+
+:host {
+    position: relative;
+    display: block;
+  }
+  

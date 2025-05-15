@@ -3,6 +3,7 @@ import { ArticuloSolicitud } from '../models/articulo-solicitud';
 import * as XLSX from 'xlsx';
 import * as ExcelJS from 'exceljs';
 import { DatosClues } from '../models/datos-clues';
+import { CitaRow } from '../models/Cita';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
@@ -52,9 +53,9 @@ export class ExcelService {
         const response = await fetch(templateUrl);
         const arrayBuffer = await response.arrayBuffer();
         await workbook.xlsx.load(arrayBuffer);
-        console.log('workbook', workbook);
+       // console.log('workbook', workbook);
         const hojas = workbook.worksheets;
-        console.log('hojas', hojas);
+        // console.log('hojas', hojas);
         const worksheet = hojas[0];
 
         // Cargar la imagen SVG como buffer
@@ -187,4 +188,11 @@ export class ExcelService {
         a.click();
         window.URL.revokeObjectURL(url);
     }
+
+    obtenerCitasDeExcel(buffer: ArrayBuffer) {
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows: CitaRow[] = XLSX.utils.sheet_to_json<CitaRow>(sheet, { header: 1 });
+        return rows;
+      }
 }

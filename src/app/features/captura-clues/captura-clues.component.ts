@@ -56,7 +56,7 @@ export class CapturaCluesComponent implements OnInit {
     const cluesStr = localStorage.getItem('datosClues');
     if (cluesStr) {
       const datosClues = JSON.parse(cluesStr) as DatosClues;
-      console.log('datosClues en captura-clues', datosClues);
+      // console.log('datosClues en captura-clues', datosClues);
       this.nombreHospital = datosClues.nombreHospital;
       this.tiposInsumoSeleccionados = datosClues.tipoInsumo.split(', ');
       this.periodoFormateado = datosClues.periodo;

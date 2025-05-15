@@ -1,9 +1,10 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Cita } from '../models/Cita';
 import * as LZString from 'lz-string';
+import { CitasService } from './citas.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +13,7 @@ export class DashboardService {
   private STORAGE_KEY = 'citasFull';
   private citasSubject = new BehaviorSubject<Cita[]>([]);
   public citas$: Observable<Cita[]> = this.citasSubject.asObservable();
+  private citasService = inject(CitasService);
 
   constructor(private http: HttpClient) {
     this.cargarDesdeLocalStorage();
@@ -33,12 +35,16 @@ export class DashboardService {
   refrescarDatos(): void {
     console.log('🔄 Actualizando datos del dashboard...');
     const url = `${environment.apiUrl}/citas/full`;
-    this.http.get<Cita[]>(url).subscribe({
-      next: (data) => {
+    this.http.get<CitasFull>(url).subscribe({
+      next: (response: CitasFull) => {
         console.log('Recibiendo datos...'); 
-        console.log('serializando y comprimiendo');
+        console.log('serializando Base64');
+
+        // TODO: inyectar servicio de citas para transpormar base64 a excel y luego a citas[]
+        const citas = this.citasService.obtenerCitasDeBase64(response.citas);
+
         // 1) Serializar y comprimir
-        const raw = JSON.stringify(data);
+        const raw = JSON.stringify(citas);
         const compressed = LZString.compress(raw);
         try {
           console.log('Guardando en localStorage...');
@@ -48,8 +54,8 @@ export class DashboardService {
         }
         // 2) Emitir
         console.log('✅ Datos del dashboard actualizados.');
-        console.log('data emitida desde servicio:', data);
-        this.citasSubject.next(data as Cita[]);
+       // console.log('data emitida desde servicio:', citas);
+        this.citasSubject.next(citas as Cita[]);
       },
       error: (err) => {
         console.error('❌ Error al cargar datos del dashboard:', err);
@@ -62,4 +68,9 @@ export class DashboardService {
     localStorage.removeItem(this.STORAGE_KEY);
     this.citasSubject.next([] as Cita[]);
   }
+}
+
+
+interface CitasFull {
+  citas: string; // String en Base64 que contiene el archivo excel
 }
