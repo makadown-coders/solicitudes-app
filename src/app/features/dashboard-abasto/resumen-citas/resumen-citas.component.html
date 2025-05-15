@@ -1,0 +1,70 @@
+<div class="p-6 space-y-6">
+    <h2 class="text-2xl font-semibold tracking-tight">Resumen de Citas</h2>
+    <!-- 🗓️ Selector de periodo -->
+    <div class="flex justify-end">
+        <app-periodo-picker-dashboard [fechaInicio]="fechaInicio" [fechaFin]="fechaFin"
+            [titulo]="'Fecha de Cita'"
+            (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)">
+        </app-periodo-picker-dashboard>
+    </div>
+
+    <!-- 📈 Tabla -->
+    <div class="overflow-x-auto bg-white rounded-lg shadow mt-6">
+        <table class="min-w-full text-sm">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="p-2 border">Tipo Entrega</th>
+                    <th class="p-2 border">Unidad</th>
+                    <th *ngFor="let dia of diasRango" class="p-2 border">{{ dia }}</th>
+                    <th class="p-2 border">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <ng-container *ngFor="let grupo of datosAgrupadosAgrupadosPorTipo()">
+                    <!-- Encabezado de tipo entrega -->
+                    <tr class="bg-green-200 cursor-pointer" (click)="toggleGrupo(grupo.tipoEntrega)">
+                        <td class="p-2 border font-bold text-green-800">
+                            {{ grupo.tipoEntrega }}
+                            <span class="float-right">{{ grupoExpandido[grupo.tipoEntrega] ? '▲' : '▼' }}</span>
+                          </td>
+                          <td class="p-2 border"></td> <!-- Vacío para indentación -->
+                          <td *ngFor="let dia of diasRango" class="p-2 border text-center font-semibold">
+                            {{ obtenerTotalPorEntregaYDia(grupo.tipoEntrega, dia) || '' }}
+                          </td>
+                        <td class="p-2 border font-semibold text-right">
+                            {{ obtenerTotalTipoEntrega(grupo.tipoEntrega) }}
+                        </td>
+                    </tr>
+
+                    <!-- Filas solo si expandido -->
+                    <tr *ngFor="let fila of grupo.unidades" [hidden]="!grupoExpandido[grupo.tipoEntrega]"
+                        class="hover:bg-gray-50">
+                        <td class="p-2 border"></td> <!-- Vacío para indentación -->
+                        <td class="p-2 border">{{ fila.unidad }}</td>
+
+                        <td *ngFor="let dia of diasRango" class="p-2 border text-center">
+                            {{ fila.conteos[dia] || '' }}
+                        </td>
+
+                        <td class="p-2 border font-semibold text-right">
+                            @let conteo = obtenerConteo(fila);
+                            {{ conteo }}
+                        </td>
+                    </tr>
+                </ng-container>
+
+                <!-- 🧮 Fila de totales -->
+                <tr class="bg-green-100 font-semibold text-green-800">
+                    <td class="p-2 border text-center" colspan="2">Totales</td>
+                    <td *ngFor="let dia of diasRango" class="p-2 border text-center">
+                        {{ obtenerTotalPorDia(dia) }}
+                    </td>
+                    <td class="p-2 border text-right">
+                        {{ obtenerGranTotal() }}
+                    </td>
+                </tr>
+            </tbody>
+
+        </table>
+    </div>
+</div>

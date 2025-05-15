@@ -41,6 +41,6 @@
     <app-resumen *ngIf="activeTab === 'Resumen'" [citas]="citas"></app-resumen>
     <app-proveedores *ngIf="activeTab === 'Proveedores y entregas'" [citas]="citas"></app-proveedores>
     <app-citas-pendientes *ngIf="activeTab === 'Citas pendientes'" [citas]="citas"></app-citas-pendientes>
-     
+    <app-resumen-citas *ngIf="activeTab === 'Entregas pendientes'" [citas]="citas"></app-resumen-citas>
   </div>
 </div>

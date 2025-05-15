@@ -4,13 +4,15 @@ import { Cita } from '../../../models/Cita';
 import { FormsModule } from '@angular/forms';
 import { PeriodoFechasService } from '../../../shared/periodo-fechas.service';
 import { PeriodoPickerDasboardComponent } from "../../../shared/periodo-picker/periodo-picker-dashboard.component";
+import { StorageVariables } from '../../../shared/storage-variables';
+import { DetalleCitaModalComponent } from '../../../shared/detalle-cita-modal/detalle-cita-modal.component';
 
 
 @Component({
     selector: 'app-proveedores',
     standalone: true,
     imports: [CommonModule, FormsModule,
-        PeriodoPickerDasboardComponent],
+        PeriodoPickerDasboardComponent, DetalleCitaModalComponent],
     templateUrl: './proveedores.component.html',
     styleUrls: ['./proveedores.component.css']
 })
@@ -28,9 +30,29 @@ export class ProveedoresComponent implements OnInit {
     fechaInicio: Date = new Date(new Date().getFullYear(), 0, 1); // 1 de enero actual
     fechaFin: Date = new Date(); // hoy
 
+    citaSeleccionada: Cita | null = null;
+    mostrarModalDetalle = false;
+
     ngOnInit(): void {
+        // Recuperar filtros de localStorage
+        this.cargarDeLocalStorage();
         this.periodoFormateado = this.fechasService.formatearRango(this.fechaInicio, this.fechaFin);
         this.proveedoresAgrupados = this.getProveedoresAgrupados();
+    }
+
+    getTotalPiezasPorProveedor(citas: Cita[]): number {
+        return citas.reduce((total, cita) => total + cita.pzas_recibidas_por_la_entidad!, 0);
+    }
+
+    cargarDeLocalStorage() {
+        this.filtroBusqueda = localStorage.getItem(StorageVariables.DASH_ABASTO_PROV_FILTRO_PROVEEDOR) || '';
+        this.filtroUnidad = localStorage.getItem(StorageVariables.DASH_ABASTO_PROV_FILTRO_UNIDAD) || '';
+        const inicio = localStorage.getItem(StorageVariables.DASH_ABASTO_PROV_FECHA_INICIO);
+        const fin = localStorage.getItem(StorageVariables.DASH_ABASTO_PROV_FECHA_FIN);
+        if (inicio && fin) {
+            this.fechaInicio = new Date(inicio);
+            this.fechaFin = new Date(fin);
+        }
     }
 
     onPeriodoSeleccionado(texto: string, fechaInicio: Date, fechaFin: Date) {
@@ -49,12 +71,16 @@ export class ProveedoresComponent implements OnInit {
     }
 
     onBusqueda() {
+        localStorage.setItem(StorageVariables.DASH_ABASTO_PROV_FILTRO_PROVEEDOR, this.filtroBusqueda);
+        localStorage.setItem(StorageVariables.DASH_ABASTO_PROV_FILTRO_UNIDAD, this.filtroUnidad);
+        localStorage.setItem(StorageVariables.DASH_ABASTO_PROV_FECHA_INICIO, this.fechaInicio.toISOString());
+        localStorage.setItem(StorageVariables.DASH_ABASTO_PROV_FECHA_FIN, this.fechaFin.toISOString());
         this.proveedoresAgrupados = this.getProveedoresAgrupados();
     }
 
     getProveedoresAgrupados(): { proveedor: string; citas: Cita[] }[] {
         const map = new Map<string, Cita[]>();
-        console.log('Aplicando filtro', this.filtroBusqueda);
+        // console.log('Aplicando filtro', this.filtroBusqueda);
         const citasFiltradas = this.citas.filter(c => {
             const filtro = this.filtroBusqueda.toLowerCase();
             const coincideBusqueda =
@@ -66,14 +92,14 @@ export class ProveedoresComponent implements OnInit {
 
             return coincideBusqueda && coincideUnidad && coincideFecha;
         });
-        console.log('citasFiltradas fase 1', citasFiltradas);
+        // console.log('citasFiltradas fase 1', citasFiltradas);
 
         citasFiltradas.forEach(c => {
             const proveedor = c.proveedor ?? 'Desconocido';
             if (!map.has(proveedor)) map.set(proveedor, []);
             map.get(proveedor)!.push(c);
         });
-        console.log('citasFiltradas fase 2', citasFiltradas);
+        // console.log('citasFiltradas fase 2', citasFiltradas);
 
         let resultado = Array.from(map.entries())
             .map(([proveedor, citas]) => ({ proveedor, citas }));
@@ -86,7 +112,7 @@ export class ProveedoresComponent implements OnInit {
                 }))
                 .filter(g => g.citas.length > 0); // descarta grupos sin resultados
         }
-        console.log('citasFiltradas fase 3', resultado);
+        // console.log('citasFiltradas fase 3', resultado);
 
         return resultado;
     }
@@ -104,4 +130,14 @@ export class ProveedoresComponent implements OnInit {
             }, 100);
         }
     }
+
+    abrirModalDetalle(cita: Cita) {
+        this.citaSeleccionada = cita;
+        this.mostrarModalDetalle = true;
+      }
+    
+      cerrarModalDetalle() {
+        this.mostrarModalDetalle = false;
+        this.citaSeleccionada = null;
+      }
 }

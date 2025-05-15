@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms';
   selector: 'app-periodo-picker-dashboard',
   imports: [CommonModule, FormsModule],
   templateUrl: './periodo-picker-dashboard.component.html',
-  styles: [ './periodo-picker-dashboard.component.css' ],
+  styleUrl: './periodo-picker-dashboard.component.css',
 })
 export class PeriodoPickerDasboardComponent {
   meses = [
@@ -15,7 +15,7 @@ export class PeriodoPickerDasboardComponent {
     'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
   ];
 
-  anios = Array.from({ length: 3 }, (_, i) => 2025 + i); // 2025 → 2027
+  anios = Array.from({ length: 3 }, (_, i) => 2024 + i); // 2025 → 2027
 
   @Input() titulo: string = '';
   @Input() fechaInicio: Date | null = null;
