@@ -1,8 +1,8 @@
 /* You can add global styles to this file, and also import other style files */
+@import "@ng-select/ng-select/themes/default.theme.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 
 @layer components {
     .cal-btn {
@@ -21,3 +21,5 @@
       @apply bg-green-300 text-green-900;
     }
   }
+
+  

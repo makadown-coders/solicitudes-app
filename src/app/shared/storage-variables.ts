@@ -4,6 +4,9 @@ export const enum StorageVariables {
     // Dashboard Abasto tab Resumen
     DASH_ABASTO_RESUMEN_FECHA_INICIO = 'dash_abasto_resumen_fecha_inicio',
     DASH_ABASTO_RESUMEN_FECHA_FIN = 'dash_abasto_resumen_fecha_fin',
+    DASH_ABASTO_RESUMEN_ANIOS = 'dash_abasto_resumen_anios',
+    DASH_ABASTO_RESUMEN_ESTATUS = 'dash_abasto_resumen_estatus',
+    DASH_ABASTO_RESUMEN_TIPOS_ENTREGA = 'dash_abasto_resumen_tipos_entrega',
     // Dashboard Abasto tab Proveedores y entregas
     DASH_ABASTO_PROV_FILTRO_PROVEEDOR = 'dash_abasto_prov_filtro_proveedor',
     DASH_ABASTO_PROV_FILTRO_UNIDAD = 'dash_abasto_prov_filtro_unidad',
@@ -15,6 +18,9 @@ export const enum StorageVariables {
     DASH_ABASTO_CITAS_FECHA_INICIO = 'dash_abasto_citas_fecha_inicio',
     DASH_ABASTO_CITAS_FECHA_FIN = 'dash_abasto_citas_fecha_fin',
     DASH_ABASTO_CITAS_INCLUIR_NULAS = 'dash_abasto_citas_incluir_nulas',
+    // Dashboard Abasto tab Inventario Crítico
+    DASH_ABASTO_INV_FILTRO_TEXTO = 'dash_abasto_inv_filtro_texto',
+    DASH_ABASTO_INV_FILTRO_UNIDAD = 'dash_abasto_inv_filtro_unidad',    
     // Dashboard Abasto tab Entregas pendientes
     DASH_ABASTO_RESUMENCITAS_RANGO = 'dash_abasto_resumen_citas_rango',    
 }

@@ -3,6 +3,8 @@ export class Cita {
   ejercicio: number | null;
   orden_de_suministro: string;
   institucion: string;
+  contrato: string;
+  procedimiento: string;
   tipo_de_entrega: string;
   clues_destino: string;
   unidad: string;
@@ -38,30 +40,32 @@ export interface CitaRow {
   0?: string; // ejercicio
   1?: string; // ordenSuministro
   2?: string; // institucion
-  3?: string; // tipoEntrega
-  4?: string; // cluesDestino
-  5?: string; // unidad
-  6?: string; // fuenteFormato
-  7?: string; // proveedor
-  8?: string; // claveCNIS
-  9?: string; // descripcion
-  10?: string; // compra
-  11?: string; // tipoRed
-  12?: string; // tipoInsumo
-  13?: string; // grupoTerapeutico
-  14?: string | number | null; // precioUnitario
-  15?: string | number | null; // piezasEmitidas
-  16?: string | Date; // fechaLimiteEntrega
-  17?: string | number | null; // piezasRecibidas
-  18?: string | Date | null; // fechaRecepcionAlmacen
-  19?: string; // numeroRemision
-  20?: string; // lote
-  21?: string | Date | null; // caducidad
-  22?: string; // estatus
-  23?: string; // folioAbasto
-  24?: string; // almacenHospital
-  25?: string; // evidencia
-  26?: string; // carga
-  27?: string | Date | null; // fechaCita
-  28?: string; // observacion
+  3?: string; // contrato
+  4?: string; // procedimiento
+  5?: string; // tipoEntrega
+  6?: string; // cluesDestino
+  7?: string; // unidad
+  8?: string; // fuenteFormato
+  9?: string; // proveedor
+  10?: string; // claveCNIS
+  11?: string; // descripcion
+  12?: string; // compra
+  13?: string; // tipoRed
+  14?: string; // tipoInsumo
+  15?: string; // grupoTerapeutico
+  16?: string | number | null; // precioUnitario
+  17?: string | number | null; // piezasEmitidas
+  18?: string | Date; // fechaLimiteEntrega
+  19?: string | number | null; // piezasRecibidas
+  20?: string | Date | null; // fechaRecepcionAlmacen
+  21?: string; // numeroRemision
+  22?: string; // lote
+  23?: string | Date | null; // caducidad
+  24?: string; // estatus
+  25?: string; // folioAbasto
+  26?: string; // almacenHospital
+  27?: string; // evidencia
+  28?: string; // carga
+  29?: string | Date | null; // fechaCita
+  30?: string; // observacion
 }
