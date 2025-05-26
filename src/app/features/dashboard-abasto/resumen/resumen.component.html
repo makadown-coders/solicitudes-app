@@ -1,39 +1,92 @@
 <div class="p-6 space-y-6">
-  <!-- Título y filtros -->
-  <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-    <h2 class="text-2xl font-semibold tracking-tight text-green-800">Resumen general</h2>
+  <!-- Header: Título + Rango de Fechas -->
+  <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+    <h2 class="text-2xl font-semibold tracking-tight text-green-800">
+      Resumen general
+    </h2>
+    <!-- Filtros -->
+    <div class="flex flex-wrap gap-4 items-center">
+      <!-- Anio -->
+      <div class="form-group">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Año</label>
+        <ng-select class="w-48" [items]="aniosDisponibles" [multiple]="true" bindLabel="Año" bindValue="value"
+          [(ngModel)]="filtrosSeleccionados.anios" placeholder="Seleccione..." (change)="calcularDatos()">
+        </ng-select>
+      </div>
+      <!-- Estatus -->
+      <div class="form-group">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Estatus</label>
+        <ng-select class="custom-ngselect w-48" [items]="estatusDisponibles" [multiple]="true"
+          [(ngModel)]="filtrosSeleccionados.estatus" placeholder="Seleccione..." (change)="calcularDatos()">
+        </ng-select>
+      </div>
 
-    <app-periodo-picker-dashboard
-      [fechaInicio]="fechaInicio"
-      [fechaFin]="fechaFin"
-      [titulo]="'Fecha de Recepción'"
+      <!-- Tipo de Entrega -->
+      <div class="form-group">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Entrega</label>
+        <ng-select class="custom-ngselect w-64" [items]="tipoEntregaDisponibles" [multiple]="true"
+          [(ngModel)]="filtrosSeleccionados.tipoEntrega" placeholder="Seleccione..." (change)="calcularDatos()">
+        </ng-select>
+      </div>
+    </div>
+    <app-periodo-picker-dashboard [fechaInicio]="fechaInicio" [fechaFin]="fechaFin" [titulo]="'Fecha de Recepción'"
       (rangoCambiado)="onPeriodoSeleccionado($event)">
     </app-periodo-picker-dashboard>
   </div>
 
-  <!-- KPI Cards -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-    <div class="rounded-lg border bg-white p-4 shadow-sm">
+  <!-- Filtros + KPIs -->
+  <div class="flex flex-col lg:flex-row flex-wrap gap-4 mb-6 items-center">
+    <!-- KPIs -->
+
+    <div class="rounded-lg border bg-white p-4 shadow-sm w-48">
       <div class="text-sm text-gray-500">Total piezas recibidas</div>
       <div class="text-2xl font-bold text-green-700">{{ totalPiezas | number }}</div>
     </div>
 
-    <div class="rounded-lg border bg-white p-4 shadow-sm">
+    <div class="rounded-lg border bg-white p-4 shadow-sm w-48">
       <div class="text-sm text-gray-500">Órdenes distintas</div>
       <div class="text-2xl font-bold text-yellow-600">{{ totalOrdenes | number }}</div>
     </div>
 
-    <div class="rounded-lg border bg-white p-4 shadow-sm">
+    <div class="rounded-lg border bg-white p-4 shadow-sm w-48">
       <div class="text-sm text-gray-500">Receptores</div>
       <div class="text-2xl font-bold text-blue-600">{{ totalHospitales | number }}</div>
     </div>
+
+    <!-- Órdenes completas / incompletas -->
+    <div class="rounded-lg border bg-white p-4 shadow-sm w-60">
+      <div class="text-sm text-gray-500">Completas / incompletas</div>
+      <div class="text-xl font-semibold text-indigo-700" title="Órdenes completas / incompletas">
+        {{ totalOrdenesCompletas }} / <span class="text-red-600">{{ totalOrdenesIncompletas }}</span>
+      </div>
+    </div>
+
+    <!-- % Piezas emitidas vs recibidas -->
+    <div class="rounded-lg border bg-white p-4 shadow-sm">
+      <div class="text-sm text-gray-500">% Piezas recibidas vs emitidas</div>
+      <div class="text-xl font-semibold text-purple-700"
+        title="Piezas recibidas: {{ totalPiezasRecibidas }} Piezas emitidas: {{ totalPiezasEmitidas }}">
+        {{ porcentajeRecibidoVsEmitido | number: '1.0-1' }}%
+      </div>
+    </div>
+
+    <!-- Cumplimiento -->
+    <div class="rounded-lg border bg-white p-4 shadow-sm">
+      <div class="text-sm text-gray-500">Cumplimiento de plazos</div>
+      <div class="text-xl font-semibold text-blue-700"
+        title="A tiempo: {{ totalEntregasEnFecha }} A destiempo: {{ totalEntregasAtrasadas }} ">
+        {{ porcentajeCumplimiento | number: '1.0-1' }}%
+      </div>
+    </div>
+
   </div>
+
 
   <!-- Gráficas -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <div class="rounded-lg border bg-white p-4 shadow-sm">
       <h4 class="text-sm text-gray-500 font-medium mb-2">Piezas por unidad</h4>
-      <canvas baseChart [data]="barChartData" [type]="'bar'"></canvas>
+      <canvas baseChart [data]="barChartData" [type]="'bar'" [options]="barChartOptions"></canvas>
     </div>
 
     <div class="rounded-lg border bg-white p-4 shadow-sm">
@@ -41,4 +94,60 @@
       <canvas baseChart [data]="lineChartData" [type]="'line'"></canvas>
     </div>
   </div>
+
+  <!-- Sección adicional: Cumplimiento mensual y Top Proveedores -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+    <!-- Cumplimiento mensual por barras apiladas -->
+    <div class="rounded-lg border bg-white p-4 shadow-sm mt-6">
+      <h4 class="text-sm text-gray-500 font-medium mb-2">Cumplimiento mensual de entregas</h4>
+      <canvas baseChart [type]="'bar'" [data]="stackedBarData" [options]="stackedBarOptions">
+      </canvas>
+    </div>
+
+    <!-- Top proveedores con incumplimientos -->
+    <div class="rounded-lg border bg-white p-4 shadow-sm">
+      <h4 class="text-sm text-gray-500 font-medium mb-2">Top proveedores con mayores incumplimientos</h4>
+      <table class="min-w-full text-sm text-left">
+        <thead class="text-gray-500 border-b">
+          <tr>
+            <th class="py-1">Proveedor</th>
+            <th class="py-1">Órdenes</th>
+            <th class="py-1">Atrasos</th>
+            <th class="py-1">% Cumplimiento</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let proveedor of topProveedoresIncumplidos">
+            <td class="py-1 font-medium">{{ proveedor.nombre }}</td>
+            <td class="py-1">{{ proveedor.total }}</td>
+            <td class="py-1 text-red-600">{{ proveedor.atrasos }}</td>
+            <td class="py-1">{{ proveedor.porcentaje | number: '1.0-1' }}%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <!-- Top Proveedores más cumplidos -->
+  <div class="rounded-lg border bg-white p-4 shadow-sm mt-6">
+    <h4 class="text-sm text-gray-500 font-medium mb-2">Top proveedores más cumplidos</h4>
+    <table class="min-w-full text-sm text-left">
+      <thead class="text-gray-500 border-b">
+        <tr>
+          <th class="py-1">Proveedor</th>
+          <th class="py-1">Entregas</th>
+          <th class="py-1">A tiempo</th>
+          <th class="py-1">% Cumplimiento</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let proveedor of topProveedoresCumplidos">
+          <td class="py-1 font-medium">{{ proveedor.nombre }}</td>
+          <td class="py-1">{{ proveedor.total }}</td>
+          <td class="py-1 text-green-600">{{ proveedor.aTiempo }}</td>
+          <td class="py-1">{{ proveedor.porcentaje | number: '1.0-1' }}%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
 </div>

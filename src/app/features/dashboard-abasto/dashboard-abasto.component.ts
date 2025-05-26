@@ -10,6 +10,7 @@ import { ProveedoresComponent } from './proveedores/proveedores.component';
 import { CitasPendientesComponent } from './citas-pendientes/citas-pendientes.component';
 import { StorageVariables } from '../../shared/storage-variables';
 import { ResumenCitasComponent } from './resumen-citas/resumen-citas.component';
+import { InventarioCriticoComponent } from './inventario-critico/inventario-critico.component';
 
 @Component({
   selector: 'app-dashboard-abasto',
@@ -19,7 +20,8 @@ import { ResumenCitasComponent } from './resumen-citas/resumen-citas.component';
     RouterModule,
     ProveedoresComponent,
     CitasPendientesComponent,
-    ResumenCitasComponent
+    ResumenCitasComponent,
+    InventarioCriticoComponent
   ],
   templateUrl: './dashboard-abasto.component.html',
   styleUrl: './dashboard-abasto.component.css'
@@ -30,7 +32,11 @@ export class DashboardAbastoComponent {
   isLoading: boolean = true;
 
   // controla la pestaña activa
-  tabs = ['Resumen', 'Proveedores y entregas', 'Citas pendientes', 'Entregas pendientes'];
+  tabs = ['Resumen', 
+    'Proveedores y entregas',
+    'Citas pendientes', 
+    'Inventario Crítico',
+    'Entregas pendientes'];
   activeTab = 'Resumen';
 
   constructor(private dashboardService: DashboardService) { }

@@ -37,17 +37,13 @@ export class DashboardService {
     const url = `${environment.apiUrl}/citas/full`;
     this.http.get<CitasFull>(url).subscribe({
       next: (response: CitasFull) => {
-        console.log('Recibiendo datos...'); 
-        console.log('serializando Base64');
-
-        // TODO: inyectar servicio de citas para transpormar base64 a excel y luego a citas[]
+        
         const citas = this.citasService.obtenerCitasDeBase64(response.citas);
 
         // 1) Serializar y comprimir
         const raw = JSON.stringify(citas);
         const compressed = LZString.compress(raw);
         try {
-          console.log('Guardando en localStorage...');
           localStorage.setItem(this.STORAGE_KEY, compressed);
         } catch {
           console.warn('😱 localStorage lleno, omitiendo guardado');

@@ -74,57 +74,57 @@ export class CitasService {
         }
         const ordenSuministro = fila[1];
         const institucion = fila[2];
-        const tipoEntrega = fila[3];
-        const cluesDestino = fila[4];
-        const unidad = fila[5];
-        const fuenteFinanciamiento = fila[6];
-        const proveedor = fila[7];
-        const claveCNIS = fila[8];
-        const descripcion = fila[9];
-        const compra = fila[10];
-        const tipoRed = fila[11];
-        const tipoInsumo = fila[12];
-        const grupoTerapeutico = fila[13];
-        const precioUnitario = fila[14];
-        const piezasEmitidas = fila[15];
-        fila[16] = fila[16] instanceof Date ?
-          fila[16] :
-          (this.fechaService.excelDateToDatestring(fila[16]));
-        const fechaLimiteEntrega = fila[16];
-        const piezasRecibidas = fila[17];
-        // console.log('fechaRecepcionAlmacen before', fila[18]);
-
+        const contrato = fila[3];
+        const procedimiento = fila[4];
+        const tipoEntrega = fila[5];
+        const cluesDestino = fila[6];
+        const unidad = fila[7];
+        const fuenteFinanciamiento = fila[8];
+        const proveedor = fila[9];
+        const claveCNIS = fila[10];
+        const descripcion = fila[11];
+        const compra = fila[12];
+        const tipoRed = fila[13];
+        const tipoInsumo = fila[14];
+        const grupoTerapeutico = fila[15];
+        const precioUnitario = fila[16];
+        const piezasEmitidas = fila[17];
+        fila[18] = fila[18] instanceof Date ?
+          fila[18] :
+          (this.fechaService.excelDateToDatestring(fila[18]));
+        const fechaLimiteEntrega = fila[18];
+        const piezasRecibidas = fila[19];
         /* Condiciono a que la fecha de recepción siempre sea null 
-           si no tiene numero de remision (fila[19]) porque están intimamente ligados
+           si no tiene numero de remision (fila[21]) porque están intimamente ligados
         */
         const fechaRecepcionAlmacen =
-          fila[19] === null ? null :
-            (fila[18] instanceof Date ? fila[18] :
-              (!(fila[18] + '').includes('/') ? 
-              this.fechaService.excelDateToDatestring(fila[18] + '') :
-                (this.fechaService.formatFechaMultiple(fila[18] as string | null))
+          fila[21] === null ? null :
+            (fila[20] instanceof Date ? fila[20] :
+              (!(fila[20] + '').includes('/') ? 
+              this.fechaService.excelDateToDatestring(fila[20] + '') :
+                (this.fechaService.formatFechaMultiple(fila[20] as string | null))
               ))
           ;
         // console.log('fechaRecepcionAlmacen after', fechaRecepcionAlmacen);
-        const numeroRemision = fila[19];
-        const lote = fila[20];
-        const caducidad = fila[21] === null ? null :
-          (fila[21] instanceof Date ? fila[21] :
-            (!(fila[21] + '').includes('/') ?
-            this.fechaService.excelDateToDatestring(fila[21] + '') :
-              (this.fechaService.formatFechaMultiple(fila[21] as string | null))
+        const numeroRemision = fila[21];
+        const lote = fila[22];
+        const caducidad = fila[23] === null ? null :
+          (fila[23] instanceof Date ? fila[23] :
+            (!(fila[23] + '').includes('/') ?
+            this.fechaService.excelDateToDatestring(fila[23] + '') :
+              (this.fechaService.formatFechaMultiple(fila[23] as string | null))
             ))
           ;
-        const estatus = fila[22];
-        const folioAbasto = fila[23];
-        const almacenHospital = fila[24];
-        const evidencia = fila[25];
-        const carga = fila[26];
-        const fechaCita = (fila[27] instanceof Date ?
-          fila[27] :
-          (this.fechaService.excelDateToDatestring(fila[27]+'')) )! as Date | null;
+        const estatus = fila[24];
+        const folioAbasto = fila[25];
+        const almacenHospital = fila[26];
+        const evidencia = fila[27];
+        const carga = fila[28];
+        const fechaCita = (fila[29] instanceof Date ?
+          fila[29] :
+          (this.fechaService.excelDateToDatestring(fila[29]+'')) )! as Date | null;
         // columnas 28 y 29 no se usan en el excel        
-        const observacion = fila[30];
+        const observacion = fila[32];
 
         const nuevoRegistro: Cita = new Cita();
         nuevoRegistro.ejercicio = ejercicio;

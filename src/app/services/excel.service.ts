@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import * as ExcelJS from 'exceljs';
 import { DatosClues } from '../models/datos-clues';
 import { CitaRow } from '../models/Cita';
+import { ArticuloCritico } from '../shared/inventario-critico.service';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
@@ -53,7 +54,7 @@ export class ExcelService {
         const response = await fetch(templateUrl);
         const arrayBuffer = await response.arrayBuffer();
         await workbook.xlsx.load(arrayBuffer);
-       // console.log('workbook', workbook);
+        // console.log('workbook', workbook);
         const hojas = workbook.worksheets;
         // console.log('hojas', hojas);
         const worksheet = hojas[0];
@@ -194,5 +195,43 @@ export class ExcelService {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows: CitaRow[] = XLSX.utils.sheet_to_json<CitaRow>(sheet, { header: 1 });
         return rows;
-      }
+    }
+
+    exportarInventarioCritico(articulos: ArticuloCritico[]) {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Inventario Crítico');
+
+        worksheet.columns = [
+            { header: 'Clave CNIS', key: 'clave', width: 15 },
+            { header: 'Descripción', key: 'descripcion', width: 40 },
+            { header: 'Emitidas', key: 'emitidas', width: 12 },
+            { header: 'Recibidas', key: 'recibidas', width: 12 },
+            { header: '% Cumplido', key: 'porcentaje', width: 15 },
+            { header: 'Nivel', key: 'nivel', width: 12 }
+        ];
+
+        articulos.forEach(a => {
+            worksheet.addRow({
+                ...a,
+                porcentaje: `${a.porcentaje.toFixed(1)}%`
+            });
+        });
+
+        worksheet.getRow(1).font = { bold: true };
+
+        workbook.xlsx.writeBuffer().then(buffer => {
+            const blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            const fecha = new Date().toISOString().slice(0, 10);
+            const nombreArchivo = `InventarioCritico_${fecha}.xlsx`;
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = nombreArchivo;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        });
+    }
+
 }

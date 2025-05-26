@@ -1,0 +1,58 @@
+<div class="p-4">
+    <h2 class="text-xl font-semibold text-green-800 mb-4">Inventario Crítico</h2>
+    <!-- Filtros -->
+    <div class="flex flex-wrap gap-4 mb-4 items-end">
+        <!-- Filtro texto -->
+        <div>
+            <label class="block text-sm text-gray-500 mb-1">Buscar insumo</label>
+            <input type="text" [(ngModel)]="filtroTexto" (input)="aplicarFiltros()"
+                class="border rounded px-2 py-1 w-64" placeholder="Clave o descripción">
+        </div>
+
+        <!-- Filtro unidad -->
+        <div>
+            <label class="block text-sm text-gray-500 mb-1">Unidad</label>
+            <select [(ngModel)]="filtroUnidad" (change)="aplicarFiltros()" class="border rounded px-2 py-1 w-64">
+                <option value="">Todas</option>
+                <option *ngFor="let unidad of unidadesDisponibles" [value]="unidad">
+                    {{ unidad }}
+                </option>
+            </select>
+        </div>
+
+        <div class="flex justify-end">
+            <button (click)="exportarExcel()"
+                class="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-1.5 rounded shadow">
+                📥 Exportar Excel
+            </button>
+        </div>
+    </div>
+    <table class="min-w-full text-sm text-left border">
+        <thead class="bg-gray-100 text-gray-600">
+            <tr>
+                <th class="px-2 py-1">Clave CNIS</th>
+                <th class="px-2 py-1">Descripción</th>
+                <th class="px-2 py-1">Emitidas</th>
+                <th class="px-2 py-1">Recibidas</th>
+                <th class="px-2 py-1">% Cumplido</th>
+                <th class="px-2 py-1">Nivel</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let a of articulosFiltrados">
+                <td class="px-2 py-1">{{ a.clave }}</td>
+                <td class="px-2 py-1">{{ a.descripcion }}</td>
+                <td class="px-2 py-1">{{ a.emitidas }}</td>
+                <td class="px-2 py-1">{{ a.recibidas }}</td>
+                <td class="px-2 py-1">{{ a.porcentaje | number: '1.0-1' }}%</td>
+                <td class="px-2 py-1">
+                    <span [ngClass]="{
+            'text-red-600 font-bold': a.nivel === 'Crítico',
+            'text-yellow-600 font-medium': a.nivel === 'Riesgo',
+            'text-green-600': a.nivel === 'Estable'
+          }">{{ a.nivel }}</span>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
