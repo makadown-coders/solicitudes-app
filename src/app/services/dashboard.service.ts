@@ -50,7 +50,7 @@ export class DashboardService {
         }
         // 2) Emitir
         console.log('✅ Datos del dashboard actualizados.');
-       // console.log('data emitida desde servicio:', citas);
+        //console.log('data emitida desde servicio (OBTENIDO DE ELIA!):', citas);
         this.citasSubject.next(citas as Cita[]);
       },
       error: (err) => {

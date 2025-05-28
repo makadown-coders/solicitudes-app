@@ -130,6 +130,8 @@ export class CitasService {
         nuevoRegistro.ejercicio = ejercicio;
         nuevoRegistro.orden_de_suministro = ordenSuministro;
         nuevoRegistro.institucion = institucion;
+        nuevoRegistro.contrato = contrato;
+        nuevoRegistro.procedimiento = procedimiento;
         nuevoRegistro.tipo_de_entrega = tipoEntrega;
         nuevoRegistro.clues_destino = cluesDestino;
         nuevoRegistro.unidad = unidad;
