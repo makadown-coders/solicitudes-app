@@ -1,25 +1,118 @@
 /* You can add global styles to this file, and also import other style files */
 @import "@ng-select/ng-select/themes/default.theme.css";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer components {
-    .cal-btn {
+
+@utility cal-btn {
       @apply rounded px-2 py-1 transition hover:bg-green-200;
     }
   
-    .cal-cell-active {
+@utility cal-cell-active {
       @apply bg-green-600 text-white font-bold;
     }
   
-    .cal-cell-hover {
+@utility cal-cell-hover {
       @apply bg-green-100 text-green-800;
     }
   
-    .cal-cell-range {
+@utility cal-cell-range {
       @apply bg-green-300 text-green-900;
     }
+
+/* --- NUEVAS REGLAS PARA BORDES Y PREPARACIÓN PARA DARK MODE --- */
+
+/* Por defecto (Light Mode): Bordes grises */
+@utility border-default {
+    @apply border border-gray-300; /* Aplica la clase border y un color gris */
+}
+
+/* Regla base para bordes (esto te permite controlar todos los bordes con la clase 'border' si no especificas color) */
+/* Ten cuidado si usas border-blue-500, ya que podría ser sobrescrito por esto */
+/*@utility border {
+    @apply border-gray-300; *//* Color gris claro por defecto para la utilidad `border` */
+/*}*/
+/* OJO: Esta @utility border es una anulación de la utilidad 'border' de Tailwind.
+   Si en algún lugar usas una clase como 'border-blue-500', esta podría sobrescribirla
+   si no hay un orden de precedencia adecuado o una clase más específica.
+   Es preferible usar tu propia clase personalizada, como 'border-custom-default'.
+*/
+
+/* Mejor enfoque: Crea una clase personalizada para tus bordes grises */
+@utility border-custom-default {
+  @apply border border-gray-300; /* O directamente 'border-solid border-gray-300 border-1' */
+}
+
+/* Alternativa para la clase genérica `border`: */
+/* Podríamos incluso apuntar a una regla CSS para sobrescribir directamente la propiedad `border-color` */
+/* Esto es más un hack, pero te da control si las clases no se generan */
+.border {
+    border-color: #d1d5db !important; /* Tailwind's gray-300 */
+}
+
+
+/* Preparación para Dark Mode (se activará con la clase 'dark' en el body/html) */
+html.dark {
+  /* Estilos para el modo oscuro */
+  --tw-border-color: #3f3f46; /* Tailwind's gray-700 para bordes oscuros */
+  background-color: #1a202c; /* Un gris muy oscuro para el fondo del cuerpo*/
+  color: #ffffff;            /* Un gris claro para el texto por defecto */  
+
+  label, h2, .ng-select-container {
+    color: #ffffff;
   }
 
+  select, .ng-select, .custom-ngselect, .kpi-card, .grid {
+    background-color: #1a202c;
+    color: #ffffff;    
+  }
+
+  .detalle-cita {
+    border-color: #ffffff; /* blanco */
+    background-color: #1a202c;
+    border: 1;
+  }
+
+  .periodo-picker-dashboard, .picker-panel, .picker-panel>p, span, 
+      .ng-select-container, .ng-value-container, .ng-value-icon,  .ng-option-selected, .ng-option-marked,
+      .ng-dropdown-panel .ng-dropdown-panel-items .ng-option {
+    border-color: #ffffff; /* blanco */
+    color: #ffffff;
+    background-color: #1a202c;
+    border: 1;
+  }
+
+  
+  
+  .renglon-info {
+    color: #000000;
+  }
+
+  button.boton-modo, button.boton-refrescar {
+    background-color: #000000;
+    color: #CBA135;
+  }
+
+  button:hover {
+    background-color: #000000;
+    color: #CBA135;
+    cursor:pointer;
+  }
+
+  button.active-tab, .kpi-card-total-piezas {
+    color: #CBA135;    
+  }
+
+  button.inactive-tab, .kpi-card-text {
+    color: #ffffff;
+  }
+  /* Si estás usando la clase `border-custom-default` */
+  .border-custom-default {
+      @apply border-gray-700; /* Color oscuro para la clase personalizada en dark mode */
+  }
+  /* O si sobrescribiste la utilidad 'border' directamente */
+  .border {
+      border-color: #3f3f46 !important; /* Dark mode border color */
+  }
+}
+ 
   

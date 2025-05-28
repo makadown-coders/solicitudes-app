@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
@@ -11,6 +11,7 @@ import { CitasPendientesComponent } from './citas-pendientes/citas-pendientes.co
 import { StorageVariables } from '../../shared/storage-variables';
 import { ResumenCitasComponent } from './resumen-citas/resumen-citas.component';
 import { InventarioCriticoComponent } from './inventario-critico/inventario-critico.component';
+import { ThemeService } from '../../services/theme.service';
 
 @Component({
   selector: 'app-dashboard-abasto',
@@ -27,6 +28,10 @@ import { InventarioCriticoComponent } from './inventario-critico/inventario-crit
   styleUrl: './dashboard-abasto.component.css'
 })
 export class DashboardAbastoComponent {
+   themeService = inject(ThemeService);
+  title = 'Dashboard Abasto';  
+  get isDarkMode() { return this.themeService.isDarkMode(); }
+  
   // aquí recibiremos el arreglo de citas
   citas: Cita[] = [];
   isLoading: boolean = true;

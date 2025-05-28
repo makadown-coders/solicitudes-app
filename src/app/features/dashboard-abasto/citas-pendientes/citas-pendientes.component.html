@@ -47,7 +47,7 @@
     <div [hidden]="unidadExpandida !== grupo.unidad" class="bg-white">
       <table class="min-w-full text-sm">
         <thead class="bg-gray-50 text-left">
-          <tr>
+          <tr class="renglon-info">
             <th class="p-2 border">Orden</th>
             <th class="p-2 border">Proveedor</th>
             <th class="p-2 border">CLUES</th>
@@ -59,7 +59,7 @@
         <tbody>
           <tr *ngFor="let cita of grupo.citas"
               (click)="abrirModalDetalle(cita)"
-              class="border-t hover:bg-gray-100 cursor-pointer">
+              class="border-t hover:bg-gray-100 cursor-pointer renglon-info">
             <td class="p-2 border">{{ cita.orden_de_suministro }}</td>
             <td class="p-2 border">{{ cita.proveedor }}</td>
             <td class="p-2 border">{{ cita.clues_destino }}</td>

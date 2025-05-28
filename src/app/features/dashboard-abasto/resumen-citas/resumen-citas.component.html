@@ -12,7 +12,7 @@
     <div class="overflow-x-auto bg-white rounded-lg shadow mt-6">
         <table class="min-w-full text-sm">
             <thead class="bg-gray-100">
-                <tr>
+                <tr class="renglon-info">
                     <th class="p-2 border">Tipo Entrega</th>
                     <th class="p-2 border">Unidad</th>
                     <th *ngFor="let dia of diasRango" class="p-2 border">{{ dia }}</th>
@@ -22,7 +22,7 @@
             <tbody>
                 <ng-container *ngFor="let grupo of datosAgrupadosAgrupadosPorTipo()">
                     <!-- Encabezado de tipo entrega -->
-                    <tr class="bg-green-200 cursor-pointer" (click)="toggleGrupo(grupo.tipoEntrega)">
+                    <tr class="bg-green-200 cursor-pointer renglon-info" (click)="toggleGrupo(grupo.tipoEntrega)">
                         <td class="p-2 border font-bold text-green-800">
                             {{ grupo.tipoEntrega }}
                             <span class="float-right">{{ grupoExpandido[grupo.tipoEntrega] ? '▲' : '▼' }}</span>
@@ -38,7 +38,7 @@
 
                     <!-- Filas solo si expandido -->
                     <tr *ngFor="let fila of grupo.unidades" [hidden]="!grupoExpandido[grupo.tipoEntrega]"
-                        class="hover:bg-gray-50">
+                        class="hover:bg-gray-50  renglon-info">
                         <td class="p-2 border"></td> <!-- Vacío para indentación -->
                         <td class="p-2 border">{{ fila.unidad }}</td>
 
@@ -54,7 +54,7 @@
                 </ng-container>
 
                 <!-- 🧮 Fila de totales -->
-                <tr class="bg-green-100 font-semibold text-green-800">
+                <tr class="bg-green-100 font-semibold text-green-800  renglon-info">
                     <td class="p-2 border text-center" colspan="2">Totales</td>
                     <td *ngFor="let dia of diasRango" class="p-2 border text-center">
                         {{ obtenerTotalPorDia(dia) }}

@@ -6,6 +6,9 @@ import { CitasService } from '../../services/citas.service';
 import { ExcelService } from '../../services/excel.service';
 import { ConfirmacionModalComponent } from '../../shared/confirmacion-modal/confirmacion-modal.component';
 
+/**
+ * @deprecated
+ */
 @Component({
   selector: 'app-suministros',
   imports: [CommonModule, FormsModule, ConfirmacionModalComponent],

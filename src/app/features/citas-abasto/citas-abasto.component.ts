@@ -5,6 +5,9 @@ import { PaginacionCitas } from '../../models/PaginacionCitas';
 import { Cita } from '../../models/Cita';
 import { FormsModule } from '@angular/forms';
 
+/**
+ * @deprecated 
+ */
 @Component({
   selector: 'app-citas-abasto',
   imports: [CommonModule, FormsModule],
