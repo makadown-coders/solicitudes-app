@@ -17,6 +17,7 @@ export class InventarioCriticoService {
     const agrupados = new Map<string, ArticuloCritico>();
 
     for (const cita of citas) {
+      if(cita.estatus.toLocaleUpperCase() === 'NO RECIBIR') continue;
       const clave = cita.clave_cnis || 'SIN CLAVE';
       const desc = cita.descripcion || 'SIN DESCRIPCIÓN';
 

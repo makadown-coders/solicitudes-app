@@ -1,0 +1,53 @@
+<div *ngIf="visible"
+    class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 detalle-cita-modal">
+    <div class="p-6 w-full max-w-2xl bg-white rounded-lg shadow-xl dark:bg-gray-800 detalle-cita">
+        <h2 class="mb-2 text-xl font-semibold text-gray-800 dark:text-white">
+            Detalle del insumo
+        </h2>
+        <p class="mb-2 text-sm text-gray-500 detalle-cita">{{ clave_cnis }} – {{ descripcion | maxLength: 500 }}</p>
+
+        <div class="grid grid-cols-2 gap-4 text-sm text-gray-800 dark:text-gray-200 detalle-cita">
+            <div><strong>Órdenes totales:</strong> {{ totalOrdenes }}</div>
+            <div><strong>% cumplimiento:</strong> {{ cumplimiento | truncateDecimal:2 }}%</div>
+            <div><strong>Piezas emitidas:</strong> {{ totalEmitidas }}</div>
+            <div><strong>Piezas recibidas:</strong> {{ totalRecibidas }}</div>
+            <!--
+      <div *ngIf="tiempoPromedioEntrega !== null"><strong>Tiempo promedio entrega:</strong> {{ tiempoPromedioEntrega }} días</div>
+      <div><strong>Entregas a tiempo:</strong> {{ entregasATiempo }}</div>
+      <div><strong>Entregas tardías:</strong> {{ entregasTarde }}</div>
+      <div *ngIf="completamenteSurtidoAlgunaVez"><strong class="text-green-600">✅ Completamente surtido al menos una vez</strong></div>
+      -->
+        </div>
+
+        <div class="mt-4" *ngIf="unidadesAfectadas.length > 0">
+            <h3 class="font-medium text-gray-700 dark:text-white detalle-cita">Unidades relacionadas:</h3>
+            <ul class="pl-5 list-disc">
+                <li *ngFor="let unidad of unidadesAfectadas">
+                    {{ unidad.clues }} – {{ unidad.faltantes }} faltantes
+                </li>
+            </ul>
+        </div>
+
+        <div class="mt-4" *ngIf="fechasFrecuentes.length > 0">
+            <h3 class="font-medium text-gray-700 dark:text-white detalle-cita">Fechas más recientes de entrega:</h3>
+            <ul class="pl-5 list-disc">
+                <li *ngFor="let fecha of fechasFrecuentes">{{ fecha | date : 'dd MMMM yyyy' | uppercase }}</li>
+            </ul>
+        </div>
+
+        <div class="mt-4" *ngIf="proveedoresFrecuentes.length > 0">
+            <h3 class="font-medium text-gray-700 dark:text-white detalle-cita">Proveedores frecuentes:</h3>
+            <ul class="pl-5 list-disc">
+                <li *ngFor="let prov of proveedoresFrecuentes">
+                    {{ prov.nombre }} – {{ prov.ordenes }} órdenes
+                </li>
+            </ul>
+        </div>
+
+        <div class="mt-6 text-right">
+            <button class="px-4 py-2 text-white bg-green-700 rounded hover:bg-green-800" (click)="cerrar()">
+                Cerrar
+            </button>
+        </div>
+    </div>
+</div>

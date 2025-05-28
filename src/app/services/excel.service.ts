@@ -199,7 +199,7 @@ export class ExcelService {
 
     exportarInventarioCritico(articulos: ArticuloCritico[]) {
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Inventario Crítico');
+        const worksheet = workbook.addWorksheet('Cumplimiento Claves');
 
         worksheet.columns = [
             { header: 'Clave CNIS', key: 'clave', width: 15 },

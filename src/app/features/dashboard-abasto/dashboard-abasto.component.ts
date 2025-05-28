@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
@@ -25,7 +25,8 @@ import { ThemeService } from '../../services/theme.service';
     InventarioCriticoComponent
   ],
   templateUrl: './dashboard-abasto.component.html',
-  styleUrl: './dashboard-abasto.component.css'
+  styleUrl: './dashboard-abasto.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardAbastoComponent {
    themeService = inject(ThemeService);
@@ -40,7 +41,7 @@ export class DashboardAbastoComponent {
   tabs = ['Resumen', 
     'Proveedores y entregas',
     'Citas pendientes', 
-    'Inventario Crítico',
+    'Cumplimiento Claves',
     'Entregas pendientes'];
   activeTab = 'Resumen';
 

@@ -69,6 +69,7 @@ html.dark {
   .detalle-cita {
     border-color: #ffffff; /* blanco */
     background-color: #1a202c;
+    color: #ffffff;
     border: 1;
   }
 
@@ -79,9 +80,7 @@ html.dark {
     color: #ffffff;
     background-color: #1a202c;
     border: 1;
-  }
-
-  
+  }  
   
   .renglon-info {
     color: #000000;
