@@ -4,11 +4,14 @@ import { NgIf, NgFor, DatePipe, UpperCasePipe } from '@angular/common';
 import { PeriodoFechasService } from '../../../shared/periodo-fechas.service';
 import { TruncateDecimalPipe } from '../../../shared/truncate-decimal.pipe';
 import { MaxLengthPipe } from '../../../shared/max-length.pipe';
+import { CitasPorInsumoModalComponent } from './citas-por-insumo-modal.component';
+import { ExcelService } from '../../../services/excel.service';
 
 @Component({
     selector: 'app-insumo-detalle-modal',
     standalone: true,
-    imports: [NgIf, NgFor, DatePipe, UpperCasePipe, TruncateDecimalPipe, MaxLengthPipe],
+    imports: [NgIf, NgFor, DatePipe, UpperCasePipe, TruncateDecimalPipe,
+        MaxLengthPipe, CitasPorInsumoModalComponent],
     templateUrl: './insumo-detalle-modal.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -26,6 +29,7 @@ export class InsumoDetalleModalComponent implements OnChanges {
     entregasTarde = 0;
     proveedoresFrecuentes: { nombre: string; ordenes: number }[] = [];
     completamenteSurtidoAlgunaVez = false;
+    excelService: ExcelService = inject(ExcelService);
 
     @Input() visible: boolean = false;
     @Input() descripcion: string = '';
@@ -44,17 +48,31 @@ export class InsumoDetalleModalComponent implements OnChanges {
 
     fechasService = inject(PeriodoFechasService);
 
+    detalleCitasVisible = false;
+
+    mostrarCitasPorInsumo() {
+        this.detalleCitasVisible = true;
+    }
+
+    ocultarCitasPorInsumo() {
+        this.detalleCitasVisible = false;
+    }
+
+    exportarExcelCitas() {
+        this.excelService.exportarDetalleCitasPorInsumo('Suministros-' + this.clave_cnis + '.xlsx', this.citasFiltradas);
+    }
+
     ngOnChanges(): void {
         this.citasFiltradas = this.citas
             .filter(c => c.clave_cnis === this.clave_cnis &&
-                         c.estatus.toLocaleUpperCase() !== 'NO RECIBIR');
+                c.estatus.toLocaleUpperCase() !== 'NO RECIBIR');
         this.totalEmitidas = this.citasFiltradas.reduce((sum, c) => sum + (c.no_de_piezas_emitidas || 0), 0);
         this.totalRecibidas = this.citasFiltradas.reduce((sum, c) => sum + (c.pzas_recibidas_por_la_entidad || 0), 0);
         this.totalOrdenes = this.citas.filter((c) => c.clave_cnis === this.clave_cnis).length;
-        
+
         const emitidas = this.totalEmitidas;
         const recibidas = this.totalRecibidas;
-        this.cumplimiento =  emitidas > 0 ? (recibidas / emitidas) * 100 : 0;
+        this.cumplimiento = emitidas > 0 ? (recibidas / emitidas) * 100 : 0;
 
         this.porcentajeCumplimiento = this.totalEmitidas > 0
             ? Math.round((this.totalRecibidas / this.totalEmitidas) * 100)
@@ -122,7 +140,7 @@ export class InsumoDetalleModalComponent implements OnChanges {
         //console.log('fechas', new Set(fechas));
         fechas.sort((a, b) => b.getTime() - a.getTime());
         this.fechasFrecuentes = Array.from(new Set(fechas)).slice(0, 5);
-         
+
         const mapa = new Map<string, number>();
         for (const cita of this.citasFiltradas) {
             const clave = cita.unidad + ' (' + cita.clues_destino + ')';
@@ -136,8 +154,8 @@ export class InsumoDetalleModalComponent implements OnChanges {
             }
         }
         this.unidadesAfectadas = Array.from(mapa.entries()).map(([clues, faltantes]) => ({ clues, faltantes }));
-    
+
     }
 
-    
+
 }

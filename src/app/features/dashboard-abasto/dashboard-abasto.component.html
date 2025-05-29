@@ -1,5 +1,5 @@
 <!-- Loading overlay -->
-<div *ngIf="isLoading" id="loader" class="z-50 fixed inset-0 flex items-center justify-center bg-white bg-opacity-80 dark:bg-gray-800">
+<div *ngIf="isLoading()" id="loader" class="z-50 fixed inset-0 flex items-center justify-center bg-white bg-opacity-80 dark:bg-gray-800">
   <div class="flex flex-col items-center space-y-4">
     <!-- Spinner -->
     <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -8,15 +8,15 @@
   </div>
 </div>
 
-<div class="p-6" [class.opacity-50]="isLoading">
+<div class="p-6" [class.opacity-50]="isLoading()">
   <!-- Header con botón de refrescar -->
   <div class="flex justify-between items-center mb-4 dark:bg-black">
-    <h1 class="text-2xl font-bold">Dashboard Abasto</h1>
-    <button (click)="themeService.toggleTheme()" [disabled]="isLoading"
+    <h1 class="text-2xl font-bold">Dashboard Abasto (Ordenes de Suministro)</h1>
+    <button (click)="themeService.toggleTheme()" [disabled]="isLoading()"
       class="px-3 py-1 text-white bg-[#006341] rounded disabled:opacity-50 boton-modo">
       {{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}
     </button>
-    <button (click)="onRefresh()" [disabled]="isLoading"
+    <button (click)="onRefresh()" [disabled]="isLoading()"
       class="px-3 py-1 text-white bg-[#006341] rounded disabled:opacity-50 boton-refrescar">
       🔄 Refrescar datos
     </button>
@@ -36,7 +36,7 @@
   </div>
 
 
-  <div *ngIf="!isLoading">
+  <div *ngIf="!isLoading()">
     <app-resumen *ngIf="activeTab === 'Resumen'" [citas]="citas"></app-resumen>
     <app-proveedores *ngIf="activeTab === 'Proveedores y entregas'" [citas]="citas"></app-proveedores>
     <app-citas-pendientes *ngIf="activeTab === 'Citas pendientes'" [citas]="citas"></app-citas-pendientes>

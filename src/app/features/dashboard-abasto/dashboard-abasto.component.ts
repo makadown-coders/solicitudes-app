@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnChanges, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
@@ -28,14 +28,15 @@ import { ThemeService } from '../../services/theme.service';
   styleUrl: './dashboard-abasto.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class DashboardAbastoComponent {
+export class DashboardAbastoComponent implements OnInit {
    themeService = inject(ThemeService);
   title = 'Dashboard Abasto';  
   get isDarkMode() { return this.themeService.isDarkMode(); }
   
   // aquí recibiremos el arreglo de citas
   citas: Cita[] = [];
-  isLoading: boolean = true;
+  // isLoading: boolean = true;
+  isLoading = signal(false);
 
   // controla la pestaña activa
   tabs = ['Resumen', 
@@ -59,7 +60,7 @@ export class DashboardAbastoComponent {
         // console.log('asignado data a this.citas');
         this.citas = data as Cita[];
         // console.log('this.citas', this.citas);
-        this.isLoading = false;
+        this.isLoading.set(false); // Establece isLoading = false;
       }
     });
 
@@ -73,7 +74,7 @@ export class DashboardAbastoComponent {
 
   // opcionalmente puedes exponer un método para refrescar manualmente
   onRefresh() {
-    this.isLoading = true;
+    this.isLoading.set(true); // Establece isLoading = true;
     this.dashboardService.refrescarDatos();
   }
 

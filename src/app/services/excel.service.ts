@@ -3,7 +3,7 @@ import { ArticuloSolicitud } from '../models/articulo-solicitud';
 import * as XLSX from 'xlsx';
 import * as ExcelJS from 'exceljs';
 import { DatosClues } from '../models/datos-clues';
-import { CitaRow } from '../models/Cita';
+import { Cita, CitaRow } from '../models/Cita';
 import { ArticuloCritico } from '../shared/inventario-critico.service';
 
 @Injectable({ providedIn: 'root' })
@@ -232,6 +232,77 @@ export class ExcelService {
             a.click();
             window.URL.revokeObjectURL(url);
         });
+    }
+
+    async exportarDetalleCitasPorInsumo(nombreArchivo: string, registros: Cita[]) {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Citas por insumo');
+
+        worksheet.columns = [
+            { header: 'Orden de suministro', key: 'orden_de_suministro', width: 50 },
+            { header: 'Contrato', key: 'contrato', width: 30 },
+            { header: 'Procedimiento', key: 'procedimiento', width: 30 },
+            { header: 'Tipo de Entrega', key: 'tipo_de_entrega', width: 30 },            
+            { header: 'CLUES', key: 'clues_destino', width: 15 },
+            { header: 'Unidad', key: 'unidad', width: 30 },
+            { header: 'Fte. Fmto', key: 'fte_fmto', width: 30 },            
+            { header: 'Proveedor', key: 'proveedor', width: 25 },
+            { header: 'Clave CNIS', key: 'clave_cnis', width: 15 },
+            { header: 'Descripción', key: 'descripcion', width: 30 },
+            { header: 'Compra', key: 'compra', width: 15 },
+            { header: 'Tipo de Red', key: 'tipo_de_red', width: 30 },
+            { header: 'Tipo de Insumo', key: 'tipo_de_insumo', width: 15 },
+            { header: 'Grupo Terapéutico', key: 'grupo_terapeutico', width: 15 },
+            { header: 'Precio Unitario', key: 'precio_unitario', width: 15 },
+            { header: 'Piezas emitidas', key: 'no_de_piezas_emitidas', width: 15 },
+            { header: 'Piezas recibidas', key: 'pzas_recibidas_por_la_entidad', width: 15 },
+            { header: 'Fecha de cita', key: 'fecha_de_cita', width: 18 },
+            { header: 'Fecha recepción almacén', key: 'fecha_recepcion_almacen', width: 22 },
+            { header: 'Fecha límite de entrega', key: 'fecha_limite_de_entrega', width: 22 },
+            { header: 'Observación', key: 'observacion', width: 30 },
+            { header: 'Estatus', key: 'estatus', width: 15 }
+        ];
+
+        const formatFecha = (fecha: string | Date | null): string => {
+            if (!fecha) return '';
+            const date = new Date(fecha);
+            return isNaN(date.getTime()) ? '' :
+                `${date.getDate().toString().padStart(2, '0')}/` +
+                `${(date.getMonth() + 1).toString().padStart(2, '0')}/` +
+                `${date.getFullYear()}`;
+        };
+
+        registros.forEach((r) => {
+            worksheet.addRow({
+                orden_de_suministro: r.orden_de_suministro,
+                contrato: r.contrato,
+                procedimiento: r.procedimiento,
+                tipo_de_entrega: r.tipo_de_entrega,
+                clues_destino: r.clues_destino,
+                unidad: r.unidad,
+                fte_fmto: r.fte_fmto,
+                proveedor: r.proveedor,
+                clave_cnis: r.clave_cnis,
+                descripcion: r.descripcion,
+                compra: r.compra,
+                tipo_de_red: r.tipo_de_red,
+                tipo_de_insumo: r.tipo_de_insumo,
+                grupo_terapeutico: r.grupo_terapeutico,
+                precio_unitario: r.precio_unitario ?? 0,
+                no_de_piezas_emitidas: r.no_de_piezas_emitidas ?? 0,
+                pzas_recibidas_por_la_entidad: r.pzas_recibidas_por_la_entidad ?? 0,
+                fecha_de_cita: formatFecha(r.fecha_de_cita),
+                fecha_recepcion_almacen: r.fecha_recepcion_almacen ?? '',
+                fecha_limite_de_entrega: formatFecha(r.fecha_limite_de_entrega),
+                observacion: r.observacion,
+                estatus: r.estatus
+            });
+        });
+
+        worksheet.getRow(1).font = { bold: true };
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        this.descargarArchivo(buffer, nombreArchivo);
     }
 
 }
