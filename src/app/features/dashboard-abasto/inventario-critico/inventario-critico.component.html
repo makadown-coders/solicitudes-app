@@ -1,18 +1,21 @@
 <div class="p-4">
-    <h2 class="text-xl font-semibold text-green-800 mb-4">Inventario Crítico</h2>
+    <span>
+        <h2 class="text-xl font-semibold text-green-800">Claves con bajo cumplimiento en órdenes de suministro. </h2>
+        <small>Se ignoran suministros con estatus "No recibir"</small>
+    </span>
     <!-- Filtros -->
-    <div class="flex flex-wrap gap-4 mb-4 items-end">
+    <div class="flex flex-wrap items-end gap-4 mb-4">
         <!-- Filtro texto -->
         <div>
-            <label class="block text-sm text-gray-500 mb-1">Buscar insumo</label>
+            <label class="block mb-1 text-sm text-gray-500">Buscar insumo</label>
             <input type="text" [(ngModel)]="filtroTexto" (input)="aplicarFiltros()"
-                class="border rounded px-2 py-1 w-64" placeholder="Clave o descripción">
+                class="px-2 py-1 w-64 border rounded" placeholder="Clave o descripción">
         </div>
 
         <!-- Filtro unidad -->
         <div>
-            <label class="block text-sm text-gray-500 mb-1">Unidad</label>
-            <select [(ngModel)]="filtroUnidad" (change)="aplicarFiltros()" class="border rounded px-2 py-1 w-64">
+            <label class="block mb-1 text-sm text-gray-500">Unidad</label>
+            <select [(ngModel)]="filtroUnidad" (change)="aplicarFiltros()" class="px-2 py-1 w-64 border rounded">
                 <option value="">Todas</option>
                 <option *ngFor="let unidad of unidadesDisponibles" [value]="unidad">
                     {{ unidad }}
@@ -22,13 +25,13 @@
 
         <div class="flex justify-end">
             <button (click)="exportarExcel()"
-                class="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-1.5 rounded shadow">
+                class="px-4 py-1.5 text-white text-sm font-medium bg-green-600 hover:bg-green-700 rounded shadow">
                 📥 Exportar Excel
             </button>
         </div>
     </div>
     <table class="min-w-full text-sm text-left border">
-        <thead class="bg-gray-100 text-gray-600">
+        <thead class="text-gray-600 bg-gray-100">
             <tr>
                 <th class="px-2 py-1">Clave CNIS</th>
                 <th class="px-2 py-1">Descripción</th>
@@ -39,12 +42,12 @@
             </tr>
         </thead>
         <tbody>
-            <tr *ngFor="let a of articulosFiltrados">
+            <tr *ngFor="let a of articulosFiltrados" class="cursor-pointer" (click)="abrirModal(a)">
                 <td class="px-2 py-1">{{ a.clave }}</td>
                 <td class="px-2 py-1">{{ a.descripcion }}</td>
                 <td class="px-2 py-1">{{ a.emitidas }}</td>
                 <td class="px-2 py-1">{{ a.recibidas }}</td>
-                <td class="px-2 py-1">{{ a.porcentaje | number: '1.0-1' }}%</td>
+                <td class="px-2 py-1">{{ a.porcentaje | truncateDecimal:2}}%</td>
                 <td class="px-2 py-1">
                     <span [ngClass]="{
             'text-red-600 font-bold': a.nivel === 'Crítico',
@@ -55,4 +58,7 @@
             </tr>
         </tbody>
     </table>
+    <app-insumo-detalle-modal [visible]="modalVisible()" [clave_cnis]="selectedClave()"
+        [descripcion]="selectedDescripcion()" [citas]="citas" [cerrar]="cerrarModal">
+    </app-insumo-detalle-modal>
 </div>

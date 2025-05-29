@@ -1,47 +1,46 @@
 <!-- Loading overlay -->
-<div *ngIf="isLoading" id="loader" class="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-80">
+<div *ngIf="isLoading()" id="loader" class="z-50 fixed inset-0 flex items-center justify-center bg-white bg-opacity-80 dark:bg-gray-800">
   <div class="flex flex-col items-center space-y-4">
     <!-- Spinner -->
     <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
     <!-- Texto -->
-    <p class="text-lg font-semibold text-gray-700">Cargando...</p>
+    <p class="text-lg font-semibold text-gray-700 dark:text-gray-200">Cargando...</p>
   </div>
 </div>
 
-<div class="p-6" [class.opacity-50]="isLoading">
-   <!-- Header con botón de refrescar -->
-   <div class="flex justify-between items-center mb-4">
-    <h1 class="text-2xl font-bold">Dashboard Abasto</h1>
-    <button (click)="onRefresh()"
-            [disabled]="isLoading"
-            class="bg-[#006341] text-white px-3 py-1 rounded disabled:opacity-50">
+<div class="p-6" [class.opacity-50]="isLoading()">
+  <!-- Header con botón de refrescar -->
+  <div class="flex justify-between items-center mb-4 dark:bg-black">
+    <h1 class="text-2xl font-bold">Dashboard Abasto (Ordenes de Suministro)</h1>
+    <button (click)="themeService.toggleTheme()" [disabled]="isLoading()"
+      class="px-3 py-1 text-white bg-[#006341] rounded disabled:opacity-50 boton-modo">
+      {{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}
+    </button>
+    <button (click)="onRefresh()" [disabled]="isLoading()"
+      class="px-3 py-1 text-white bg-[#006341] rounded disabled:opacity-50 boton-refrescar">
       🔄 Refrescar datos
     </button>
   </div>
 
-  <div class="border-b border-gray-200 mb-6">
-    <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-      <button
-        *ngFor="let tab of tabs"
-        (click)="seleccionarTab(tab)"
-        [class]="
+  <div class="mb-6 border-b border-gray-200">
+    <nav class="flex -mb-px space-x-6" aria-label="Tabs">
+      <button *ngFor="let tab of tabs" (click)="seleccionarTab(tab)" [class]="
           'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ' +
           (activeTab === tab
-            ? 'border-green-800 text-green-800'
-            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300')
-        "
-      >
+            ? 'border-green-800 text-green-800 active-tab'
+            : 'border-transparent text-gray-500 hover:text-gray-700  hover:border-gray-300 inactive-tab')
+        ">
         {{ tab }}
       </button>
     </nav>
   </div>
 
 
-  <div *ngIf="!isLoading">
+  <div *ngIf="!isLoading()">
     <app-resumen *ngIf="activeTab === 'Resumen'" [citas]="citas"></app-resumen>
     <app-proveedores *ngIf="activeTab === 'Proveedores y entregas'" [citas]="citas"></app-proveedores>
     <app-citas-pendientes *ngIf="activeTab === 'Citas pendientes'" [citas]="citas"></app-citas-pendientes>
-    <app-inventario-critico *ngIf="activeTab === 'Inventario Crítico'" [citas]="citas"></app-inventario-critico>
-    <app-resumen-citas *ngIf="activeTab === 'Entregas pendientes'" [citas]="citas"></app-resumen-citas>    
+    <app-inventario-critico *ngIf="activeTab === 'Cumplimiento Claves'" [citas]="citas"></app-inventario-critico>
+    <app-resumen-citas *ngIf="activeTab === 'Entregas pendientes'" [citas]="citas"></app-resumen-citas>
   </div>
 </div>

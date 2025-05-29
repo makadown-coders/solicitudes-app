@@ -1,17 +1,20 @@
-import { Component, inject, Input, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, Input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Cita } from '../../../models/Cita';
 import { ArticuloCritico, InventarioCriticoService } from '../../../shared/inventario-critico.service';
 import { FormsModule } from '@angular/forms';
 import { StorageVariables } from '../../../shared/storage-variables';
 import { ExcelService } from '../../../services/excel.service';
+import { InsumoDetalleModalComponent } from './insumo-detalle-modal.component';
+import { TruncateDecimalPipe } from '../../../shared/truncate-decimal.pipe';
 
 
 @Component({
     selector: 'app-inventario-critico',
     standalone: true,
-    imports: [CommonModule, FormsModule],
-    templateUrl: './inventario-critico.component.html'
+    imports: [CommonModule, FormsModule, InsumoDetalleModalComponent, TruncateDecimalPipe],
+    templateUrl: './inventario-critico.component.html',
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class InventarioCriticoComponent implements OnInit {
     @Input() citas: Cita[] = [];
@@ -22,9 +25,18 @@ export class InventarioCriticoComponent implements OnInit {
     articulosCriticos: ArticuloCritico[] = [];
     excelService = inject(ExcelService);
 
+    modalVisible = signal(false);
+    selectedClave = signal('');
+    selectedDescripcion = signal('');
+    cerrarModal = () => {
+        console.log('cerrarModal desde padre!');
+        this.modalVisible.set(false);
+    }
+
     constructor(private inventarioCriticoService: InventarioCriticoService) { }
 
     ngOnInit(): void {
+        this.modalVisible.set(false);
         this.filtroTexto = localStorage.getItem(StorageVariables.DASH_ABASTO_INV_FILTRO_TEXTO) || '';
         this.filtroUnidad = localStorage.getItem(StorageVariables.DASH_ABASTO_INV_FILTRO_UNIDAD) || '';
         this.calcularInventarioCritico();
@@ -63,5 +75,11 @@ export class InventarioCriticoComponent implements OnInit {
 
     exportarExcel() {
         this.excelService.exportarInventarioCritico(this.articulosFiltrados);
+    }
+
+    abrirModal(insumo: { clave: string; descripcion: string }) {
+        this.selectedClave.set(insumo.clave);
+        this.selectedDescripcion.set(insumo.descripcion);
+        this.modalVisible.set(true);
     }
 }

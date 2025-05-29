@@ -38,42 +38,42 @@
   <div class="flex flex-col lg:flex-row flex-wrap gap-4 mb-6 items-center">
     <!-- KPIs -->
 
-    <div class="rounded-lg border bg-white p-4 shadow-sm w-48">
-      <div class="text-sm text-gray-500">Total piezas recibidas</div>
-      <div class="text-2xl font-bold text-green-700">{{ totalPiezas | number }}</div>
+    <div class="rounded-lg border bg-white p-4 shadow-sm w-48 kpi-card">
+      <div class="text-sm text-gray-500 kpi-card-text">Total piezas recibidas</div>
+      <div class="text-2xl font-bold text-green-700 kpi-card-total-piezas">{{ totalPiezas | number }}</div>
     </div>
 
-    <div class="rounded-lg border bg-white p-4 shadow-sm w-48">
-      <div class="text-sm text-gray-500">Órdenes distintas</div>
+    <div class="rounded-lg border bg-white p-4 shadow-sm w-48 kpi-card">
+      <div class="text-sm text-gray-500 kpi-card-text">Órdenes distintas</div>
       <div class="text-2xl font-bold text-yellow-600">{{ totalOrdenes | number }}</div>
     </div>
 
-    <div class="rounded-lg border bg-white p-4 shadow-sm w-48">
-      <div class="text-sm text-gray-500">Receptores</div>
+    <div class="rounded-lg border bg-white p-4 shadow-sm w-48 kpi-card">
+      <div class="text-sm text-gray-500 kpi-card-text">Receptores</div>
       <div class="text-2xl font-bold text-blue-600">{{ totalHospitales | number }}</div>
     </div>
 
     <!-- Órdenes completas / incompletas -->
-    <div class="rounded-lg border bg-white p-4 shadow-sm w-60">
-      <div class="text-sm text-gray-500">Completas / incompletas</div>
-      <div class="text-xl font-semibold text-indigo-700" title="Órdenes completas / incompletas">
+    <div class="rounded-lg border bg-white p-4 shadow-sm w-60 kpi-card">
+      <div class="text-sm text-gray-500 kpi-card-text">Completas / incompletas</div>
+      <div class="text-xl font-semibold" title="Órdenes completas / incompletas">
         {{ totalOrdenesCompletas }} / <span class="text-red-600">{{ totalOrdenesIncompletas }}</span>
       </div>
     </div>
 
     <!-- % Piezas emitidas vs recibidas -->
-    <div class="rounded-lg border bg-white p-4 shadow-sm">
-      <div class="text-sm text-gray-500">% Piezas recibidas vs emitidas</div>
-      <div class="text-xl font-semibold text-purple-700"
+    <div class="rounded-lg border bg-white p-4 shadow-sm kpi-card">
+      <div class="text-sm text-gray-500 kpi-card-text">% Piezas recibidas vs emitidas</div>
+      <div class="text-xl font-semibold "
         title="Piezas recibidas: {{ totalPiezasRecibidas }} Piezas emitidas: {{ totalPiezasEmitidas }}">
         {{ porcentajeRecibidoVsEmitido | number: '1.0-1' }}%
       </div>
     </div>
 
     <!-- Cumplimiento -->
-    <div class="rounded-lg border bg-white p-4 shadow-sm">
-      <div class="text-sm text-gray-500">Cumplimiento de plazos</div>
-      <div class="text-xl font-semibold text-blue-700"
+    <div class="rounded-lg border bg-white p-4 shadow-sm kpi-card">
+      <div class="text-sm text-gray-500 kpi-card-text">Cumplimiento de plazos</div>
+      <div class="text-xl font-semibold "
         title="A tiempo: {{ totalEntregasEnFecha }} A destiempo: {{ totalEntregasAtrasadas }} ">
         {{ porcentajeCumplimiento | number: '1.0-1' }}%
       </div>
@@ -118,10 +118,10 @@
         </thead>
         <tbody>
           <tr *ngFor="let proveedor of topProveedoresIncumplidos">
-            <td class="py-1 font-medium">{{ proveedor.nombre }}</td>
-            <td class="py-1">{{ proveedor.total }}</td>
+            <td class="py-1 font-medium renglon-info">{{ proveedor.nombre }}</td>
+            <td class="py-1 renglon-info">{{ proveedor.total }}</td>
             <td class="py-1 text-red-600">{{ proveedor.atrasos }}</td>
-            <td class="py-1">{{ proveedor.porcentaje | number: '1.0-1' }}%</td>
+            <td class="py-1 renglon-info">{{ proveedor.porcentaje | number: '1.0-1' }}%</td>
           </tr>
         </tbody>
       </table>
@@ -141,10 +141,10 @@
       </thead>
       <tbody>
         <tr *ngFor="let proveedor of topProveedoresCumplidos">
-          <td class="py-1 font-medium">{{ proveedor.nombre }}</td>
-          <td class="py-1">{{ proveedor.total }}</td>
+          <td class="py-1 font-medium renglon-info">{{ proveedor.nombre }}</td>
+          <td class="py-1 renglon-info">{{ proveedor.total }}</td>
           <td class="py-1 text-green-600">{{ proveedor.aTiempo }}</td>
-          <td class="py-1">{{ proveedor.porcentaje | number: '1.0-1' }}%</td>
+          <td class="py-1 renglon-info">{{ proveedor.porcentaje | number: '1.0-1' }}%</td>
         </tr>
       </tbody>
     </table>
