@@ -18,6 +18,7 @@ import { TruncateDecimalPipe } from '../../../shared/truncate-decimal.pipe';
 })
 export class InventarioCriticoComponent implements OnInit {
     @Input() citas: Cita[] = [];
+    citasFiltradas: Cita[] = [];
     filtroTexto = '';
     filtroUnidad = '';
     unidadesDisponibles: string[] = [];
@@ -43,8 +44,8 @@ export class InventarioCriticoComponent implements OnInit {
     }
 
     calcularInventarioCritico() {
-        const articulos = this.inventarioCriticoService.detectarCriticos(this.citas);
-        this.articulosCriticos = articulos;
+       // const articulos = this.inventarioCriticoService.detectarCriticos(this.citas);
+        // this.articulosCriticos = articulos;
 
         // Extraer unidades únicas
         const unidades = new Set(this.citas.map(c => c.unidad).filter(Boolean));
@@ -57,6 +58,21 @@ export class InventarioCriticoComponent implements OnInit {
         localStorage.setItem(StorageVariables.DASH_ABASTO_INV_FILTRO_TEXTO, this.filtroTexto);
         localStorage.setItem(StorageVariables.DASH_ABASTO_INV_FILTRO_UNIDAD, this.filtroUnidad);
         const texto = this.filtroTexto.toLowerCase();
+
+        // aplicar sobre citasFiltradas el filtro en citas por texto que coincida de la misma forma que con this.articulosFiltrados
+        this.citasFiltradas = this.citas.filter(c => {
+            const busqueda = this.filtroTexto.toLowerCase();
+            const coincideBusqueda =
+                (c.clave_cnis ?? '').toLowerCase().includes(busqueda) ||
+                (c.descripcion ?? '').toLowerCase().includes(busqueda);
+            return coincideBusqueda;
+        });
+        // adicionalmente, si hay unidad seleccionada, tambien aplicar filtro en citasFiltradas
+        if (this.filtroUnidad) {
+            this.citasFiltradas = this.citasFiltradas.filter(c => c.unidad === this.filtroUnidad);
+        }
+        const articulos = this.inventarioCriticoService.detectarCriticos(this.citasFiltradas);
+        this.articulosCriticos = articulos;        
 
         this.articulosFiltrados = this.articulosCriticos.filter(a => {
             const coincideTexto =

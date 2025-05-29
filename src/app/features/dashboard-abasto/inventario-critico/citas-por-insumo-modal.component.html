@@ -7,25 +7,27 @@
     <table class="w-full text-sm text-left border-gray-300 border dark:border-gray-700 dark:text-white">
       <thead class="bg-gray-100 dark:bg-gray-800">
         <tr>
+          <th class="px-2 py-1">Orden</th>
           <th class="px-2 py-1">Unidad</th>
           <th class="px-2 py-1">CLUES</th>
           <th class="px-2 py-1">Fecha Cita</th>
           <th class="px-2 py-1">Fecha Recepción</th>
           <th class="px-2 py-1">Emitidas</th>
           <th class="px-2 py-1">Recibidas</th>
-          <th class="px-2 py-1">Proveedor</th>
+          <!--<th class="px-2 py-1">Proveedor</th>-->
           <!-- Agrega más columnas si es necesario -->
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let c of ordenarPorUnidadYFecha(citasFiltradas)">
+          <td class="px-2 py-1">{{ c.orden_de_suministro }}</td>
           <td class="px-2 py-1">{{ c.unidad }}</td>
           <td class="px-2 py-1">{{ c.clues_destino }}</td>
           <td class="px-2 py-1">{{ c.fecha_de_cita | date: 'dd/MM/yyyy' }}</td>
           <td class="px-2 py-1">{{ c.fecha_recepcion_almacen | date: 'dd/MM/yyyy' }}</td>
           <td class="px-2 py-1">{{ c.no_de_piezas_emitidas }}</td>
           <td class="px-2 py-1">{{ c.pzas_recibidas_por_la_entidad??0 }}</td>
-          <td class="px-2 py-1">{{ c.proveedor }}</td>
+          <!--<td class="px-2 py-1">{{ c.proveedor }}</td>-->
         </tr>
       </tbody>
     </table>
