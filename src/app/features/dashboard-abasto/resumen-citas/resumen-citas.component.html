@@ -29,6 +29,7 @@
                     <th class="p-2 border">Unidad</th>
                     <th *ngFor="let dia of diasRango" class="p-2 border">{{ dia }}</th>
                     <th class="p-2 border">Total</th>
+                    <th class="p-2 border">Detalle</th>
                 </tr>
             </thead>
             <tbody>
@@ -46,6 +47,7 @@
                         <td class="p-2 font-semibold text-right border">
                             {{ obtenerTotalTipoEntrega(grupo.tipoEntrega) }}
                         </td>
+                        <td class="p-2 text-center border"> <!-- Celda para botón --> </td>
                     </tr>
 
                     <!-- Filas solo si expandido -->
@@ -62,6 +64,12 @@
                             @let conteo = obtenerConteo(fila);
                             {{ conteo }}
                         </td>
+                        <td class="p-2 text-center border">
+                            <button (click)="abrirDetalleOrdenes(grupo.tipoEntrega, fila.unidad)"
+                                class="px-4 py-2 text-white bg-gray-600 rounded hover:bg-gray-700">
+                                Ver Detalle
+                            </button>
+                        </td>
                     </tr>
                 </ng-container>
 
@@ -74,9 +82,15 @@
                     <td class="p-2 text-right border">
                         {{ obtenerGranTotal() }}
                     </td>
+                    <td class="p-2 text-center border"> <!-- Celda para botón --> </td>
                 </tr>
             </tbody>
-
         </table>
     </div>
+
+
 </div>
+
+<app-detalle-ordenes-modal [visible]="detalleVisible" [registros]="ordenesSeleccionadas"
+    (cerrar)="cerrarModalDetalle()">
+</app-detalle-ordenes-modal>

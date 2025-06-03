@@ -5,11 +5,16 @@ import { PeriodoFechasService } from '../../../shared/periodo-fechas.service';
 import { StorageVariables } from '../../../shared/storage-variables';
 import { PeriodoPickerDasboardComponent } from '../../../shared/periodo-picker/periodo-picker-dashboard.component';
 import { FormsModule } from '@angular/forms';
+import { DetalleOrdenesModalComponent } from '../../../shared/detalle-ordenes-modal/detalle-ordenes-modal.component';
 
 @Component({
     selector: 'app-resumen-citas',
     standalone: true,
-    imports: [CommonModule, PeriodoPickerDasboardComponent, FormsModule],
+    imports: [
+        CommonModule,
+        PeriodoPickerDasboardComponent,
+        FormsModule,
+        DetalleOrdenesModalComponent],
     templateUrl: './resumen-citas.component.html',
     styleUrls: ['./resumen-citas.component.css']
 })
@@ -32,6 +37,32 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
     private readonly STORAGE_KEY = StorageVariables.DASH_ABASTO_RESUMENCITAS_RANGO;
 
     grupoExpandido: { [tipoEntrega: string]: boolean } = {};
+
+    detalleVisible = false;
+    ordenesSeleccionadas: Cita[] = [];
+
+    abrirDetalleOrdenes(tipoEntrega: string, unidad: string) {
+        //console.log('Abrir detalle de ordenes', tipoEntrega, unidad);
+
+        this.ordenesSeleccionadas = this.citas
+            .filter(c =>
+                c.tipo_de_entrega === tipoEntrega &&
+                c.unidad === unidad &&
+                this.diasRango.includes(c.fecha_de_cita + '') 
+             ); // opcional según lógica
+        // filtrar si tengo elegido tipo de compra
+        if (this.filtroCompra) {
+            this.ordenesSeleccionadas = this.ordenesSeleccionadas.filter(c => c.compra === this.filtroCompra);
+        }
+
+        console.log('ordenesSeleccionadas', this.ordenesSeleccionadas);
+        this.detalleVisible = true;
+    }
+
+    cerrarModalDetalle() {
+        this.detalleVisible = false;
+    }
+
 
     constructor(private fechasService: PeriodoFechasService) { }
 
