@@ -22,6 +22,7 @@ export class ProveedoresComponent implements OnInit {
     @ViewChildren('grupoRef') grupoRefs!: QueryList<ElementRef<HTMLDivElement>>;
     filtroBusqueda: string = '';
     filtroUnidad: string = '';
+    filtroCompra: string = '';
     periodoFormateado: string = '';
     proveedorExpandido: string | null = null;
     fechasService = inject(PeriodoFechasService);
@@ -47,6 +48,7 @@ export class ProveedoresComponent implements OnInit {
     cargarDeLocalStorage() {
         this.filtroBusqueda = localStorage.getItem(StorageVariables.DASH_ABASTO_PROV_FILTRO_PROVEEDOR) || '';
         this.filtroUnidad = localStorage.getItem(StorageVariables.DASH_ABASTO_PROV_FILTRO_UNIDAD) || '';
+        this.filtroCompra = localStorage.getItem(StorageVariables.DASH_ABASTO_PROV_FILTRO_COMPRA) || '';
         const inicio = localStorage.getItem(StorageVariables.DASH_ABASTO_PROV_FECHA_INICIO);
         const fin = localStorage.getItem(StorageVariables.DASH_ABASTO_PROV_FECHA_FIN);
         if (inicio && fin) {
@@ -70,9 +72,18 @@ export class ProveedoresComponent implements OnInit {
         return Array.from(set).sort();
     }
 
+    get tiposCompra(): string[] {
+        const set = new Set<string>();
+        this.citas.forEach(c => {
+            if (c.compra) set.add(c.compra);
+        });
+        return Array.from(set).sort();
+    }
+
     onBusqueda() {
         localStorage.setItem(StorageVariables.DASH_ABASTO_PROV_FILTRO_PROVEEDOR, this.filtroBusqueda);
         localStorage.setItem(StorageVariables.DASH_ABASTO_PROV_FILTRO_UNIDAD, this.filtroUnidad);
+        localStorage.setItem(StorageVariables.DASH_ABASTO_PROV_FILTRO_COMPRA, this.filtroCompra);
         localStorage.setItem(StorageVariables.DASH_ABASTO_PROV_FECHA_INICIO, this.fechaInicio.toISOString());
         localStorage.setItem(StorageVariables.DASH_ABASTO_PROV_FECHA_FIN, this.fechaFin.toISOString());
         this.proveedoresAgrupados = this.getProveedoresAgrupados();
@@ -88,9 +99,10 @@ export class ProveedoresComponent implements OnInit {
                 (c.clave_cnis ?? '').toLowerCase().includes(filtro) ||
                 (c.descripcion ?? '').toLowerCase().includes(filtro);
             const coincideUnidad = !this.filtroUnidad || c.unidad === this.filtroUnidad;
+            const coincideCompra = !this.filtroCompra || c.compra === this.filtroCompra;
             const coincideFecha = this.fechasService.fechaEnRango(c.fecha_recepcion_almacen, this.fechaInicio, this.fechaFin);
 
-            return coincideBusqueda && coincideUnidad && coincideFecha;
+            return coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha;
         });
         // console.log('citasFiltradas fase 1', citasFiltradas);
 

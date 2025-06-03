@@ -4,4 +4,5 @@ export interface FiltrosCita {
   anios: number[];
   estatus: string[];
   tipoEntrega: string[];
+  tipoCompra: string[];
 }

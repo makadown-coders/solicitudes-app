@@ -17,7 +17,8 @@ export class CitaFilterService {
         this.fechasService.fechaEnRango(cita.fecha_recepcion_almacen, filtros.fechaInicio, filtros.fechaFin) &&
         (filtros.anios.length === 0 || filtros.anios.includes(cita.ejercicio || 0)) &&
         (filtros.estatus.length === 0 || filtros.estatus.includes((cita.estatus || '').toUpperCase())) &&
-        (filtros.tipoEntrega.length === 0 || filtros.tipoEntrega.includes((cita.tipo_de_entrega || '').toUpperCase()))
+        (filtros.tipoEntrega.length === 0 || filtros.tipoEntrega.includes((cita.tipo_de_entrega || '').toUpperCase())) &&
+        (filtros.tipoCompra.length === 0 || filtros.tipoCompra.includes((cita.compra || '').toUpperCase()))
       );
     });
   }

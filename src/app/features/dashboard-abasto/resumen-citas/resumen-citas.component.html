@@ -1,15 +1,27 @@
 <div class="p-6 space-y-6">
     <h2 class="text-2xl font-semibold tracking-tight">Resumen de Citas</h2>
     <!-- 🗓️ Selector de periodo -->
-    <div class="flex justify-end">
-        <app-periodo-picker-dashboard [fechaInicio]="fechaInicio" [fechaFin]="fechaFin"
-            [titulo]="'Fecha de Cita'"
-            (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)">
-        </app-periodo-picker-dashboard>
+    <div class="flex justify-end gap-4">
+
+        <!-- Select de tipo de compra -->
+        <div class="min-w-[270px]">
+            <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de compra</label>
+            <select [(ngModel)]="filtroCompra" (ngModelChange)="recalcularAgrupacion()"
+                class="flex-1 px-4 py-2 min-w-[270px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Todos</option>
+                <option *ngFor="let compra of tiposCompra" [value]="compra">{{ compra }}</option>
+            </select>
+        </div>
+
+        <div class="min-w-[270px]">
+            <app-periodo-picker-dashboard [fechaInicio]="fechaInicio" [fechaFin]="fechaFin" [titulo]="'Fecha de Cita'"
+                (rangoCambiado)="onPeriodoSeleccionado($event.fechaInicio, $event.fechaFin)">
+            </app-periodo-picker-dashboard>
+        </div>
     </div>
 
     <!-- 📈 Tabla -->
-    <div class="overflow-x-auto bg-white rounded-lg shadow mt-6">
+    <div class="overflow-x-auto mt-6 bg-white rounded-lg shadow">
         <table class="min-w-full text-sm">
             <thead class="bg-gray-100">
                 <tr class="renglon-info">
@@ -17,54 +29,68 @@
                     <th class="p-2 border">Unidad</th>
                     <th *ngFor="let dia of diasRango" class="p-2 border">{{ dia }}</th>
                     <th class="p-2 border">Total</th>
+                    <th class="p-2 border">Detalle</th>
                 </tr>
             </thead>
             <tbody>
                 <ng-container *ngFor="let grupo of datosAgrupadosAgrupadosPorTipo()">
                     <!-- Encabezado de tipo entrega -->
                     <tr class="bg-green-200 cursor-pointer renglon-info" (click)="toggleGrupo(grupo.tipoEntrega)">
-                        <td class="p-2 border font-bold text-green-800">
+                        <td class="p-2 font-bold text-green-800 border">
                             {{ grupo.tipoEntrega }}
                             <span class="float-right">{{ grupoExpandido[grupo.tipoEntrega] ? '▲' : '▼' }}</span>
-                          </td>
-                          <td class="p-2 border"></td> <!-- Vacío para indentación -->
-                          <td *ngFor="let dia of diasRango" class="p-2 border text-center font-semibold">
+                        </td>
+                        <td class="p-2 border"></td> <!-- Vacío para indentación -->
+                        <td *ngFor="let dia of diasRango" class="p-2 text-center font-semibold border">
                             {{ obtenerTotalPorEntregaYDia(grupo.tipoEntrega, dia) || '' }}
-                          </td>
-                        <td class="p-2 border font-semibold text-right">
+                        </td>
+                        <td class="p-2 font-semibold text-right border">
                             {{ obtenerTotalTipoEntrega(grupo.tipoEntrega) }}
                         </td>
+                        <td class="p-2 text-center border"> <!-- Celda para botón --> </td>
                     </tr>
 
                     <!-- Filas solo si expandido -->
                     <tr *ngFor="let fila of grupo.unidades" [hidden]="!grupoExpandido[grupo.tipoEntrega]"
-                        class="hover:bg-gray-50  renglon-info">
+                        class="hover:bg-gray-50 renglon-info">
                         <td class="p-2 border"></td> <!-- Vacío para indentación -->
                         <td class="p-2 border">{{ fila.unidad }}</td>
 
-                        <td *ngFor="let dia of diasRango" class="p-2 border text-center">
+                        <td *ngFor="let dia of diasRango" class="p-2 text-center border">
                             {{ fila.conteos[dia] || '' }}
                         </td>
 
-                        <td class="p-2 border font-semibold text-right">
+                        <td class="p-2 font-semibold text-right border">
                             @let conteo = obtenerConteo(fila);
                             {{ conteo }}
+                        </td>
+                        <td class="p-2 text-center border">
+                            <button (click)="abrirDetalleOrdenes(grupo.tipoEntrega, fila.unidad)"
+                                class="px-4 py-2 text-white bg-gray-600 rounded hover:bg-gray-700">
+                                Ver Detalle
+                            </button>
                         </td>
                     </tr>
                 </ng-container>
 
                 <!-- 🧮 Fila de totales -->
-                <tr class="bg-green-100 font-semibold text-green-800  renglon-info">
-                    <td class="p-2 border text-center" colspan="2">Totales</td>
-                    <td *ngFor="let dia of diasRango" class="p-2 border text-center">
+                <tr class="font-semibold text-green-800 bg-green-100 renglon-info">
+                    <td class="p-2 text-center border" colspan="2">Totales</td>
+                    <td *ngFor="let dia of diasRango" class="p-2 text-center border">
                         {{ obtenerTotalPorDia(dia) }}
                     </td>
-                    <td class="p-2 border text-right">
+                    <td class="p-2 text-right border">
                         {{ obtenerGranTotal() }}
                     </td>
+                    <td class="p-2 text-center border"> <!-- Celda para botón --> </td>
                 </tr>
             </tbody>
-
         </table>
     </div>
+
+
 </div>
+
+<app-detalle-ordenes-modal [visible]="detalleVisible" [registros]="ordenesSeleccionadas"
+    (cerrar)="cerrarModalDetalle()">
+</app-detalle-ordenes-modal>

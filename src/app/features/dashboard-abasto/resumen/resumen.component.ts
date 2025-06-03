@@ -27,12 +27,15 @@ export class ResumenComponent implements OnInit, OnChanges {
   aniosDisponibles: number[] = [];
   estatusDisponibles: string[] = ['COMPLETO', 'INCOMPLETO'];
   tipoEntregaDisponibles: string[] = ['ENTREGA DIRECTA', 'OPERADOR LOGÍSTICO'];
+  tiposCompraDisponibles: string[] = ['FEDERAL', 'ESTATAL', 'NO APLICA']; // ajusta según tus valores reales
+
 
   // Lo que el usuario seleccione
   filtrosSeleccionados = {
     anios: [] as number[],
     estatus: [] as string[],
     tipoEntrega: [] as string[],
+    tipoCompra: [] as string[],
   };
 
   totalPiezas = 0;
@@ -142,6 +145,8 @@ export class ResumenComponent implements OnInit, OnChanges {
   }
 
   ngOnInit(): void {
+    const compras = new Set(this.citas.map(c => c.compra).filter(Boolean));
+        this.tiposCompraDisponibles = Array.from(compras).sort();
     this.cargarFechasIniciales();
     this.generarAniosDisponibles();
     this.calcularDatos();
@@ -164,6 +169,7 @@ export class ResumenComponent implements OnInit, OnChanges {
     this.filtrosSeleccionados.anios = JSON.parse(localStorage.getItem(StorageVariables.DASH_ABASTO_RESUMEN_ANIOS) || '[]');
     this.filtrosSeleccionados.estatus = JSON.parse(localStorage.getItem(StorageVariables.DASH_ABASTO_RESUMEN_ESTATUS) || '[]');
     this.filtrosSeleccionados.tipoEntrega = JSON.parse(localStorage.getItem(StorageVariables.DASH_ABASTO_RESUMEN_TIPOS_ENTREGA) || '[]');
+    this.filtrosSeleccionados.tipoCompra = JSON.parse(localStorage.getItem(StorageVariables.DASH_ABASTO_RESUMEN_COMPRAS) || '[]');
 
     if (inicio && fin) {
       this.fechaInicio = new Date(inicio);
@@ -171,7 +177,8 @@ export class ResumenComponent implements OnInit, OnChanges {
     } else {
       const hoy = new Date();
       this.fechaFin = hoy;
-      this.fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1); // 1ero del mes actual
+      // this.fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1); // 1ero del mes actual
+      this.fechaInicio = new Date(hoy.getFullYear(), 0, 1); // 1ero del 1er mes del año actual
     }
   }
 
@@ -179,13 +186,15 @@ export class ResumenComponent implements OnInit, OnChanges {
     localStorage.setItem(StorageVariables.DASH_ABASTO_RESUMEN_ANIOS, JSON.stringify(this.filtrosSeleccionados.anios));
     localStorage.setItem(StorageVariables.DASH_ABASTO_RESUMEN_ESTATUS, JSON.stringify(this.filtrosSeleccionados.estatus));
     localStorage.setItem(StorageVariables.DASH_ABASTO_RESUMEN_TIPOS_ENTREGA, JSON.stringify(this.filtrosSeleccionados.tipoEntrega));
+    localStorage.setItem(StorageVariables.DASH_ABASTO_RESUMEN_COMPRAS, JSON.stringify(this.filtrosSeleccionados.tipoCompra));
 
     const filtros: FiltrosCita = {
       fechaInicio: this.fechaInicio,
       fechaFin: this.fechaFin,
       anios: this.filtrosSeleccionados.anios,
       estatus: this.filtrosSeleccionados.estatus.map(e => e.toUpperCase()),
-      tipoEntrega: this.filtrosSeleccionados.tipoEntrega.map(e => e.toUpperCase()),
+      tipoEntrega: this.filtrosSeleccionados.tipoEntrega.map(e => e.toUpperCase()),      
+      tipoCompra: this.filtrosSeleccionados.tipoCompra.map(e => e.toUpperCase()), // nuevo
     };
 
     const citasFiltradas = this.citaFilterService.filtrar(this.citas, filtros);

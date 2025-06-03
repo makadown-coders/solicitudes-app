@@ -4,11 +4,17 @@ import { Cita } from '../../../models/Cita';
 import { PeriodoFechasService } from '../../../shared/periodo-fechas.service';
 import { StorageVariables } from '../../../shared/storage-variables';
 import { PeriodoPickerDasboardComponent } from '../../../shared/periodo-picker/periodo-picker-dashboard.component';
+import { FormsModule } from '@angular/forms';
+import { DetalleOrdenesModalComponent } from '../../../shared/detalle-ordenes-modal/detalle-ordenes-modal.component';
 
 @Component({
     selector: 'app-resumen-citas',
     standalone: true,
-    imports: [CommonModule, PeriodoPickerDasboardComponent],
+    imports: [
+        CommonModule,
+        PeriodoPickerDasboardComponent,
+        FormsModule,
+        DetalleOrdenesModalComponent],
     templateUrl: './resumen-citas.component.html',
     styleUrls: ['./resumen-citas.component.css']
 })
@@ -16,6 +22,8 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
     @Input() citas: Cita[] = [];
 
     // Variables de control
+    filtroCompra = '';
+    tiposCompra: string[] = [];
     fechaInicio: Date = new Date(Date.now());
     fechaFin: Date = new Date(Date.now() + 1);
     diasRango: string[] = [];
@@ -30,6 +38,32 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
 
     grupoExpandido: { [tipoEntrega: string]: boolean } = {};
 
+    detalleVisible = false;
+    ordenesSeleccionadas: Cita[] = [];
+
+    abrirDetalleOrdenes(tipoEntrega: string, unidad: string) {
+        //console.log('Abrir detalle de ordenes', tipoEntrega, unidad);
+
+        this.ordenesSeleccionadas = this.citas
+            .filter(c =>
+                c.tipo_de_entrega === tipoEntrega &&
+                c.unidad === unidad &&
+                this.diasRango.includes(c.fecha_de_cita + '') 
+             ); // opcional según lógica
+        // filtrar si tengo elegido tipo de compra
+        if (this.filtroCompra) {
+            this.ordenesSeleccionadas = this.ordenesSeleccionadas.filter(c => c.compra === this.filtroCompra);
+        }
+
+        console.log('ordenesSeleccionadas', this.ordenesSeleccionadas);
+        this.detalleVisible = true;
+    }
+
+    cerrarModalDetalle() {
+        this.detalleVisible = false;
+    }
+
+
     constructor(private fechasService: PeriodoFechasService) { }
 
     /**
@@ -37,7 +71,7 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
      * @param changes 
      */
     ngOnChanges(changes: SimpleChanges): void {
-        console.log('ngOnChanges', changes);
+        // console.log('ngOnChanges', changes);
 
         if (!changes['citas']) return;
 
@@ -46,6 +80,13 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
     }
 
     ngOnInit(): void {
+        this.filtroCompra = localStorage.getItem(StorageVariables.DASH_ABASTO_RESUMENCITAS_FILTRO_COMPRA) || '';
+        const set = new Set<string>();
+        this.citas.forEach(c => {
+            if (c.compra) set.add(c.compra);
+        });
+        this.tiposCompra = Array.from(set).sort();
+
     }
 
     inicializarFechas() {
@@ -119,10 +160,15 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
     }
 
     recalcularAgrupacion() {
+        localStorage.setItem(StorageVariables.DASH_ABASTO_RESUMENCITAS_FILTRO_COMPRA, this.filtroCompra);
 
         const agrupados = new Map<string, Map<string, { [fecha: string]: number }>>();
 
-        for (const cita of this.citas) {
+        const citasFiltradas = this.filtroCompra && this.filtroCompra !== '' ?
+            [... this.citas.filter(c => c.compra === this.filtroCompra)] :
+            [...this.citas];
+
+        for (const cita of citasFiltradas) {
 
             if (!cita.fecha_de_cita) continue;
 
@@ -165,7 +211,7 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
         });
     }
 
-    onPeriodoSeleccionado(texto: string, inicio: Date, fin: Date) {
+    onPeriodoSeleccionado(inicio: Date, fin: Date) {
         this.fechaInicio = inicio;
         this.fechaFin = fin;
 
@@ -232,7 +278,7 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
         return this.datosAgrupados
             .filter(d => d.tipoEntrega === tipoEntrega)
             .reduce((sum, d) => sum + this.obtenerConteo(d), 0);
-    }  
+    }
 
 
 }

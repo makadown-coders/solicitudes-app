@@ -223,8 +223,8 @@ export class ExcelService {
             const blob = new Blob([buffer], {
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             });
-            const fecha = new Date().toISOString().slice(0, 10);
-            const nombreArchivo = `InventarioCritico_${fecha}.xlsx`;
+            const fecha = new Date().toISOString().slice(0, 20);
+            const nombreArchivo = `ClavesCumplimiento_${fecha}.xlsx`;
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;

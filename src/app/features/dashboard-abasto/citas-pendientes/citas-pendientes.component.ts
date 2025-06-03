@@ -27,6 +27,7 @@ export class CitasPendientesComponent implements OnInit {
   citasAgendadasSinRecepcion: Cita[] = [];
 
   unidadesUnicas: string[] = [];
+  tiposCompra: string[] = [];
 
   unidadesAgrupadas: GrupoUnidad[] = [];
 
@@ -35,8 +36,9 @@ export class CitasPendientesComponent implements OnInit {
   // Filtros
   filtroBusqueda = '';
   filtroUnidad = '';
+  filtroCompra = '';
   fechaInicio = this.inicializarInicio();
-  fechaFin = new Date();
+  fechaFin = new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000); // 30 días después
   incluirFechasNulas = true;
 
   @ViewChildren('grupoUnidad') grupoRefs!: QueryList<ElementRef<HTMLDivElement>>;
@@ -54,6 +56,7 @@ export class CitasPendientesComponent implements OnInit {
   cargarDeLocalStorage() {
     this.filtroBusqueda = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_TEXTO) || '';
     this.filtroUnidad = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_UNIDAD) || '';
+    this.filtroCompra = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_COMPRA) || '';
     const inicio = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_INICIO);
     const fin = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_FIN);
     if (inicio && fin) {
@@ -91,6 +94,10 @@ export class CitasPendientesComponent implements OnInit {
       new Set(this.citasPendientes.map(c => c.unidad ?? 'Desconocida'))
     ).sort();
 
+    this.tiposCompra = Array.from(
+      new Set(this.citasPendientes.map(c => c.compra ?? 'Desconocido'))
+    ).sort();
+
     this.actualizarAgrupacion();
   }
 
@@ -98,6 +105,7 @@ export class CitasPendientesComponent implements OnInit {
     // Guardar en storage
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_TEXTO, this.filtroBusqueda);
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_UNIDAD, this.filtroUnidad);
+    localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_COMPRA, this.filtroCompra);
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_INICIO, this.fechaInicio.toISOString());
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_FIN, this.fechaFin.toISOString());
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_INCLUIR_NULAS, this.incluirFechasNulas.toString());
@@ -112,6 +120,8 @@ export class CitasPendientesComponent implements OnInit {
 
       const coincideUnidad = !this.filtroUnidad || c.unidad === this.filtroUnidad;
 
+      const coincideCompra = !this.filtroCompra || c.compra === this.filtroCompra;
+
       const fechaCitaValida = c.fecha_de_cita ? new Date(c.fecha_de_cita) : null;
       const coincideFecha =
         this.incluirFechasNulas && !fechaCitaValida
@@ -120,7 +130,7 @@ export class CitasPendientesComponent implements OnInit {
             ? fechaCitaValida >= this.fechaInicio && fechaCitaValida <= this.fechaFin
             : false;
 
-      return coincideBusqueda && coincideUnidad && coincideFecha;
+      return coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha;
     });
 
     const map = new Map<string, Cita[]>();
