@@ -26,11 +26,14 @@ export class InventarioCriticoComponent implements OnInit {
     articulosCriticos: ArticuloCritico[] = [];
     excelService = inject(ExcelService);
 
+    filtroCompra = '';
+    tiposCompra: string[] = [];
+
     modalVisible = signal(false);
     selectedClave = signal('');
     selectedDescripcion = signal('');
     cerrarModal = () => {
-        console.log('cerrarModal desde padre!');
+       // console.log('cerrarModal desde padre!');
         this.modalVisible.set(false);
     }
 
@@ -40,16 +43,23 @@ export class InventarioCriticoComponent implements OnInit {
         this.modalVisible.set(false);
         this.filtroTexto = localStorage.getItem(StorageVariables.DASH_ABASTO_INV_FILTRO_TEXTO) || '';
         this.filtroUnidad = localStorage.getItem(StorageVariables.DASH_ABASTO_INV_FILTRO_UNIDAD) || '';
+        this.filtroCompra = localStorage.getItem(StorageVariables.DASH_ABASTO_INV_FILTRO_COMPRAS) || '';
         this.calcularInventarioCritico();
     }
 
     calcularInventarioCritico() {
-       // const articulos = this.inventarioCriticoService.detectarCriticos(this.citas);
+        // const articulos = this.inventarioCriticoService.detectarCriticos(this.citas);
         // this.articulosCriticos = articulos;
 
+        const citasFiltradas = this.citas.filter(c => c.estatus.toLocaleUpperCase() !== 'NO RECIBIR');
+        this.citasFiltradas = [...citasFiltradas]; // copia de citasFiltradas;
+
         // Extraer unidades únicas
-        const unidades = new Set(this.citas.map(c => c.unidad).filter(Boolean));
+        const unidades = new Set(this.citasFiltradas.map(c => c.unidad).filter(Boolean));
         this.unidadesDisponibles = Array.from(unidades).sort();
+
+        const compras = new Set(this.citasFiltradas.map(c => c.compra).filter(Boolean));
+        this.tiposCompra = Array.from(compras).sort();
 
         this.aplicarFiltros();
     }
@@ -57,27 +67,42 @@ export class InventarioCriticoComponent implements OnInit {
     aplicarFiltros() {
         localStorage.setItem(StorageVariables.DASH_ABASTO_INV_FILTRO_TEXTO, this.filtroTexto);
         localStorage.setItem(StorageVariables.DASH_ABASTO_INV_FILTRO_UNIDAD, this.filtroUnidad);
-        const texto = this.filtroTexto.toLowerCase();
+        localStorage.setItem(StorageVariables.DASH_ABASTO_INV_FILTRO_COMPRAS, this.filtroCompra);
 
-        // aplicar sobre citasFiltradas el filtro en citas por texto que coincida de la misma forma que con this.articulosFiltrados
-        this.citasFiltradas = this.citas.filter(c => {
-            const busqueda = this.filtroTexto.toLowerCase();
-            const coincideBusqueda =
-                (c.clave_cnis ?? '').toLowerCase().includes(busqueda) ||
-                (c.descripcion ?? '').toLowerCase().includes(busqueda);
-            return coincideBusqueda;
-        });
+        if (this.filtroTexto && this.filtroTexto.length > 0) {
+            const texto = this.filtroTexto.toLowerCase();
+
+            // aplicar sobre citasFiltradas el filtro en citas por texto que coincida de la misma forma que con this.articulosFiltrados
+            this.citasFiltradas = this.citas.filter(c => {
+                const busqueda = this.filtroTexto.toLowerCase();
+                const coincideBusqueda =
+                    (c.clave_cnis ?? '').toLowerCase().includes(busqueda) ||
+                    (c.descripcion ?? '').toLowerCase().includes(busqueda);
+                return coincideBusqueda;
+            });
+        } else {
+            // crear una copia de citas
+            this.citasFiltradas = [...this.citas.filter(c => c.estatus.toLocaleUpperCase() !== 'NO RECIBIR')];
+        }
         // adicionalmente, si hay unidad seleccionada, tambien aplicar filtro en citasFiltradas
-        if (this.filtroUnidad) {
+        if (this.filtroUnidad && this.filtroUnidad.length > 0) {
             this.citasFiltradas = this.citasFiltradas.filter(c => c.unidad === this.filtroUnidad);
         }
-        const articulos = this.inventarioCriticoService.detectarCriticos(this.citasFiltradas);
-        this.articulosCriticos = articulos;        
+        if (this.filtroCompra && this.filtroCompra.length > 0) {
+            this.citasFiltradas = this.citasFiltradas
+            .filter(c => c.compra.toLocaleUpperCase().trim() === this.filtroCompra.toLocaleUpperCase().trim());
+        }
 
-        this.articulosFiltrados = this.articulosCriticos.filter(a => {
-            const coincideTexto =
-                a.clave.toLowerCase().includes(texto) ||
-                a.descripcion.toLowerCase().includes(texto);
+        // se recalcula el inventario critico con los filtros
+        const articulos = this.inventarioCriticoService.detectarCriticos(this.citasFiltradas);
+        this.articulosCriticos = articulos;
+
+        this.articulosFiltrados = this.articulosCriticos;
+
+        /*this.articulosFiltrados = this.articulosCriticos.filter(a => {
+            const coincideTexto = ((this.filtroTexto && this.filtroTexto.length > 0) ?
+                ( a.clave.toLowerCase().includes(this.filtroTexto.toLowerCase()) ||
+                a.descripcion.toLowerCase().includes(this.filtroTexto.toLowerCase()) ) : true );
 
             const coincideUnidad =
                 this.filtroUnidad === '' || this.citas.some(c =>
@@ -86,7 +111,7 @@ export class InventarioCriticoComponent implements OnInit {
                 );
 
             return coincideTexto && coincideUnidad;
-        });
+        });*/
     }
 
     exportarExcel() {

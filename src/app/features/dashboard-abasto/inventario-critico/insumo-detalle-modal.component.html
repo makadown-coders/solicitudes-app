@@ -44,6 +44,15 @@
             </ul>
         </div>
 
+         <div class="mt-4" *ngIf="tiposDeCompraRelacionados.length > 0">
+            <h3 class="font-medium text-gray-700 dark:text-white detalle-cita">Tipos de Compra frecuentes:</h3>
+            <ul class="pl-5 list-disc">
+                <li *ngFor="let prov of tiposDeCompraRelacionados">
+                    {{ prov.nombre }} – {{ prov.ordenes }} órdenes
+                </li>
+            </ul>
+        </div>
+
         <!-- Botón en el detalle actual -->
         <div class="mt-6 text-right">
             <button class="px-4 py-2 text-white bg-yellow-600 rounded hover:bg-yellow-700"

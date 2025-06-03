@@ -46,7 +46,7 @@ export class InventarioCriticoService {
     });
 
     return lista
-      .filter(a => a.emitidas > 0 && a.porcentaje < 100)
+      .filter(a => a.emitidas > 0 && a.porcentaje <= 100)
       .sort((a, b) => a.porcentaje - b.porcentaje);
   }
 }

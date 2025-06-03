@@ -28,6 +28,7 @@ export class InsumoDetalleModalComponent implements OnChanges {
     entregasATiempo = 0;
     entregasTarde = 0;
     proveedoresFrecuentes: { nombre: string; ordenes: number }[] = [];
+    tiposDeCompraRelacionados: { nombre: string; ordenes: number }[] = [];
     completamenteSurtidoAlgunaVez = false;
     excelService: ExcelService = inject(ExcelService);
 
@@ -115,6 +116,17 @@ export class InsumoDetalleModalComponent implements OnChanges {
         }, {} as Record<string, number>);
 
         this.proveedoresFrecuentes = Object.entries(proveedorStats)
+            .map(([nombre, ordenes]) => ({ nombre, ordenes }))
+            .sort((a, b) => b.ordenes - a.ordenes)
+            .slice(0, 5);
+
+        const comprasStats = this.citasFiltradas.reduce((acc, cita) => {
+            const compra = cita.compra?.trim();
+            if (!compra) return acc;
+            acc[compra] = (acc[compra] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+        this.tiposDeCompraRelacionados = Object.entries(comprasStats)
             .map(([nombre, ordenes]) => ({ nombre, ordenes }))
             .sort((a, b) => b.ordenes - a.ordenes)
             .slice(0, 5);
