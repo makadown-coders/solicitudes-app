@@ -7,6 +7,9 @@ Incluye autocompletado, validaciones, persistencia local, dashboard analítico, 
 
 ![alt text](image.png)
 ![MIT License](https://img.shields.io/badge/license-MIT-green)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/535335da-fd93-4921-a7b8-ec283ab42fda/deploy-status)](https://app.netlify.com/projects/imssb-bc/deploys)
+
+
 
 ---
 
