@@ -80,7 +80,7 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
     }
 
     ngOnInit(): void {
-        this.filtroCompra = localStorage.getItem(StorageVariables.DASH_ABASTO_RESUMENCITAS_FILTRO_COMPRA) || '';
+        
         const set = new Set<string>();
         this.citas.forEach(c => {
             if (c.compra) set.add(c.compra);
@@ -91,6 +91,7 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
 
     inicializarFechas() {
         const guardado = localStorage.getItem(this.STORAGE_KEY);
+        this.filtroCompra = localStorage.getItem(StorageVariables.DASH_ABASTO_RESUMENCITAS_FILTRO_COMPRA) || '';
         if (guardado) {
             const parsed = JSON.parse(guardado);
             this.fechaInicio = new Date(parsed.inicio);

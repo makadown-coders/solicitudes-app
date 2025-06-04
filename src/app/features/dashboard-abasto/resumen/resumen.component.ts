@@ -146,7 +146,11 @@ export class ResumenComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     const compras = new Set(this.citas.map(c => c.compra).filter(Boolean));
-        this.tiposCompraDisponibles = Array.from(compras).sort();
+    this.tiposCompraDisponibles = Array.from(compras).sort();
+
+    const tentregas = new Set(this.citas.map(c => c.tipo_de_entrega).filter(Boolean));
+    this.tipoEntregaDisponibles = Array.from(tentregas).sort();
+    
     this.cargarFechasIniciales();
     this.generarAniosDisponibles();
     this.calcularDatos();
