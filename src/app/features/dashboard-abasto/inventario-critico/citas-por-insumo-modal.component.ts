@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, Input } from '@angular/core';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { Cita } from '../../../models/Cita';
 
@@ -21,4 +21,9 @@ export class CitasPorInsumoModalComponent {
       return new Date(a.fecha_recepcion_almacen || '').getTime() - new Date(b.fecha_recepcion_almacen || '').getTime();
     });
   }
+
+  @HostListener('document:keydown.escape', ['$event'])
+    onEscapeKey(event: KeyboardEvent) {
+        this.cerrar();
+    }
 }

@@ -83,12 +83,10 @@ export class CitasPendientesComponent implements OnInit {
       !c.fecha_recepcion_almacen || c.fecha_recepcion_almacen.trim() === ''
     );*/
     this.citasPendientes = this.citas.filter(c =>
-      (!c.fecha_recepcion_almacen || c.fecha_recepcion_almacen.trim() === '') &&
-      (c.estatus ?? '').toLowerCase() === 'vigente'
+     ( (!c.fecha_recepcion_almacen || c.fecha_recepcion_almacen.trim() === '') &&
+      (c.estatus ?? '').toLowerCase() === 'vigente' ) || 
+      (c.estatus ?? '').toLowerCase() === 'incompleto'
     );
-
-    this.citasSinAgendar = this.citasPendientes.filter(c => !c.fecha_de_cita);
-    this.citasAgendadasSinRecepcion = this.citasPendientes.filter(c => !!c.fecha_de_cita);
 
     this.unidadesUnicas = Array.from(
       new Set(this.citasPendientes.map(c => c.unidad ?? 'Desconocida'))
@@ -111,18 +109,22 @@ export class CitasPendientesComponent implements OnInit {
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_INCLUIR_NULAS, this.incluirFechasNulas.toString());
 
     const citasFiltradas = this.citasPendientes.filter(c => {
-      const busqueda = this.filtroBusqueda.toLowerCase();
-      const coincideBusqueda =
-        (c.orden_de_suministro ?? '').toLowerCase().includes(busqueda) ||
+      const busqueda = this.filtroBusqueda.toLowerCase().trim();
+
+      const coincideBusqueda = busqueda.length === 0 ||
+        (c.orden_de_suministro ?? '').toLowerCase().trim().includes(busqueda) ||
         (c.proveedor ?? '').toLowerCase().includes(busqueda) ||
         (c.clave_cnis ?? '').toLowerCase().includes(busqueda) ||
         (c.descripcion ?? '').toLowerCase().includes(busqueda);
 
-      const coincideUnidad = !this.filtroUnidad || c.unidad === this.filtroUnidad;
+      const coincideUnidad = !this.filtroUnidad || this.filtroUnidad.length === 0 || c.unidad === this.filtroUnidad;
 
-      const coincideCompra = !this.filtroCompra || c.compra === this.filtroCompra;
+      const coincideCompra = !this.filtroCompra || this.filtroCompra.length === 0 || c.compra === this.filtroCompra;
 
-      const fechaCitaValida = c.fecha_de_cita ? new Date(c.fecha_de_cita) : null;
+      const fechaCitaValida = c.fecha_de_cita ?
+              typeof c.fecha_de_cita === 'string' ? 
+                  this.fechasService.parseLocalDate(c.fecha_de_cita) :
+                        new Date(c.fecha_de_cita) : null;
       const coincideFecha =
         this.incluirFechasNulas && !fechaCitaValida
           ? true
@@ -139,6 +141,9 @@ export class CitasPendientesComponent implements OnInit {
       if (!map.has(unidad)) map.set(unidad, []);
       map.get(unidad)!.push(c);
     });
+
+    this.citasSinAgendar = citasFiltradas.filter(c => !c.fecha_de_cita);
+    this.citasAgendadasSinRecepcion = citasFiltradas.filter(c => !!c.fecha_de_cita);
 
     this.unidadesAgrupadas = Array.from(map.entries()).map(([unidad, citas]) => ({ unidad, citas }));
   }

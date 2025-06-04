@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input, OnChanges, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, Input, OnChanges, computed, inject, signal } from '@angular/core';
 import { Cita } from '../../../models/Cita';
 import { NgIf, NgFor, DatePipe, UpperCasePipe } from '@angular/common';
 import { PeriodoFechasService } from '../../../shared/periodo-fechas.service';
@@ -61,6 +61,11 @@ export class InsumoDetalleModalComponent implements OnChanges {
 
     exportarExcelCitas() {
         this.excelService.exportarDetalleCitasPorInsumo('Suministros-' + this.clave_cnis + '.xlsx', this.citasFiltradas);
+    }
+
+    @HostListener('document:keydown.escape', ['$event'])
+    onEscapeKey(event: KeyboardEvent) {
+        this.cerrar();
     }
 
     ngOnChanges(): void {

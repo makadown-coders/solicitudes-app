@@ -15,30 +15,30 @@ export class CitasService {
   private fechaService = inject(PeriodoFechasService);
   private excelService = inject(ExcelService);
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   obtenerCitas(
     page = 1,
     limit = 10,
     filtros: Partial<Cita> = {},
     search = '', sortBy = 'fecha_de_cita', sortOrder: 'ASC' | 'DESC' = 'DESC') {
-      let params = new HttpParams()
-        .set('page', page)
-        .set('limit', limit)
-        .set('sortBy', sortBy)
-        .set('sortOrder', sortOrder);
-  
+    let params = new HttpParams()
+      .set('page', page)
+      .set('limit', limit)
+      .set('sortBy', sortBy)
+      .set('sortOrder', sortOrder);
+
     if (search.trim()) {
       params = params.set('search', search.trim());
     }
-  
+
     // Agregar todos los filtros como query params
     Object.entries(filtros).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== '') {
         params = params.set(key, value.toString());
       }
     });
-  
+
     return this.http.get<PaginacionCitas>(this.apiUrl, { params });
   }
 
@@ -47,15 +47,15 @@ export class CitasService {
   }
 
   obtenerCitasDeBase64(base64: string): Cita[] {
-    
+
     console.log('🔁 Obteniendo info con Power Automate');
     let citasRetorno: Cita[] = [];
     let fila: any = null;
     try {
-       
+
       // 1. Convertir Base64 a ArrayBuffer
       const arrayBuffer = this.base64ToArrayBuffer(base64);
-      
+
       const rows: CitaRow[] = this.excelService.obtenerCitasDeExcel(arrayBuffer);
       console.log('🔁 Procesando', rows.length, 'filas.');
 
@@ -66,7 +66,7 @@ export class CitasService {
           headerLeido = true;
           continue;
         }
-      //  console.log('🔁 Procesando orden de suministro:', fila[1]);
+        //  console.log('🔁 Procesando orden de suministro:', fila[1]);
         const ejercicio = fila[0];
         if (!ejercicio || (ejercicio + '').trim().length === 0) {
           console.log('🔁 fin de archivo detectado. Finalizando obtención de datos', fila);
@@ -100,8 +100,8 @@ export class CitasService {
         const fechaRecepcionAlmacen =
           fila[21] === null ? null :
             (fila[20] instanceof Date ? fila[20] :
-              (!(fila[20] + '').includes('/') ? 
-              this.fechaService.excelDateToDatestring(fila[20] + '') :
+              (!(fila[20] + '').includes('/') ?
+                this.fechaService.excelDateToDatestring(fila[20] + '') :
                 (this.fechaService.formatFechaMultiple(fila[20] as string | null))
               ))
           ;
@@ -111,7 +111,7 @@ export class CitasService {
         const caducidad = fila[23] === null ? null :
           (fila[23] instanceof Date ? fila[23] :
             (!(fila[23] + '').includes('/') ?
-            this.fechaService.excelDateToDatestring(fila[23] + '') :
+              this.fechaService.excelDateToDatestring(fila[23] + '') :
               (this.fechaService.formatFechaMultiple(fila[23] as string | null))
             ))
           ;
@@ -122,7 +122,7 @@ export class CitasService {
         const carga = fila[28];
         const fechaCita = (fila[29] instanceof Date ?
           fila[29] :
-          (this.fechaService.excelDateToDatestring(fila[29]+'')) )! as Date | null;
+          (this.fechaService.excelDateToDatestring(fila[29] + '')))! as Date | null;
         // columnas 28 y 29 no se usan en el excel        
         const observacion = fila[32];
 
@@ -166,6 +166,31 @@ export class CitasService {
 
       console.log(`✅ Datos cargados desde Power Automate. Total: ${citasRetorno.length} registros.`);
 
+      // creando rapidamente un map para relacion entre clues_destino y unidad
+      // donde unidad no tenga valor vacío
+      const mapCluesUnidad: Map<string, string> = new Map<string, string>();
+      citasRetorno.forEach((cita: Cita) => {
+        if (cita.clues_destino && cita.unidad && cita.unidad.trim().length > 0) {
+          mapCluesUnidad.set(cita.clues_destino, cita.unidad);
+        }
+      });
+
+      // Corrigiendo inconsistencias:
+      // En tipo_de_entrega reemplacemos la palabra "operador logísitico" por "operador lógistico"
+      citasRetorno.forEach((cita: Cita) => {
+        if (cita.tipo_de_entrega.trim().toLowerCase() === 'operador logísitico' ||
+          cita.tipo_de_entrega.trim().toLowerCase() === 'operador logistico' ||
+          cita.tipo_de_entrega.trim().toLowerCase() === 'operador logístico') {
+          cita.tipo_de_entrega = 'Operador Logístico';
+        }
+        if (cita.unidad.trim().length == 0) {
+          cita.unidad = mapCluesUnidad.get(cita.clues_destino) ?? '';
+        }
+        if (cita.unidad.trim() == 'Almacén Zona Ensenada') {
+          cita.unidad = cita.unidad.toLocaleUpperCase();
+        }
+      });
+
     } catch (err: any) {
       console.error('❌ Error al obtener de power automate:', err);
       console.log('🔁 Procesando fila:', fila);
@@ -177,15 +202,15 @@ export class CitasService {
   private base64ToArrayBuffer(base64: string): ArrayBuffer {
     // Decodificar el string Base64
     const binaryString = atob(base64);
-    
+
     // Convertir a ArrayBuffer
     const length = binaryString.length;
     const bytes = new Uint8Array(length);
-    
+
     for (let i = 0; i < length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
-    
+
     return bytes.buffer;
   }
 }
