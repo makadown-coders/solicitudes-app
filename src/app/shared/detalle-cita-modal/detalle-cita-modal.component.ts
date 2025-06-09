@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Cita } from '../../models/Cita';
 
@@ -16,6 +16,12 @@ export class DetalleCitaModalComponent {
   @Output() cerrar = new EventEmitter<void>();
 
   cerrarModal() {
+    // console.log('cerrando modal', this.cita);
     this.cerrar.emit();
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: KeyboardEvent) {
+    this.cerrarModal();
   }
 }

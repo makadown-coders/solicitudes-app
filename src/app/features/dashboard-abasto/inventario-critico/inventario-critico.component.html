@@ -5,6 +5,17 @@
     </span>
     <!-- Filtros -->
     <div class="flex flex-wrap items-end gap-4 mb-4">
+         <!-- Filtro ejercicio (año) -->
+        <div>
+            <label class="block mb-1 text-sm text-gray-500">Ejercicio</label>
+            <select [(ngModel)]="filtroEjercicio" (change)="aplicarFiltros()" class="px-2 py-1 w-64 border rounded">
+                <option value="">Todos</option>
+                <option *ngFor="let ejercicio of ejerciciosDisponibles" [value]="ejercicio">
+                    {{ ejercicio }}
+                </option>
+            </select>
+        </div>
+
         <!-- Filtro texto -->
         <div>
             <label class="block mb-1 text-sm text-gray-500">Buscar insumo</label>

@@ -11,6 +11,7 @@
           <th class="px-2 py-1">Unidad</th>
           <th class="px-2 py-1">CLUES</th>
           <th class="px-2 py-1">Tipo de Compra</th>
+          <th class="px-2 py-1">Fecha Lim. Entrega</th>
           <th class="px-2 py-1">Fecha Cita</th>
           <th class="px-2 py-1">Fecha Recepción</th>
           <th class="px-2 py-1">Emitidas</th>
@@ -25,8 +26,9 @@
           <td class="px-2 py-1">{{ c.unidad }}</td>
           <td class="px-2 py-1">{{ c.clues_destino }}</td>
           <td class="px-2 py-1">{{ c.compra }}</td>
-          <td class="px-2 py-1">{{ c.fecha_de_cita | date: 'dd/MM/yyyy' }}</td>
-          <td class="px-2 py-1">{{ c.fecha_recepcion_almacen | date: 'dd/MM/yyyy' }}</td>
+          <td class="px-2 py-1">{{ c.fecha_limite_de_entrega | date:'longDate':'es' }}</td>
+          <td class="px-2 py-1">{{ c.fecha_de_cita | date:'longDate':'es' }}</td>
+          <td class="px-2 py-1">{{ c.fecha_recepcion_almacen | date:'longDate':'es' }}</td>
           <td class="px-2 py-1">{{ c.no_de_piezas_emitidas }}</td>
           <td class="px-2 py-1">{{ c.pzas_recibidas_por_la_entidad??0 }}</td>
           <!--<td class="px-2 py-1">{{ c.proveedor }}</td>-->

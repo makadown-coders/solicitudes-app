@@ -121,9 +121,27 @@ export class PeriodoFechasService {
     return fechas.length > 0 ? fechas.join('/').replace('NaN-NaN-NaN', '') : null;
   }
 
+  /**
+   * Convierte una fecha en formato de serial de Excel a un objeto Date.
+   * Usado para evitar errores de timezone al obtener fechas UTC.
+   * @param dateStr Fecha en formato de serial de Excel
+   * @returns Date
+   */
   public parseLocalDate(dateStr: string): Date {
-        const [year, month, day] = dateStr.split('-').map(Number);
-        return new Date(year, month - 1, day); // Mes se indexa desde 0
-    }
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day); // Mes se indexa desde 0
+  }
+
+  /**
+   * Método que recibe dos fechas e indica los dias que hay entre ellas
+   * @param fecha1
+   * @param fecha2
+   * @returns number
+   */
+  public getDiasEntreFechas(fecha1: Date, fecha2: Date): number {
+    const diffTime = Math.abs(fecha2.getTime() - fecha1.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
 
 }

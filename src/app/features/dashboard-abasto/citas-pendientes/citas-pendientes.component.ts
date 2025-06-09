@@ -22,8 +22,11 @@ interface GrupoUnidad {
 export class CitasPendientesComponent implements OnInit {
   @Input() citas: Cita[] = [];
 
+  citasEntregaAtrasadas: Cita[] = [];
   citasPendientes: Cita[] = [];
   citasSinAgendar: Cita[] = [];
+  citasInminentes: Cita[] = [];
+  citasIncompletas: Cita[] = [];
   citasAgendadasSinRecepcion: Cita[] = [];
 
   unidadesUnicas: string[] = [];
@@ -59,17 +62,18 @@ export class CitasPendientesComponent implements OnInit {
     this.filtroCompra = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_COMPRA) || '';
     const inicio = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_INICIO);
     const fin = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_FIN);
+    this.incluirFechasNulas = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_INCLUIR_NULAS) === 'true';
     if (inicio && fin) {
       this.fechaInicio = new Date(inicio);
       this.fechaFin = new Date(fin);
     }
   }
 
- /* ngOnChanges(changes: SimpleChanges): void {
-    if (changes['citas']) {
-      // this.procesarCitas();
-    }
-  }*/
+  /* ngOnChanges(changes: SimpleChanges): void {
+     if (changes['citas']) {
+       // this.procesarCitas();
+     }
+   }*/
 
   inicializarInicio(): Date {
     const inicio = new Date();
@@ -81,10 +85,11 @@ export class CitasPendientesComponent implements OnInit {
   procesarCitas(): void {
     /*this.citasPendientes = this.citas.filter(c =>
       !c.fecha_recepcion_almacen || c.fecha_recepcion_almacen.trim() === ''
-    );*/
+    );*/   
+   
     this.citasPendientes = this.citas.filter(c =>
-     ( (!c.fecha_recepcion_almacen || c.fecha_recepcion_almacen.trim() === '') &&
-      (c.estatus ?? '').toLowerCase() === 'vigente' ) || 
+      ((!c.fecha_recepcion_almacen || c.fecha_recepcion_almacen.trim() === '') &&
+        (c.estatus ?? '').toLowerCase() === 'vigente') ||
       (c.estatus ?? '').toLowerCase() === 'incompleto'
     );
 
@@ -122,9 +127,9 @@ export class CitasPendientesComponent implements OnInit {
       const coincideCompra = !this.filtroCompra || this.filtroCompra.length === 0 || c.compra === this.filtroCompra;
 
       const fechaCitaValida = c.fecha_de_cita ?
-              typeof c.fecha_de_cita === 'string' ? 
-                  this.fechasService.parseLocalDate(c.fecha_de_cita) :
-                        new Date(c.fecha_de_cita) : null;
+        typeof c.fecha_de_cita === 'string' ?
+          this.fechasService.parseLocalDate(c.fecha_de_cita) :
+          new Date(c.fecha_de_cita) : null;
       const coincideFecha =
         this.incluirFechasNulas && !fechaCitaValida
           ? true
@@ -135,17 +140,40 @@ export class CitasPendientesComponent implements OnInit {
       return coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha;
     });
 
-    const map = new Map<string, Cita[]>();
+    const citasPorUnidad = new Map<string, Cita[]>();
     citasFiltradas.forEach(c => {
       const unidad = c.unidad ?? 'Desconocida';
-      if (!map.has(unidad)) map.set(unidad, []);
-      map.get(unidad)!.push(c);
+      if (!citasPorUnidad.has(unidad)) citasPorUnidad.set(unidad, []);
+      citasPorUnidad.get(unidad)!.push(c);
     });
 
+    const hoy = new Date(); 
+    this.citasEntregaAtrasadas = citasFiltradas.filter(cita =>
+      cita.fecha_limite_de_entrega &&
+      ( typeof cita.fecha_limite_de_entrega === 'string' ?
+      this.fechasService.parseLocalDate(cita.fecha_limite_de_entrega) 
+      : cita.fecha_limite_de_entrega  )
+      < hoy /*&&
+      (cita.pzas_recibidas_por_la_entidad ?? 0) === 0*/
+    );
+
     this.citasSinAgendar = citasFiltradas.filter(c => !c.fecha_de_cita);
+    this.citasInminentes = citasFiltradas.filter(c => {
+      c.fecha_limite_de_entrega &&      
+      this.fechasService.getDiasEntreFechas(
+        new Date(c.fecha_limite_de_entrega), hoy) <= 5 &&
+      this.fechasService.getDiasEntreFechas(
+        new Date(c.fecha_limite_de_entrega), hoy) >= 0
+    });
+    this.citasIncompletas = citasFiltradas.filter(c => 
+      c.estatus.toLocaleLowerCase().trim() === 'incompleto'
+    );
     this.citasAgendadasSinRecepcion = citasFiltradas.filter(c => !!c.fecha_de_cita);
 
-    this.unidadesAgrupadas = Array.from(map.entries()).map(([unidad, citas]) => ({ unidad, citas }));
+    this.unidadesAgrupadas = Array.from(citasPorUnidad.entries()).map(([unidad, citas]) => ({ unidad, citas }));
+    
+    // ordenar this.unidadesAgrupadas por total de citas
+    this.unidadesAgrupadas.sort((a, b) => b.citas.length - a.citas.length);
   }
 
   onPeriodoSeleccionado(_: any, inicio: Date, fin: Date) {
