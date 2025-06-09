@@ -31,6 +31,10 @@ export class Cita {
   carga: string;
   fecha_de_cita: Date | null;
   observacion: string;
+  /**
+   * Nuevo campo: fecha_limite_de_entrega - 15 días naturales
+   */
+  fecha_arranque_dist: Date;
 }
 
 

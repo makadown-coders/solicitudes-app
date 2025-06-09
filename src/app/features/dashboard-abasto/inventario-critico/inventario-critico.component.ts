@@ -19,9 +19,11 @@ import { TruncateDecimalPipe } from '../../../shared/truncate-decimal.pipe';
 export class InventarioCriticoComponent implements OnInit {
     @Input() citas: Cita[] = [];
     citasFiltradas: Cita[] = [];
+    filtroEjercicio = '';
     filtroTexto = '';
     filtroUnidad = '';
     unidadesDisponibles: string[] = [];
+    ejerciciosDisponibles: string[] = [];
     articulosFiltrados: ArticuloCritico[] = [];
     articulosCriticos: ArticuloCritico[] = [];
     excelService = inject(ExcelService);
@@ -41,6 +43,8 @@ export class InventarioCriticoComponent implements OnInit {
 
     ngOnInit(): void {
         this.modalVisible.set(false);
+        this.filtroEjercicio = localStorage.getItem(StorageVariables.DASH_ABASTO_INV_FILTRO_EJERCICIO) || 
+            new Date().getFullYear().toString();
         this.filtroTexto = localStorage.getItem(StorageVariables.DASH_ABASTO_INV_FILTRO_TEXTO) || '';
         this.filtroUnidad = localStorage.getItem(StorageVariables.DASH_ABASTO_INV_FILTRO_UNIDAD) || '';
         this.filtroCompra = localStorage.getItem(StorageVariables.DASH_ABASTO_INV_FILTRO_COMPRAS) || '';
@@ -58,6 +62,10 @@ export class InventarioCriticoComponent implements OnInit {
         const unidades = new Set(this.citasFiltradas.map(c => c.unidad).filter(Boolean));
         this.unidadesDisponibles = Array.from(unidades).sort();
 
+        // Extraer ejercicios únicos
+        const ejercicios = new Set(this.citasFiltradas.map(c => c.ejercicio+'').filter(Boolean));
+        this.ejerciciosDisponibles = Array.from(ejercicios).sort();
+
         const compras = new Set(this.citasFiltradas.map(c => c.compra).filter(Boolean));
         this.tiposCompra = Array.from(compras).sort();
 
@@ -65,6 +73,7 @@ export class InventarioCriticoComponent implements OnInit {
     }
 
     aplicarFiltros() {
+        localStorage.setItem(StorageVariables.DASH_ABASTO_INV_FILTRO_EJERCICIO, this.filtroEjercicio);
         localStorage.setItem(StorageVariables.DASH_ABASTO_INV_FILTRO_TEXTO, this.filtroTexto);
         localStorage.setItem(StorageVariables.DASH_ABASTO_INV_FILTRO_UNIDAD, this.filtroUnidad);
         localStorage.setItem(StorageVariables.DASH_ABASTO_INV_FILTRO_COMPRAS, this.filtroCompra);
@@ -92,6 +101,11 @@ export class InventarioCriticoComponent implements OnInit {
             this.citasFiltradas = this.citasFiltradas
             .filter(c => c.compra.toLocaleUpperCase().trim() === this.filtroCompra.toLocaleUpperCase().trim());
         }
+        if (this.filtroEjercicio && this.filtroEjercicio.length > 0) {
+            this.citasFiltradas = this.citasFiltradas
+            .filter(c => c.ejercicio+'' === this.filtroEjercicio);
+        }
+
 
         // se recalcula el inventario critico con los filtros
         const articulos = this.inventarioCriticoService.detectarCriticos(this.citasFiltradas);

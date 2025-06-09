@@ -95,6 +95,7 @@ export class ProveedoresComponent implements OnInit {
         const citasFiltradas = this.citas.filter(c => {
             const filtro = this.filtroBusqueda.toLowerCase();
             const coincideBusqueda =
+                (c.orden_de_suministro ?? '').toLowerCase().includes(filtro) ||
                 (c.proveedor ?? '').toLowerCase().includes(filtro) ||
                 (c.clave_cnis ?? '').toLowerCase().includes(filtro) ||
                 (c.descripcion ?? '').toLowerCase().includes(filtro);

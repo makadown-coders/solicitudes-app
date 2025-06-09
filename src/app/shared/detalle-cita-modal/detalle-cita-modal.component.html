@@ -18,8 +18,12 @@
         <div><strong>Descripción:</strong> {{ cita.descripcion }}</div>
         <div><strong>Piezas emitidas:</strong> {{ cita.no_de_piezas_emitidas || 0 }}</div>
         <div><strong>Piezas recibidas:</strong> {{ cita.pzas_recibidas_por_la_entidad || 0 }}</div>
-        <div><strong>Fecha recepción almacén:</strong> {{ cita.fecha_recepcion_almacen || '-' }}</div>
+       <!--
+         <div><strong>Arranque de distribución:</strong>
+           {{ cita.fecha_arranque_dist | date: 'yyyy-MM-dd' }}</div>
+         -->
         <div><strong>Fecha límite entrega:</strong> {{ cita.fecha_limite_de_entrega }}</div>
+        <div><strong>Fecha recepción almacén:</strong> {{ cita.fecha_recepcion_almacen || '-' }}</div>
         <div><strong>Fecha de cita:</strong> {{ cita.fecha_de_cita || '-' }}</div>
         <div><strong>Fuente/Formato:</strong> {{ cita.fte_fmto }}</div>
         <div><strong>Compra:</strong> {{ cita.compra }}</div>

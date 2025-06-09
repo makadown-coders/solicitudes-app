@@ -189,6 +189,14 @@ export class CitasService {
         if (cita.unidad.trim() == 'Almacén Zona Ensenada') {
           cita.unidad = cita.unidad.toLocaleUpperCase();
         }
+        // calcular fecha de arranque de distribucion de insumo
+        cita.fecha_arranque_dist = typeof cita.fecha_limite_de_entrega === 'string' ?
+          new Date(
+            this.fechaService.parseLocalDate(cita.fecha_limite_de_entrega + '').getTime() - 15 * 24 * 60 * 60 * 1000)
+          :
+          new Date(
+            new Date(cita.fecha_limite_de_entrega).getTime() - 15 * 24 * 60 * 60 * 1000);
+
       });
 
     } catch (err: any) {

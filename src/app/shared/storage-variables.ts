@@ -22,6 +22,7 @@ export const enum StorageVariables {
     DASH_ABASTO_CITAS_FECHA_FIN = 'dash_abasto_citas_fecha_fin',
     DASH_ABASTO_CITAS_INCLUIR_NULAS = 'dash_abasto_citas_incluir_nulas',
     // Dashboard Abasto tab Cumplimiento Claves
+    DASH_ABASTO_INV_FILTRO_EJERCICIO = 'dash_abasto_inv_filtro_ejercicio',
     DASH_ABASTO_INV_FILTRO_TEXTO = 'dash_abasto_inv_filtro_texto',
     DASH_ABASTO_INV_FILTRO_UNIDAD = 'dash_abasto_inv_filtro_unidad',
     DASH_ABASTO_INV_FILTRO_COMPRAS = 'dash_abasto_inv_filtro_compras',
