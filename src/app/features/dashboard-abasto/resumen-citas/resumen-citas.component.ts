@@ -42,7 +42,6 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
     ordenesSeleccionadas: Cita[] = [];
 
     abrirDetalleOrdenes(tipoEntrega: string, unidad: string) {
-        //console.log('Abrir detalle de ordenes', tipoEntrega, unidad);
 
         this.ordenesSeleccionadas = this.citas
             .filter(c =>
@@ -54,8 +53,6 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
         if (this.filtroCompra) {
             this.ordenesSeleccionadas = this.ordenesSeleccionadas.filter(c => c.compra === this.filtroCompra);
         }
-
-        console.log('ordenesSeleccionadas', this.ordenesSeleccionadas);
         this.detalleVisible = true;
     }
 
@@ -71,8 +68,6 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
      * @param changes 
      */
     ngOnChanges(changes: SimpleChanges): void {
-        // console.log('ngOnChanges', changes);
-
         if (!changes['citas']) return;
 
         this.inicializarFechas();
@@ -108,15 +103,10 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
                 return fechaAComparar! > max! ? fechaAComparar : max;
             }, fechasValidas[0]!);
 
-            console.log('ultimaFecha', ultimaFecha);
-
             // Convertir última fecha en objeto Date para poder manipular
             this.fechaInicio = this.parseFechaLocal(ultimaFecha + '');
             this.fechaFin = new Date(this.fechaInicio);
             this.fechaInicio.setDate(this.fechaInicio.getDate() - 10);
-
-            console.log('this.fechaInicio', this.fechaInicio);
-            console.log('this.fechaFin', this.fechaFin);
 
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify({
                 inicio: this.fechaInicio,
@@ -139,7 +129,6 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
                 }
             }
         });
-        console.log('diasUnicos', diasUnicos);
         this.diasRango = Array.from(diasUnicos).sort((a, b) => {
             const da = new Date(a.split('/').reverse().join('-'));
             const db = new Date(b.split('/').reverse().join('-'));

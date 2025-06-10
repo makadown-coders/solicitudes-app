@@ -91,7 +91,6 @@ export class ProveedoresComponent implements OnInit {
 
     getProveedoresAgrupados(): { proveedor: string; citas: Cita[] }[] {
         const proveedorMap = new Map<string, Cita[]>();
-        // console.log('Aplicando filtro', this.filtroBusqueda);
         const citasFiltradas = this.citas.filter(c => {
             const filtro = this.filtroBusqueda.toLowerCase();
             const coincideBusqueda =
@@ -105,15 +104,12 @@ export class ProveedoresComponent implements OnInit {
 
             return coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha;
         });
-        // console.log('citasFiltradas fase 1', citasFiltradas);
 
         citasFiltradas.forEach(c => {
             const proveedor = c.proveedor ?? 'Desconocido';
             if (!proveedorMap.has(proveedor)) proveedorMap.set(proveedor, []);
             proveedorMap.get(proveedor)!.push(c);
         });
-        console.log('proveedorMap', proveedorMap);
-        // console.log('citasFiltradas fase 2', citasFiltradas);
 
         let resultado = Array.from(proveedorMap.entries())
             .map(([proveedor, citas]) => ({ proveedor, citas }));
@@ -126,7 +122,6 @@ export class ProveedoresComponent implements OnInit {
                 }))
                 .filter(g => g.citas.length > 0); // descarta grupos sin resultados
         }
-        // console.log('citasFiltradas fase 3', resultado);
 
         return resultado;
     }

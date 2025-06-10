@@ -16,7 +16,6 @@ export class DetalleCitaModalComponent {
   @Output() cerrar = new EventEmitter<void>();
 
   cerrarModal() {
-    // console.log('cerrando modal', this.cita);
     this.cerrar.emit();
   }
 

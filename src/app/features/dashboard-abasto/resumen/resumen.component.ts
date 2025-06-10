@@ -21,7 +21,7 @@ import { CitaChartService } from '../../../shared/cita-chart.service';
   templateUrl: './resumen.component.html',
   styleUrl: './resumen.component.css'
 })
-export class ResumenComponent implements OnInit, OnChanges {
+export class ResumenComponent implements OnInit {
   @Input() citas: Cita[] = [];
   // Opciones de filtros
   aniosDisponibles: number[] = [];
@@ -145,10 +145,6 @@ export class ResumenComponent implements OnInit, OnChanges {
   fechasService = inject(PeriodoFechasService);
 
   constructor() { }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    console.log('changes', changes);
-  }
 
   ngOnInit(): void {
     const compras = new Set(this.citas.map(c => c.compra).filter(Boolean));
@@ -460,11 +456,6 @@ export class ResumenComponent implements OnInit, OnChanges {
     promedios.forEach(p => this.topTiemposPromedioEntregaProveedor
       .push({ proveedor: p.proveedor, promedio: p.promedio })
     );
-
-    // ordenar por promedio menor a mayor
-    // this.topTiemposPromedioEntregaProveedor.sort((a, b) => a.promedio - b.promedio);
-
-    console.log('this.topTiemposPromedioEntregaProveedor', this.topTiemposPromedioEntregaProveedor);
   }
 
   convertMilliseconds(ms:number) {

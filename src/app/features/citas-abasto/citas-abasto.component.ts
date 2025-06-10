@@ -91,7 +91,6 @@ export class CitasAbastoComponent {
           this.isLoading = false;
         },
         error: (err) => {
-          console.error('Error al cargar citas:', err);
           this.isLoading = false;
         }
       });

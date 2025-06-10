@@ -144,7 +144,7 @@ export class InsumoDetalleModalComponent implements OnChanges {
         const citasFiltradasFechas = Array.from(new Set(this.citas
             .filter((c) => c.clave_cnis === this.clave_cnis && c.fecha_recepcion_almacen)
             .map((c) => c.fecha_recepcion_almacen)));
-        //console.log('citasFiltradasFechas', citasFiltradasFechas);
+        
         const fechas = citasFiltradasFechas
             .flatMap((fecha_recepcion_almacen) =>
                 (fecha_recepcion_almacen ?? '')
@@ -154,7 +154,6 @@ export class InsumoDetalleModalComponent implements OnChanges {
             )
             .map((f) => this.fechasService.parseLocalDate(f));
 
-        //console.log('fechas', new Set(fechas));
         fechas.sort((a, b) => b.getTime() - a.getTime());
         this.fechasFrecuentes = Array.from(new Set(fechas)).slice(0, 5);
 

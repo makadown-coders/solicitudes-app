@@ -33,11 +33,14 @@ export class DashboardService {
   }
 
   refrescarDatos(): void {
-    console.log('🔄 Actualizando datos del dashboard...');
+    // purgar todo el localStorage
+    this.limpiarDatos();
+
+    console.info('🔄 Actualizando datos del dashboard...');
     const url = `${environment.apiUrl}/citas/full`;
     this.http.get<CitasFull>(url).subscribe({
       next: (response: CitasFull) => {
-        
+
         const citas = this.citasService.obtenerCitasDeBase64(response.citas);
 
         // 1) Serializar y comprimir
@@ -49,8 +52,7 @@ export class DashboardService {
           console.warn('😱 localStorage lleno, omitiendo guardado');
         }
         // 2) Emitir
-        console.log('✅ Datos del dashboard actualizados.');
-        //console.log('data emitida desde servicio (OBTENIDO DE ELIA!):', citas);
+        console.info('✅ Datos del dashboard actualizados.');
         this.citasSubject.next(citas as Cita[]);
       },
       error: (err) => {
@@ -60,7 +62,7 @@ export class DashboardService {
   }
 
   limpiarDatos(): void {
-    console.log('🧹 Limpiando datos del dashboard...');
+    console.info('🧹 Limpiando datos del dashboard...');
     localStorage.removeItem(this.STORAGE_KEY);
     this.citasSubject.next([] as Cita[]);
   }

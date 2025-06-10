@@ -35,7 +35,6 @@ export class InventarioCriticoComponent implements OnInit {
     selectedClave = signal('');
     selectedDescripcion = signal('');
     cerrarModal = () => {
-       // console.log('cerrarModal desde padre!');
         this.modalVisible.set(false);
     }
 

@@ -25,7 +25,7 @@ export class LayoutComponent implements OnInit {
   ngOnInit() {
     const tabGuardado = localStorage.getItem('activeTab');
     this.activeTab = tabGuardado === 'solicitud' ? 'solicitud' : 'clues';
-    // console.log('activeTab en layout', this.activeTab);
+    
     const cluesStr = localStorage.getItem('datosClues');
     if (cluesStr) {
       this.datosClues = JSON.parse(cluesStr);
@@ -33,7 +33,6 @@ export class LayoutComponent implements OnInit {
   }
 
   onDatosCluesCapturados(datos: DatosClues) {
-    // console.log('datos capturados', datos);
     this.datosClues = datos;
     localStorage.setItem('datosClues', JSON.stringify(datos));
   }
