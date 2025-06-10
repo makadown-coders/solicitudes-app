@@ -118,6 +118,7 @@
       <table class="min-w-full text-sm text-left">
         <thead class="text-gray-500 border-b">
           <tr>
+            <th class="py-1">#</th>
             <th class="py-1">Proveedor</th>
             <th class="py-1">Órdenes</th>
             <th class="py-1">Atrasos</th>
@@ -125,7 +126,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let proveedor of topProveedoresIncumplidos">
+          <tr *ngFor="let proveedor of topProveedoresIncumplidos; let i = index">
+            <td class="py-1 renglon-info">{{ i + 1 }}</td>            
             <td class="py-1 font-medium renglon-info">{{ proveedor.nombre }}</td>
             <td class="py-1 renglon-info">{{ proveedor.total }}</td>
             <td class="py-1 text-red-600">{{ proveedor.atrasos }}</td>
@@ -136,26 +138,51 @@
     </div>
   </div>
   <!-- Top Proveedores más cumplidos -->
-  <div class="p-4 mt-6 bg-white rounded-lg shadow-sm border">
-    <h4 class="mb-2 text-sm text-gray-500 font-medium">Top proveedores más cumplidos</h4>
-    <table class="min-w-full text-sm text-left">
-      <thead class="text-gray-500 border-b">
-        <tr>
-          <th class="py-1">Proveedor</th>
-          <th class="py-1">Entregas</th>
-          <th class="py-1">A tiempo</th>
-          <th class="py-1">% Cumplimiento</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let proveedor of topProveedoresCumplidos">
-          <td class="py-1 font-medium renglon-info">{{ proveedor.nombre }}</td>
-          <td class="py-1 renglon-info">{{ proveedor.total }}</td>
-          <td class="py-1 text-green-600">{{ proveedor.aTiempo }}</td>
-          <td class="py-1 renglon-info">{{ proveedor.porcentaje | number: '1.0-1' }}%</td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="grid grid-cols-1 gap-6 mt-8 lg:grid-cols-2">
+    <div class="p-4 mt-6 bg-white rounded-lg shadow-sm border">
+      <h4 class="mb-2 text-sm text-gray-500 font-medium">Top proveedores más cumplidos</h4>
+      <table class="min-w-full text-sm text-left">
+        <thead class="text-gray-500 border-b">
+          <tr>
+            <th class="py-1">#</th>
+            <th class="py-1">Proveedor</th>
+            <th class="py-1">Entregas</th>
+            <th class="py-1">A tiempo</th>
+            <th class="py-1">% Cumplimiento</th>
+            <th class="py-1">Prom. entrega</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let proveedor of topProveedoresCumplidos; let i = index">
+            <td class="py-1 renglon-info">{{ i + 1 }}</td>
+            <td class="py-1 font-medium renglon-info">{{ proveedor.nombre }}</td>
+            <td class="py-1 renglon-info">{{ proveedor.total }}</td>
+            <td class="py-1 text-green-600">{{ proveedor.aTiempo }}</td>
+            <td class="py-1 renglon-info">{{ proveedor.porcentaje | number: '1.0-1' }}%</td>
+            <td class="py-1 renglon-info">{{ proveedor.tiempoPromedioEntrega | number: '1.0' }} días</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Top Proveedores con mejor promedio de entregas -->
+    <div class="p-4 mt-6 bg-white rounded-lg shadow-sm border">
+      <h4 class="mb-2 text-sm text-gray-500 font-medium">Top tiempo promedio de entrega</h4>
+      <table class="min-w-full text-sm text-left">
+        <thead class="text-gray-500 border-b">
+          <tr>
+            <th class="py-1">#</th>
+            <th class="py-1">Proveedor</th>
+            <th class="py-1">Promedio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let proveedor of topTiemposPromedioEntregaProveedor; let i = index">
+            <td class="py-1 renglon-info">{{ i + 1 }}</td>
+            <td class="py-1 font-medium renglon-info">{{ proveedor.proveedor }}</td>
+            <td class="py-1 renglon-info">{{ convertMilliseconds(proveedor.promedio).days }} días</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
-
 </div>

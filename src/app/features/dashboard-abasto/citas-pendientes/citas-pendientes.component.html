@@ -68,7 +68,7 @@
             'text-yellow-600 bg-yellow-100 font-medium': citasInminentes.length > 10 && citasEntregaAtrasadas.length <=100,
             'text-yellow-900 bg-green-100': citasInminentes.length >= 0 && citasInminentes.length <=10
           }">
-      <h3 class="font-semibold">Órdenes con fecha límite inminente</h3>
+      <h3 class="font-semibold">Órdenes con fecha límite/cita inminente</h3>
       <p class="text-2xl">{{ citasInminentes.length }}</p>
     </div>
      <div class="p-4 w-full text-red-900 bg-red-100 rounded shadow md:w-1/2">
@@ -99,19 +99,31 @@
             <th class="p-2 border">Descripción</th>
             <th class="p-2 border">Tipo de compra</th>
             <th class="p-2 border">Piezas</th>
+            <th class="p-2 border">Fecha Límite Entrega</th>
             <th class="p-2 border">Fecha de cita</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let cita of grupo.citas" (click)="abrirModalDetalle(cita)"
             class="border-t cursor-pointer hover:bg-gray-100 renglon-info">
-            <td class="p-2 border">{{ cita.orden_de_suministro }}</td>
+            <td class="p-2 border">
+              @if (this.citasInminentes.includes(cita))
+              {
+                <span class="text-green-800 font-bold">
+                  🚨🚨 {{ cita.orden_de_suministro }} 🚨🚨
+              </span>
+              }
+              @else {
+                {{ cita.orden_de_suministro }} 
+              }
+              </td>
             <td class="p-2 border">{{ cita.proveedor }}</td>
             <td class="p-2 border">{{ cita.clues_destino }}</td>
             <td class="p-2 border">{{ cita.clave_cnis }}</td>
             <td class="p-2 border">{{ cita.descripcion }}</td>
             <td class="p-2 border">{{ cita.compra }}</td>
             <td class="p-2 text-right border">{{ cita.no_de_piezas_emitidas || 0 }}</td>
+            <td class="p-2 border">{{ cita.fecha_limite_de_entrega | date: 'dd/MM/yyyy' }}</td>
             <td class="p-2 border">{{ cita.fecha_de_cita || '—' }}</td>
           </tr>
         </tbody>

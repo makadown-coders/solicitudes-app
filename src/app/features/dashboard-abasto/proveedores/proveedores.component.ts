@@ -90,7 +90,7 @@ export class ProveedoresComponent implements OnInit {
     }
 
     getProveedoresAgrupados(): { proveedor: string; citas: Cita[] }[] {
-        const map = new Map<string, Cita[]>();
+        const proveedorMap = new Map<string, Cita[]>();
         // console.log('Aplicando filtro', this.filtroBusqueda);
         const citasFiltradas = this.citas.filter(c => {
             const filtro = this.filtroBusqueda.toLowerCase();
@@ -109,12 +109,13 @@ export class ProveedoresComponent implements OnInit {
 
         citasFiltradas.forEach(c => {
             const proveedor = c.proveedor ?? 'Desconocido';
-            if (!map.has(proveedor)) map.set(proveedor, []);
-            map.get(proveedor)!.push(c);
+            if (!proveedorMap.has(proveedor)) proveedorMap.set(proveedor, []);
+            proveedorMap.get(proveedor)!.push(c);
         });
+        console.log('proveedorMap', proveedorMap);
         // console.log('citasFiltradas fase 2', citasFiltradas);
 
-        let resultado = Array.from(map.entries())
+        let resultado = Array.from(proveedorMap.entries())
             .map(([proveedor, citas]) => ({ proveedor, citas }));
 
         if (this.filtroUnidad) {

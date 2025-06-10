@@ -62,6 +62,12 @@ export class ResumenComponent implements OnInit, OnChanges {
     total: number;
     aTiempo: number;
     porcentaje: number;
+    tiempoPromedioEntrega?: number;
+  }[] = [];
+
+  topTiemposPromedioEntregaProveedor: {
+    proveedor: string;
+    promedio: number;
   }[] = [];
 
   stackedBarData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
@@ -150,7 +156,7 @@ export class ResumenComponent implements OnInit, OnChanges {
 
     const tentregas = new Set(this.citas.map(c => c.tipo_de_entrega).filter(Boolean));
     this.tipoEntregaDisponibles = Array.from(tentregas).sort();
-    
+
     this.cargarFechasIniciales();
     this.generarAniosDisponibles();
     this.calcularDatos();
@@ -197,7 +203,7 @@ export class ResumenComponent implements OnInit, OnChanges {
       fechaFin: this.fechaFin,
       anios: this.filtrosSeleccionados.anios,
       estatus: this.filtrosSeleccionados.estatus.map(e => e.toUpperCase()),
-      tipoEntrega: this.filtrosSeleccionados.tipoEntrega.map(e => e.toUpperCase()),      
+      tipoEntrega: this.filtrosSeleccionados.tipoEntrega.map(e => e.toUpperCase()),
       tipoCompra: this.filtrosSeleccionados.tipoCompra.map(e => e.toUpperCase()), // nuevo
     };
 
@@ -210,6 +216,7 @@ export class ResumenComponent implements OnInit, OnChanges {
     this.generarCumplimientoMensualPorBarras(citasFiltradas);
     this.generarTopProveedores(citasFiltradas);
     this.generarTopProveedoresCumplidos(citasFiltradas);
+    this.generarTopTiemposPromedioEntregaProveedor(citasFiltradas);
   }
 
   obtenerKPIs(citasFiltradas: Cita[]) {
@@ -380,10 +387,94 @@ export class ResumenComponent implements OnInit, OnChanges {
       porcentaje: total > 0 ? (aTiempo / total) * 100 : 0
     }));
 
-    this.topProveedoresCumplidos = lista
-      .filter(p => p.total > 3 && p.porcentaje >= 90)
-      .sort((a, b) => b.porcentaje - a.porcentaje)
-      .sort((a, b) => b.aTiempo - a.aTiempo)
-      .slice(0, 15);
+    const preCumplidos = lista.sort((a, b) => b.porcentaje - a.porcentaje);
+    this.topProveedoresCumplidos = preCumplidos
+      .filter(p => p.total > 0 && p.porcentaje >= 90)
+      .slice(0, 15)
+      .sort((a, b) => b.aTiempo - a.aTiempo);
+    
+    this.topProveedoresCumplidos.forEach( (p) => {
+        p.tiempoPromedioEntrega = Math.abs(this.diasPromedioEntregaProveedor(p.nombre, citas));
+    });
   }
+
+  diasPromedioEntregaProveedor(nombre: string, citas: Cita[]): number {
+     const citasFiltradas = citas.filter(c => c.proveedor === nombre);
+     let diasPromedio = 0;
+     for (const cita of citasFiltradas) {
+       if (cita.fecha_emision && cita.fecha_recepcion_almacen) {
+         const fechasRecepcion = cita.fecha_recepcion_almacen
+                     .split('/')
+                     .map((f) => this.fechasService.parseLocalDate(f));
+ 
+         fechasRecepcion.forEach(fRecepcion => {
+           const fEmision = this.fechasService.parseLocalDate(cita.fecha_emision+'');
+           const diferencia = fRecepcion.getTime() - fEmision.getTime();
+           diasPromedio += diferencia;
+         });
+       }
+     }
+     return this.convertMilliseconds( diasPromedio / citasFiltradas.length).days;
+  }
+
+  generarTopTiemposPromedioEntregaProveedor(citasFiltradas: Cita[]) {
+    const resumen = new Map<string, { total: number; promedio: number }>();
+
+    for (const cita of citasFiltradas) {
+      const proveedor = cita.proveedor || 'SIN PROVEEDOR';
+      const actual = resumen.get(proveedor) || { total: 0, promedio: 0 };
+
+      if (cita.fecha_emision && cita.fecha_recepcion_almacen) {
+        const fechasRecepcion = cita.fecha_recepcion_almacen
+                    .split('/')
+                    .map((f) => this.fechasService.parseLocalDate(f));
+
+        fechasRecepcion.forEach(fRecepcion => {
+          actual.total++;
+          const fEmision = this.fechasService.parseLocalDate(cita.fecha_emision+'');
+          const diferencia = fRecepcion.getTime() - fEmision.getTime();
+          actual.promedio += diferencia;
+        });
+      }
+      resumen.set(proveedor, actual);
+    }
+
+    const lista = Array.from(resumen.entries()).map(([proveedor, { total, promedio }]) => ({
+      proveedor,
+      total,
+      promedio: promedio / total
+    }));
+
+    this.topTiemposPromedioEntregaProveedor = [];
+    const promedios = lista
+      .filter(p => p.total > 0)
+      .sort((a, b) => a.promedio - b.promedio)
+      .slice(0, 15);
+    
+    /*  // peores promedios
+    const promedios = lista
+      .filter(p => p.total > 0)
+      .sort((a, b) => b.promedio - a.promedio)
+      .slice(0, 15);*/
+
+    promedios.forEach(p => this.topTiemposPromedioEntregaProveedor
+      .push({ proveedor: p.proveedor, promedio: p.promedio })
+    );
+
+    // ordenar por promedio menor a mayor
+    // this.topTiemposPromedioEntregaProveedor.sort((a, b) => a.promedio - b.promedio);
+
+    console.log('this.topTiemposPromedioEntregaProveedor', this.topTiemposPromedioEntregaProveedor);
+  }
+
+  convertMilliseconds(ms:number) {
+    const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+    const daysMs = ms % (24 * 60 * 60 * 1000);
+    const hours = Math.floor(daysMs / (60 * 60 * 1000));
+    const hoursMs = daysMs % (60 * 60 * 1000);
+    const minutes = Math.floor(hoursMs / (60 * 1000));
+
+    return { days, hours, minutes };
+  }
+
 }
