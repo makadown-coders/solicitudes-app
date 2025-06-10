@@ -139,7 +139,8 @@ export class PeriodoFechasService {
    * @returns number
    */
   public getDiasEntreFechas(fecha1: Date, fecha2: Date): number {
-    const diffTime = Math.abs(fecha2.getTime() - fecha1.getTime());
+    // const diffTime = Math.abs(fecha2.getTime() - fecha1.getTime());
+    const diffTime = fecha1.getTime() - fecha2.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   }

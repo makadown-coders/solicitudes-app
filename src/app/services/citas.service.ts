@@ -92,39 +92,43 @@ export class CitasService {
         fila[18] = fila[18] instanceof Date ?
           fila[18] :
           (this.fechaService.excelDateToDatestring(fila[18]));
-        const fechaLimiteEntrega = fila[18];
-        const piezasRecibidas = fila[19];
+        const fechaEmision = fila[18];
+        fila[19] = fila[19] instanceof Date ?
+          fila[19] :
+          (this.fechaService.excelDateToDatestring(fila[19]));
+        const fechaLimiteEntrega = fila[19];
+        const piezasRecibidas = fila[20];
         /* Condiciono a que la fecha de recepción siempre sea null 
-           si no tiene numero de remision (fila[21]) porque están intimamente ligados
+           si no tiene numero de remision (fila[22]) porque están intimamente ligados
         */
         const fechaRecepcionAlmacen =
-          fila[21] === null ? null :
-            (fila[20] instanceof Date ? fila[20] :
-              (!(fila[20] + '').includes('/') ?
-                this.fechaService.excelDateToDatestring(fila[20] + '') :
-                (this.fechaService.formatFechaMultiple(fila[20] as string | null))
+          fila[22] === null ? null :
+            (fila[21] instanceof Date ? fila[21] :
+              (!(fila[21] + '').includes('/') ?
+                this.fechaService.excelDateToDatestring(fila[21] + '') :
+                (this.fechaService.formatFechaMultiple(fila[21] as string | null))
               ))
           ;
         // console.log('fechaRecepcionAlmacen after', fechaRecepcionAlmacen);
-        const numeroRemision = fila[21];
-        const lote = fila[22];
-        const caducidad = fila[23] === null ? null :
-          (fila[23] instanceof Date ? fila[23] :
-            (!(fila[23] + '').includes('/') ?
-              this.fechaService.excelDateToDatestring(fila[23] + '') :
-              (this.fechaService.formatFechaMultiple(fila[23] as string | null))
+        const numeroRemision = fila[22];
+        const lote = fila[23];
+        const caducidad = fila[24] === null ? null :
+          (fila[24] instanceof Date ? fila[24] :
+            (!(fila[24] + '').includes('/') ?
+              this.fechaService.excelDateToDatestring(fila[24] + '') :
+              (this.fechaService.formatFechaMultiple(fila[24] as string | null))
             ))
           ;
-        const estatus = fila[24];
-        const folioAbasto = fila[25];
-        const almacenHospital = fila[26];
-        const evidencia = fila[27];
-        const carga = fila[28];
-        const fechaCita = (fila[29] instanceof Date ?
-          fila[29] :
-          (this.fechaService.excelDateToDatestring(fila[29] + '')))! as Date | null;
-        // columnas 28 y 29 no se usan en el excel        
-        const observacion = fila[32];
+        const estatus = fila[25];
+        const folioAbasto = fila[26];
+        const almacenHospital = fila[27];
+        const evidencia = fila[28];
+        const carga = fila[29];
+        const fechaCita = (fila[30] instanceof Date ?
+          fila[30] :
+          (this.fechaService.excelDateToDatestring(fila[30] + '')))! as Date | null;
+        // columnas 31 y 32 no se usan en el excel        
+        const observacion = fila[33];
 
         const nuevoRegistro: Cita = new Cita();
         nuevoRegistro.ejercicio = ejercicio;
@@ -136,12 +140,13 @@ export class CitasService {
         nuevoRegistro.clues_destino = cluesDestino;
         nuevoRegistro.unidad = unidad;
         nuevoRegistro.fte_fmto = fuenteFinanciamiento;
-        nuevoRegistro.proveedor = proveedor;
+        nuevoRegistro.proveedor = (proveedor+'').trim().toLocaleUpperCase();
         nuevoRegistro.clave_cnis = claveCNIS;
         nuevoRegistro.descripcion = descripcion;
         nuevoRegistro.compra = compra;
         nuevoRegistro.tipo_de_red = tipoRed;
         nuevoRegistro.tipo_de_insumo = tipoInsumo;
+        nuevoRegistro.fecha_emision = fechaEmision;
         nuevoRegistro.fecha_limite_de_entrega = fechaLimiteEntrega;
         nuevoRegistro.grupo_terapeutico = grupoTerapeutico;
         nuevoRegistro.precio_unitario = precioUnitario !== null && precioUnitario !== undefined ? Number(precioUnitario) : null;
@@ -189,14 +194,7 @@ export class CitasService {
         if (cita.unidad.trim() == 'Almacén Zona Ensenada') {
           cita.unidad = cita.unidad.toLocaleUpperCase();
         }
-        // calcular fecha de arranque de distribucion de insumo
-        cita.fecha_arranque_dist = typeof cita.fecha_limite_de_entrega === 'string' ?
-          new Date(
-            this.fechaService.parseLocalDate(cita.fecha_limite_de_entrega + '').getTime() - 15 * 24 * 60 * 60 * 1000)
-          :
-          new Date(
-            new Date(cita.fecha_limite_de_entrega).getTime() - 15 * 24 * 60 * 60 * 1000);
-
+       // cita.proveedor = cita.proveedor.trim().toUpperCase();
       });
 
     } catch (err: any) {

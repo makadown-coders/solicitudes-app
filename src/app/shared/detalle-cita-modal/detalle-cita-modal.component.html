@@ -1,45 +1,45 @@
 <div *ngIf="visible"
   class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 detalle-cita-modal">
-    <div class="overflow-y-auto relative p-6 w-full max-w-3xl max-h-[90vh] bg-white rounded-lg shadow-lg detalle-cita">
-      <h2 class="mb-4 text-2xl font-bold text-green-800">Detalle</h2>
-  
-      <button (click)="cerrarModal()" class="absolute top-3 right-3 text-gray-500 text-xl hover:text-gray-700">&times;</button>
-  
-      <div *ngIf="cita" class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
-        <div><strong>Orden suministro:</strong> {{ cita.orden_de_suministro }}</div>
-        <div><strong>Institución:</strong> {{ cita.institucion }}</div>
-        <div><strong>Contrato:</strong> {{ cita.contrato }}</div>
-        <div><strong>Procedimiento:</strong> {{ cita.procedimiento }}</div>
-        <div><strong>Tipo de entrega:</strong> {{ cita.tipo_de_entrega }}</div>
-        <div><strong>CLUES destino:</strong> {{ cita.clues_destino }}</div>        
-        <div><strong>Unidad:</strong> {{ cita.unidad }}</div>
-        <div><strong>Proveedor:</strong> {{ cita.proveedor }}</div>
-        <div><strong>Clave CNIS:</strong> {{ cita.clave_cnis }}</div>
-        <div><strong>Descripción:</strong> {{ cita.descripcion }}</div>
-        <div><strong>Piezas emitidas:</strong> {{ cita.no_de_piezas_emitidas || 0 }}</div>
-        <div><strong>Piezas recibidas:</strong> {{ cita.pzas_recibidas_por_la_entidad || 0 }}</div>
-       <!--
-         <div><strong>Arranque de distribución:</strong>
-           {{ cita.fecha_arranque_dist | date: 'yyyy-MM-dd' }}</div>
-         -->
-        <div><strong>Fecha límite entrega:</strong> {{ cita.fecha_limite_de_entrega }}</div>
-        <div><strong>Fecha recepción almacén:</strong> {{ cita.fecha_recepcion_almacen || '-' }}</div>
-        <div><strong>Fecha de cita:</strong> {{ cita.fecha_de_cita || '-' }}</div>
-        <div><strong>Fuente/Formato:</strong> {{ cita.fte_fmto }}</div>
-        <div><strong>Compra:</strong> {{ cita.compra }}</div>
-        <div><strong>Tipo de red:</strong> {{ cita.tipo_de_red }}</div>
-        <div><strong>Tipo de insumo:</strong> {{ cita.tipo_de_insumo }}</div>
-        <div><strong>Grupo terapéutico:</strong> {{ cita.grupo_terapeutico }}</div>
-        <div><strong>Remisión:</strong> {{ cita.numero_de_remision || '-' }}</div>
-        <div><strong>Lote:</strong> {{ cita.lote || '-' }}</div>
-        <div><strong>Caducidad:</strong> {{ cita.caducidad || '-' }}</div>
-        <div><strong>Folio abasto:</strong> {{ cita.folio_abasto || '-' }}</div>
-        <div><strong>Almacén receptor:</strong> {{ cita.almacen_hospital_que_recibio || '-'}}</div>
-        <div><strong>Evidencia:</strong> {{ cita.evidencia || '-'}}</div>
-        <div><strong>Carga:</strong> {{ cita.carga || '-' }}</div>
-        <div><strong>Estatus:</strong> {{ cita.estatus }}</div>
-        <div><strong>Observaciones:</strong> {{ cita.observacion || '-' }}</div>
-      </div>
+  <div class="overflow-y-auto relative p-6 w-full max-w-3xl max-h-[90vh] bg-white rounded-lg shadow-lg detalle-cita">
+    <h2 class="mb-4 text-2xl font-bold text-green-800">Detalle</h2>
+
+    <button (click)="cerrarModal()"
+      class="absolute top-3 right-3 text-gray-500 text-xl hover:text-gray-700">&times;</button>
+
+    <div *ngIf="cita" class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+      <div><strong>Orden suministro:</strong> {{ cita.orden_de_suministro }}</div>
+      <div><strong>Institución:</strong> {{ cita.institucion }}</div>
+      <div><strong>Contrato:</strong> {{ cita.contrato }}</div>
+      <div><strong>Procedimiento:</strong> {{ cita.procedimiento }}</div>
+      <div><strong>Tipo de entrega:</strong> {{ cita.tipo_de_entrega }}</div>
+      <div><strong>CLUES destino:</strong> {{ cita.clues_destino }}</div>
+      <div><strong>Unidad:</strong> {{ cita.unidad }}</div>
+      <div><strong>Proveedor:</strong> {{ cita.proveedor }}</div>
+      <div><strong>Clave CNIS:</strong> {{ cita.clave_cnis }}</div>
+      <div><strong>Descripción:</strong> {{ cita.descripcion }}</div>
+      <div><strong>Piezas emitidas:</strong> {{ cita.no_de_piezas_emitidas || 0 }}</div>
+      <div><strong>Piezas recibidas:</strong> {{ cita.pzas_recibidas_por_la_entidad || 0 }}</div>
+
+      <div><strong>Fecha emisión:</strong>
+        {{ cita.fecha_emision | date: 'yyyy-MM-dd' }}</div>
+
+      <div><strong>Fecha límite entrega:</strong> {{ cita.fecha_limite_de_entrega }}</div>
+      <div><strong>Fecha recepción almacén:</strong> {{ cita.fecha_recepcion_almacen || '-' }}</div>
+      <div><strong>Fecha de cita:</strong> {{ cita.fecha_de_cita || '-' }}</div>
+      <div><strong>Fuente/Formato:</strong> {{ cita.fte_fmto }}</div>
+      <div><strong>Compra:</strong> {{ cita.compra }}</div>
+      <div><strong>Tipo de red:</strong> {{ cita.tipo_de_red }}</div>
+      <div><strong>Tipo de insumo:</strong> {{ cita.tipo_de_insumo }}</div>
+      <div><strong>Grupo terapéutico:</strong> {{ cita.grupo_terapeutico }}</div>
+      <div><strong>Remisión:</strong> {{ cita.numero_de_remision || '-' }}</div>
+      <div><strong>Lote:</strong> {{ cita.lote || '-' }}</div>
+      <div><strong>Caducidad:</strong> {{ cita.caducidad || '-' }}</div>
+      <div><strong>Folio abasto:</strong> {{ cita.folio_abasto || '-' }}</div>
+      <div><strong>Almacén receptor:</strong> {{ cita.almacen_hospital_que_recibio || '-'}}</div>
+      <div><strong>Evidencia:</strong> {{ cita.evidencia || '-'}}</div>
+      <div><strong>Carga:</strong> {{ cita.carga || '-' }}</div>
+      <div><strong>Estatus:</strong> {{ cita.estatus }}</div>
+      <div><strong>Observaciones:</strong> {{ cita.observacion || '-' }}</div>
     </div>
   </div>
-  
+</div>

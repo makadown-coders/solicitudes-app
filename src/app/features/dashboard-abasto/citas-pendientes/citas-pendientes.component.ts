@@ -157,18 +157,29 @@ export class CitasPendientesComponent implements OnInit {
       (cita.pzas_recibidas_por_la_entidad ?? 0) === 0*/
     );
 
-    this.citasSinAgendar = citasFiltradas.filter(c => !c.fecha_de_cita);
-    this.citasInminentes = citasFiltradas.filter(c => {
+    this.citasSinAgendar = citasFiltradas.filter(c => !c.fecha_de_cita);    
+
+    this.citasIncompletas = citasFiltradas.filter(c => 
+      c.estatus.toLocaleLowerCase().trim() === 'incompleto'
+    );
+    this.citasAgendadasSinRecepcion = citasFiltradas.filter(c => !!c.fecha_de_cita);
+
+    this.citasInminentes = this.citasSinAgendar.filter(c => 
       c.fecha_limite_de_entrega &&      
       this.fechasService.getDiasEntreFechas(
         new Date(c.fecha_limite_de_entrega), hoy) <= 5 &&
       this.fechasService.getDiasEntreFechas(
         new Date(c.fecha_limite_de_entrega), hoy) >= 0
-    });
-    this.citasIncompletas = citasFiltradas.filter(c => 
-      c.estatus.toLocaleLowerCase().trim() === 'incompleto'
     );
-    this.citasAgendadasSinRecepcion = citasFiltradas.filter(c => !!c.fecha_de_cita);
+    const addCitasInminentes = this.citasAgendadasSinRecepcion.filter(c => 
+      c.fecha_de_cita &&       
+      this.fechasService.getDiasEntreFechas(
+        new Date(c.fecha_de_cita), hoy) <= 5 &&
+      this.fechasService.getDiasEntreFechas(
+        new Date(c.fecha_de_cita), hoy) >= 0    
+    );
+    this.citasInminentes = this.citasInminentes.concat(addCitasInminentes);
+      
 
     this.unidadesAgrupadas = Array.from(citasPorUnidad.entries()).map(([unidad, citas]) => ({ unidad, citas }));
     

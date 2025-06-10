@@ -16,6 +16,8 @@
             <th class="px-2 py-1">Unidad</th>
             <th class="px-2 py-1">CLUES</th>
             <th class="px-2 py-1">Tipo de compra</th>
+            <th class="px-2 py-1">Fecha Emisión</th>
+            <th class="px-2 py-1">Fecha Límite Entrega</th>
             <th class="px-2 py-1">Fecha de cita</th>
             <th class="px-2 py-1">Piezas emitidas</th>
             <th class="px-2 py-1">Proveedor</th>
@@ -29,6 +31,8 @@
             <td class="px-2 py-1">{{ cita.unidad }}</td>
             <td class="px-2 py-1">{{ cita.clues_destino }}</td>
             <td class="px-2 py-1">{{ cita.compra }}</td>
+            <td class="px-2 py-1">{{ cita.fecha_emision | date: 'dd/MM/yyyy' }}</td>
+            <td class="px-2 py-1">{{ cita.fecha_limite_de_entrega | date: 'dd/MM/yyyy' }}</td>
             <td class="px-2 py-1">{{ cita.fecha_de_cita | date: 'dd/MM/yyyy' }}</td>
             <td class="px-2 py-1">{{ cita.no_de_piezas_emitidas }}</td>
             <td class="px-2 py-1">{{ cita.proveedor }}</td>

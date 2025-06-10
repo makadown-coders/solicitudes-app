@@ -18,6 +18,7 @@ export class Cita {
   grupo_terapeutico: string;
   precio_unitario: number | null;
   no_de_piezas_emitidas: number | null;
+  fecha_emision: Date;
   fecha_limite_de_entrega: Date;
   pzas_recibidas_por_la_entidad: number | null;
   fecha_recepcion_almacen: string | null;
@@ -31,10 +32,6 @@ export class Cita {
   carga: string;
   fecha_de_cita: Date | null;
   observacion: string;
-  /**
-   * Nuevo campo: fecha_limite_de_entrega - 15 días naturales
-   */
-  fecha_arranque_dist: Date;
 }
 
 
@@ -59,17 +56,18 @@ export interface CitaRow {
   15?: string; // grupoTerapeutico
   16?: string | number | null; // precioUnitario
   17?: string | number | null; // piezasEmitidas
-  18?: string | Date; // fechaLimiteEntrega
-  19?: string | number | null; // piezasRecibidas
-  20?: string | Date | null; // fechaRecepcionAlmacen
-  21?: string; // numeroRemision
-  22?: string; // lote
-  23?: string | Date | null; // caducidad
-  24?: string; // estatus
-  25?: string; // folioAbasto
-  26?: string; // almacenHospital
-  27?: string; // evidencia
-  28?: string; // carga
-  29?: string | Date | null; // fechaCita
-  30?: string; // observacion
+  18?: string | Date; // fechaEmision
+  19?: string | Date; // fechaLimiteEntrega
+  20?: string | number | null; // piezasRecibidas
+  21?: string | Date | null; // fechaRecepcionAlmacen
+  22?: string; // numeroRemision
+  23?: string; // lote
+  24?: string | Date | null; // caducidad
+  25?: string; // estatus
+  26?: string; // folioAbasto
+  27?: string; // almacenHospital
+  28?: string; // evidencia
+  29?: string; // carga
+  30?: string | Date | null; // fechaCita
+  31?: string; // observacion
 }
