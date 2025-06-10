@@ -70,6 +70,7 @@ export class DashboardAbastoComponent implements OnInit {
 
   // opcionalmente puedes exponer un método para refrescar manualmente
   onRefresh() {
+    this.dashboardService.limpiarDatos();
     this.isLoading.set(true); // Establece isLoading = true;
     this.dashboardService.refrescarDatos();
   }

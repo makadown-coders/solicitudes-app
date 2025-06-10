@@ -34,7 +34,7 @@ export class DashboardService {
 
   refrescarDatos(): void {
     // purgar todo el localStorage
-    this.limpiarDatos();
+    // this.limpiarDatos();
 
     console.info('🔄 Actualizando datos del dashboard...');
     const url = `${environment.apiUrl}/citas/full`;
