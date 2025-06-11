@@ -1,0 +1,36 @@
+<section class="p-4 mt-4 bg-white rounded-lg shadow" *ngIf="unidad">
+  <h2 class="mb-2 text-xl font-semibold">Evaluación para: {{ unidad.nombre }}</h2>
+
+  <!-- Tabs de navegación -->
+  <div class="flex pb-2 mb-4 border-b space-x-4">
+    <button
+      class="px-4 py-2 rounded-t border-b-2"
+      [class.border-green-600]="tabActivo() === 'SMI'"
+      [class.text-green-700]="tabActivo() === 'SMI'"
+      (click)="cambiarTab('SMI')"
+    >
+      Servicios Médicos Integrales
+    </button>
+    <button
+      class="px-4 py-2 rounded-t border-b-2"
+      [class.border-green-600]="tabActivo() === 'SG'"
+      [class.text-green-700]="tabActivo() === 'SG'"
+      (click)="cambiarTab('SG')"
+    >
+      Servicios Generales
+    </button>
+  </div>
+
+  <!-- Componente de captura -->
+  <app-captura-evaluacion
+    [categoria]="tabActivo()"
+    (servicioAgregado)="agregarServicio($event)">
+  </app-captura-evaluacion>
+
+  <!-- Tabla de resumen -->
+  <app-tabla-servicios
+    [servicios]="tabActivo() === 'SMI' ? serviciosSMI() : serviciosSG()"
+    [tipo]="tabActivo()"
+    (eliminar)="eliminarServicio( $event.index, $event.servicio  )">
+  </app-tabla-servicios>
+</section>

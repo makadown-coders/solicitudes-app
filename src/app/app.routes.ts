@@ -5,16 +5,11 @@ export const routes: Routes = [
     path: 'dashboard-abasto',
     loadComponent: () => import('./features/dashboard-abasto/dashboard-abasto.component')
         .then(m => m.DashboardAbastoComponent)
-  },  
-  {
-    path: 'citas-abasto', // nombre provisional
-    loadComponent: () => import('./features/citas-abasto/citas-abasto.component')
-        .then(m => m.CitasAbastoComponent) // CitasAbastoComponent
   },
   {
-    path: 'citas-builder', // nombre provisional
-    loadComponent: () => import('./features/suministros/suministros.component')
-        .then(m => m.SuministrosComponent) // SuministrosComponent
+    path: 'poc-finanzas-ev-smi-sg', 
+    loadComponent: () => import('./features/poc-finanzas-ev-smi-sg/poc-finanzas-ev-smi-sg.component')
+        .then(m => m.PocFinanzasEvSmiSgComponent)
   },
   {
     path: 'solicitudes',

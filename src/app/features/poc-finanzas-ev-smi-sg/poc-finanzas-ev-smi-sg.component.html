@@ -1,0 +1,12 @@
+<div class="p-4 mx-auto max-w-screen-lg">
+  <h2 class="text-xl font-bold text-gray-800">Evaluación SMI/SG por Unidad</h2>
+
+  <app-selector-clues
+    (cluesSeleccionado)="actualizarUnidad($event)">
+  </app-selector-clues>
+
+  <app-evaluador-smi-sg
+    *ngIf="unidadSeleccionada"
+    [unidad]="unidadSeleccionada()!">
+  </app-evaluador-smi-sg>
+</div>

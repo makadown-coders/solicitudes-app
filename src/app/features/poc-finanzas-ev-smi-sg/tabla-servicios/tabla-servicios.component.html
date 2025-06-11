@@ -1,0 +1,29 @@
+<table class="mt-4 w-full border-gray-300 table-auto border">
+  <thead class="bg-gray-200">
+    <tr>
+      <th class="p-2 border">#</th>
+      <th class="p-2 border">Servicio</th>
+      <th class="p-2 border">Estatus</th>
+      <th class="p-2 border">Contrata</th>
+      <th class="p-2 border">Evaluación</th>
+      <th class="p-2 border">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let servicio of servicios; index as i">
+      <td class="p-2 text-center border">{{ i + 1 }}</td>
+      <td class="p-2 border">{{ servicio.nombre }}</td>
+      <td class="p-2 border">{{ servicio.estatusContratacion }}</td>
+      <td class="p-2 border">{{ servicio.inicialesContrata || '—' }}</td>
+      <td class="p-2 border">{{ servicio.evaluacionCalidad }}</td>
+      <td class="p-2 text-center border">
+        <button (click)="eliminarServicio(i, servicio)" class="text-red-600 hover:underline">
+          Eliminar
+        </button>
+      </td>
+    </tr>
+    <tr *ngIf="servicios.length === 0">
+      <td colspan="6" class="p-2 text-center text-gray-500">Sin servicios registrados</td>
+    </tr>
+  </tbody>
+</table>

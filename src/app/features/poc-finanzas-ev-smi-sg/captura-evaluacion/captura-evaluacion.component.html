@@ -1,0 +1,42 @@
+<div class="grid grid-cols-1 items-end gap-4 md:grid-cols-4">
+  <!-- Servicio -->
+  <div>
+    <label class="block mb-1">Servicio</label>
+    <select [(ngModel)]="selectedServicio" class="px-2 py-1 w-full border rounded">
+      <option value="">-- Selecciona --</option>
+      <option *ngFor="let s of servicios" [value]="s">{{ s }}</option>
+    </select>
+  </div>
+
+  <!-- Estatus contratación -->
+  <div>
+    <label class="block mb-1">Estatus contratación</label>
+    <select [(ngModel)]="selectedEstatus" class="px-2 py-1 w-full border rounded">
+      <option *ngFor="let e of estatuses" [value]="e">{{ e }}</option>
+    </select>
+  </div>
+
+  <!-- Iniciales de quien contrata (solo si aplica) -->
+  <div *ngIf="selectedEstatus === 'Contratado'">
+    <label class="block mb-1">Contrata</label>
+    <select [(ngModel)]="selectedInicial" class="px-2 py-1 w-full border rounded">
+      <option value="">-- Selecciona --</option>
+      <option *ngFor="let i of iniciales" [value]="i">{{ i }}</option>
+    </select>
+  </div>
+
+  <!-- Evaluación de calidad -->
+  <div>
+    <label class="block mb-1">Evaluación de calidad</label>
+    <select [(ngModel)]="selectedCalidad" class="px-2 py-1 w-full border rounded">
+      <option *ngFor="let q of calidades" [value]="q">{{ q }}</option>
+    </select>
+  </div>
+
+  <!-- Botón -->
+  <div class="col-span-full mt-2 text-right">
+    <button (click)="agregar()" class="px-4 py-2 text-white bg-green-600 hover:bg-green-700 rounded">
+      Agregar
+    </button>
+  </div>
+</div>
