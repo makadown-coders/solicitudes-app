@@ -32,9 +32,7 @@ export const enum StorageVariables {
     // POC Finanzas – Evaluación SMI/SG
     POC_FE_SMI_SG_SELECTED_CLUES = 'poc_finanzas_ev_smi_sg_selected_clues',      // Clues/hospital seleccionado
     POC_FE_SMI_SG_TAB = 'poc_finanzas_ev_smi_sg_tab_activo',          // Tab activo (SMI o SG)
-    POC_FE_SMI_SG_EVALUACIONES_SMI = 'poc_finanzas_ev_smi_sg_evaluaciones_smi',    // Arreglo de Servicios SMI
-    STORAGE_KEY_EVALUACIONES_SMI = 'poc_finanzas_ev_smi_sg_evaluaciones_smi',  // BORRAR ESTE
-    POC_FE_SMI_SG_EVALUACIONES_SG = 'poc_finanzas_ev_smi_sg_evaluaciones_sg',      // Arreglo de Servicios SG
-    STORAGE_KEY_EVALUACIONES_SG = 'poc_finanzas_ev_smi_sg_evaluaciones_sg',  // BORRAR ESTE
+    POC_FE_SMI_SG_EVALUACIONES_SMI = 'poc_finanzas_ev_smi_sg_evaluaciones_smi',    // Arreglo de Servicios SMI    
+    POC_FE_SMI_SG_EVALUACIONES_SG = 'poc_finanzas_ev_smi_sg_evaluaciones_sg',      // Arreglo de Servicios SG    
     POC_FE_SMI_SG_EVALUACIONES = 'poc_finanzas_ev_smi_sg_evaluaciones' // // Evaluaciones capturadas de servicios SMI y SG por unidad
 }

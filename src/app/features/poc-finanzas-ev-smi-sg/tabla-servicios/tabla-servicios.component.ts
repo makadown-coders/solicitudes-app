@@ -1,8 +1,8 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EvaluacionServicio } from '../../../models/evaluacion-servicio';
-import { ServicioEvaluado } from '../../../models/articulo-solicitud';
+import { ServicioEvaluado, Unidad } from '../../../models/articulo-solicitud';
 import { StorageVariables } from '../../../shared/storage-variables';
 
 @Component({
@@ -12,8 +12,10 @@ import { StorageVariables } from '../../../shared/storage-variables';
   templateUrl: './tabla-servicios.component.html',
   styleUrl: './tabla-servicios.component.css'
 })
-export class TablaServiciosComponent {
+export class TablaServiciosComponent implements OnInit, OnChanges {
+
   @Input() tipo: 'SMI' | 'SG' = 'SMI';
+  @Input() unidad!: Unidad;
 
   serviciosSMI = [
     'ANESTESIOLOGÍA', 'BANCO DE SANGRE', 'CENTRAL DE MEZCLAS',
@@ -47,27 +49,59 @@ export class TablaServiciosComponent {
   evaluaciones = ['Bueno', 'Regular', 'Malo', 'No aplica'];
 
   ngOnInit(): void {
-  const key = this.tipo === 'SMI' ? StorageVariables.STORAGE_KEY_EVALUACIONES_SMI : StorageVariables.STORAGE_KEY_EVALUACIONES_SG;
-
-  const fromStorage = localStorage.getItem(key);
-
-  if (fromStorage) {
-    this.evaluacionesCapturadas = JSON.parse(fromStorage);
-  } else {
-    const servicios = this.tipo === 'SMI' ? this.serviciosSMI : this.serviciosSG;
-
-    this.evaluacionesCapturadas = servicios.map(nombre => ({
-      nombre,
-      categoria: this.tipo,
-      estatusContratacion: 'Sin iniciar la contratación',
-      inicialesContrata: '',
-      evaluacionCalidad: 'No aplica'
-    }));
-
-    // Guardar por primera vez
-    localStorage.setItem(key, JSON.stringify(this.evaluacionesCapturadas));
+    this.cargarEvaluacionesDesdeLocalStorage();
   }
-}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['unidad'] && this.unidad) {
+      this.cargarEvaluacionesDesdeLocalStorage();
+    }
+  }
+
+  cargarEvaluacionesDesdeLocalStorage() {
+    const claveAlmacenamiento =
+      this.tipo === 'SMI'
+        ? StorageVariables.POC_FE_SMI_SG_EVALUACIONES_SMI
+        : StorageVariables.POC_FE_SMI_SG_EVALUACIONES_SG;
+
+    const datosPorUnidad: Record<string, ServicioEvaluado[]> = JSON.parse(
+      localStorage.getItem(claveAlmacenamiento) || '{}'
+    );
+
+    const datosUnidad = datosPorUnidad[this.unidad.cluesimb];
+
+    if (datosUnidad) {
+      // Cargar desde localStorage si ya existen datos guardados para esta unidad
+      this.evaluacionesCapturadas = datosUnidad;
+    } else {
+      // Si no hay datos, inicializar con la lista estándar
+      const listaServicios = this.tipo === 'SMI' ? this.serviciosSMI : this.serviciosSG;
+      this.evaluacionesCapturadas = listaServicios.map(nombre => ({
+        nombre,
+        categoria: this.tipo,
+        estatusContratacion: 'Sin iniciar la contratación',
+        inicialesContrata: '',
+        evaluacionCalidad: 'No aplica'
+      }));
+      // Guardar esta nueva inicialización por si se navega entre unidades
+      this.guardarEnLocalStorage();
+    }
+  }
+
+  guardarEnLocalStorage() {
+    const claveAlmacenamiento =
+      this.tipo === 'SMI'
+        ? StorageVariables.POC_FE_SMI_SG_EVALUACIONES_SMI
+        : StorageVariables.POC_FE_SMI_SG_EVALUACIONES_SG;
+
+    const datosPorUnidad: Record<string, ServicioEvaluado[]> = JSON.parse(
+      localStorage.getItem(claveAlmacenamiento) || '{}'
+    );
+
+    datosPorUnidad[this.unidad.cluesimb] = this.evaluacionesCapturadas;
+
+    localStorage.setItem(claveAlmacenamiento, JSON.stringify(datosPorUnidad));
+  }
 
   deshabilitarCampos(servicio: ServicioEvaluado): boolean {
     return servicio.estatusContratacion === 'No aplica';
