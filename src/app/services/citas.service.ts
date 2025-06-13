@@ -48,7 +48,7 @@ export class CitasService {
 
   obtenerCitasDeBase64(base64: string): Cita[] {
 
-    console.log('🔁 Obteniendo info con Power Automate');
+    console.info('🔁 Obteniendo info con Power Automate');
     let citasRetorno: Cita[] = [];
     let fila: any = null;
     try {
@@ -57,7 +57,7 @@ export class CitasService {
       const arrayBuffer = this.base64ToArrayBuffer(base64);
 
       const rows: CitaRow[] = this.excelService.obtenerCitasDeExcel(arrayBuffer);
-      console.log('🔁 Procesando', rows.length, 'filas.');
+      console.info('🔁 Procesando', rows.length, 'filas.');
 
       let headerLeido = false;
       for (const popo of rows) {
@@ -66,10 +66,9 @@ export class CitasService {
           headerLeido = true;
           continue;
         }
-        //  console.log('🔁 Procesando orden de suministro:', fila[1]);
         const ejercicio = fila[0];
         if (!ejercicio || (ejercicio + '').trim().length === 0) {
-          console.log('🔁 fin de archivo detectado. Finalizando obtención de datos', fila);
+          console.info('🔁 fin de archivo detectado. Finalizando obtención de datos', fila);
           break;
         }
         const ordenSuministro = fila[1];
@@ -109,7 +108,6 @@ export class CitasService {
                 (this.fechaService.formatFechaMultiple(fila[21] as string | null))
               ))
           ;
-        // console.log('fechaRecepcionAlmacen after', fechaRecepcionAlmacen);
         const numeroRemision = fila[22];
         const lote = fila[23];
         const caducidad = fila[24] === null ? null :
@@ -169,7 +167,7 @@ export class CitasService {
         citasRetorno.push(nuevoRegistro);
       }
 
-      console.log(`✅ Datos cargados desde Power Automate. Total: ${citasRetorno.length} registros.`);
+      console.info(`✅ Datos cargados desde Power Automate. Total: ${citasRetorno.length} registros.`);
 
       // creando rapidamente un map para relacion entre clues_destino y unidad
       // donde unidad no tenga valor vacío
@@ -199,7 +197,7 @@ export class CitasService {
 
     } catch (err: any) {
       console.error('❌ Error al obtener de power automate:', err);
-      console.log('🔁 Procesando fila:', fila);
+      console.error('🔁 Procesando fila:', fila);
     }
 
     return citasRetorno;

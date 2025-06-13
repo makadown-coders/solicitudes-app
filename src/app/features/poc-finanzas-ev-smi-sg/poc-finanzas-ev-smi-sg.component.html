@@ -1,0 +1,30 @@
+<div class="p-4 mx-auto max-w-screen-lg">
+   <!-- Header con botón de refrescar -->
+  <div class="flex justify-between items-center mb-4 dark:bg-black">
+    <h2 class="text-xl font-bold text-gray-800">Evaluación SMI/SG por Unidad (TEST)</h2>
+    <div class="flex items-center ml-auto">
+      <button (click)="themeService.toggleTheme()" [disabled]="isLoading()"
+        class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] rounded disabled:opacity-50 boton-modo">
+        {{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}
+      </button>
+      <!-- 
+      <button (click)="onRefresh()" [disabled]="isLoading()"
+        class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] rounded disabled:opacity-50 boton-refrescar">
+        🔄 Refrescar datos
+      </button> -->
+
+      <!-- Logo -->
+      <img [src]="themeService.isDarkMode() ? 'imssb-logo-blanco.png' : 'imssb-logo.svg'" alt="IMSS Bienestar" class="ml-auto h-10 md:h-12" />
+    </div>
+  </div>
+  
+
+  <app-selector-clues
+    (cluesSeleccionado)="actualizarUnidad($event)">
+  </app-selector-clues>
+
+  <app-evaluador-smi-sg
+    *ngIf="unidadSeleccionada"
+    [unidad]="unidadSeleccionada()!">
+  </app-evaluador-smi-sg>
+</div>

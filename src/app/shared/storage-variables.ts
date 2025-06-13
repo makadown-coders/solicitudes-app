@@ -29,4 +29,10 @@ export const enum StorageVariables {
     // Dashboard Abasto tab Entregas pendientes
     DASH_ABASTO_RESUMENCITAS_FILTRO_COMPRA = 'dash_abasto_resumen_citas_filtro_compra',
     DASH_ABASTO_RESUMENCITAS_RANGO = 'dash_abasto_resumen_citas_rango',
+    // POC Finanzas – Evaluación SMI/SG
+    POC_FE_SMI_SG_SELECTED_CLUES = 'poc_finanzas_ev_smi_sg_selected_clues',      // Clues/hospital seleccionado
+    POC_FE_SMI_SG_TAB = 'poc_finanzas_ev_smi_sg_tab_activo',          // Tab activo (SMI o SG)
+    POC_FE_SMI_SG_EVALUACIONES_SMI = 'poc_finanzas_ev_smi_sg_evaluaciones_smi',    // Arreglo de Servicios SMI    
+    POC_FE_SMI_SG_EVALUACIONES_SG = 'poc_finanzas_ev_smi_sg_evaluaciones_sg',      // Arreglo de Servicios SG    
+    POC_FE_SMI_SG_EVALUACIONES = 'poc_finanzas_ev_smi_sg_evaluaciones' // // Evaluaciones capturadas de servicios SMI y SG por unidad
 }

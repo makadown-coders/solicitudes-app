@@ -56,24 +56,21 @@ export class DashboardAbastoComponent implements OnInit {
     // 1) Suscríbete al BehaviorSubject para recibir actualizaciones
     this.dashboardService.citas$.subscribe({
       next: (data: Cita[]) => {
-        // console.log('recibiendo data en componente dashboardAbasto desde subscripcion al BehaviorSubject');
-        // console.log('asignado data a this.citas');
         this.citas = data as Cita[];
-        // console.log('this.citas', this.citas);
         this.isLoading.set(false); // Establece isLoading = false;
       }
     });
 
     // TODO: Refactorizar para recargar manualmente
     if (this.citas.length === 0) {
-      // 2) Dispara la carga inicial desde el endpoint     
-      // console.log('disparando carga inicial...');
+      // 2) Dispara la carga inicial desde el endpoint
       this.onRefresh();
     }
   }
 
   // opcionalmente puedes exponer un método para refrescar manualmente
   onRefresh() {
+    this.dashboardService.limpiarDatos();
     this.isLoading.set(true); // Establece isLoading = true;
     this.dashboardService.refrescarDatos();
   }

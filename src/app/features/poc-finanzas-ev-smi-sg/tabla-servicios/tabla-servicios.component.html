@@ -1,0 +1,40 @@
+<div class="overflow-x-auto border-gray-300 rounded border">
+  <table class="min-w-full text-sm">
+    <thead class="text-green-900 bg-green-100">
+      <tr>
+        <th class="px-4 py-2 text-left border">Servicio</th>
+        <th class="px-4 py-2 text-left border">Estatus de Contratación</th>
+        <th class="px-4 py-2 text-left border">Contrata</th>
+        <th class="px-4 py-2 text-left border">Evaluación de Calidad</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of evaluacionesCapturadas" >
+        <td class="px-4 py-2 border">{{ row.nombre }}</td>
+        <td class="px-4 py-2 border">
+          <!-- Estatus -->
+          <select [(ngModel)]="row.estatusContratacion" (ngModelChange)="guardarEnLocalStorage()"
+            class="px-2 py-1 w-full border rounded">
+            <option *ngFor="let e of estatusOpciones" [value]="e">{{ e }}</option>
+          </select>
+        </td>
+        <td class="px-4 py-2 border">
+          <!-- Contrata -->
+          <select [(ngModel)]="row.inicialesContrata" (ngModelChange)="guardarEnLocalStorage()"
+            class="px-2 py-1 w-full border rounded" [disabled]="deshabilitarCampos(row)">
+            <option value="">--</option>
+            <option *ngFor="let c of contratantes" [value]="c">{{ c }}</option>
+          </select>
+        </td>
+        <td class="px-4 py-2 border">
+          <!-- Evaluación -->
+          <select [(ngModel)]="row.evaluacionCalidad" (ngModelChange)="guardarEnLocalStorage()"
+            class="px-2 py-1 w-full border rounded" [disabled]="deshabilitarCampos(row)">
+            <option value="">--</option>
+            <option *ngFor="let ev of evaluaciones" [value]="ev">{{ ev }}</option>
+          </select>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

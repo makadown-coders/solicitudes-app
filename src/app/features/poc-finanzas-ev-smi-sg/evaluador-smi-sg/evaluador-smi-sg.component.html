@@ -1,0 +1,33 @@
+<section class="p-4 mt-4 bg-white rounded-lg shadow detalle-cita" *ngIf="unidad">
+  <h2 class="mb-2 text-xl font-semibold">Evaluación para: {{ unidad.nombre }}</h2>
+
+  <!-- Tabs de navegación -->
+  <div class="flex pb-2 mb-4 border-b space-x-4 detalle-cita">
+    <button
+      class="px-4 py-2 rounded-t border-b-2"
+      [class.border-green-600]="tabActivo() === 'SMI'"
+      [class.text-green-600]="tabActivo() === 'SMI'"
+      [class.font-bold]="tabActivo() === 'SMI'"
+      (click)="cambiarTab('SMI')"
+    >
+      Servicios Médicos Integrales
+    </button>
+    <button
+      class="px-4 py-2 rounded-t border-b-2"
+      [class.border-green-600]="tabActivo() === 'SG'"
+      [class.text-green-600]="tabActivo() === 'SG'"
+      [class.font-bold]="tabActivo() === 'SG'"
+      (click)="cambiarTab('SG')"
+    >
+      Servicios Generales
+    </button>
+  </div>
+
+  <!-- Tabla de resumen -->
+  <app-tabla-servicios *ngIf="tabActivo() === 'SMI'"
+     [tipo]="'SMI'"
+     [unidad]="unidad"></app-tabla-servicios>
+<app-tabla-servicios *ngIf="tabActivo() === 'SG'"
+    [tipo]="'SG'"
+    [unidad]="unidad"></app-tabla-servicios>
+</section>

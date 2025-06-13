@@ -54,9 +54,7 @@ export class ExcelService {
         const response = await fetch(templateUrl);
         const arrayBuffer = await response.arrayBuffer();
         await workbook.xlsx.load(arrayBuffer);
-        // console.log('workbook', workbook);
         const hojas = workbook.worksheets;
-        // console.log('hojas', hojas);
         const worksheet = hojas[0];
 
         // Cargar la imagen SVG como buffer
