@@ -21,16 +21,7 @@
     </button>
   </div>
 
-  <!-- Componente de captura -->
-  <app-captura-evaluacion
-    [categoria]="tabActivo()"
-    (servicioAgregado)="agregarServicio($event)">
-  </app-captura-evaluacion>
-
   <!-- Tabla de resumen -->
-  <app-tabla-servicios
-    [servicios]="tabActivo() === 'SMI' ? serviciosSMI() : serviciosSG()"
-    [tipo]="tabActivo()"
-    (eliminar)="eliminarServicio( $event.index, $event.servicio  )">
-  </app-tabla-servicios>
+  <app-tabla-servicios *ngIf="tabActivo() === 'SMI'" [tipo]="'SMI'"></app-tabla-servicios>
+<app-tabla-servicios *ngIf="tabActivo() === 'SG'" [tipo]="'SG'"></app-tabla-servicios>
 </section>
