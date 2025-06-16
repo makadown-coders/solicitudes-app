@@ -28,12 +28,11 @@ export class ArticulosService {
     // cargo los datos del json local en /public para no tener que hacer peticiones a la api de koyeb
     return this.http.get<ArticuloSolicitud[]>('/articulos.json')
       .pipe(
-        map((articulosData: ArticuloSolicitud[]) => {
-          console.log('articulosData', articulosData);
+        map((articulosData: ArticuloSolicitud[]) => {          
           const resultados = articulosData.filter(art =>
             art.clave.toLowerCase().includes(filtro) ||
             art.descripcion.toLowerCase().includes(filtro)
-          );
+          );          
           const res = resultados.map(art => ({
             clave: art.clave,
             descripcion: art.descripcion,
@@ -46,7 +45,5 @@ export class ArticulosService {
           };
         })
       );
-
   }
-
 }

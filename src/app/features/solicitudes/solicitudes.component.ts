@@ -60,7 +60,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   modoEdicionIndex: number | null = null;
   cantidadTemporal: number = 0;
 
-  usarTemplate: boolean = true;
+  generarPrecarga: boolean = true;
 
   private cdRef = inject(ChangeDetectorRef);
   private router = inject(Router);
@@ -101,7 +101,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   }
 
   onClaveInput() {
-    this.searchSubject.next(this.claveInput.trim());
+    this.searchSubject.next(this.claveInput);
   }
 
   buscarEnDB(texto: string) {
@@ -301,20 +301,29 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     );
   }
 
-  exportarExcel(nombreArchivo: string) {
-    this.excelService.exportarExcel(nombreArchivo, this.articulosSolicitados);
-    this.abrirModalInfo(
-      'Archivo generado',
-      'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
-    );
+  exportarExcelPrecarga(nombreArchivo: string) {
+    this.excelService.exportarExcelPrecarga(nombreArchivo, this.articulosSolicitados);
   }
 
-  exportarExcelConTemplate(nombreArchivo: string): void {
+  async exportarExcelConTemplate(nombreArchivo: string) {
     this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo, this.articulosSolicitados, this.modoStandalone);
     this.abrirModalInfo(
-      'Archivo generado',
+      this.generarPrecarga ? 'Archivos generados' : 'Archivo generado',
       'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
     );
+    if (this.generarPrecarga) {
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 1 segundo
+      let nombreArchivPrecarga = 'Precarga';
+      const cluesStr = localStorage.getItem('datosClues');
+      if (cluesStr && !this.modoStandalone) {
+        const datosClues = JSON.parse(cluesStr) as DatosClues;
+        nombreArchivPrecarga += '-' + this.iniciales(datosClues.nombreHospital);
+        nombreArchivPrecarga += '-' + datosClues.tipoInsumo.split('-');
+        nombreArchivPrecarga += '-' + datosClues.tipoPedido;
+      }
+      nombreArchivPrecarga += '_' + new Date().toISOString().slice(0, 7);
+      this.exportarExcelPrecarga(nombreArchivPrecarga);
+    }
   }
 
 
@@ -334,6 +343,10 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     this.modalPedirNombreArchivo = true;
   }
 
+  todosLosArticulosConCantidadMayorACero(): boolean {
+    return this.articulosSolicitados.every(articulo => articulo.cantidad > 0);
+  }
+
   iniciales(original: string): string {
     // 1. Filtrar palabras relevantes (ignorando "de", "y", "el", etc.)
     const palabrasRelevantes = original
@@ -350,11 +363,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   confirmarExportacion() {
     this.modalPedirNombreArchivo = false;
-    if (this.usarTemplate) {
-      this.exportarExcelConTemplate(this.nombreArchivo);
-    } else {
-      this.exportarExcel(this.nombreArchivo);
-    }
+    this.exportarExcelConTemplate(this.nombreArchivo);    
   }
 
   eliminarArticulo(index: number) {

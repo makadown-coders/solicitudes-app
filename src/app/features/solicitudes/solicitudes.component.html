@@ -1,48 +1,48 @@
 <div class="container mx-auto my-4 p-4">
     <h1 class="text-2xl text-green-800 font-bold">Solicitud de Artículos</h1>
 
-    <div class="mt-4 space-y-2 relative">
+    <div class="relative mt-4 space-y-2">
 
         <div class="relative">
             <input #inputClave type="text" placeholder="Clave (mínimo 3 caracteres)" maxlength="15"
                 [(ngModel)]="claveInput" (input)="onClaveInput()" (keydown)="onInputKeyDown($event)"
-                class="border rounded p-2 w-full" [disabled]="modoEdicionIndex !== null" />
+                class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null" />
 
             <ul *ngIf="autocompleteResults.length"
-                class="border rounded bg-white max-h-52 overflow-auto absolute top-12 left-0 right-0 z-10 shadow-md">
+                class="overflow-auto z-10 absolute top-12 left-0 right-0 max-h-52 bg-white shadow-md border rounded">
                 <li *ngFor="let item of autocompleteResults; let i = index" #resultItem
                     [class.bg-gray-200]="i === selectedIndex" (click)="selectArticulo(item)"
-                    class="cursor-pointer hover:bg-gray-200 p-2">
+                    class="p-2 cursor-pointer hover:bg-gray-200">
                     {{item.clave}} - {{item.descripcion}} ({{item.presentacion}})
                 </li>
-                <li *ngIf="moreResults" class="text-sm text-gray-500 p-2">
-                    Mostrando 12 de {{totalResults}} resultados...
+                <li *ngIf="moreResults && autocompleteResults.length < totalResults" class="p-2 text-sm text-gray-500">
+                    Mostrando {{ autocompleteResults.length }} de {{totalResults}} resultados...
                 </li>
             </ul>
         </div>
 
         <textarea placeholder="Descripción" maxlength="500" [(ngModel)]="descripcionInput"
-            class="border rounded p-2 w-full" [disabled]="modoEdicionIndex !== null"></textarea>
+            class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null"></textarea>
 
         <input type="text" placeholder="Unidad de Medida" maxlength="50" [(ngModel)]="unidadInput"
-            class="border rounded p-2 w-full" [disabled]="modoEdicionIndex !== null" />
+            class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null" />
 
         <input type="number" placeholder="Cantidad" min="1" max="99999" [(ngModel)]="cantidadInput"
-            class="border rounded p-2 w-full" [disabled]="modoEdicionIndex !== null" />
+            class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null" />
 
         <button (click)="agregarArticulo()" [disabled]="!formularioValido || modoEdicionIndex !== null" [ngClass]="(formularioValido && modoEdicionIndex === null)
               ? 'bg-green-800 hover:bg-green-900 text-white'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'" class="p-2 rounded w-full mt-2">
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'" class="p-2 mt-2 w-full rounded">
             Agregar +
         </button>
         <button *ngIf="articulosSolicitados.length > 0" (click)="confirmarLimpiezaModal()"
-            class="bg-yellow-400 text-green-900 p-2 rounded mt-4 hover:bg-yellow-500 ml-2"
+            class="p-2 mt-4 ml-2 text-green-900 bg-yellow-400 rounded hover:bg-yellow-500"
             [disabled]="modoEdicionIndex !== null"
             [ngClass]="modoEdicionIndex !== null ? 'opacity-50 cursor-not-allowed' : ''">
             Limpiar captura
         </button>
         <button *ngIf="articulosSolicitados.length > 0" (click)="mostrarModalExportar()"
-            class="bg-green-600 text-white p-2 rounded mt-4 hover:bg-green-700 ml-2"
+            class="p-2 mt-4 ml-2 text-white bg-green-600 rounded hover:bg-green-700"
             [disabled]="modoEdicionIndex !== null"
             [ngClass]="modoEdicionIndex !== null ? 'opacity-50 cursor-not-allowed' : ''">
             Finalizar y Exportar
@@ -51,15 +51,40 @@
     </div>
 
 
-    <div class="border rounded mt-4 p-2" *ngIf="articulosSolicitados.length">
+    <div class="mt-4 p-2 border rounded" *ngIf="articulosSolicitados.length">
         <app-tabla-articulos [articulosSolicitados]="articulosSolicitados" [modoEdicionIndex]="modoEdicionIndex"
             [cantidadTemporal]="cantidadTemporal" (cantidadTemporalChange)="cambiarCantidad($event)"
             (confirmar)="confirmarEdicion($event)" (cancelar)="cancelarEdicion()" (editar)="activarEdicion($event)"
             (eliminar)="eliminarArticuloConConfirmacion($event)" />
-
     </div>
-    <button *ngIf="articulosSolicitados.length > 0" (click)="mostrarModalExportar()"
-        class="bg-green-600 text-white p-2 rounded mt-4 hover:bg-green-700 ml-2" [disabled]="modoEdicionIndex !== null"
+    <!--
+    
+El proyecto de captura de solicitudes hasta ahora, ha sido un éxito.
+He aplicado por mi cuenta algunas mejoras que ya te iré mostrando. Los capturistas en almacenes de los hospitales mencionaron una necesidad:
+Resulta que al hacer captura de insumos mensuales, normalmente son listas enormes: 100, 200, hasta 600 articulos (insumos)!
+Entonces se planteó el poder tener un mecanismo para hacer una recarga de autocaptura de insumos.
+
+Mi primer ocurrencia es sugerir a los usuario crear un excel de solamente 2 columnas, 1 con la clave cnis y otro opcional con la cantidad deseada. Si no se capturan las cantidades, se dejará cero por default.
+
+I) Al exportar a excel, ya se ha decidido en todo momento usar la plantilla preformateada. Y la casilla que dice "Usar plantilla preformateada para exportar" cambiarla a "Generar precarga para futuras capturas". De modo que si queda activada, aparte de generar el excel con plantilla, generar otro con solamente clave cnis, cantidad, descripcion, 
+
+II) Agregar un boton de precarga, que al presionarlo, advierta que lo capturado actualmente (si hay) se borrará y se reemplazará por la carga.
+   Se agregaría adicionalmente una validación al proceso de solicitud para que no permita generar archivo excel hasta que capture cualquier clave que tenga 0 en su cantidad (que si bien la lista está validada para no permitir ceros, cualquier persona podría forzar ceros editando el html via DevTools)
+
+III) Al cargar con clave cnis sin cantidades
+	- si se detectan repetidos, solamente mostrar un aviso en un modal indicándolo.
+	- cargar toda la lista del excel con ceros dejando paso a la captura de sus cantidades y carga automática de todo valor del insumo.
+
+IV) Al cargar con clave cnis con cantidades
+	- si se detectan repetidos, mostrar en la lista sólo 1 clave con su cantidad acumulada y mostrar un aviso en un modal indicándolo la repetición y la acumulación.
+	- si alguna de las cantidades del excel es cero dejar paso a la captura de sus cantidades ya que el proceso estaría validado para no generar el excel hasta que haya capturado toda cantidad de todo insumo.
+    
+    -->
+    @let todosMayorACero = todosLosArticulosConCantidadMayorACero();
+    
+    <button *ngIf="articulosSolicitados.length > 0 && todosMayorACero"
+        (click)="mostrarModalExportar()"
+        class="p-2 mt-4 ml-2 text-white bg-green-600 rounded hover:bg-green-700" [disabled]="modoEdicionIndex !== null"
         [ngClass]="modoEdicionIndex !== null ? 'opacity-50 cursor-not-allowed' : ''">
         Finalizar y Exportar
     </button>
@@ -75,5 +100,5 @@
 
 <!-- Modal para nombrar archivo -->
 <app-nombrar-archivo-modal *ngIf="modalPedirNombreArchivo" [(nombreArchivo)]="nombreArchivo"
-    [(usarTemplate)]="usarTemplate"
+    [(generarPrecarga)]="generarPrecarga"
     (aceptar)="confirmarExportacion()" (cancelarCerrar)="cerrarModalArchivo()" />

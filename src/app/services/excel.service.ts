@@ -5,9 +5,27 @@ import * as ExcelJS from 'exceljs';
 import { DatosClues } from '../models/datos-clues';
 import { Cita, CitaRow } from '../models/Cita';
 import { ArticuloCritico } from '../shared/inventario-critico.service';
+import { clasificacionMedicamentosData } from '../models/clasificacionMedicamentosData';
+import { ClasificadorVEN } from '../models/clasificador-ven';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
+
+    exportarExcelPrecarga(nombreArchivo: string, articulosSolicitados: ArticuloSolicitud[]) {
+        // exportar solo los campos [clave] y [cantidad]
+        const worksheet = XLSX.utils
+                .json_to_sheet(
+                        articulosSolicitados
+                            .map(a => ({ clave: a.clave,
+                                         cantidad: a.cantidad 
+                            })));
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Solicitudes');
+
+        const nombreFinal = nombreArchivo.endsWith('.xlsx') ? nombreArchivo : `${nombreArchivo}.xlsx`;
+
+        XLSX.writeFile(workbook, nombreFinal);
+    }
 
     exportarExcel(nombreArchivo: string, articulosSolicitados: ArticuloSolicitud[]) {
         const worksheet = XLSX.utils.json_to_sheet(articulosSolicitados);
@@ -35,19 +53,19 @@ export class ExcelService {
     ) {
 
         let B4 = '';
-        let D4 = '';
-        let E5 = '';
-        let E8 = '';
-        let E9 = '';
+        let E4 = '';
+        let F5 = '';
+        let F7 = '';
+        let F8 = '';
 
         const datosCluesStr = localStorage.getItem('datosClues');
         if (datosCluesStr && !standalone) {
             const datosClues = JSON.parse(datosCluesStr) as DatosClues;
             B4 = datosClues.nombreHospital;
-            D4 = datosClues.tipoInsumo;
-            E5 = datosClues.periodo;
-            E8 = datosClues?.tipoPedido ?? 'Ordinario';
-            E9 = datosClues?.responsableCaptura ?? '';
+            E4 = datosClues.tipoInsumo;
+            F5 = datosClues.periodo;
+            F7 = datosClues?.tipoPedido ?? 'Ordinario';
+            F8 = datosClues?.responsableCaptura ?? '';
         }
 
         const workbook = new ExcelJS.Workbook();
@@ -66,27 +84,33 @@ export class ExcelService {
             buffer: imgBuffer,
             extension: 'png',
         });
-        worksheet!.getCell('B1').value = '';
-        // Posicionar en la celda B1 (col: 2, row: 1)
+        worksheet!.getCell('C1').value = '';
+        // Posicionar en la celda C1 (col: 3, row: 1)
         worksheet.addImage(imageId, {
-            tl: { col: 1, row: 0 }, // top-left (col: 1 = B)
+            tl: { col: 2, row: 0 }, // top-left (col: 2 = C)
             ext: { width: 150, height: 40 }, // tamaño en píxeles
             editAs: 'oneCell',
         });
         worksheet!.getCell('B4').value = B4;
-        worksheet!.getCell('D4').value = D4;
-        worksheet!.getCell('E5').value = E5;
-        worksheet!.getCell('E8').value = E8;
-        worksheet!.getCell('E9').value = E9;
-        // A partir de B14 iterar los artículos desde B hasta F donde 
+        worksheet!.getCell('E4').value = E4;
+        worksheet!.getCell('F5').value = F5;
+        worksheet!.getCell('F7').value = F7;
+        worksheet!.getCell('F8').value = F8;
+        // A partir de B12 iterar los artículos desde B hasta F donde 
         // B = # de renglon, C = clave, D = descripción, E = unidad, F = cantidad
         for (let i = 0; i < articulosSolicitados.length; i++) {
-            const renglon = i + 14;
+            const renglon = i + 12;
             worksheet!.getCell(`B${renglon}`).value = i + 1;
-            worksheet!.getCell(`C${renglon}`).value = articulosSolicitados[i].clave;
-            worksheet!.getCell(`D${renglon}`).value = articulosSolicitados[i].descripcion;
-            worksheet!.getCell(`E${renglon}`).value = articulosSolicitados[i].unidadMedida;
-            worksheet!.getCell(`F${renglon}`).value = articulosSolicitados[i].cantidad;
+            const clasificacion = clasificacionMedicamentosData
+                    .find(c => c.clave === articulosSolicitados[i].clave);
+            worksheet!.getCell(`C${renglon}`).value = 
+                    clasificacion ?
+                    ClasificadorVEN[clasificacion.ven] :
+                    '';
+            worksheet!.getCell(`D${renglon}`).value = articulosSolicitados[i].clave;
+            worksheet!.getCell(`E${renglon}`).value = articulosSolicitados[i].descripcion;
+            worksheet!.getCell(`F${renglon}`).value = articulosSolicitados[i].unidadMedida;
+            worksheet!.getCell(`G${renglon}`).value = articulosSolicitados[i].cantidad;
         }
         const buffer = await workbook.xlsx.writeBuffer();
         this.descargarArchivo(buffer, nombreArchivo);
