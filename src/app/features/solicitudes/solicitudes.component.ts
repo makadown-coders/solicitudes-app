@@ -267,6 +267,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     this.modalConfirmarTexto = confirmarTexto;
     this.modalSoloInfo = true;
     this.modalVisible = true;
+    this.cdRef.detectChanges();
   }
 
   abrirModalConfirmacion(
@@ -457,7 +458,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       const headers = Object.keys(datos[0]).map(h => h.toLowerCase().trim());
       const colClave = headers.find(h => h.includes('clave'));
       const colCantidad = headers.find(h => h.includes('cantidad'));
-
       if (!colClave) {
         this.abrirModalInfo('Encabezado faltante', 'El archivo no contiene columna con clave CNIS.');
         return;
