@@ -2,7 +2,7 @@
 <table class="mt-2 w-full text-sm">
     <thead class="text-white bg-green-600">
         <tr>
-            <th class="p-2">No.</th>            
+            <th class="p-2">No.</th>
             <th class="p-2">Clave</th>
             <th class="p-2">Clasificacion</th>
             <th class="p-2">Descripción</th>
@@ -36,7 +36,18 @@
                     </div>
                 </ng-container>
                 <ng-template #cantidadNormal>
+                    @if (articulo.cantidad <= 0)
+                    {
+                    <div [class.border-red-800]="true"
+                        [class.animate-pulse]="true"
+                        class="text-xl font-semibold text-center border rounded" >
+                        {{ articulo.cantidad }}
+                    </div>
+                    }
+                    @else
+                    {
                     {{ articulo.cantidad }}
+                    }
                 </ng-template>
             </td>
             <td class="p-2 text-center">
@@ -55,8 +66,8 @@
                         [disabled]="modoEdicionIndex !== null">
                         ✏️
                     </button>
-                    <button (click)="eliminar.emit(i)" class="mx-1 text-red-600 hover:text-red-800"
-                        title="Eliminar" [disabled]="modoEdicionIndex !== null">
+                    <button (click)="eliminar.emit(i)" class="mx-1 text-red-600 hover:text-red-800" title="Eliminar"
+                        [disabled]="modoEdicionIndex !== null">
                         🗑️
                     </button>
                 </ng-template>

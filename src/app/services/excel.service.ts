@@ -14,11 +14,17 @@ export class ExcelService {
     exportarExcelPrecarga(nombreArchivo: string, articulosSolicitados: ArticuloSolicitud[]) {
         // exportar solo los campos [clave] y [cantidad]
         const worksheet = XLSX.utils
-                .json_to_sheet(
-                        articulosSolicitados
-                            .map(a => ({ clave: a.clave,
-                                         cantidad: a.cantidad 
-                            })));
+              .json_to_sheet(
+                  articulosSolicitados
+                      .map(a => ({
+                          clave: a.clave,
+                          ven: this.descripcionVEN(a.clave),
+                          descripcion: a.descripcion,
+                          unidadMedida: a.unidadMedida,                          
+                          cantidad: a.cantidad                          
+                      })));
+
+        //const worksheet = XLSX.utils.json_to_sheet(articulosSolicitados);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Solicitudes');
 
@@ -101,12 +107,8 @@ export class ExcelService {
         for (let i = 0; i < articulosSolicitados.length; i++) {
             const renglon = i + 12;
             worksheet!.getCell(`B${renglon}`).value = i + 1;
-            const clasificacion = clasificacionMedicamentosData
-                    .find(c => c.clave === articulosSolicitados[i].clave);
-            worksheet!.getCell(`C${renglon}`).value = 
-                    clasificacion ?
-                    ClasificadorVEN[clasificacion.ven] :
-                    '';
+
+            worksheet!.getCell(`C${renglon}`).value = this.descripcionVEN(articulosSolicitados[i].clave);
             worksheet!.getCell(`D${renglon}`).value = articulosSolicitados[i].clave;
             worksheet!.getCell(`E${renglon}`).value = articulosSolicitados[i].descripcion;
             worksheet!.getCell(`F${renglon}`).value = articulosSolicitados[i].unidadMedida;
@@ -114,6 +116,14 @@ export class ExcelService {
         }
         const buffer = await workbook.xlsx.writeBuffer();
         this.descargarArchivo(buffer, nombreArchivo);
+    }
+
+    public descripcionVEN(clave: string): string {
+        const clasificacion = clasificacionMedicamentosData
+            .find(c => c.clave === clave);
+        return clasificacion ?
+            ClasificadorVEN[clasificacion.ven] :
+            '';
     }
 
     async exportarCitasConTemplate(
@@ -264,10 +274,10 @@ export class ExcelService {
             { header: 'Orden de suministro', key: 'orden_de_suministro', width: 50 },
             { header: 'Contrato', key: 'contrato', width: 30 },
             { header: 'Procedimiento', key: 'procedimiento', width: 30 },
-            { header: 'Tipo de Entrega', key: 'tipo_de_entrega', width: 30 },            
+            { header: 'Tipo de Entrega', key: 'tipo_de_entrega', width: 30 },
             { header: 'CLUES', key: 'clues_destino', width: 15 },
             { header: 'Unidad', key: 'unidad', width: 30 },
-            { header: 'Fte. Fmto', key: 'fte_fmto', width: 30 },            
+            { header: 'Fte. Fmto', key: 'fte_fmto', width: 30 },
             { header: 'Proveedor', key: 'proveedor', width: 25 },
             { header: 'Clave CNIS', key: 'clave_cnis', width: 15 },
             { header: 'Descripción', key: 'descripcion', width: 30 },
@@ -325,6 +335,21 @@ export class ExcelService {
 
         const buffer = await workbook.xlsx.writeBuffer();
         this.descargarArchivo(buffer, nombreArchivo);
+    }
+
+    leerArchivoPrecarga(file: File): Promise<any[]> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array((e.target as any).result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const primeraHoja = workbook.SheetNames[0];
+                const datos = XLSX.utils.sheet_to_json(workbook.Sheets[primeraHoja], { defval: '' });
+                resolve(datos);
+            };
+            reader.onerror = (e) => reject(e);
+            reader.readAsArrayBuffer(file);
+        });
     }
 
 }

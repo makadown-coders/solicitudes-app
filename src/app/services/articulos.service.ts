@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { map, Observable, of } from 'rxjs';
-import { ArticuloSolicitud } from '../models/articulo-solicitud';
+import { Articulo, ArticuloSolicitud } from '../models/articulo-solicitud';
 
 @Injectable({
   providedIn: 'root'
@@ -26,9 +26,9 @@ export class ArticulosService {
   buscarArticulosv2(termino: string): Observable<{ resultados: ArticuloSolicitud[]; total: number }> {
     const filtro = termino.toLowerCase();
     // cargo los datos del json local en /public para no tener que hacer peticiones a la api de koyeb
-    return this.http.get<ArticuloSolicitud[]>('/articulos.json')
+    return this.http.get<Articulo[]>('/articulos.json')
       .pipe(
-        map((articulosData: ArticuloSolicitud[]) => {          
+        map((articulosData: Articulo[]) => {          
           const resultados = articulosData.filter(art =>
             art.clave.toLowerCase().includes(filtro) ||
             art.descripcion.toLowerCase().includes(filtro)
@@ -36,7 +36,7 @@ export class ArticulosService {
           const res = resultados.map(art => ({
             clave: art.clave,
             descripcion: art.descripcion,
-            unidadMedida: art.unidadMedida,
+            unidadMedida: art.presentacion ?? '',
             cantidad: 0, // valor neutral inicial
           }));
           return {
