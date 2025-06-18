@@ -12,7 +12,9 @@ import { ClasificadorVEN } from '../models/clasificador-ven';
 export class ExcelService {
 
     exportarExcelPrecarga(nombreArchivo: string, articulosSolicitados: ArticuloSolicitud[]) {
-        // exportar solo los campos [clave] y [cantidad]
+        // primero ordenar articulos solicitados por clave en orden ascendente
+        articulosSolicitados.sort((a, b) => a.clave.localeCompare(b.clave));
+
         const worksheet = XLSX.utils
               .json_to_sheet(
                   articulosSolicitados
@@ -22,7 +24,8 @@ export class ExcelService {
                           descripcion: a.descripcion,
                           unidadMedida: a.unidadMedida,                          
                           cantidad: a.cantidad                          
-                      })).sort((a, b) => a.clave.localeCompare(b.clave)));
+                      }))
+              );
 
         //const worksheet = XLSX.utils.json_to_sheet(articulosSolicitados);
         const workbook = XLSX.utils.book_new();
@@ -57,6 +60,8 @@ export class ExcelService {
         articulosSolicitados: ArticuloSolicitud[],
         standalone: boolean
     ) {
+        // primero ordenar articulos solicitados por clave en orden ascendente
+        articulosSolicitados.sort((a, b) => a.clave.localeCompare(b.clave));
 
         let B4 = '';
         let E4 = '';
