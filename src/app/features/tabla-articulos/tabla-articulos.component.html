@@ -1,9 +1,10 @@
 <h2 class="font-bold text-green-800">Artículos capturados</h2>
-<table class="w-full text-sm mt-2">
-    <thead class="bg-green-600 text-white">
+<table class="mt-2 w-full text-sm">
+    <thead class="text-white bg-green-600">
         <tr>
             <th class="p-2">No.</th>
             <th class="p-2">Clave</th>
+            <th class="p-2">Clasificacion</th>
             <th class="p-2">Descripción</th>
             <th class="p-2">Unidad</th>
             <th class="p-2">Cantidad</th>
@@ -13,11 +14,17 @@
     <tbody>
         @for (articulo of articulosSolicitados; track articulo.clave; let i = $index)
         {
-        <tr class="border-b transition-all duration-300 ease-in-out" [class.bg-yellow-100]="modoEdicionIndex === i"
-            [class.opacity-50]="modoEdicionIndex !== null && modoEdicionIndex !== i">
+        <tr class="border-b transition-all duration-300 ease-in-out" 
+            [class.bg-yellow-100]="modoEdicionIndex === i"
+            [class.opacity-50]="modoEdicionIndex !== null && modoEdicionIndex !== i"
+            [class.animate-pulse]="modoEdicionIndex !== i && articulo.cantidad <= 0"
+            [class.bg-red-950!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
+            [class.text-gray-100!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
+            [class.text-xl.font-semibold.text-center.border.rounded]="modoEdicionIndex !== i && articulo.cantidad <= 0">
 
             <td class="p-2 text-center font-semibold text-gray-700">{{ i + 1 }}</td>
             <td class="p-2">{{ articulo.clave }}</td>
+            <td class="p-2">{{ clasificacion(articulo.clave) }}</td>
             <td class="p-2">{{ articulo.descripcion }}</td>
             <td class="p-2">{{ articulo.unidadMedida }}</td>
             <td class="p-2">
@@ -25,36 +32,38 @@
                     <div class="relative inline-block w-24">
                         <input type="number" [(ngModel)]="cantidadTemporal" min="1" max="99999"
                             [class.border-red-500]="esCantidadInvalida()" [class.animate-pulse]="esCantidadInvalida()"
-                            class="border px-2 py-1 w-full rounded text-center transition-all duration-300" />
+                            class="px-2 py-1 w-full text-center transition-all duration-300 border rounded" />
                         <!-- Popup de error -->
                         <div *ngIf="esCantidadInvalida()"
-                            class="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 bg-red-600 text-white text-xs px-3 py-1 rounded shadow-lg z-10 min-w-[180px] text-center">
+                            class="z-10 absolute left-1/2 top-full mt-1 px-3 py-1 min-w-[180px] text-white text-xs text-center bg-red-600 shadow-lg transform -translate-x-1/2 rounded">
                             Debe ser un número entre 1 y 99999
                         </div>
                     </div>
                 </ng-container>
                 <ng-template #cantidadNormal>
+                   
                     {{ articulo.cantidad }}
+                   
                 </ng-template>
             </td>
             <td class="p-2 text-center">
                 <ng-container *ngIf="modoEdicionIndex === i; else accionesNormales">
                     <button (click)="mandarConfirmacion(i)" title="Guardar"
-                        class="text-green-600 hover:text-green-800 mx-1" [disabled]="esCantidadInvalida()">
+                        class="mx-1 text-green-600 cursor-pointer hover:text-green-800" [disabled]="esCantidadInvalida()">
                         ✅
                     </button>
-                    <button (click)="cancelar.emit()" title="Cancelar" class="text-gray-600 hover:text-gray-800 mx-1">
+                    <button (click)="cancelar.emit()" title="Cancelar" class="mx-1 text-gray-600 cursor-pointer hover:text-gray-800">
                         ❌
                     </button>
                 </ng-container>
 
                 <ng-template #accionesNormales>
-                    <button (click)="editar.emit(i)" class="text-blue-600 hover:text-blue-800 mx-1" title="Editar"
+                    <button (click)="editar.emit(i)" class="mx-1 text-blue-600 cursor-pointer hover:text-blue-800" title="Editar"
                         [disabled]="modoEdicionIndex !== null">
                         ✏️
                     </button>
-                    <button (click)="eliminar.emit(i)" class="text-red-600 hover:text-red-800 mx-1"
-                        title="Eliminar" [disabled]="modoEdicionIndex !== null">
+                    <button (click)="eliminar.emit(i)" class="mx-1 text-red-600 cursor-pointer hover:text-red-800" title="Eliminar"
+                        [disabled]="modoEdicionIndex !== null">
                         🗑️
                     </button>
                 </ng-template>

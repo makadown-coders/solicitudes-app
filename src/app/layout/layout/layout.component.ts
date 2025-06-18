@@ -39,7 +39,7 @@ export class LayoutComponent implements OnInit {
 
 
   irASolicitud() {
-    this.activeTab = 'solicitud';
+    this.setTabActivo('solicitud');
   }
 
   setTabActivo(tab: 'clues' | 'solicitud') {

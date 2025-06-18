@@ -60,7 +60,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   modoEdicionIndex: number | null = null;
   cantidadTemporal: number = 0;
 
-  usarTemplate: boolean = true;
+  generarPrecarga: boolean = true;
+
+  mensajeImportacion: string | null = null;
 
   private cdRef = inject(ChangeDetectorRef);
   private router = inject(Router);
@@ -101,7 +103,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   }
 
   onClaveInput() {
-    this.searchSubject.next(this.claveInput.trim());
+    this.searchSubject.next(this.claveInput);
   }
 
   buscarEnDB(texto: string) {
@@ -248,11 +250,15 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   confirmarLimpieza() {
     this.articulosSolicitados = [];
     localStorage.removeItem('articulosSolicitados');
-    if (!this.modoStandalone) {
+    // TODO: validar con el cliente si solo quiere limpiar los articulos 
+    //        y dejar los datos de CLUES
+    /*if (!this.modoStandalone) {
       localStorage.removeItem('datosClues');
       localStorage.setItem('activeTab', 'clues');
-    }
+    }*/
     this.cerrarModal();
+    // Recargar la página para limpiar el caché
+    // window.location.reload();
   }
 
   abrirModalInfo(titulo: string, mensaje: string, confirmarTexto = 'Aceptar') {
@@ -261,6 +267,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     this.modalConfirmarTexto = confirmarTexto;
     this.modalSoloInfo = true;
     this.modalVisible = true;
+    this.cdRef.detectChanges();
   }
 
   abrirModalConfirmacion(
@@ -301,20 +308,29 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     );
   }
 
-  exportarExcel(nombreArchivo: string) {
-    this.excelService.exportarExcel(nombreArchivo, this.articulosSolicitados);
-    this.abrirModalInfo(
-      'Archivo generado',
-      'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
-    );
+  exportarExcelPrecarga(nombreArchivo: string) {
+    this.excelService.exportarExcelPrecarga(nombreArchivo, this.articulosSolicitados);
   }
 
-  exportarExcelConTemplate(nombreArchivo: string): void {
+  async exportarExcelConTemplate(nombreArchivo: string) {
     this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo, this.articulosSolicitados, this.modoStandalone);
     this.abrirModalInfo(
-      'Archivo generado',
+      this.generarPrecarga ? 'Archivos generados' : 'Archivo generado',
       'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
     );
+    if (this.generarPrecarga) {
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 1 segundo
+      let nombreArchivPrecarga = 'Precarga';
+      const cluesStr = localStorage.getItem('datosClues');
+      if (cluesStr && !this.modoStandalone) {
+        const datosClues = JSON.parse(cluesStr) as DatosClues;
+        nombreArchivPrecarga += '-' + this.iniciales(datosClues.nombreHospital);
+        nombreArchivPrecarga += '-' + datosClues.tipoInsumo.split('-');
+        nombreArchivPrecarga += '-' + datosClues.tipoPedido;
+      }
+      nombreArchivPrecarga += '_' + new Date().toISOString().slice(0, 7);
+      this.exportarExcelPrecarga(nombreArchivPrecarga);
+    }
   }
 
 
@@ -334,6 +350,10 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     this.modalPedirNombreArchivo = true;
   }
 
+  todosLosArticulosConCantidadMayorACero(): boolean {
+    return this.articulosSolicitados.every(articulo => articulo.cantidad > 0);
+  }
+
   iniciales(original: string): string {
     // 1. Filtrar palabras relevantes (ignorando "de", "y", "el", etc.)
     const palabrasRelevantes = original
@@ -350,11 +370,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   confirmarExportacion() {
     this.modalPedirNombreArchivo = false;
-    if (this.usarTemplate) {
-      this.exportarExcelConTemplate(this.nombreArchivo);
-    } else {
-      this.exportarExcel(this.nombreArchivo);
-    }
+    this.exportarExcelConTemplate(this.nombreArchivo);
   }
 
   eliminarArticulo(index: number) {
@@ -410,4 +426,121 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     this.modalPedirNombreArchivo = false;
   }
 
+  buscarArchivo(fileInput: HTMLInputElement) {
+    if (this.articulosSolicitados.length > 0) {
+      this.abrirModalConfirmacion(
+        'Precarga detectada',
+        'Esto reemplazará los artículos ya capturados. ¿Deseas continuar?',
+        'Sí, reemplazar',
+        'Cancelar',
+        () => fileInput.click()
+      );
+    } else {
+      fileInput.click();
+    }
+  }
+
+
+  async manejarArchivoPrecarga(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const archivo = (event.target as HTMLInputElement).files?.[0];
+    if (!archivo) return;
+
+    try {
+      const datos = await this.excelService.leerArchivoPrecarga(archivo); // ⚠️ este método lo definiremos en el servicio
+
+      if (!datos || datos.length === 0) {
+        this.abrirModalInfo('Archivo vacío', 'El archivo no contiene datos válidos.');
+        return;
+      }
+
+      // Intentar identificar columnas por nombres flexibles
+      const headers = Object.keys(datos[0]).map(h => h.toLowerCase().trim());
+      const colClave = headers.find(h => h.includes('clave'));
+      const colCantidad = headers.find(h => h.includes('cantidad'));
+      if (!colClave) {
+        this.abrirModalInfo('Encabezado faltante', 'El archivo no contiene columna con clave CNIS.');
+        return;
+      }
+
+      const nuevos: ArticuloSolicitud[] = [];
+      const repetidas: Record<string, number> = {};
+
+      for (const fila of datos) {
+        const clave = (fila[colClave] ?? '').toString().trim().toUpperCase();
+        if (!clave) continue;
+
+        const cantidad = colCantidad ? parseInt(fila[colCantidad]) || 0 : 0;
+
+        const existente = nuevos.find(a => a.clave === clave);
+        if (existente) {
+          existente.cantidad += cantidad;
+          repetidas[clave] = (repetidas[clave] || existente.cantidad);
+        } else {
+          nuevos.push({
+            clave,
+            descripcion: '',
+            unidadMedida: '',
+            cantidad
+          });
+        }
+      }
+
+      if (nuevos.length === 0) {
+        this.abrirModalInfo('Archivo inválido', 'No se encontraron claves válidas para importar.');
+        return;
+      }
+
+      this.articulosSolicitados = nuevos;
+      localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+
+      const clavesRepetidas = Object.keys(repetidas).length;
+      // ⚠️ Opcional: aquí podrías invocar this.autocompletarDatos() si quieres precargar descripción/unidad
+      if (clavesRepetidas > 0) {
+        const claves = Object.keys(repetidas).join(', ');
+        this.abrirModalInfo('Claves repetidas detectadas',
+          `Se importaron ${this.articulosSolicitados.length} artículos correctamente.
+           Se acumularon cantidades para las siguientes claves duplicadas:\n${claves}`);
+      }
+      this.autocompletarDatos(); // 👈 Aquí se llena lo demás
+
+      if (clavesRepetidas === 0) {
+        this.mensajeImportacion = `Se importaron ${this.articulosSolicitados.length} artículos correctamente.`;
+        setTimeout(() => {
+          this.mensajeImportacion = null;
+          this.cdRef.detectChanges(); // Forzar actualización si es necesario
+        }, 4000);
+      }
+
+    } catch (error) {
+      console.error('Error al leer archivo:', error);
+      this.abrirModalInfo('Error al importar', 'Hubo un problema al procesar el archivo.');
+    } finally {
+      input.value = ''; // 👈 resetear input para permitir cargar el mismo archivo otra vez
+    }
+  }
+
+  autocompletarDatos() {
+    const claves = this.articulosSolicitados.map(a => a.clave.toLowerCase());
+
+    this.articulosService.buscarArticulosv2('').subscribe({
+      next: (data) => {
+        const catalogo = data.resultados;
+        for (const art of this.articulosSolicitados) {
+          const encontrado = catalogo.find(c => c.clave.toLowerCase() === art.clave.toLowerCase());
+          if (encontrado) {
+            art.descripcion = encontrado.descripcion;
+            art.unidadMedida = encontrado.unidadMedida;
+          }
+        }
+
+        localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+        this.cdRef.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error en autocompletarDatos():', err);
+        this.abrirModalInfo('Error', 'No se pudieron autocompletar los datos de los insumos.');
+      }
+    });
+  }
 }

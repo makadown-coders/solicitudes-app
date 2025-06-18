@@ -1,67 +1,72 @@
 <div class="container mx-auto my-4 p-4">
     <h1 class="text-2xl text-green-800 font-bold">Solicitud de Artículos</h1>
 
-    <div class="mt-4 space-y-2 relative">
+    <div class="relative mt-4 space-y-2">
 
         <div class="relative">
             <input #inputClave type="text" placeholder="Clave (mínimo 3 caracteres)" maxlength="15"
                 [(ngModel)]="claveInput" (input)="onClaveInput()" (keydown)="onInputKeyDown($event)"
-                class="border rounded p-2 w-full" [disabled]="modoEdicionIndex !== null" />
+                class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null" />
 
             <ul *ngIf="autocompleteResults.length"
-                class="border rounded bg-white max-h-52 overflow-auto absolute top-12 left-0 right-0 z-10 shadow-md">
+                class="overflow-auto z-10 absolute top-12 left-0 right-0 max-h-52 bg-white shadow-md border rounded">
                 <li *ngFor="let item of autocompleteResults; let i = index" #resultItem
                     [class.bg-gray-200]="i === selectedIndex" (click)="selectArticulo(item)"
-                    class="cursor-pointer hover:bg-gray-200 p-2">
+                    class="p-2 cursor-pointer hover:bg-gray-200">
                     {{item.clave}} - {{item.descripcion}} ({{item.presentacion}})
                 </li>
-                <li *ngIf="moreResults" class="text-sm text-gray-500 p-2">
-                    Mostrando 12 de {{totalResults}} resultados...
+                <li *ngIf="moreResults && autocompleteResults.length < totalResults" class="p-2 text-sm text-gray-500">
+                    Mostrando {{ autocompleteResults.length }} de {{totalResults}} resultados...
                 </li>
             </ul>
         </div>
 
-        <textarea placeholder="Descripción" maxlength="500" [(ngModel)]="descripcionInput"
-            class="border rounded p-2 w-full" [disabled]="modoEdicionIndex !== null"></textarea>
+        <textarea placeholder="Descripción" maxlength="500" [(ngModel)]="descripcionInput" id="descripcionInput"
+            class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null"></textarea>
 
-        <input type="text" placeholder="Unidad de Medida" maxlength="50" [(ngModel)]="unidadInput"
-            class="border rounded p-2 w-full" [disabled]="modoEdicionIndex !== null" />
+        <input type="text" placeholder="Unidad de Medida" maxlength="50" [(ngModel)]="unidadInput" id="unidadInput"
+            class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null" />
 
-        <input type="number" placeholder="Cantidad" min="1" max="99999" [(ngModel)]="cantidadInput"
-            class="border rounded p-2 w-full" [disabled]="modoEdicionIndex !== null" />
+        <input type="number" placeholder="Cantidad" min="1" max="99999" [(ngModel)]="cantidadInput" id="cantidadInput"
+            class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null" />
 
         <button (click)="agregarArticulo()" [disabled]="!formularioValido || modoEdicionIndex !== null" [ngClass]="(formularioValido && modoEdicionIndex === null)
               ? 'bg-green-800 hover:bg-green-900 text-white'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'" class="p-2 rounded w-full mt-2">
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'" class="p-2 mt-2 w-full rounded">
             Agregar +
         </button>
         <button *ngIf="articulosSolicitados.length > 0" (click)="confirmarLimpiezaModal()"
-            class="bg-yellow-400 text-green-900 p-2 rounded mt-4 hover:bg-yellow-500 ml-2"
+            class="p-2 mt-4 ml-2 text-green-900 bg-yellow-400 rounded hover:bg-yellow-500"
             [disabled]="modoEdicionIndex !== null"
             [ngClass]="modoEdicionIndex !== null ? 'opacity-50 cursor-not-allowed' : ''">
             Limpiar captura
         </button>
-        <button *ngIf="articulosSolicitados.length > 0" (click)="mostrarModalExportar()"
-            class="bg-green-600 text-white p-2 rounded mt-4 hover:bg-green-700 ml-2"
-            [disabled]="modoEdicionIndex !== null"
-            [ngClass]="modoEdicionIndex !== null ? 'opacity-50 cursor-not-allowed' : ''">
-            Finalizar y Exportar
+        
+        @let todosMayorACero = todosLosArticulosConCantidadMayorACero();
+
+        <button *ngIf="articulosSolicitados.length > 0 todosMayorACero" (click)="mostrarModalExportar()"
+            class="p-2 mt-4 ml-2 text-white bg-green-600 rounded hover:bg-green-700"
+            [disabled]="modoEdicionIndex !== null || !todosMayorACero"
+            [ngClass]="modoEdicionIndex !== null || !todosMayorACero ? 'opacity-50 cursor-not-allowed' : ''">
+            Exportar Captura
         </button>
-
+        <input type="file" #fileInput accept=".xlsx,.xls,.csv" class="hidden" (change)="manejarArchivoPrecarga($event)">
+        <button class="p-2 mt-4 ml-2 text-white align-self-end bg-green-800 rounded hover:bg-green-900 float-right"
+            (click)="buscarArchivo(fileInput)">
+            Importar Precarga
+        </button>
     </div>
-
-
-    <div class="border rounded mt-4 p-2" *ngIf="articulosSolicitados.length">
+    <div class="mt-4 p-2 border rounded" *ngIf="articulosSolicitados.length">
         <app-tabla-articulos [articulosSolicitados]="articulosSolicitados" [modoEdicionIndex]="modoEdicionIndex"
             [cantidadTemporal]="cantidadTemporal" (cantidadTemporalChange)="cambiarCantidad($event)"
             (confirmar)="confirmarEdicion($event)" (cancelar)="cancelarEdicion()" (editar)="activarEdicion($event)"
             (eliminar)="eliminarArticuloConConfirmacion($event)" />
+    </div>   
 
-    </div>
-    <button *ngIf="articulosSolicitados.length > 0" (click)="mostrarModalExportar()"
-        class="bg-green-600 text-white p-2 rounded mt-4 hover:bg-green-700 ml-2" [disabled]="modoEdicionIndex !== null"
+    <button *ngIf="articulosSolicitados.length > 0 && todosMayorACero" (click)="mostrarModalExportar()"
+        class="p-2 mt-4 ml-2 text-white bg-green-600 rounded hover:bg-green-700" [disabled]="modoEdicionIndex !== null"
         [ngClass]="modoEdicionIndex !== null ? 'opacity-50 cursor-not-allowed' : ''">
-        Finalizar y Exportar
+        Exportar Captura
     </button>
 
 </div>
@@ -75,5 +80,13 @@
 
 <!-- Modal para nombrar archivo -->
 <app-nombrar-archivo-modal *ngIf="modalPedirNombreArchivo" [(nombreArchivo)]="nombreArchivo"
-    [(usarTemplate)]="usarTemplate"
-    (aceptar)="confirmarExportacion()" (cancelarCerrar)="cerrarModalArchivo()" />
+    [(generarPrecarga)]="generarPrecarga" (aceptar)="confirmarExportacion()" (cancelarCerrar)="cerrarModalArchivo()" />
+
+
+<!-- Modal flotante para mensaje de importación -->
+<div *ngIf="mensajeImportacion" class="z-50 fixed inset-0 flex items-center justify-center pointer-events-none">
+    <div
+        class="px-6 py-4 w-[90%] text-green-900 text-center text-base font-semibold bg-white/90 rounded-xl border-green-300 shadow-lg border animate-fade-modal sm:w-auto">
+        ✅ {{ mensajeImportacion }}
+    </div>
+</div>

@@ -15,8 +15,8 @@ export class NombrarArchivoModalComponent {
   @Output() aceptar = new EventEmitter<void>();
   @Output() cancelarCerrar = new EventEmitter<void>();
 
-  @Input() usarTemplate: boolean = true;
-  @Output() usarTemplateChange = new EventEmitter<boolean>();
+  @Input() generarPrecarga: boolean = true;
+  @Output() generarPrecargaChange = new EventEmitter<boolean>();
   confirmar() {
     this.nombreArchivoChange.emit(this.nombreArchivo);
     this.aceptar.emit();

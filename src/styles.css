@@ -49,6 +49,25 @@
     border-color: #d1d5db !important; /* Tailwind's gray-300 */
 }
 
+@keyframes fadeModal {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  10%, 90% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+}
+
+.animate-fade-modal {
+  animation: fadeModal 2s ease-in-out forwards;
+}
+
 
 /* Preparación para Dark Mode (se activará con la clase 'dark' en el body/html) */
 html.dark {

@@ -1,6 +1,8 @@
 import { Component, Input, Output, EventEmitter, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { clasificacionMedicamentosData } from '../../models/clasificacionMedicamentosData';
+import { ClasificadorVEN } from '../../models/clasificador-ven';
 
 @Component({
   selector: 'app-tabla-articulos',
@@ -9,6 +11,7 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './tabla-articulos.component.html',
 })
 export class TablaArticulosComponent {
+
   @Input() articulosSolicitados: any[] = [];
   @Input() modoEdicionIndex: number | null = null;
   @Input() cantidadTemporal: number = 0;
@@ -27,5 +30,10 @@ export class TablaArticulosComponent {
   mandarConfirmacion(index: number) {
     this.cantidadTemporalChange.emit(this.cantidadTemporal);
     this.confirmar.emit(index);
+  }
+
+  clasificacion(clave: string) {
+    const clasificacion = clasificacionMedicamentosData.find(c => c.clave === clave);
+    return clasificacion ? ClasificadorVEN[clasificacion.ven] : '';
   }
 }
