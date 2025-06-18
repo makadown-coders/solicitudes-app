@@ -14,8 +14,13 @@
     <tbody>
         @for (articulo of articulosSolicitados; track articulo.clave; let i = $index)
         {
-        <tr class="border-b transition-all duration-300 ease-in-out" [class.bg-yellow-100]="modoEdicionIndex === i"
-            [class.opacity-50]="modoEdicionIndex !== null && modoEdicionIndex !== i">
+        <tr class="border-b transition-all duration-300 ease-in-out" 
+            [class.bg-yellow-100]="modoEdicionIndex === i"
+            [class.opacity-50]="modoEdicionIndex !== null && modoEdicionIndex !== i"
+            [class.animate-pulse]="modoEdicionIndex !== i && articulo.cantidad <= 0"
+            [class.bg-red-950!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
+            [class.text-gray-100!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
+            [class.text-xl.font-semibold.text-center.border.rounded]="modoEdicionIndex !== i && articulo.cantidad <= 0">
 
             <td class="p-2 text-center font-semibold text-gray-700">{{ i + 1 }}</td>
             <td class="p-2">{{ articulo.clave }}</td>
@@ -36,37 +41,28 @@
                     </div>
                 </ng-container>
                 <ng-template #cantidadNormal>
-                    @if (articulo.cantidad <= 0)
-                    {
-                    <div [class.border-red-800]="true"
-                        [class.animate-pulse]="true"
-                        class="text-xl font-semibold text-center border rounded" >
-                        {{ articulo.cantidad }}
-                    </div>
-                    }
-                    @else
-                    {
+                   
                     {{ articulo.cantidad }}
-                    }
+                   
                 </ng-template>
             </td>
             <td class="p-2 text-center">
                 <ng-container *ngIf="modoEdicionIndex === i; else accionesNormales">
                     <button (click)="mandarConfirmacion(i)" title="Guardar"
-                        class="mx-1 text-green-600 hover:text-green-800" [disabled]="esCantidadInvalida()">
+                        class="mx-1 text-green-600 cursor-pointer hover:text-green-800" [disabled]="esCantidadInvalida()">
                         ✅
                     </button>
-                    <button (click)="cancelar.emit()" title="Cancelar" class="mx-1 text-gray-600 hover:text-gray-800">
+                    <button (click)="cancelar.emit()" title="Cancelar" class="mx-1 text-gray-600 cursor-pointer hover:text-gray-800">
                         ❌
                     </button>
                 </ng-container>
 
                 <ng-template #accionesNormales>
-                    <button (click)="editar.emit(i)" class="mx-1 text-blue-600 hover:text-blue-800" title="Editar"
+                    <button (click)="editar.emit(i)" class="mx-1 text-blue-600 cursor-pointer hover:text-blue-800" title="Editar"
                         [disabled]="modoEdicionIndex !== null">
                         ✏️
                     </button>
-                    <button (click)="eliminar.emit(i)" class="mx-1 text-red-600 hover:text-red-800" title="Eliminar"
+                    <button (click)="eliminar.emit(i)" class="mx-1 text-red-600 cursor-pointer hover:text-red-800" title="Eliminar"
                         [disabled]="modoEdicionIndex !== null">
                         🗑️
                     </button>

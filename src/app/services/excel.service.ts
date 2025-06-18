@@ -22,7 +22,7 @@ export class ExcelService {
                           descripcion: a.descripcion,
                           unidadMedida: a.unidadMedida,                          
                           cantidad: a.cantidad                          
-                      })));
+                      })).sort((a, b) => a.clave.localeCompare(b.clave)));
 
         //const worksheet = XLSX.utils.json_to_sheet(articulosSolicitados);
         const workbook = XLSX.utils.book_new();
