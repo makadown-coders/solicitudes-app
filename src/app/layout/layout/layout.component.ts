@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { CapturaCluesComponent } from '../../features/captura-clues/captura-clues.component';
 import { SolicitudesComponent } from '../../features/solicitudes/solicitudes.component';
 import { DatosClues } from '../../models/datos-clues';
@@ -18,16 +18,19 @@ import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
     LucideAngularModule
   ],
   templateUrl: './layout.component.html',
-  styleUrl: './layout.component.css'
+  styleUrl: './layout.component.css',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush  
 })
 export class LayoutComponent implements OnInit, OnChanges {
-  
+  title = 'solicitudes-app';
   readonly CircleHelp = CircleHelp;
   activeTab: 'clues' | 'solicitud' = 'clues';
   datosClues: DatosClues | null = null;
   guiaVisible = false;
   inventarioService = inject(InventarioService);
   solicitudService = inject(StorageSolicitudService);
+  private cdRef = inject(ChangeDetectorRef);
   private router = inject(Router);  
   private storageSolicitudService = inject(StorageSolicitudService);
 
@@ -58,7 +61,9 @@ export class LayoutComponent implements OnInit, OnChanges {
 
   onDatosCluesCapturados(datos: DatosClues) {
     this.datosClues = datos;
+    this.title = this.datosClues?.nombreHospital + '('+ this.datosClues.tipoInsumo +')';
     this.solicitudService.setDatosCluesInLocalStorage(JSON.stringify(datos));
+    this.cdRef.detectChanges();
   }
 
 

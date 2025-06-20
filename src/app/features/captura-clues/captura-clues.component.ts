@@ -121,10 +121,12 @@ export class CapturaCluesComponent implements OnInit {
 
     this.autocompleteHospitales = unidades.filter(h => {
       const nombreNormalizado = h.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const incluyeMunicipio = h.municipio?.toLowerCase().includes(term);
 
       return h.cluesssa?.toLowerCase().includes(term) ||
         h.cluesimb?.toLowerCase().includes(term) ||
-        nombreNormalizado.toLowerCase().includes(term)
+        nombreNormalizado.toLowerCase().includes(term) ||
+        incluyeMunicipio;
     }).slice(0, 12);
   }
 

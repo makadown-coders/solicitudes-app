@@ -130,8 +130,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     this.buscarArticulosConFallback(texto);
   }
 
+  estaCapturandoPrimerNivel() {
+    return this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL;
+  }
+
   buscarArticulosConFallback(texto: string) {
-    if (this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL) {
+    if (this.estaCapturandoPrimerNivel()) {
       this.buscarArticulosPrimerNivel(texto);
       return;
     }

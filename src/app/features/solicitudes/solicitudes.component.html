@@ -1,5 +1,7 @@
 <div class="container mx-auto my-4 p-4">
-    <h1 class="text-2xl text-green-800 font-bold">Solicitud de Artículos</h1>
+    <h1 class="text-2xl text-green-800 font-bold">Solicitud de artículos {{
+        modoStandalone ? '' :
+        estaCapturandoPrimerNivel()? 'para la unidad' : 'para el hospital'}} </h1>
 
     <div class="relative mt-4 space-y-2">
 
