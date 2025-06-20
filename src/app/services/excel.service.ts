@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { ArticuloSolicitud } from '../models/articulo-solicitud';
 import * as XLSX from 'xlsx';
 import * as ExcelJS from 'exceljs';
@@ -7,25 +7,28 @@ import { Cita, CitaRow } from '../models/Cita';
 import { ArticuloCritico } from '../shared/inventario-critico.service';
 import { clasificacionMedicamentosData } from '../models/clasificacionMedicamentosData';
 import { ClasificadorVEN } from '../models/clasificador-ven';
+import { Inventario, InventarioDisponibles, InventarioRow } from '../models/Inventario';
+import { StorageSolicitudService } from './storage-solicitud.service';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
+    solicitudService = inject(StorageSolicitudService);
 
     exportarExcelPrecarga(nombreArchivo: string, articulosSolicitados: ArticuloSolicitud[]) {
         // primero ordenar articulos solicitados por clave en orden ascendente
         articulosSolicitados.sort((a, b) => a.clave.localeCompare(b.clave));
 
         const worksheet = XLSX.utils
-              .json_to_sheet(
-                  articulosSolicitados
-                      .map(a => ({
-                          clave: a.clave,
-                          ven: this.descripcionVEN(a.clave),
-                          descripcion: a.descripcion,
-                          unidadMedida: a.unidadMedida,                          
-                          cantidad: a.cantidad                          
-                      }))
-              );
+            .json_to_sheet(
+                articulosSolicitados
+                    .map(a => ({
+                        clave: a.clave,
+                        ven: this.descripcionVEN(a.clave),
+                        descripcion: a.descripcion,
+                        unidadMedida: a.unidadMedida,
+                        cantidad: a.cantidad
+                    }))
+            );
 
         //const worksheet = XLSX.utils.json_to_sheet(articulosSolicitados);
         const workbook = XLSX.utils.book_new();
@@ -58,7 +61,8 @@ export class ExcelService {
         templateUrl: string,
         nombreArchivo: string,
         articulosSolicitados: ArticuloSolicitud[],
-        standalone: boolean
+        standalone: boolean,
+        existencias: InventarioDisponibles[]
     ) {
         // primero ordenar articulos solicitados por clave en orden ascendente
         articulosSolicitados.sort((a, b) => a.clave.localeCompare(b.clave));
@@ -69,7 +73,7 @@ export class ExcelService {
         let F7 = '';
         let F8 = '';
 
-        const datosCluesStr = localStorage.getItem('datosClues');
+        const datosCluesStr = this.solicitudService.getDatosCluesFromLocalStorage();
         if (datosCluesStr && !standalone) {
             const datosClues = JSON.parse(datosCluesStr) as DatosClues;
             B4 = datosClues.nombreHospital;
@@ -112,12 +116,18 @@ export class ExcelService {
         for (let i = 0; i < articulosSolicitados.length; i++) {
             const renglon = i + 12;
             worksheet!.getCell(`B${renglon}`).value = i + 1;
-
             worksheet!.getCell(`C${renglon}`).value = this.descripcionVEN(articulosSolicitados[i].clave);
             worksheet!.getCell(`D${renglon}`).value = articulosSolicitados[i].clave;
             worksheet!.getCell(`E${renglon}`).value = articulosSolicitados[i].descripcion;
             worksheet!.getCell(`F${renglon}`).value = articulosSolicitados[i].unidadMedida;
             worksheet!.getCell(`G${renglon}`).value = articulosSolicitados[i].cantidad;
+            const existencia = existencias.find(e => e.clave === articulosSolicitados[i].clave)
+            const existenciaAZT = existencia ? existencia.existenciasAZT : 0;
+            const existenciaAZE = existencia ? existencia.existenciasAZE : 0;
+            const existenciaAZM = existencia ? existencia.existenciasAZM : 0;
+            worksheet!.getCell(`H${renglon}`).value = existenciaAZM;
+            worksheet!.getCell(`I${renglon}`).value = existenciaAZT;
+            worksheet!.getCell(`J${renglon}`).value = existenciaAZE;
         }
         const buffer = await workbook.xlsx.writeBuffer();
         this.descargarArchivo(buffer, nombreArchivo);
@@ -231,6 +241,13 @@ export class ExcelService {
         const workbook = XLSX.read(buffer, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows: CitaRow[] = XLSX.utils.sheet_to_json<CitaRow>(sheet, { header: 1 });
+        return rows;
+    }
+
+    obtenerInventarioDeExcel(buffer: ArrayBuffer) {
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows: InventarioRow[] = XLSX.utils.sheet_to_json<InventarioRow>(sheet, { header: 1 });
         return rows;
     }
 
@@ -355,6 +372,21 @@ export class ExcelService {
             reader.onerror = (e) => reject(e);
             reader.readAsArrayBuffer(file);
         });
+    }
+
+    public base64ToArrayBuffer(base64: string): ArrayBuffer {        
+        // Decodificar el string Base64
+        const binaryString = atob(base64);
+
+        // Convertir a ArrayBuffer
+        const length = binaryString.length;
+        const bytes = new Uint8Array(length);
+
+        for (let i = 0; i < length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        return bytes.buffer;
     }
 
 }

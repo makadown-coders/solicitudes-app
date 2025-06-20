@@ -1,9 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { CapturaCluesComponent } from '../../features/captura-clues/captura-clues.component';
 import { SolicitudesComponent } from '../../features/solicitudes/solicitudes.component';
 import { DatosClues } from '../../models/datos-clues';
 import { LucideAngularModule, CircleHelp } from 'lucide-angular';
+import { InventarioService } from '../../services/inventario.service';
+import { StorageSolicitudService } from '../../services/storage-solicitud.service';
+import { Router } from '@angular/router';
+import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
+import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-layout',
@@ -14,37 +19,65 @@ import { LucideAngularModule, CircleHelp } from 'lucide-angular';
     LucideAngularModule
   ],
   templateUrl: './layout.component.html',
-  styleUrl: './layout.component.css'
+  styleUrl: './layout.component.css',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush  
 })
-export class LayoutComponent implements OnInit {
+export class LayoutComponent implements OnInit, OnChanges {
+  title: Title = inject(Title);
   readonly CircleHelp = CircleHelp;
   activeTab: 'clues' | 'solicitud' = 'clues';
   datosClues: DatosClues | null = null;
   guiaVisible = false;
+  inventarioService = inject(InventarioService);
+  solicitudService = inject(StorageSolicitudService);
+  private cdRef = inject(ChangeDetectorRef);
+  private router = inject(Router);  
+  private storageSolicitudService = inject(StorageSolicitudService);
+
+  ngOnChanges(changes: SimpleChanges): void {
+    this.verificarRuta();
+  }
+
+  verificarRuta() {
+    if (this.router.url === '/solicitud-unidad') {
+      this.storageSolicitudService.setModoCapturaSolicitud(ModoCapturaSolicitud.PRIMER_NIVEL);
+    } else {
+      this.storageSolicitudService.setModoCapturaSolicitud(ModoCapturaSolicitud.SEGUNDO_NIVEL);
+    }
+  }
 
   ngOnInit() {
-    const tabGuardado = localStorage.getItem('activeTab');
+    this.verificarRuta();
+    const tabGuardado = this.storageSolicitudService.getActiveTabFromLocalStorage();
     this.activeTab = tabGuardado === 'solicitud' ? 'solicitud' : 'clues';
-    
-    const cluesStr = localStorage.getItem('datosClues');
+
+    const cluesStr = this.solicitudService.getDatosCluesFromLocalStorage();
     if (cluesStr) {
       this.datosClues = JSON.parse(cluesStr);
+      this.title.setTitle (this.datosClues?.nombreHospital + '('+ this.datosClues?.tipoInsumo +')');
     }
+    // EN PRUEBA PILOTO
+    this.inventarioService.refrescarDatosInventario();
   }
 
   onDatosCluesCapturados(datos: DatosClues) {
     this.datosClues = datos;
-    localStorage.setItem('datosClues', JSON.stringify(datos));
+    this.title.setTitle (this.datosClues?.nombreHospital + '('+ this.datosClues.tipoInsumo +')');
+    this.solicitudService.setDatosCluesInLocalStorage(JSON.stringify(datos));
+    this.cdRef.detectChanges();
   }
 
 
   irASolicitud() {
     this.setTabActivo('solicitud');
+    this.cdRef.detectChanges();
   }
 
   setTabActivo(tab: 'clues' | 'solicitud') {
     this.activeTab = tab;
-    localStorage.setItem('activeTab', tab);
+    this.storageSolicitudService.setActiveTabInLocalStorage(tab);
+    this.cdRef.detectChanges();
   }
 
   esFormularioCluesValido(): boolean {

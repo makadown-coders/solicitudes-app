@@ -34,5 +34,13 @@ export const enum StorageVariables {
     POC_FE_SMI_SG_TAB = 'poc_finanzas_ev_smi_sg_tab_activo',          // Tab activo (SMI o SG)
     POC_FE_SMI_SG_EVALUACIONES_SMI = 'poc_finanzas_ev_smi_sg_evaluaciones_smi',    // Arreglo de Servicios SMI    
     POC_FE_SMI_SG_EVALUACIONES_SG = 'poc_finanzas_ev_smi_sg_evaluaciones_sg',      // Arreglo de Servicios SG    
-    POC_FE_SMI_SG_EVALUACIONES = 'poc_finanzas_ev_smi_sg_evaluaciones' // // Evaluaciones capturadas de servicios SMI y SG por unidad
+    POC_FE_SMI_SG_EVALUACIONES = 'poc_finanzas_ev_smi_sg_evaluaciones', // // Evaluaciones capturadas de servicios SMI y SG por unidad
+    // Solicitudes
+    SOLICITUD_INVENTARIO = 'solicitud_inventario',
+    SOLICITUD_ARTICULOS_SOLICITADOS_PRIMER_NIVEL = 'solicitud_articulos_solicitados_primer_nivel',
+    SOLICITUD_ARTICULOS_SOLICITADOS_SEGUNDO_NIVEL = 'articulosSolicitados',
+    SOLICITUD_DATOS_CLUES_PRIMER_NIVEL = 'solicitud_datos_clues_primer_nivel',
+    SOLICITUD_DATOS_CLUES_SEGUNDO_NIVEL = 'datosClues',
+    SOLICITUD_ACTIVE_TAB_PRIMER_NIVEL = 'solicitud_active_tab_primer_nivel',
+    SOLICITUD_ACTIVE_TAB_SEGUNDO_NIVEL = 'activeTab'
 }

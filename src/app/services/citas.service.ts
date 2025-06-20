@@ -54,10 +54,10 @@ export class CitasService {
     try {
 
       // 1. Convertir Base64 a ArrayBuffer
-      const arrayBuffer = this.base64ToArrayBuffer(base64);
+      const arrayBuffer = this.excelService.base64ToArrayBuffer(base64);
 
       const rows: CitaRow[] = this.excelService.obtenerCitasDeExcel(arrayBuffer);
-      console.info('🔁 Procesando', rows.length, 'filas.');
+     // console.info('🔁 Procesando', rows.length, 'filas.');
 
       let headerLeido = false;
       for (const popo of rows) {
@@ -201,20 +201,5 @@ export class CitasService {
     }
 
     return citasRetorno;
-  }
-
-  private base64ToArrayBuffer(base64: string): ArrayBuffer {
-    // Decodificar el string Base64
-    const binaryString = atob(base64);
-
-    // Convertir a ArrayBuffer
-    const length = binaryString.length;
-    const bytes = new Uint8Array(length);
-
-    for (let i = 0; i < length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    return bytes.buffer;
   }
 }
