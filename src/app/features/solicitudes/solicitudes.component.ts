@@ -10,6 +10,10 @@ import { ArticulosService } from '../../services/articulos.service';
 import { ExcelService } from '../../services/excel.service';
 import { DatosClues } from '../../models/datos-clues';
 import { Router, RouterModule } from '@angular/router';
+import { InventarioService } from '../../services/inventario.service';
+import { Inventario } from '../../models/Inventario';
+import { StorageSolicitudService } from '../../services/storage-solicitud.service';
+import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
 
 
 @Component({
@@ -66,6 +70,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   private cdRef = inject(ChangeDetectorRef);
   private router = inject(Router);
+  private storageSolicitudService = inject(StorageSolicitudService);
 
   @HostListener('document:keydown.escape', ['$event'])
   onKeydownHandler(event: KeyboardEvent) {
@@ -74,6 +79,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     }
   }
 
+  private inventarioService = inject(InventarioService);
+  inventario: Inventario[] = [];
+
   async ngOnInit() {
     if (this.router.url === '/solicitudv1') {
       // Podrías activar un modo simplificado si lo deseas
@@ -81,7 +89,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     } else {
       this.modoStandalone = false;
     }
-    const guardados = localStorage.getItem('articulosSolicitados');
+
+    const guardados = this.storageSolicitudService.getArticulosSolicitadosFromLocalStorage();
     if (guardados) {
       this.articulosSolicitados = JSON.parse(guardados);
     }
@@ -94,6 +103,17 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
         this.selectedIndex = -1;
         this.moreResults = false;
         this.totalResults = 0;
+      }
+    });
+
+    // TODO: Comentar esto si no se desea mostrar info de inventario
+    this.inventarioService.inventario$.subscribe({
+      next: (data) => {
+        this.inventario = [...data];
+        this.cdRef.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error al obtener el inventario:', error);
       }
     });
   }
@@ -111,6 +131,11 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   }
 
   buscarArticulosConFallback(texto: string) {
+    if (this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL) {
+      this.buscarArticulosPrimerNivel(texto);
+      return;
+    }
+
     const timestampFallback = localStorage.getItem('usarFallbackLocal');
     const ahora = Date.now();
     const unDiaMs = 24 * 60 * 60 * 1000;
@@ -121,7 +146,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    // 🔌 Intenta con backend Railway
+    // 🔌 Intenta con backend koyeb
     this.articulosService.buscarArticulos(texto).subscribe({
       next: (data) => {
         this.autocompleteResults = data.resultados || [];
@@ -141,6 +166,24 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   usarBusquedaLocal(texto: string) {
     this.articulosService.buscarArticulosv2(texto).subscribe({
+      next: (data) => {
+        this.autocompleteResults = data.resultados || [];
+        this.totalResults = data.total || 0;
+        this.moreResults = this.totalResults > 12;
+        this.selectedIndex = 0;
+        this.cdRef.detectChanges();
+        setTimeout(() => this.focusSelectedItem(), 0);
+      },
+      error: (fallbackError) => {
+        console.error('Error en búsqueda local:', fallbackError);
+        this.autocompleteResults = [];
+        this.totalResults = 0;
+      }
+    });
+  }
+
+  buscarArticulosPrimerNivel(texto: string) {
+    this.articulosService.buscarArticulosPrimerNivel(texto).subscribe({
       next: (data) => {
         this.autocompleteResults = data.resultados || [];
         this.totalResults = data.total || 0;
@@ -229,7 +272,43 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       cantidad: this.cantidadInput
     });
 
-    localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+    this.storageSolicitudService
+      .setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados));
+
+    // Buscar en this.inventario filtrando por clave y regresando
+    // { almacen, disponible(sumatoria), comprometidos (sumatorio) }
+    const invDisp = this.inventario.filter(inventario => inventario.clave === clave)
+      .sort((a, b) => a.almacen.localeCompare(b.almacen));
+    // agrupar invDisp por almacen y sumar disponible y comprometidos
+    const invDispAgrupado: any[] = [];
+    let agrupadin = { almacen: '', disponible: 0, comprometidos: 0 };
+
+    for (let i = 0; i < invDisp.length; i++) {
+      const almacen = invDisp[i].almacen;
+
+      if (almacen !== agrupadin.almacen) {
+        if (i > 0) {
+          invDispAgrupado.push({ ...agrupadin }); // Clonar 
+        }
+        agrupadin.almacen = almacen;
+        agrupadin.disponible = invDisp[i].disponible;
+        agrupadin.comprometidos = invDisp[i].comprometidos;
+      } else {
+        agrupadin.disponible += invDisp[i].disponible;
+        agrupadin.comprometidos += invDisp[i].comprometidos;
+      }
+      if (i === invDisp.length - 1) {
+        invDispAgrupado.push({ ...agrupadin });
+      }
+    }
+
+    if (invDispAgrupado && invDispAgrupado.length > 0) {
+      console.log('En inventario:', invDisp);
+      console.log('En inventario agrupado:', invDispAgrupado);
+    } else {
+      console.log(`No se encontró en inventario: ${clave}`);
+    }
 
     // Limpiar inputs
     this.claveInput = '';
@@ -237,6 +316,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     this.unidadInput = '';
     this.cantidadInput = 0;
     this.selectedIndex = -1;
+
+    this.cdRef.detectChanges();
 
     setTimeout(() => {
       this.inputClaveRef?.nativeElement.focus();
@@ -249,16 +330,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   confirmarLimpieza() {
     this.articulosSolicitados = [];
-    localStorage.removeItem('articulosSolicitados');
-    // TODO: validar con el cliente si solo quiere limpiar los articulos 
-    //        y dejar los datos de CLUES
-    /*if (!this.modoStandalone) {
-      localStorage.removeItem('datosClues');
-      localStorage.setItem('activeTab', 'clues');
-    }*/
+    this.storageSolicitudService.limpiarArticulosSolicitadosInLocalStorage();
     this.cerrarModal();
-    // Recargar la página para limpiar el caché
-    // window.location.reload();
   }
 
   abrirModalInfo(titulo: string, mensaje: string, confirmarTexto = 'Aceptar') {
@@ -321,7 +394,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     if (this.generarPrecarga) {
       await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 1 segundo
       let nombreArchivPrecarga = 'Precarga';
-      const cluesStr = localStorage.getItem('datosClues');
+      const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
       if (cluesStr && !this.modoStandalone) {
         const datosClues = JSON.parse(cluesStr) as DatosClues;
         nombreArchivPrecarga += '-' + this.iniciales(datosClues.nombreHospital);
@@ -336,7 +409,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   mostrarModalExportar() {
     this.nombreArchivo = `Solicitud-${new Date().toISOString().slice(0, 7)}`;
-    const cluesStr = localStorage.getItem('datosClues');
+    const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
     let nombreArchivoCompleto = this.nombreArchivo;
     if (cluesStr && !this.modoStandalone) {
       const datosClues = JSON.parse(cluesStr) as DatosClues;
@@ -375,7 +448,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   eliminarArticulo(index: number) {
     this.articulosSolicitados.splice(index, 1);
-    localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+    this.storageSolicitudService
+      .setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados));
   }
 
   eliminarArticuloConConfirmacion(index: number) {
@@ -415,7 +490,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   confirmarEdicion(index: number) {
     this.articulosSolicitados[index].cantidad = this.cantidadTemporal;
     this.modoEdicionIndex = null;
-    localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+    this.storageSolicitudService
+      .setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados));
   }
 
   esCantidadInvalida(): boolean {
@@ -492,7 +569,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       }
 
       this.articulosSolicitados = nuevos;
-      localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+      this.storageSolicitudService
+        .setArticulosSolicitadosInLocalStorage(
+          JSON.stringify(this.articulosSolicitados));
 
       const clavesRepetidas = Object.keys(repetidas).length;
       // ⚠️ Opcional: aquí podrías invocar this.autocompletarDatos() si quieres precargar descripción/unidad
@@ -534,7 +613,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
           }
         }
 
-        localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+        this.storageSolicitudService
+          .setArticulosSolicitadosInLocalStorage(
+            JSON.stringify(this.articulosSolicitados));
         this.cdRef.detectChanges();
       },
       error: (err) => {

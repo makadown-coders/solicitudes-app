@@ -17,10 +17,20 @@ export const routes: Routes = [
         .then(m => m.LayoutComponent)
   },
   {
+    path: 'solicitud-unidad',
+    loadComponent: () => import('./layout/layout/layout.component')
+        .then(m => m.LayoutComponent)
+  },
+  {
     path: 'solicitudv1',
     loadComponent: () => import('./features/solicitudes/solicitudes.component')
         .then(m => m.SolicitudesComponent)
-  },  
-  { path: '', redirectTo: '/solicitudes', pathMatch: 'full' },
-  { path: '**', redirectTo: '/solicitudes' }
+  },
+  {
+    path: 'home',
+    loadComponent: () => import('./features/home/home.component')
+        .then(m => m.HomeComponent)
+  },
+  { path: '', redirectTo: '/home', pathMatch: 'full' },
+  { path: '**', redirectTo: '/home' }
 ];

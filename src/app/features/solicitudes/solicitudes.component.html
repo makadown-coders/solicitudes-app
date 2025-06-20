@@ -59,6 +59,7 @@
     <div class="mt-4 p-2 border rounded" *ngIf="articulosSolicitados.length">
         <app-tabla-articulos [articulosSolicitados]="articulosSolicitados" [modoEdicionIndex]="modoEdicionIndex"
             [cantidadTemporal]="cantidadTemporal" (cantidadTemporalChange)="cambiarCantidad($event)"
+            [inventario]="inventario"
             (confirmar)="confirmarEdicion($event)" (cancelar)="cancelarEdicion()" (editar)="activarEdicion($event)"
             (eliminar)="eliminarArticuloConConfirmacion($event)" />
     </div>   
@@ -90,3 +91,8 @@
         ✅ {{ mensajeImportacion }}
     </div>
 </div>
+
+<br/>
+<br/>
+<br/>
+<br/>
