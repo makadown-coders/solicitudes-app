@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { clasificacionMedicamentosData } from '../../models/clasificacionMedicamentosData';
 import { ClasificadorVEN } from '../../models/clasificador-ven';
-import { Inventario } from '../../models/Inventario';
+import { Inventario, InventarioDisponibles } from '../../models/Inventario';
 import { DomSanitizer } from '@angular/platform-browser';
 
 @Component({
@@ -17,7 +17,7 @@ export class TablaArticulosComponent implements OnChanges {
   @Input() articulosSolicitados: any[] = [];
   @Input() modoEdicionIndex: number | null = null;
   @Input() cantidadTemporal: number = 0;
-  @Input() inventario: Inventario[] = [];
+  @Input() inventario: InventarioDisponibles[] = [];
 
   tooltips: string[] = [];
 
@@ -58,60 +58,64 @@ export class TablaArticulosComponent implements OnChanges {
 
       // TODO: quiza cambiar esto por leyenda sobre que este insumo no es medicamento
       //       cuando la captura de insumos no sea de medicamentos...
-     /* if (this.inventario.length > 0) {
-        const inventariosConArticulo = this.inventario.filter(inventario => inventario.clave === articuloSolicitado.clave);
-
-        if (inventariosConArticulo.length > 0) {
-          const inventario = inventariosConArticulo[0];
-          tooltip = `Almacen: ${inventario.almacen}, Disponibles: ${inventario.disponible}, Comprometidos: ${inventario.comprometidos}`;
-        }
-      }*/
+      /* if (this.inventario.length > 0) {
+         const inventariosConArticulo = this.inventario.filter(inventario => inventario.clave === articuloSolicitado.clave);
+ 
+         if (inventariosConArticulo.length > 0) {
+           const inventario = inventariosConArticulo[0];
+           tooltip = `Almacen: ${inventario.almacen}, Disponibles: ${inventario.disponible}, Comprometidos: ${inventario.comprometidos}`;
+         }
+       }*/
       this.tooltips.push(tooltip);
-    }    
+    }
     // console.log(this.tooltips);
     this.cdRef.detectChanges();
   }
 
-esCantidadInvalida(): boolean {
-  const esInvalida = this.cantidadTemporal <= 0 || this.cantidadTemporal > 99999;
-  return esInvalida;
-}
-
-mandarConfirmacion(index: number) {
-  this.cantidadTemporalChange.emit(this.cantidadTemporal);
-  this.confirmar.emit(index);
-}
-
-clasificacion(clave: string) {
-  const clasificacion = clasificacionMedicamentosData.find(c => c.clave === clave);
-  return clasificacion ? ClasificadorVEN[clasificacion.ven] : '';
-}
-
-showTooltip(index: number) {
-  this.activeTooltip = index;
-  this.currentTooltip = this.tooltips[index];
-}
-
-hideTooltip() {
-  this.activeTooltip = null;
-  this.currentTooltip = null;
-}
-
-moveTooltip(event: MouseEvent, i: number) {
-  if (this.activeTooltip === i) {
-    // Ajusta estos valores para cambiar el offset del tooltip
-    const offsetX = 15;
-    const offsetY = 15;
-
-    this.tooltipPosition = {
-      x: event.clientX + offsetX,
-      y: event.clientY + offsetY
-    };
+  esCantidadInvalida(): boolean {
+    const esInvalida = this.cantidadTemporal <= 0 || this.cantidadTemporal > 99999;
+    return esInvalida;
   }
-}
 
-getSafeHtml(html: string) {
-  return this.sanitizer.sanitize(SecurityContext.HTML,
-    this.sanitizer.bypassSecurityTrustHtml(html));
-}
+  mandarConfirmacion(index: number) {
+    this.cantidadTemporalChange.emit(this.cantidadTemporal);
+    this.confirmar.emit(index);
+  }
+
+  clasificacion(clave: string) {
+    const clasificacion = clasificacionMedicamentosData.find(c => c.clave === clave);
+    return clasificacion ? ClasificadorVEN[clasificacion.ven] : '';
+  }
+
+  showTooltip(index: number) {
+    this.activeTooltip = index;
+    this.currentTooltip = this.tooltips[index];
+  }
+
+  hideTooltip() {
+    this.activeTooltip = null;
+    this.currentTooltip = null;
+  }
+
+  moveTooltip(event: MouseEvent, i: number) {
+    if (this.activeTooltip === i) {
+      // Ajusta estos valores para cambiar el offset del tooltip
+      const offsetX = 15;
+      const offsetY = 15;
+
+      this.tooltipPosition = {
+        x: event.clientX + offsetX,
+        y: event.clientY + offsetY
+      };
+    }
+  }
+
+  getSafeHtml(html: string) {
+    return this.sanitizer.sanitize(SecurityContext.HTML,
+      this.sanitizer.bypassSecurityTrustHtml(html));
+  }
+
+  buscarEnInventario(clave: string) {
+    return this.inventario.find(inventario => inventario.clave === clave);
+  }
 }

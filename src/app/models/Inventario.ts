@@ -12,6 +12,13 @@ export class Inventario {
     public fecha_entrada: string | Date | null;
 }
 
+export class InventarioDisponibles {
+   public clave: string;
+   public existenciasAZM: number;
+   public existenciasAZE: number;
+   public existenciasAZT: number;
+}
+
     
 export interface InventarioRow {
   [key: string]: string | number | Date | null | undefined;

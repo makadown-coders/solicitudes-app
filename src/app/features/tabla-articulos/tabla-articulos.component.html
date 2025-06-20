@@ -6,17 +6,19 @@
             <th class="p-2">Clave</th>
             <th class="p-2">Clasificacion</th>
             <th class="p-2">Descripción</th>
-            <th class="p-2">Unidad</th>
-            <th class="p-2">Disponible</th>
-            <th class="p-2">Cantidad</th>
+            <th class="p-2">Unidad</th>            
+            <th class="p-2">Solicitado</th>
+            <th class="p-2">Exist. AZM </th>
+            <th class="p-2">Exist. AZT </th>
+            <th class="p-2">Exist. AZE </th>
             <th class="p-2 text-center">Acciones</th>
         </tr>
     </thead>
     <tbody>
         @for (articulo of articulosSolicitados; track articulo.clave; let i = $index)
         {
-        <tr class="border-b transition-all duration-300 ease-in-out" (mousemove)="moveTooltip($event, i)"
-            (mouseenter)="showTooltip(i)" (mouseleave)="hideTooltip()" [class.bg-yellow-100]="modoEdicionIndex === i"
+        <tr class="border-b transition-all duration-300 ease-in-out" 
+            [class.bg-yellow-100]="modoEdicionIndex === i"
             [class.opacity-50]="modoEdicionIndex !== null && modoEdicionIndex !== i"
             [class.animate-pulse]="modoEdicionIndex !== i && articulo.cantidad <= 0"
             [class.bg-red-950!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
@@ -47,7 +49,14 @@
 
                 </ng-template>
             </td>
+            @let existencia = buscarEnInventario(articulo.clave);
+            @let existenciaAZT = existencia ? existencia.existenciasAZT : 0;
+            @let existenciaAZE = existencia ? existencia.existenciasAZE : 0;
+            @let existenciaAZM = existencia ? existencia.existenciasAZM : 0;
 
+            <th class="p-2"> {{ existenciaAZM }} </th>
+            <th class="p-2"> {{existenciaAZT}} </th>
+            <th class="p-2"> {{existenciaAZE}} </th>
             <td class="p-2 text-center">
                 <ng-container *ngIf="modoEdicionIndex === i; else accionesNormales">
                     <button (click)="mandarConfirmacion(i)" title="Guardar"
@@ -72,13 +81,6 @@
                     </button>
                 </ng-template>
             </td>
-            <!-- Tooltip flotante -->
-            <div *ngIf="currentTooltip"
-                class="z-50 fixed px-3 py-2 text-sm text-white bg-gray-800 shadow-lg pointer-events-none rounded"
-                [style.left.px]="tooltipPosition.x" [style.top.px]="tooltipPosition.y"
-                [innerHTML]="getSafeHtml(tooltips[activeTooltip!])">                
-                <div class="absolute w-3 h-3 bg-gray-800 rotate-45 -mt-3 -left-1"></div>
-            </div>
         </tr>
         }
     </tbody>

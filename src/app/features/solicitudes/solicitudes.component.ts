@@ -11,7 +11,7 @@ import { ExcelService } from '../../services/excel.service';
 import { DatosClues } from '../../models/datos-clues';
 import { Router, RouterModule } from '@angular/router';
 import { InventarioService } from '../../services/inventario.service';
-import { Inventario } from '../../models/Inventario';
+import { Inventario, InventarioDisponibles } from '../../models/Inventario';
 import { StorageSolicitudService } from '../../services/storage-solicitud.service';
 import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
 
@@ -70,7 +70,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   private cdRef = inject(ChangeDetectorRef);
   private router = inject(Router);
-  private storageSolicitudService = inject(StorageSolicitudService);
+  public storageSolicitudService = inject(StorageSolicitudService);
 
   @HostListener('document:keydown.escape', ['$event'])
   onKeydownHandler(event: KeyboardEvent) {
@@ -81,6 +81,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   private inventarioService = inject(InventarioService);
   inventario: Inventario[] = [];
+  inventarioDisponible: InventarioDisponibles[] = [];
 
   async ngOnInit() {
     if (this.router.url === '/solicitudv1') {
@@ -110,12 +111,38 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     this.inventarioService.inventario$.subscribe({
       next: (data) => {
         this.inventario = [...data];
+        this.calcularInventarioDisponible();
         this.cdRef.detectChanges();
       },
       error: (error) => {
         console.error('Error al obtener el inventario:', error);
       }
     });
+  }
+
+  calcularInventarioDisponible() {
+    this.inventarioDisponible = [];
+    const arregloClavesInventario = this.inventario.map(item => item.clave);
+    arregloClavesInventario.forEach(clave => {
+      const existencia: InventarioDisponibles = {
+        clave: clave,
+        existenciasAZM: 0,
+        existenciasAZE: 0,
+        existenciasAZT: 0
+      }
+      const inventarioItem = this.inventario.filter(item => item.clave === clave);
+      inventarioItem.forEach(item => {
+        if (item.almacen.toLowerCase().includes('almacen estatal zona mexicali') ||
+          item.almacen.toLowerCase().includes('almacen zona mexicali')) {
+          existencia.existenciasAZM += item.disponible - item.comprometidos;
+        } else if (item.almacen.toLowerCase().includes('almacen zona ensenada')) {
+          existencia.existenciasAZE += item.disponible - item.comprometidos;
+        } else if (item.almacen.toLowerCase().includes('almacen zona tijuana')) {
+          existencia.existenciasAZT += item.disponible - item.comprometidos;
+        }
+      });
+      this.inventarioDisponible.push(existencia);
+    })
   }
 
   ngAfterViewInit(): void {
@@ -280,40 +307,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       .setArticulosSolicitadosInLocalStorage(
         JSON.stringify(this.articulosSolicitados));
 
-    // Buscar en this.inventario filtrando por clave y regresando
-    // { almacen, disponible(sumatoria), comprometidos (sumatorio) }
-    const invDisp = this.inventario.filter(inventario => inventario.clave === clave)
-      .sort((a, b) => a.almacen.localeCompare(b.almacen));
-    // agrupar invDisp por almacen y sumar disponible y comprometidos
-    const invDispAgrupado: any[] = [];
-    let agrupadin = { almacen: '', disponible: 0, comprometidos: 0 };
-
-    for (let i = 0; i < invDisp.length; i++) {
-      const almacen = invDisp[i].almacen;
-
-      if (almacen !== agrupadin.almacen) {
-        if (i > 0) {
-          invDispAgrupado.push({ ...agrupadin }); // Clonar 
-        }
-        agrupadin.almacen = almacen;
-        agrupadin.disponible = invDisp[i].disponible;
-        agrupadin.comprometidos = invDisp[i].comprometidos;
-      } else {
-        agrupadin.disponible += invDisp[i].disponible;
-        agrupadin.comprometidos += invDisp[i].comprometidos;
-      }
-      if (i === invDisp.length - 1) {
-        invDispAgrupado.push({ ...agrupadin });
-      }
-    }
-
-    if (invDispAgrupado && invDispAgrupado.length > 0) {
-      console.log('En inventario:', invDisp);
-      console.log('En inventario agrupado:', invDispAgrupado);
-    } else {
-      console.log(`No se encontró en inventario: ${clave}`);
-    }
-
     // Limpiar inputs
     this.claveInput = '';
     this.descripcionInput = '';
@@ -390,7 +383,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   }
 
   async exportarExcelConTemplate(nombreArchivo: string) {
-    this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo, this.articulosSolicitados, this.modoStandalone);
+    this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo,
+      this.articulosSolicitados, this.modoStandalone, this.inventarioDisponible);
     this.abrirModalInfo(
       this.generarPrecarga ? 'Archivos generados' : 'Archivo generado',
       'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
@@ -409,7 +403,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       this.exportarExcelPrecarga(nombreArchivPrecarga);
     }
   }
-
 
   mostrarModalExportar() {
     this.nombreArchivo = `Solicitud-${new Date().toISOString().slice(0, 7)}`;

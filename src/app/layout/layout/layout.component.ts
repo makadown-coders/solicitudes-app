@@ -8,6 +8,7 @@ import { InventarioService } from '../../services/inventario.service';
 import { StorageSolicitudService } from '../../services/storage-solicitud.service';
 import { Router } from '@angular/router';
 import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
+import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-layout',
@@ -23,7 +24,7 @@ import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
   changeDetection: ChangeDetectionStrategy.OnPush  
 })
 export class LayoutComponent implements OnInit, OnChanges {
-  title = 'solicitudes-app';
+  title: Title = inject(Title);
   readonly CircleHelp = CircleHelp;
   activeTab: 'clues' | 'solicitud' = 'clues';
   datosClues: DatosClues | null = null;
@@ -54,14 +55,15 @@ export class LayoutComponent implements OnInit, OnChanges {
     const cluesStr = this.solicitudService.getDatosCluesFromLocalStorage();
     if (cluesStr) {
       this.datosClues = JSON.parse(cluesStr);
+      this.title.setTitle (this.datosClues?.nombreHospital + '('+ this.datosClues?.tipoInsumo +')');
     }
-    // EN CONSTRUCCION
+    // EN PRUEBA PILOTO
     this.inventarioService.refrescarDatosInventario();
   }
 
   onDatosCluesCapturados(datos: DatosClues) {
     this.datosClues = datos;
-    this.title = this.datosClues?.nombreHospital + '('+ this.datosClues.tipoInsumo +')';
+    this.title.setTitle (this.datosClues?.nombreHospital + '('+ this.datosClues.tipoInsumo +')');
     this.solicitudService.setDatosCluesInLocalStorage(JSON.stringify(datos));
     this.cdRef.detectChanges();
   }
@@ -69,11 +71,13 @@ export class LayoutComponent implements OnInit, OnChanges {
 
   irASolicitud() {
     this.setTabActivo('solicitud');
+    this.cdRef.detectChanges();
   }
 
   setTabActivo(tab: 'clues' | 'solicitud') {
     this.activeTab = tab;
     this.storageSolicitudService.setActiveTabInLocalStorage(tab);
+    this.cdRef.detectChanges();
   }
 
   esFormularioCluesValido(): boolean {

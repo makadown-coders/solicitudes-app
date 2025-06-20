@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { ModoCapturaSolicitud } from '../shared/modo-captura-solicitud';
 import { StorageVariables } from '../shared/storage-variables';
+import { BehaviorSubject } from 'rxjs';
+import { DatosClues } from '../models/datos-clues';
 
 /**
  * Servicio de solicitud
@@ -11,7 +13,9 @@ import { StorageVariables } from '../shared/storage-variables';
  */
 @Injectable({providedIn: 'root'})
 export class StorageSolicitudService {
-    private modoCapturaSolicitud = ModoCapturaSolicitud.SEGUNDO_NIVEL;    
+    private modoCapturaSolicitud = ModoCapturaSolicitud.SEGUNDO_NIVEL;
+    private nombreUnidadSubject = new BehaviorSubject<string>('');
+    public nombreUnidad$ = this.nombreUnidadSubject.asObservable();
 
     constructor() { }
 
@@ -37,6 +41,7 @@ export class StorageSolicitudService {
         } else {
             localStorage.setItem(StorageVariables.SOLICITUD_DATOS_CLUES_SEGUNDO_NIVEL, clues);
         }
+        this.emitirNombreUnidad();
     }
 
     getArticulosSolicitadosFromLocalStorage(): string | null {
@@ -77,6 +82,19 @@ export class StorageSolicitudService {
         } else {
             localStorage.setItem(StorageVariables.SOLICITUD_ACTIVE_TAB_SEGUNDO_NIVEL, clues);
         }
+    }
+
+    private emitirNombreUnidad() {
+         let nombreUnidad = '';
+            const cluesStr = this.getDatosCluesFromLocalStorage();
+            if (cluesStr ) {
+              const datosClues = JSON.parse(cluesStr) as DatosClues;
+              nombreUnidad += datosClues.nombreHospital.split(' ') // Divide la cadena en palabras
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitaliza cada palabra
+                .join(' '); // Une las palabras en una sola cadena
+              // nombreUnidad += '(' + datosClues.tipoInsumo + ')';
+            }
+        this.nombreUnidadSubject.next(nombreUnidad);
     }
 
     
