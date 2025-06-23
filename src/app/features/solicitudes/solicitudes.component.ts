@@ -1,3 +1,4 @@
+// src/app/features/solicitudes/solicitudes.component.ts
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
 import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -10,6 +11,10 @@ import { ArticulosService } from '../../services/articulos.service';
 import { ExcelService } from '../../services/excel.service';
 import { DatosClues } from '../../models/datos-clues';
 import { Router, RouterModule } from '@angular/router';
+import { InventarioService } from '../../services/inventario.service';
+import { Inventario, InventarioDisponibles } from '../../models/Inventario';
+import { StorageSolicitudService } from '../../services/storage-solicitud.service';
+import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
 
 
 @Component({
@@ -66,6 +71,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   private cdRef = inject(ChangeDetectorRef);
   private router = inject(Router);
+  public storageSolicitudService = inject(StorageSolicitudService);
 
   @HostListener('document:keydown.escape', ['$event'])
   onKeydownHandler(event: KeyboardEvent) {
@@ -74,6 +80,10 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     }
   }
 
+  private inventarioService = inject(InventarioService);
+  inventario: Inventario[] = [];
+  inventarioDisponible: InventarioDisponibles[] = [];
+
   async ngOnInit() {
     if (this.router.url === '/solicitudv1') {
       // Podrías activar un modo simplificado si lo deseas
@@ -81,7 +91,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     } else {
       this.modoStandalone = false;
     }
-    const guardados = localStorage.getItem('articulosSolicitados');
+
+    const guardados = this.storageSolicitudService.getArticulosSolicitadosFromLocalStorage();
     if (guardados) {
       this.articulosSolicitados = JSON.parse(guardados);
     }
@@ -96,6 +107,43 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
         this.totalResults = 0;
       }
     });
+
+    // TODO: Comentar esto si no se desea mostrar info de inventario
+    this.inventarioService.inventario$.subscribe({
+      next: (data) => {
+        this.inventario = [...data];
+        this.calcularInventarioDisponible();
+        this.cdRef.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error al obtener el inventario:', error);
+      }
+    });
+  }
+
+  calcularInventarioDisponible() {
+    this.inventarioDisponible = [];
+    const arregloClavesInventario = this.inventario.map(item => item.clave);
+    arregloClavesInventario.forEach(clave => {
+      const existencia: InventarioDisponibles = {
+        clave: clave,
+        existenciasAZM: 0,
+        existenciasAZE: 0,
+        existenciasAZT: 0
+      }
+      const inventarioItem = this.inventario.filter(item => item.clave === clave);
+      inventarioItem.forEach(item => {
+        if (item.almacen.toLowerCase().includes('almacen estatal zona mexicali') ||
+          item.almacen.toLowerCase().includes('almacen zona mexicali')) {
+          existencia.existenciasAZM += item.disponible - item.comprometidos;
+        } else if (item.almacen.toLowerCase().includes('almacen zona ensenada')) {
+          existencia.existenciasAZE += item.disponible - item.comprometidos;
+        } else if (item.almacen.toLowerCase().includes('almacen zona tijuana')) {
+          existencia.existenciasAZT += item.disponible - item.comprometidos;
+        }
+      });
+      this.inventarioDisponible.push(existencia);
+    })
   }
 
   ngAfterViewInit(): void {
@@ -110,7 +158,16 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     this.buscarArticulosConFallback(texto);
   }
 
+  estaCapturandoPrimerNivel() {
+    return this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL;
+  }
+
   buscarArticulosConFallback(texto: string) {
+    if (this.estaCapturandoPrimerNivel()) {
+      this.buscarArticulosPrimerNivel(texto);
+      return;
+    }
+
     const timestampFallback = localStorage.getItem('usarFallbackLocal');
     const ahora = Date.now();
     const unDiaMs = 24 * 60 * 60 * 1000;
@@ -121,7 +178,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    // 🔌 Intenta con backend Railway
+    // 🔌 Intenta con backend koyeb
     this.articulosService.buscarArticulos(texto).subscribe({
       next: (data) => {
         this.autocompleteResults = data.resultados || [];
@@ -141,6 +198,24 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   usarBusquedaLocal(texto: string) {
     this.articulosService.buscarArticulosv2(texto).subscribe({
+      next: (data) => {
+        this.autocompleteResults = data.resultados || [];
+        this.totalResults = data.total || 0;
+        this.moreResults = this.totalResults > 12;
+        this.selectedIndex = 0;
+        this.cdRef.detectChanges();
+        setTimeout(() => this.focusSelectedItem(), 0);
+      },
+      error: (fallbackError) => {
+        console.error('Error en búsqueda local:', fallbackError);
+        this.autocompleteResults = [];
+        this.totalResults = 0;
+      }
+    });
+  }
+
+  buscarArticulosPrimerNivel(texto: string) {
+    this.articulosService.buscarArticulosPrimerNivel(texto).subscribe({
       next: (data) => {
         this.autocompleteResults = data.resultados || [];
         this.totalResults = data.total || 0;
@@ -229,7 +304,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       cantidad: this.cantidadInput
     });
 
-    localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+    this.storageSolicitudService
+      .setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados));
 
     // Limpiar inputs
     this.claveInput = '';
@@ -237,6 +314,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     this.unidadInput = '';
     this.cantidadInput = 0;
     this.selectedIndex = -1;
+
+    this.cdRef.detectChanges();
 
     setTimeout(() => {
       this.inputClaveRef?.nativeElement.focus();
@@ -249,16 +328,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   confirmarLimpieza() {
     this.articulosSolicitados = [];
-    localStorage.removeItem('articulosSolicitados');
-    // TODO: validar con el cliente si solo quiere limpiar los articulos 
-    //        y dejar los datos de CLUES
-    /*if (!this.modoStandalone) {
-      localStorage.removeItem('datosClues');
-      localStorage.setItem('activeTab', 'clues');
-    }*/
+    this.storageSolicitudService.limpiarArticulosSolicitadosInLocalStorage();
     this.cerrarModal();
-    // Recargar la página para limpiar el caché
-    // window.location.reload();
   }
 
   abrirModalInfo(titulo: string, mensaje: string, confirmarTexto = 'Aceptar') {
@@ -313,7 +384,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   }
 
   async exportarExcelConTemplate(nombreArchivo: string) {
-    this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo, this.articulosSolicitados, this.modoStandalone);
+    this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo,
+      this.articulosSolicitados, this.modoStandalone, this.inventarioDisponible);
     this.abrirModalInfo(
       this.generarPrecarga ? 'Archivos generados' : 'Archivo generado',
       'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
@@ -321,7 +393,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     if (this.generarPrecarga) {
       await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 1 segundo
       let nombreArchivPrecarga = 'Precarga';
-      const cluesStr = localStorage.getItem('datosClues');
+      const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
       if (cluesStr && !this.modoStandalone) {
         const datosClues = JSON.parse(cluesStr) as DatosClues;
         nombreArchivPrecarga += '-' + this.iniciales(datosClues.nombreHospital);
@@ -333,10 +405,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     }
   }
 
-
   mostrarModalExportar() {
     this.nombreArchivo = `Solicitud-${new Date().toISOString().slice(0, 7)}`;
-    const cluesStr = localStorage.getItem('datosClues');
+    const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
     let nombreArchivoCompleto = this.nombreArchivo;
     if (cluesStr && !this.modoStandalone) {
       const datosClues = JSON.parse(cluesStr) as DatosClues;
@@ -375,7 +446,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   eliminarArticulo(index: number) {
     this.articulosSolicitados.splice(index, 1);
-    localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+    this.storageSolicitudService
+      .setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados));
   }
 
   eliminarArticuloConConfirmacion(index: number) {
@@ -415,7 +488,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   confirmarEdicion(index: number) {
     this.articulosSolicitados[index].cantidad = this.cantidadTemporal;
     this.modoEdicionIndex = null;
-    localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+    this.storageSolicitudService
+      .setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados));
   }
 
   esCantidadInvalida(): boolean {
@@ -450,16 +525,19 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       const datos = await this.excelService.leerArchivoPrecarga(archivo); // ⚠️ este método lo definiremos en el servicio
 
       if (!datos || datos.length === 0) {
-        this.abrirModalInfo('Archivo vacío', 'El archivo no contiene datos válidos.');
+        this.abrirModalInfo('Archivo vacío', 'El archivo está vacío o no contiene datos válidos.');
         return;
       }
 
       // Intentar identificar columnas por nombres flexibles
       const headers = Object.keys(datos[0]).map(h => h.toLowerCase().trim());
+      console.log('datos[0]', datos[0]);
+      console.log('headers', headers);
       const colClave = headers.find(h => h.includes('clave'));
-      const colCantidad = headers.find(h => h.includes('cantidad'));
+      const colCantidad = headers.find(h => h.includes('cantidad')||h.includes('solicitado'));
       if (!colClave) {
-        this.abrirModalInfo('Encabezado faltante', 'El archivo no contiene columna con clave CNIS.');
+        this.abrirModalInfo('Encabezado faltante', 
+          'El archivo no contiene columna con clave CNIS o formato no es válido.');
         return;
       }
 
@@ -492,7 +570,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       }
 
       this.articulosSolicitados = nuevos;
-      localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+      this.storageSolicitudService
+        .setArticulosSolicitadosInLocalStorage(
+          JSON.stringify(this.articulosSolicitados));
 
       const clavesRepetidas = Object.keys(repetidas).length;
       // ⚠️ Opcional: aquí podrías invocar this.autocompletarDatos() si quieres precargar descripción/unidad
@@ -534,7 +614,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
           }
         }
 
-        localStorage.setItem('articulosSolicitados', JSON.stringify(this.articulosSolicitados));
+        this.storageSolicitudService
+          .setArticulosSolicitadosInLocalStorage(
+            JSON.stringify(this.articulosSolicitados));
         this.cdRef.detectChanges();
       },
       error: (err) => {

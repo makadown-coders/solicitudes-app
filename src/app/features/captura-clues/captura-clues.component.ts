@@ -1,11 +1,13 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
 import { DatosClues } from '../../models/datos-clues';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { hospitalesData } from '../../models/hospitalesData';
-import { LucideAngularModule, HospitalIcon } from 'lucide-angular';
+import { unidadesData } from '../../models/unidadesData';
+import { LucideAngularModule, HospitalIcon, StethoscopeIcon } from 'lucide-angular';
 import { PeriodoPickerComponent } from '../../shared/periodo-picker/periodo-picker.component';
-import { Hospital } from '../../models/articulo-solicitud';
+import { Hospital, Unidad } from '../../models/articulo-solicitud';
+import { StorageSolicitudService } from '../../services/storage-solicitud.service';
+import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
 
 @Component({
   selector: 'app-captura-clues',
@@ -15,14 +17,19 @@ import { Hospital } from '../../models/articulo-solicitud';
 })
 export class CapturaCluesComponent implements OnInit {
   readonly HospitalIcon = HospitalIcon;
+  readonly StethoscopeIcon = StethoscopeIcon;
+
   nombreHospital = '';
   tipoInsumo = '';
   periodo = '';
+  labelNivel = '';
+  labelUnidad = '';
   fechaInicio: Date | null = null;
   fechaFin: Date | null = null;
+  solicitudService = inject(StorageSolicitudService);
   //@Output() cluesValido = new EventEmitter<DatosClues>();
 
-  selectedHospital: Hospital | null = null;
+  selectedHospital: Unidad | null = null;
 
   autocompleteHospitales: any[] = [];
   selectedIndex = -1;
@@ -52,8 +59,15 @@ export class CapturaCluesComponent implements OnInit {
   }
 
   ngOnInit() {
+    if (this.estaEnModoCapturaPrimerNivel()) {
+      this.labelNivel = 'Primer Nivel';
+      this.labelUnidad = 'Nombre de la Unidad Medica';
+    } else {
+      this.labelNivel = 'Segundo Nivel';
+      this.labelUnidad = 'Nombre del Hospital';
+    }
 
-    const cluesStr = localStorage.getItem('datosClues');
+    const cluesStr = this.solicitudService.getDatosCluesFromLocalStorage();
     if (cluesStr) {
       const datosClues = JSON.parse(cluesStr) as DatosClues;
       this.nombreHospital = datosClues.nombreHospital;
@@ -72,6 +86,10 @@ export class CapturaCluesComponent implements OnInit {
       this.responsableCaptura = datosClues?.responsableCaptura ?? '';
 
     }
+  }
+
+  public estaEnModoCapturaPrimerNivel(): boolean {
+    return this.solicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL;
   }
 
 
@@ -97,11 +115,19 @@ export class CapturaCluesComponent implements OnInit {
     }
 
     const term = query.toLowerCase();
-    this.autocompleteHospitales = hospitalesData.filter(h =>
-      h.cluesssa?.toLowerCase().includes(term) ||
-      h.cluesimb?.toLowerCase().includes(term) ||
-      h.nombre?.toLowerCase().includes(term)
-    ).slice(0, 12);
+    const unidades = this.estaEnModoCapturaPrimerNivel() ?
+      unidadesData.filter(u => u.tipoUnidad !== 'HOSPITALES') :
+      unidadesData.filter(u => u.tipoUnidad === 'HOSPITALES');
+
+    this.autocompleteHospitales = unidades.filter(h => {
+      const nombreNormalizado = h.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const incluyeMunicipio = h.municipio?.toLowerCase().includes(term);
+
+      return h.cluesssa?.toLowerCase().includes(term) ||
+        h.cluesimb?.toLowerCase().includes(term) ||
+        nombreNormalizado.toLowerCase().includes(term) ||
+        incluyeMunicipio;
+    }).slice(0, 12);
   }
 
   selectHospital(hospital: any) {

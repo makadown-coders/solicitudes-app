@@ -1,5 +1,8 @@
+<!-- app/features/solicitudes/solicitudes.component.html -->
 <div class="container mx-auto my-4 p-4">
-    <h1 class="text-2xl text-green-800 font-bold">Solicitud de Artículos</h1>
+    <h1 class="text-2xl text-green-800 font-bold">Solicitud de artículos {{
+        modoStandalone ? '' :
+        'para ' + (storageSolicitudService.nombreUnidad$ | async ) }} </h1>
 
     <div class="relative mt-4 space-y-2">
 
@@ -59,6 +62,7 @@
     <div class="mt-4 p-2 border rounded" *ngIf="articulosSolicitados.length">
         <app-tabla-articulos [articulosSolicitados]="articulosSolicitados" [modoEdicionIndex]="modoEdicionIndex"
             [cantidadTemporal]="cantidadTemporal" (cantidadTemporalChange)="cambiarCantidad($event)"
+            [inventario]="inventarioDisponible"
             (confirmar)="confirmarEdicion($event)" (cancelar)="cancelarEdicion()" (editar)="activarEdicion($event)"
             (eliminar)="eliminarArticuloConConfirmacion($event)" />
     </div>   
@@ -90,3 +94,8 @@
         ✅ {{ mensajeImportacion }}
     </div>
 </div>
+
+<br/>
+<br/>
+<br/>
+<br/>

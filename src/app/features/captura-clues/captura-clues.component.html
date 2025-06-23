@@ -1,22 +1,22 @@
-<div class="mt-2 bg-white border rounded p-4 shadow text-sm w-full max-w-sm mx-auto">
-    <h2 class="text-xl font-bold text-green-800 mb-4">Datos de la CLUES</h2>
+<div class="mt-2 p-4 mx-auto w-full max-w-xl text-sm border rounded shadow"
+[ngClass]="{ 'bg-gray-100': estaEnModoCapturaPrimerNivel(), 'bg-white': !estaEnModoCapturaPrimerNivel() }">
+    <h2 class="mb-4 text-xl font-bold text-green-800">Datos de la CLUES ({{ labelNivel }})</h2>
     <div class="space-y-4">
         <div class="relative mb-6">
-            <label class="block font-semibold text-gray-700 mb-1">Nombre del hospital</label>
+            <label class="block mb-1 font-semibold text-gray-700">{{ labelUnidad }}</label>
 
             <!-- Input + lista cuando no hay hospital seleccionado -->
             <ng-container *ngIf="!selectedHospital; else hospitalResumen">
                 <input type="text" [(ngModel)]="nombreHospital" (input)="onInputHospital(nombreHospital)"
-                    (keydown)="onHospitalKeyDown($event)" class="border rounded w-full p-2"
+                    (keydown)="onHospitalKeyDown($event)" class="p-2 w-full border rounded"
                     placeholder="Buscar por nombre, cluesimb o cluesssa" />
 
                 <!-- Lista de sugerencias -->
                 <ul *ngIf="autocompleteHospitales.length"
-                    class="absolute z-10 w-full bg-white border rounded shadow max-h-60 overflow-auto mt-1">
+                    class="z-10 overflow-auto absolute mt-1 w-full max-h-60 bg-white border rounded shadow">
                     <li *ngFor="let h of autocompleteHospitales; let i = index" (click)="selectHospital(h)"
-                        [class.bg-gray-200]="i === selectedIndex" class="p-2 hover:bg-gray-200 cursor-pointer">
-
-                        {{ h.cluesssa }} | {{ h.cluesimb }} - {{ h.nombre }}
+                        [class.bg-gray-200]="i === selectedIndex" class="p-2 cursor-pointer hover:bg-gray-200">
+                        {{ h.cluesssa }} | {{ h.cluesimb }} - {{ h.nombre }} {{ estaEnModoCapturaPrimerNivel() ? '(' + h.municipio + ')' : '' }}
                     </li>
                 </ul>
             </ng-container>
@@ -24,10 +24,14 @@
             <!-- Resumen cuando ya hay hospital seleccionado -->
             <ng-template #hospitalResumen>
                 <div
-                    class="flex items-center justify-between bg-green-50 border border-green-700 rounded px-3 py-2 text-sm text-green-900">
+                    class="flex items-center justify-between px-3 py-2 text-sm text-green-900 bg-green-50 border-green-700 border rounded">
                     <div class="flex items-center">
-                        <lucide-angular [img]="HospitalIcon" class="w-5 h-5 mr-2" />
-                        <span class="font-semibold">{{ selectedHospital!.nombre }}</span>
+                        <lucide-angular [img]="estaEnModoCapturaPrimerNivel() ? StethoscopeIcon : HospitalIcon" class="mr-2 w-5 h-5" />
+                        <span class="font-semibold">
+                            {{ selectedHospital!.nombre }}
+                            {{ estaEnModoCapturaPrimerNivel() ? '(' + selectedHospital!.municipio + ')' : '' }}
+
+                        </span>
                     </div>
                     <button type="button" class="text-green-800 text-xs underline hover:text-green-900"
                         (click)="selectedHospital = null; nombreHospital = ''">
@@ -36,17 +40,17 @@
                 </div>
 
                 <!-- CLUES SSA e IMB solo si ya hay hospital seleccionado -->
-                <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 mt-3 md:grid-cols-2">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">CLUES SSA</label>
-                        <div class="mt-1 bg-gray-50 border rounded px-3 py-2 text-sm text-gray-800">
+                        <div class="mt-1 px-3 py-2 text-sm text-gray-800 bg-gray-50 border rounded">
                             {{ selectedHospital!.cluesssa }}
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700">CLUES IMB</label>
-                        <div class="mt-1 bg-gray-50 border rounded px-3 py-2 text-sm text-gray-800">
+                        <div class="mt-1 px-3 py-2 text-sm text-gray-800 bg-gray-50 border rounded">
                             {{ selectedHospital!.cluesimb }}
                         </div>
                     </div>
@@ -56,10 +60,10 @@
 
 
         <div class="mb-4">
-            <div class="grid md:grid-cols-2 gap-6">
+            <div class="grid gap-6 md:grid-cols-2">
                 <!-- Tipo de Insumo -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de insumo</label>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de insumo</label>
                     <div class="space-y-2">
                         <div *ngFor="let tipo of tiposInsumoDisponibles" class="flex items-center">
                             <input type="checkbox" [id]="tipo" [value]="tipo"
@@ -73,7 +77,7 @@
 
                 <!-- Tipo de Pedido -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Pedido</label>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de Pedido</label>
                     <div class="flex flex-col gap-1 mt-1">
                         <label class="inline-flex items-center">
                             <input type="radio" [(ngModel)]="tipoPedido" value="Ordinario" class="mr-2" />
@@ -91,11 +95,11 @@
 
 
         <div class="mt-4">
-            <label for="responsableCaptura" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="responsableCaptura" class="block mb-1 text-sm font-medium text-gray-700">
                 Responsable de Captura
             </label>
             <input type="text" id="responsableCaptura" maxlength="255" [(ngModel)]="responsableCaptura"
-                class="w-full border rounded px-3 py-2 text-sm" placeholder="Nombre completo del responsable" />
+                class="px-3 py-2 w-full text-sm border rounded" placeholder="Nombre completo del responsable" />
         </div>
 
         <div>
@@ -107,7 +111,7 @@
         </div>
 
         <button
-            class="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800 disabled:bg-gray-300 disabled:text-gray-500"
+            class="px-4 py-2 text-white bg-green-700 rounded hover:bg-green-800 disabled:bg-gray-300 disabled:text-gray-500"
             [disabled]="!esValido" (click)="avanzar()">
             Siguiente →
         </button>
