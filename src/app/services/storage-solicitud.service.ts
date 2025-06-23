@@ -1,3 +1,4 @@
+// src/app/services/storage-solicitud.service.ts
 import { Injectable } from '@angular/core';
 import { ModoCapturaSolicitud } from '../shared/modo-captura-solicitud';
 import { StorageVariables } from '../shared/storage-variables';
@@ -45,6 +46,7 @@ export class StorageSolicitudService {
     }
 
     getArticulosSolicitadosFromLocalStorage(): string | null {
+        this.emitirNombreUnidad();
         if (this.modoCapturaSolicitud === ModoCapturaSolicitud.PRIMER_NIVEL) {
             return localStorage.getItem(StorageVariables.SOLICITUD_ARTICULOS_SOLICITADOS_PRIMER_NIVEL);
         } else {

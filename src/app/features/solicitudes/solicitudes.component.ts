@@ -1,3 +1,4 @@
+// src/app/features/solicitudes/solicitudes.component.ts
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
 import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -524,16 +525,19 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       const datos = await this.excelService.leerArchivoPrecarga(archivo); // ⚠️ este método lo definiremos en el servicio
 
       if (!datos || datos.length === 0) {
-        this.abrirModalInfo('Archivo vacío', 'El archivo no contiene datos válidos.');
+        this.abrirModalInfo('Archivo vacío', 'El archivo está vacío o no contiene datos válidos.');
         return;
       }
 
       // Intentar identificar columnas por nombres flexibles
       const headers = Object.keys(datos[0]).map(h => h.toLowerCase().trim());
+      console.log('datos[0]', datos[0]);
+      console.log('headers', headers);
       const colClave = headers.find(h => h.includes('clave'));
-      const colCantidad = headers.find(h => h.includes('cantidad'));
+      const colCantidad = headers.find(h => h.includes('cantidad')||h.includes('solicitado'));
       if (!colClave) {
-        this.abrirModalInfo('Encabezado faltante', 'El archivo no contiene columna con clave CNIS.');
+        this.abrirModalInfo('Encabezado faltante', 
+          'El archivo no contiene columna con clave CNIS o formato no es válido.');
         return;
       }
 

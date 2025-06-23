@@ -1,13 +1,15 @@
+<!-- src/app/features/tabla-articulos/tabla-articulos.component.html -->
 <h2 class="font-bold text-green-800">Artículos capturados</h2>
+
 <table class="mt-2 w-full text-sm">
     <thead class="text-white bg-green-600">
         <tr>
-            <th class="p-2">No.</th>
+            <th class="p-2">#</th>
             <th class="p-2">Clave</th>
             <th class="p-2">Clasificacion</th>
             <th class="p-2">Descripción</th>
-            <th class="p-2">Unidad</th>            
-            <th class="p-2">Solicitado</th>
+            <th class="p-2">Unidad</th>
+            <th class="p-2">Solic.</th>
             <th class="p-2">Exist. AZM </th>
             <th class="p-2">Exist. AZT </th>
             <th class="p-2">Exist. AZE </th>
@@ -17,19 +19,23 @@
     <tbody>
         @for (articulo of articulosSolicitados; track articulo.clave; let i = $index)
         {
-        <tr class="border-b transition-all duration-300 ease-in-out" 
-            [class.bg-yellow-100]="modoEdicionIndex === i"
+        <tr class="border-b transition-all duration-300 ease-in-out" [class.bg-yellow-100]="modoEdicionIndex === i"
             [class.opacity-50]="modoEdicionIndex !== null && modoEdicionIndex !== i"
             [class.animate-pulse]="modoEdicionIndex !== i && articulo.cantidad <= 0"
             [class.bg-red-950!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
             [class.text-gray-100!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
             [class.text-xl.font-semibold.text-center.border.rounded]="modoEdicionIndex !== i && articulo.cantidad <= 0">
 
-            <td class="p-2 text-center font-semibold text-gray-700">{{ i + 1 }}</td>
+            <td class="p-2 w-[1%] text-center font-semibold text-gray-700 whitespace-nowrap">{{ i + 1 }}</td>
             <td class="p-2">{{ articulo.clave }}</td>
-            <td class="p-2">{{ clasificacion(articulo.clave) }}</td>
-            <td class="p-2">{{ articulo.descripcion }}</td>
-            <td class="p-2">{{ articulo.unidadMedida }}</td>
+            <td class="overflow-hidden p-2 max-w-[100px] text-ellipsis whitespace-nowrap break-words sm:whitespace-normal"
+                [attr.title]="clasificacion(articulo.clave)">{{ clasificacion(articulo.clave) }}</td>
+            <td class="overflow-hidden p-2 max-w-[250px] text-ellipsis whitespace-pre-wrap break-words sm:whitespace-normal"
+                [attr.title]="articulo.descripcion">{{
+                articulo.descripcion }}</td>
+            <td class="overflow-hidden p-2 max-w-[150px] text-ellipsis whitespace-nowrap break-words sm:whitespace-normal"
+                [attr.title]="articulo.unidadMedida">{{
+                articulo.unidadMedida }}</td>
             <td class="p-2">
                 <ng-container *ngIf="modoEdicionIndex === i; else cantidadNormal">
                     <div class="relative inline-block w-24">
@@ -85,4 +91,3 @@
         }
     </tbody>
 </table>
-
