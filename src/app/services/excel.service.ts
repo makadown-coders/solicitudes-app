@@ -9,6 +9,7 @@ import { clasificacionMedicamentosData } from '../models/clasificacionMedicament
 import { ClasificadorVEN } from '../models/clasificador-ven';
 import { Inventario, InventarioDisponibles, InventarioRow } from '../models/Inventario';
 import { StorageSolicitudService } from './storage-solicitud.service';
+import { CPMS } from '../models/CPMS';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
@@ -374,7 +375,7 @@ export class ExcelService {
         });
     }
 
-    public base64ToArrayBuffer(base64: string): ArrayBuffer {        
+    public base64ToArrayBuffer(base64: string): ArrayBuffer {
         // Decodificar el string Base64
         const binaryString = atob(base64);
 
@@ -388,5 +389,61 @@ export class ExcelService {
 
         return bytes.buffer;
     }
+
+
+    /**
+     * Lee un archivo CPMS y devuelve un array de objetos con las claves, cluesimb y cantidad.
+     * El archivo es de acuerdo es al formato oficial proporcionado por unidad medica
+     * @param buffer 
+     */
+    public procesarArchivoCPMS(buffer: ArrayBuffer) {        
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+        const CPMs: CPMS[] = [];
+
+        // 1. Obtener claves desde A5 hacia abajo hasta encontrar celda vacía
+        const claves: string[] = [];
+        let row = 5;
+        while (true) {
+            const celda = sheet[`A${row}`];
+            if (!celda || !celda.v) break;
+            claves.push(celda.v.toString());
+            row++;
+        }
+
+        // 2. Obtener encabezados cluesimb de I2 a GB2
+        const cluesimb: string[] = [];
+        const startCol = XLSX.utils.decode_col("I");
+        const endCol = XLSX.utils.decode_col("GB");
+        for (let col = startCol; col <= endCol; col++) {
+            const colLetter = XLSX.utils.encode_col(col);
+            const celda = sheet[`${colLetter}2`];
+            cluesimb.push(celda?.v?.toString() ?? '');
+        }
+
+        // 3. Recorrer la matriz: por cada fila (clave) y columna (cluesimb)
+        claves.forEach((clave, idxFila) => {
+            const fila = 5 + idxFila;
+
+            cluesimb.forEach((clue, idxCol) => {
+                const colLetter = XLSX.utils.encode_col(startCol + idxCol);
+                const celda = sheet[`${colLetter}${fila}`];
+                const cantidad = celda?.v ? Number(celda.v) : 0;
+
+                CPMs.push({
+                    clave,
+                    cluesimb: clue,
+                    cantidad: isNaN(cantidad) ? 0 : cantidad
+                });
+            });
+        });
+
+        // 4. Guardar en localStorage
+        // const STORAGE_KEY = 'SOLICITUD_CPMS'; // o usa StorageVariables.SOLICITUD_CPMS
+        // localStorage.setItem(STORAGE_KEY, JSON.stringify(CPMs));
+        return CPMs;
+    }
+
 
 }

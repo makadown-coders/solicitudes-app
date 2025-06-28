@@ -4,6 +4,8 @@ import { ModoCapturaSolicitud } from '../shared/modo-captura-solicitud';
 import { StorageVariables } from '../shared/storage-variables';
 import { BehaviorSubject } from 'rxjs';
 import { DatosClues } from '../models/datos-clues';
+import { CPMS } from '../models/CPMS';
+import * as LZString from 'lz-string';
 
 /**
  * Servicio de solicitud
@@ -84,6 +86,20 @@ export class StorageSolicitudService {
         } else {
             localStorage.setItem(StorageVariables.SOLICITUD_ACTIVE_TAB_SEGUNDO_NIVEL, clues);
         }
+    }
+
+    getCPMSFromLocalStorage(): CPMS[] {
+         // obteniendo CPMS Serializado y comprimido para descomprimir y devolver
+         console.log('obteniendo CPMS Serializado y comprimido para descomprimir y devolver');
+         const CPMScomprimido = localStorage.getItem(StorageVariables.SOLICITUD_CPMS);
+         console.log('CPMScomprimido (un pedazo)', CPMScomprimido?.substring(0, 10));
+         if (CPMScomprimido) {
+             console.log('descomprimiendo CPMS');
+             const raw = LZString.decompress(CPMScomprimido);
+             console.log('raw tamanio', raw.length);
+             return raw ? JSON.parse(raw) : [];
+         }
+         return [];
     }
 
     private emitirNombreUnidad() {

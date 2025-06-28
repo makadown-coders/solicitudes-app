@@ -6,6 +6,10 @@ import { clasificacionMedicamentosData } from '../../models/clasificacionMedicam
 import { ClasificadorVEN } from '../../models/clasificador-ven';
 import { Inventario, InventarioDisponibles } from '../../models/Inventario';
 import { DomSanitizer } from '@angular/platform-browser';
+import { StorageSolicitudService } from '../../services/storage-solicitud.service';
+import { DatosClues } from '../../models/datos-clues';
+import { CPMS } from '../../models/CPMS';
+import { InventarioService } from '../../services/inventario.service';
 
 @Component({
   selector: 'app-tabla-articulos',
@@ -21,6 +25,8 @@ export class TablaArticulosComponent implements OnChanges {
   @Input() inventario: InventarioDisponibles[] = [];
 
   tooltips: string[] = [];
+  cluesActual: string = '';
+  cpmsPorClues: CPMS[] = [];
 
   private cdRef = inject(ChangeDetectorRef);
 
@@ -34,8 +40,24 @@ export class TablaArticulosComponent implements OnChanges {
   currentTooltip: any = null;
   tooltipPosition: { x: number, y: number } = { x: 0, y: 0 };
   sanitizer = inject(DomSanitizer);
+  storageSolicitudService = inject(StorageSolicitudService);
+  inventarioService = inject(InventarioService);
 
-  constructor() { }
+  constructor() {
+    this.inventarioService.cpms$.subscribe(cpms => {
+      
+      if(!cpms || cpms.length === 0) return;
+
+      const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
+      if (cluesStr) {
+        const datosClues = JSON.parse(cluesStr) as DatosClues;
+        this.cluesActual = datosClues.hospital?.cluesimb ?? '';
+        console.log('Buscando cpm por clues', this.cluesActual);
+        this.cpmsPorClues = cpms.filter(cpms => cpms.cluesimb === this.cluesActual);
+      }
+      
+    });
+  }
 
   // Al actualizar articulosSolicitados, actualizar tooltips}
   ngOnChanges(changes: SimpleChanges) {
@@ -43,6 +65,17 @@ export class TablaArticulosComponent implements OnChanges {
     if (changes['articulosSolicitados']) {
       this.actualizarTooltips();
     }
+
+    /*const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
+    if (cluesStr) {
+      const datosClues = JSON.parse(cluesStr) as DatosClues;
+      this.cluesActual = datosClues.hospital?.cluesimb ?? '';
+      console.log('Buscando cpm por clues', this.cluesActual);
+      const cpms = this.storageSolicitudService.getCPMSFromLocalStorage();
+      console.log('cpms totales', cpms.length);
+      this.cpmsPorClues = cpms.filter(cpms => cpms.cluesimb === this.cluesActual);      
+    }*/
+
     /*if (changes['inventario'] && this.inventario.length > 0 && this.articulosSolicitados.length > 0) {
       this.actualizarTooltips();
     }*/
@@ -118,5 +151,11 @@ export class TablaArticulosComponent implements OnChanges {
 
   buscarEnInventario(clave: string) {
     return this.inventario.find(inventario => inventario.clave === clave);
+  }
+
+  buscarCPM(clave: string) {
+    // console.log('En ', this.cpmsPorClues);
+    // console.log('Buscando cpm por clave', clave);    
+    return this.cpmsPorClues.find(cpm => cpm.clave === clave)?.cantidad ?? 0;
   }
 }

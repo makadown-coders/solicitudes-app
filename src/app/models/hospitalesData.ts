@@ -1,5 +1,9 @@
 import { Hospital } from "./articulo-solicitud";
 
+/**
+ * En desuso
+ * @deprecated 
+ */
 export const hospitalesData: Hospital[] = [
     {
       cluesssa: "BCSSA000440",

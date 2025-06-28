@@ -14,6 +14,7 @@ export class Inventario {
 
 export class InventarioDisponibles {
    public clave: string;
+   public CPM: number;
    public existenciasAZM: number;
    public existenciasAZE: number;
    public existenciasAZT: number;

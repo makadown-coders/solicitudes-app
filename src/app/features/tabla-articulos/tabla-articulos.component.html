@@ -10,6 +10,7 @@
             <th class="p-2">Descripción</th>
             <th class="p-2">Unidad</th>
             <th class="p-2">Solic.</th>
+            <th class="p-2">CPM</th>
             <th class="p-2">Exist. AZM </th>
             <th class="p-2">Exist. AZT </th>
             <th class="p-2">Exist. AZE </th>
@@ -59,7 +60,8 @@
             @let existenciaAZT = existencia ? existencia.existenciasAZT : 0;
             @let existenciaAZE = existencia ? existencia.existenciasAZE : 0;
             @let existenciaAZM = existencia ? existencia.existenciasAZM : 0;
-
+            
+            <th class="p-2"> {{ buscarCPM(articulo.clave) }} </th>
             <th class="p-2"> {{ existenciaAZM }} </th>
             <th class="p-2"> {{existenciaAZT}} </th>
             <th class="p-2"> {{existenciaAZE}} </th>

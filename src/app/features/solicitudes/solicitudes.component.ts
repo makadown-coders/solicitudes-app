@@ -1,8 +1,8 @@
 // src/app/features/solicitudes/solicitudes.component.ts
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
-import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { debounceTime, Subject } from 'rxjs';
+import { debounceTime, Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { NombrarArchivoModalComponent } from '../../shared/nombrar-archivo-modal/nombrar-archivo-modal.component';
 import { ConfirmacionModalComponent } from '../../shared/confirmacion-modal/confirmacion-modal.component';
@@ -28,7 +28,7 @@ import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
   templateUrl: './solicitudes.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SolicitudesComponent implements OnInit, AfterViewInit {
+export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   mostrarModal = false;
   modalVisible = false;
@@ -73,6 +73,17 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   private router = inject(Router);
   public storageSolicitudService = inject(StorageSolicitudService);
 
+  // behaviorSubject para desuscribirme de todos los observables
+  private onDestroy$ = new Subject<void>();
+
+  constructor() {
+  }
+  ngOnDestroy(): void {
+    // desuscribirme usando un behaviorSubject
+    this.onDestroy$.next();
+    this.onDestroy$.complete();
+  }
+
   @HostListener('document:keydown.escape', ['$event'])
   onKeydownHandler(event: KeyboardEvent) {
     if (this.modalVisible) {
@@ -80,7 +91,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     }
   }
 
-  private inventarioService = inject(InventarioService);
+  public inventarioService = inject(InventarioService);
   inventario: Inventario[] = [];
   inventarioDisponible: InventarioDisponibles[] = [];
 
@@ -127,6 +138,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     arregloClavesInventario.forEach(clave => {
       const existencia: InventarioDisponibles = {
         clave: clave,
+        CPM: 0,
         existenciasAZM: 0,
         existenciasAZE: 0,
         existenciasAZT: 0
@@ -142,6 +154,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
           existencia.existenciasAZT += item.disponible - item.comprometidos;
         }
       });
+      
       this.inventarioDisponible.push(existencia);
     })
   }

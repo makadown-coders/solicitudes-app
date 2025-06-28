@@ -21,7 +21,7 @@ import { Title } from '@angular/platform-browser';
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css',
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush  
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LayoutComponent implements OnInit, OnChanges {
   title: Title = inject(Title);
@@ -32,7 +32,7 @@ export class LayoutComponent implements OnInit, OnChanges {
   inventarioService = inject(InventarioService);
   solicitudService = inject(StorageSolicitudService);
   private cdRef = inject(ChangeDetectorRef);
-  private router = inject(Router);  
+  private router = inject(Router);
   private storageSolicitudService = inject(StorageSolicitudService);
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -55,15 +55,24 @@ export class LayoutComponent implements OnInit, OnChanges {
     const cluesStr = this.solicitudService.getDatosCluesFromLocalStorage();
     if (cluesStr) {
       this.datosClues = JSON.parse(cluesStr);
-      this.title.setTitle (this.datosClues?.nombreHospital + '('+ this.datosClues?.tipoInsumo +')');
+      this.title.setTitle(this.datosClues?.nombreHospital + '(' + this.datosClues?.tipoInsumo + ')');
     }
-    // EN PRUEBA PILOTO
+    // EN PRUEBA PILOTO - TODO: Esperar 12 horas para refrescar inventario despues de la primera vez    
     this.inventarioService.refrescarDatosInventario();
+    
+    // EN PRUEBA PILOTO (CPMS) .
+    const cpms = this.storageSolicitudService.getCPMSFromLocalStorage();
+    // Si la cantidad de CPMS es 0 o si hoy es primero o 15 de mes, refrescar
+    if (cpms.length === 0 || new Date().getDate() === 1 || 
+    new Date().getDate() === 15) { this.inventarioService.refrescarDatosCPMS(); }
+    else {
+      this.inventarioService.emitirCPMS(cpms);
+    }
   }
 
   onDatosCluesCapturados(datos: DatosClues) {
     this.datosClues = datos;
-    this.title.setTitle (this.datosClues?.nombreHospital + '('+ this.datosClues.tipoInsumo +')');
+    this.title.setTitle(this.datosClues?.nombreHospital + '(' + this.datosClues.tipoInsumo + ')');
     this.solicitudService.setDatosCluesInLocalStorage(JSON.stringify(datos));
     this.cdRef.detectChanges();
   }

@@ -7,7 +7,8 @@ import { PeriodoFechasService } from '../shared/periodo-fechas.service';
 import { ExcelService } from './excel.service';
 import { Inventario, InventarioRow } from '../models/Inventario';
 import { StorageVariables } from '../shared/storage-variables';
-import { InventarioFull } from '../models/ElementosBase64';
+import { CPMSFull, InventarioFull } from '../models/ElementosBase64';
+import { CPMS } from '../models/CPMS';
 
 @Injectable({
   providedIn: 'root'
@@ -18,37 +19,94 @@ export class InventarioService {
   public inventario$: Observable<Inventario[]> = this.inventarioSubject.asObservable();
   private fechaService = inject(PeriodoFechasService);
   private excelService = inject(ExcelService);
+  private cpmsSubject = new BehaviorSubject<CPMS[]>([]);
+  public cpms$: Observable<CPMS[]> = this.cpmsSubject.asObservable();
+
+  // crear un booleano para avisar que se está cargando el CPMS
+  public cargandoCPMSBehaviorSubject = new BehaviorSubject<boolean>(false);
+  public cargandoCPMS$ = this.cargandoCPMSBehaviorSubject.asObservable();
+
+  // crear un booleano para avisar que se está refrescando inventario
+  public cargandoInventarioBehaviorSubject = new BehaviorSubject<boolean>(false);
+  public cargandoInventario$ = this.cargandoInventarioBehaviorSubject.asObservable();
 
   constructor(private http: HttpClient) { }
 
-  refrescarDatosInventario(): void {
-      // purgar todo el localStorage
-      this.limpiarInventario();
-  
-     // console.info('🔄 Actualizando datos de inventario temporal...');
-      const url = this.apiUrl;
-      this.http.get<InventarioFull>(url).subscribe({
-        next: (response: InventarioFull) => {
-  
-          const inventario = this.obtenerInventarioDeBase64(response.inventario);
-  
-          // 1) Serializar y comprimir
-          const raw = JSON.stringify(inventario);
-          const compressed = LZString.compress(raw);
-          try {
-            localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO, compressed);
-          } catch {
-            console.warn('😱 localStorage lleno, omitiendo guardado');
-          }
-          // 2) Emitir
-         // console.info('✅ Datos del inventario temporal actualizados.');
-          this.inventarioSubject.next(inventario as Inventario[]);
-        },
-        error: (err) => {
-          console.error('❌ Error al cargar datos:', err);
+  refrescarDatosCPMS() {
+    console.info('🔄 InventarioService.refrescarDatosCPMS() - Actualizando CPMS...');
+    this.cargandoCPMSBehaviorSubject.next(true);
+    // purgar todo el localStorage
+    this.limpiarCPMS();    
+    const url = environment.apiUrl + '/cpms';
+    this.http.get<CPMSFull>(url).subscribe({
+      next: (response: CPMSFull) => {
+        const arrayBuffer = this.excelService.base64ToArrayBuffer(response.cpms);
+        const cpms: CPMS[] = this.excelService.procesarArchivoCPMS(arrayBuffer);        
+        
+        // 1) Serializar y comprimir
+        const raw = JSON.stringify(cpms);
+        console.log('InventarioService.refrescarDatosCPMS() - raw un pedazo', raw.substring(0, 10));
+        const compressed = LZString.compress(raw);
+        try {
+          console.log('InventarioService.refrescarDatosCPMS() - comprimiendo');
+          localStorage.setItem(StorageVariables.SOLICITUD_CPMS, compressed);
+        } catch {
+          console.warn('😱 InventarioService.refrescarDatosCPMS() - localStorage lleno, omitiendo guardado');
         }
-      });
-    }
+        console.info('✅ InventarioService.refrescarDatosCPMS() - CPMS tamanio', cpms.length);
+        // 2) Emitir
+        this.cpmsSubject.next(cpms as CPMS[]);
+        this.cargandoCPMSBehaviorSubject.next(false);
+        console.info('✅ InventarioService.refrescarDatosCPMS() - FINALIZADO');
+      },
+      error: (err) => {
+        this.cargandoCPMSBehaviorSubject.next(false);
+        console.error('❌ InventarioService.refrescarDatosCPMS() - Error al cargar CPMS:', err);
+      }
+    });
+  }
+
+  emitirCPMS(cpms: CPMS[]) {
+    this.cpmsSubject.next(cpms);
+  }
+
+  limpiarCPMS() {
+    console.info('🧹 Limpiando CPMS...');
+    localStorage.removeItem(StorageVariables.SOLICITUD_CPMS);
+    this.cpmsSubject.next([]);
+  }
+
+  refrescarDatosInventario(): void {
+    console.info('🔄 InventarioService.refrescarDatosInventario() - Actualizando datos de inventario temporal...');
+    this.cargandoInventarioBehaviorSubject.next(true);
+    // purgar todo el localStorage
+    this.limpiarInventario();    
+    const url = this.apiUrl;
+    this.http.get<InventarioFull>(url).subscribe({
+      next: (response: InventarioFull) => {
+
+        const inventario = this.obtenerInventarioDeBase64(response.inventario);
+
+        // 1) Serializar y comprimir
+        const raw = JSON.stringify(inventario);
+        const compressed = LZString.compress(raw);
+        try {
+          localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO, compressed);
+        } catch {
+          console.warn('😱 InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
+        }
+        // 2) Emitir
+        console.info('✅ InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
+        this.inventarioSubject.next(inventario as Inventario[]);
+        this.cargandoInventarioBehaviorSubject.next(false);
+        console.info('✅ InventarioService.refrescarDatosInventario() - FINALIZADO');
+      },
+      error: (err) => {
+        console.error('❌ InventarioService.refrescarDatosInventario() - Error al cargar datos:', err);
+        this.cargandoInventarioBehaviorSubject.next(false);
+      }
+    });
+  } 
 
   private obtenerInventarioDeBase64(base64: string): Inventario[] {
 
@@ -111,7 +169,7 @@ export class InventarioService {
         nuevoRegistro.fecha_entrada = fechaEntrada;
         inventarioRetorno.push(nuevoRegistro);
       }
-    //  console.info(`✅ Inventario cargado desde Power Automate. Total: ${inventarioRetorno.length} registros.`);
+      //  console.info(`✅ Inventario cargado desde Power Automate. Total: ${inventarioRetorno.length} registros.`);
 
     } catch (err: any) {
       console.error('❌ Error al obtener de power automate:', err);
