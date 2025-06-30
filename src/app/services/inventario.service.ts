@@ -22,6 +22,9 @@ export class InventarioService {
   private cpmsSubject = new BehaviorSubject<CPMS[]>([]);
   public cpms$: Observable<CPMS[]> = this.cpmsSubject.asObservable();
 
+  private cpmsCluesActualSubject = new BehaviorSubject<CPMS[]>([]);
+  public cpmsCluesActual$: Observable<CPMS[]> = this.cpmsCluesActualSubject.asObservable();
+
   // crear un booleano para avisar que se está cargando el CPMS
   public cargandoCPMSBehaviorSubject = new BehaviorSubject<boolean>(false);
   public cargandoCPMS$ = this.cargandoCPMSBehaviorSubject.asObservable();
@@ -45,10 +48,10 @@ export class InventarioService {
         
         // 1) Serializar y comprimir
         const raw = JSON.stringify(cpms);
-        console.log('InventarioService.refrescarDatosCPMS() - raw un pedazo', raw.substring(0, 10));
+        // console.log('InventarioService.refrescarDatosCPMS() - raw un pedazo', raw.substring(0, 10));
         const compressed = LZString.compress(raw);
         try {
-          console.log('InventarioService.refrescarDatosCPMS() - comprimiendo');
+          // console.log('InventarioService.refrescarDatosCPMS() - comprimiendo');
           localStorage.setItem(StorageVariables.SOLICITUD_CPMS, compressed);
         } catch {
           console.warn('😱 InventarioService.refrescarDatosCPMS() - localStorage lleno, omitiendo guardado');
@@ -68,6 +71,14 @@ export class InventarioService {
 
   emitirCPMS(cpms: CPMS[]) {
     this.cpmsSubject.next(cpms);
+  }
+
+  emitirCPMSCluesActual(cpms: CPMS[]) {
+    this.cpmsCluesActualSubject.next(cpms);
+  }
+
+  emitirInventario(inventario: Inventario[]) {
+    this.inventarioSubject.next(inventario);
   }
 
   limpiarCPMS() {

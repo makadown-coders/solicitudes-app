@@ -68,3 +68,20 @@
       class="absolute top-2 right-2 text-gray-500 text-lg font-bold hover:text-gray-700">×</button>
   </div>
 </div>
+
+<!-- Modal flotante para avisar que se están cargando los CPMS -->
+<div *ngIf="(inventarioService.cargandoCPMS$| async) || refrescandoCPMSdesdeLayout()"  
+        class="z-50 fixed inset-0 flex items-center justify-center pointer-events-none">
+    <div
+        class="px-6 py-4 w-[90%] text-green-900 text-center text-base font-semibold bg-white/90 rounded-xl border-green-300 shadow-lg border sm:w-auto">
+        🚀 Refrescando CPMs...
+    </div>
+</div>
+
+<div *ngIf="(inventarioService.cargandoInventario$| async)" 
+        class="z-50 fixed inset-0 flex items-center justify-center pointer-events-none">
+    <div
+        class="px-6 py-4 w-[90%] text-green-900 text-center text-base font-semibold bg-white/90 rounded-xl border-green-300 shadow-lg border sm:w-auto">
+        🚀 Refrescando existencias ...
+    </div>
+</div>

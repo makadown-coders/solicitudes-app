@@ -63,7 +63,8 @@ export class ExcelService {
         nombreArchivo: string,
         articulosSolicitados: ArticuloSolicitud[],
         standalone: boolean,
-        existencias: InventarioDisponibles[]
+        existencias: InventarioDisponibles[],
+        cpmsDeCluesActual: CPMS[]
     ) {
         // primero ordenar articulos solicitados por clave en orden ascendente
         articulosSolicitados.sort((a, b) => a.clave.localeCompare(b.clave));
@@ -113,7 +114,9 @@ export class ExcelService {
         worksheet!.getCell('F7').value = F7;
         worksheet!.getCell('F8').value = F8;
         // A partir de B12 iterar los artículos desde B hasta F donde 
-        // B = # de renglon, C = clave, D = descripción, E = unidad, F = cantidad
+        // B = # de renglon, C = Clasificacion VEN , D = clave, 
+        // E = descripción, F = unidad, G = cantidad
+        // H = CPM, I = AZM, J = AZT, K = AZE
         for (let i = 0; i < articulosSolicitados.length; i++) {
             const renglon = i + 12;
             worksheet!.getCell(`B${renglon}`).value = i + 1;
@@ -121,14 +124,31 @@ export class ExcelService {
             worksheet!.getCell(`D${renglon}`).value = articulosSolicitados[i].clave;
             worksheet!.getCell(`E${renglon}`).value = articulosSolicitados[i].descripcion;
             worksheet!.getCell(`F${renglon}`).value = articulosSolicitados[i].unidadMedida;
-            worksheet!.getCell(`G${renglon}`).value = articulosSolicitados[i].cantidad;
             const existencia = existencias.find(e => e.clave === articulosSolicitados[i].clave)
             const existenciaAZT = existencia ? existencia.existenciasAZT : 0;
             const existenciaAZE = existencia ? existencia.existenciasAZE : 0;
             const existenciaAZM = existencia ? existencia.existenciasAZM : 0;
-            worksheet!.getCell(`H${renglon}`).value = existenciaAZM;
-            worksheet!.getCell(`I${renglon}`).value = existenciaAZT;
-            worksheet!.getCell(`J${renglon}`).value = existenciaAZE;
+            const cpm = cpmsDeCluesActual
+                .find(cpm => cpm.clave === articulosSolicitados[i].clave)?.cantidad ?? 0;
+            const cantidad = articulosSolicitados[i].cantidad;
+            
+            const celdaCantidad = worksheet!.getCell(`G${renglon}`);
+            celdaCantidad.value = cantidad;
+
+            if (cpm > 0 && cantidad > cpm) {
+                celdaCantidad.font = { color: { argb: 'FFFF0000' } }; // texto rojo
+                celdaCantidad.border = {
+                    top: { style: 'thin', color: { argb: 'FFFF0000' } },
+                    bottom: { style: 'thin', color: { argb: 'FFFF0000' } },
+                    left: { style: 'thin', color: { argb: 'FFFF0000' } },
+                    right: { style: 'thin', color: { argb: 'FFFF0000' } },
+                };
+            }
+
+            worksheet!.getCell(`H${renglon}`).value = cpm;
+            worksheet!.getCell(`I${renglon}`).value = existenciaAZM;
+            worksheet!.getCell(`J${renglon}`).value = existenciaAZT;
+            worksheet!.getCell(`K${renglon}`).value = existenciaAZE;
         }
         const buffer = await workbook.xlsx.writeBuffer();
         this.descargarArchivo(buffer, nombreArchivo);
@@ -396,7 +416,7 @@ export class ExcelService {
      * El archivo es de acuerdo es al formato oficial proporcionado por unidad medica
      * @param buffer 
      */
-    public procesarArchivoCPMS(buffer: ArrayBuffer) {        
+    public procesarArchivoCPMS(buffer: ArrayBuffer) {
         const workbook = XLSX.read(buffer, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
