@@ -148,27 +148,22 @@ export class ExcelService {
                     };
                 } else if (cantidad < cpm) {
                     // en texto azul
-                    celdaCantidad.font = { color: { argb: '0000FFFF' } };
+                    celdaCantidad.font = { color: { argb: '3933ff' } };
                     celdaCantidad.border = {
-                        top: { style: 'thin', color: { argb: '0000FFFF' } },
-                        bottom: { style: 'thin', color: { argb: '0000FFFF' } },
-                        left: { style: 'thin', color: { argb: '0000FFFF' } },
-                        right: { style: 'thin', color: { argb: '0000FFFF' } },
+                        top: { style: 'thin', color: { argb: '3933ff' } },
+                        bottom: { style: 'thin', color: { argb: '3933ff' } },
+                        left: { style: 'thin', color: { argb: '3933ff' } },
+                        right: { style: 'thin', color: { argb: '3933ff' } },
                     };
                 }
             }
             
             const celdaCpm = worksheet!.getCell(`H${renglon}`);
             celdaCpm.value = cpm;
-            // poner la celda de cpm en Ffff00 si cpm === 0
+            // poner background de la celda de cpm en f3ff33 si cpm === 0
             if (cpm === 0) {
-                celdaCpm.font = { color: { argb: 'FFFF0000' } };
-                celdaCpm.border = {
-                    top: { style: 'thin', color: { argb: 'FFFF0000' } },
-                    bottom: { style: 'thin', color: { argb: 'FFFF0000' } },
-                    left: { style: 'thin', color: { argb: 'FFFF0000' } },
-                    right: { style: 'thin', color: { argb: 'FFFF0000' } },
-                }
+                // FONDO EN AMARILLO!
+                celdaCpm.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'f3ff33' } }; 
             }
 
             worksheet!.getCell(`I${renglon}`).value = existenciaAZM;
