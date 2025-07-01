@@ -10,6 +10,7 @@ import { ClasificadorVEN } from '../models/clasificador-ven';
 import { Inventario, InventarioDisponibles, InventarioRow } from '../models/Inventario';
 import { StorageSolicitudService } from './storage-solicitud.service';
 import { CPMS } from '../models/CPMS';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
@@ -76,8 +77,9 @@ export class ExcelService {
         let F8 = '';
 
         const datosCluesStr = this.solicitudService.getDatosCluesFromLocalStorage();
+        let datosClues: DatosClues | null = null;
         if (datosCluesStr && !standalone) {
-            const datosClues = JSON.parse(datosCluesStr) as DatosClues;
+            datosClues = JSON.parse(datosCluesStr) as DatosClues;
             B4 = datosClues.nombreHospital;
             E4 = datosClues.tipoInsumo;
             F5 = datosClues.periodo;
@@ -131,26 +133,66 @@ export class ExcelService {
             const cpm = cpmsDeCluesActual
                 .find(cpm => cpm.clave === articulosSolicitados[i].clave)?.cantidad ?? 0;
             const cantidad = articulosSolicitados[i].cantidad;
-            
+
             const celdaCantidad = worksheet!.getCell(`G${renglon}`);
             celdaCantidad.value = cantidad;
 
-            if (cpm > 0 && cantidad > cpm) {
-                celdaCantidad.font = { color: { argb: 'FFFF0000' } }; // texto rojo
-                celdaCantidad.border = {
+            if (cpm > 0) {
+                if (cantidad > cpm) {
+                    celdaCantidad.font = { color: { argb: 'FFFF0000' } }; // texto rojo
+                    celdaCantidad.border = {
+                        top: { style: 'thin', color: { argb: 'FFFF0000' } },
+                        bottom: { style: 'thin', color: { argb: 'FFFF0000' } },
+                        left: { style: 'thin', color: { argb: 'FFFF0000' } },
+                        right: { style: 'thin', color: { argb: 'FFFF0000' } },
+                    };
+                } else if (cantidad < cpm) {
+                    // en texto azul
+                    celdaCantidad.font = { color: { argb: '0000FFFF' } };
+                    celdaCantidad.border = {
+                        top: { style: 'thin', color: { argb: '0000FFFF' } },
+                        bottom: { style: 'thin', color: { argb: '0000FFFF' } },
+                        left: { style: 'thin', color: { argb: '0000FFFF' } },
+                        right: { style: 'thin', color: { argb: '0000FFFF' } },
+                    };
+                }
+            }
+            
+            const celdaCpm = worksheet!.getCell(`H${renglon}`);
+            celdaCpm.value = cpm;
+            // poner la celda de cpm en Ffff00 si cpm === 0
+            if (cpm === 0) {
+                celdaCpm.font = { color: { argb: 'FFFF0000' } };
+                celdaCpm.border = {
                     top: { style: 'thin', color: { argb: 'FFFF0000' } },
                     bottom: { style: 'thin', color: { argb: 'FFFF0000' } },
                     left: { style: 'thin', color: { argb: 'FFFF0000' } },
                     right: { style: 'thin', color: { argb: 'FFFF0000' } },
-                };
+                }
             }
 
-            worksheet!.getCell(`H${renglon}`).value = cpm;
             worksheet!.getCell(`I${renglon}`).value = existenciaAZM;
             worksheet!.getCell(`J${renglon}`).value = existenciaAZT;
             worksheet!.getCell(`K${renglon}`).value = existenciaAZE;
         }
         const buffer = await workbook.xlsx.writeBuffer();
+        // 1. Convertir el buffer a base64
+        const base64 = await this.convertirBufferABase64(buffer);
+
+        // 2. Enviar al backend (ajusta URL si es necesario)
+        await fetch(environment.apiUrl + '/historial', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nombreArchivo,
+                contenidoBase64: base64,
+                nombre: datosClues?.responsableCaptura ?? 'Desconocido',
+                unidad: datosClues?.nombreHospital ?? '',
+                clues: datosClues?.hospital?.cluesimb ?? '',
+                periodo: datosClues?.periodo ?? '',
+                tipoMime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            })
+        });
         this.descargarArchivo(buffer, nombreArchivo);
     }
 
@@ -162,88 +204,34 @@ export class ExcelService {
             '';
     }
 
-    async exportarCitasConTemplate(
-        templateUrl: string,
-        nombreArchivo: string,
-        encabezado: string,
-        registros: any[]
-    ) {
-        const workbook = new ExcelJS.Workbook();
-        const response = await fetch(templateUrl);
-        const arrayBuffer = await response.arrayBuffer();
-        await workbook.xlsx.load(arrayBuffer);
+    private async convertirBufferABase64(buffer: ArrayBuffer): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
 
-        const worksheet = workbook.worksheets[0];
+            reader.onloadend = () => {
+                const result = reader.result as string;
 
-        //  worksheet.mergeCells('A1:O1'); // Asegura que A1 esté mergeada si aún no lo está
-        // Set encabezado en A1
-        worksheet.getCell('A1').value = encabezado;
-        /* const celdaTitulo = worksheet.getCell('A1');
-           celdaTitulo.value = encabezado;
-           celdaTitulo.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-           celdaTitulo.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 14 };
-           celdaTitulo.fill = {
-               type: 'pattern',
-               pattern: 'solid',
-               fgColor: { argb: 'FF006341' } // Verde oscuro
-           };
-           */
+                // Asegurarse de extraer solo la parte Base64 tras la coma
+                if (result && result.includes('base64,')) {
+                    const base64String = result.split('base64,')[1];
+                    resolve(base64String);
+                } else {
+                    // Si no tiene 'base64,', devolver todo como fallback
+                    resolve(result);
+                }
+            };
 
-        const formatFecha = (fecha: string | Date | null): string => {
-            if (!fecha) return '';
-            const date = new Date(fecha);
-            if (isNaN(date.getTime())) return '';
-            const dia = String(date.getDate()).padStart(2, '0');
-            const mes = String(date.getMonth() + 1).padStart(2, '0');
-            const anio = date.getFullYear();
-            return `${dia}/${mes}/${anio}`;
-        };
+            reader.onerror = () => {
+                reject(new Error('Error al leer el buffer'));
+            };
 
-        // Escribe a partir de A3 (row = 3)
-        registros.forEach((reg, index) => {
-            const rowIndex = 3 + index;
-            worksheet.getCell(`A${rowIndex}`).value = 'BAJA CALIFORNIA';
-            worksheet.getCell(`B${rowIndex}`).value = reg.orden_de_suministro;
-            worksheet.getCell(`C${rowIndex}`).value = reg.clues_destino;
-            worksheet.getCell(`D${rowIndex}`).value = reg.unidad;
-            worksheet.getCell(`E${rowIndex}`).value = reg.proveedor;
-            worksheet.getCell(`F${rowIndex}`).value = reg.clave_cnis;
-            worksheet.getCell(`G${rowIndex}`).value = reg.descripcion;
-            worksheet.getCell(`H${rowIndex}`).value = reg.tipo_de_red;
-            worksheet.getCell(`I${rowIndex}`).value = +reg.cantidad || 0;
-            worksheet.getCell(`J${rowIndex}`).value = reg.tarimas || '';
-            worksheet.getCell(`K${rowIndex}`).value = reg.fecha || '';
-            /*worksheet.getCell(`L${rowIndex}`).value = reg.hora || '';*/
-            const celdaHora = worksheet.getCell(`L${rowIndex}`);
-            const [hh, mm] = reg.hora.split(':');
-            const isPM = +hh >= 12;
-            const hora12 = (+hh % 12 || 12).toString().padStart(2, '0');
-            const horaFormateada = `${hora12}:${mm}:00 ${isPM ? 'p.m.' : 'a.m.'}`;
-            worksheet.getCell(`L${rowIndex}`).value = horaFormateada;
+            // Usar el tipo MIME correcto para archivos Excel .xlsx
+            const blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
 
-            worksheet.getCell(`M${rowIndex}`).value = reg.cita_atendida || '';
-            worksheet.getCell(`N${rowIndex}`).value = reg.estatus_excel || '';
-            worksheet.getCell(`O${rowIndex}`).value =
-                reg.fecha_de_cita ? formatFecha(reg.fecha_de_cita) : '';
-
-            for (let col = 1; col <= 15; col++) {
-                const cell = worksheet.getCell(rowIndex, col);
-                cell.font = { size: 9 };
-                cell.border = {
-                    top: { style: 'thin' },
-                    left: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    right: { style: 'thin' },
-                };
-                cell.alignment = {
-                    vertical: 'middle',
-                    horizontal: col === 12 ? 'right' : 'center'
-                };
-            }
+            reader.readAsDataURL(blob);
         });
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        this.descargarArchivo(buffer, nombreArchivo);
     }
 
 

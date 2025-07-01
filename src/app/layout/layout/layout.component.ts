@@ -88,19 +88,33 @@ export class LayoutComponent implements OnInit, OnChanges {
     // 1. Establece el signal a true para mostrar el indicador de carga.
     this.refrescandoCPMSdesdeLayout.set(true);
     // console.log('refrescando CPMS (inicio)', this.refrescandoCPMSdesdeLayout());
+    let banderaRefrescado = false;
+
+    // Verificar si la fecha de refrescado es la misma que la actual para evitar refrescados innecesarios
+    const timestampFallback = localStorage.getItem('ultimaVezRefrescadoCPMS');
+    const ahora = Date.now(); 
+    // verificar si hay valor en timestampFallback
+    if (timestampFallback) {
+       // si la fecha (NO EL NUMERO) de refrescado corresponde a la fecha actual, establecer la bandera a true
+      if (new Date(timestampFallback).getDate() === new Date().getDate()) {
+        banderaRefrescado = true;
+      }    
+    }
 
     // 2. Suscríbete al Observable que obtiene los CPMS del localStorage.
     this.storageSolicitudService.getCPMSFromLocalStorage$().pipe(
       // Este `map` se ejecuta una vez que los CPMS del localStorage han sido obtenidos.
       // Aquí decides qué operación asíncrona debe seguir.
       map(cpms => {
-        // console.log('CPMS obtenidos de localStorage:', cpms); // Para depuración
-
+        //console.log('CPMS obtenidos de localStorage:', cpms); // Para depuración
         // Si la cantidad de CPMS es 0 o si hoy es primero o 15 de mes, refrescar datos del servicio.
-        if (cpms.length === 0 || new Date().getDate() === 1 || new Date().getDate() === 15) {
+        if (cpms.length === 0 ||
+            ((new Date().getDate() === 1 || new Date().getDate() === 15 ) && banderaRefrescado === true)) {
           // Asume que inventarioService.refrescarDatosCPMS() también devuelve un Observable.
           // Por ejemplo, para una llamada HTTP.
           this.inventarioService.refrescarDatosCPMS();
+          // crear una bandera para que no refresque mas de una vez en el mismo dia
+          localStorage.setItem('ultimaVezRefrescadoCPMS', Date.now().toString());
         } else {
           // Si no necesita refrescar, simplemente emite los CPMS existentes.
           // Asume que inventarioService.emitirCPMS() es síncrono o devuelve un Observable

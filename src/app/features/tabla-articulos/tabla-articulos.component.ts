@@ -11,7 +11,7 @@ import { DatosClues } from '../../models/datos-clues';
 import { CPMS } from '../../models/CPMS';
 import { InventarioService } from '../../services/inventario.service';
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
-import { AlertCircleIcon, InfoIcon, LucideAngularModule } from 'lucide-angular';
+import { AlertCircleIcon, InfoIcon, LucideAngularModule, TriangleAlertIcon } from 'lucide-angular';
 
 @Component({
   selector: 'app-tabla-articulos',
@@ -30,7 +30,7 @@ export class TablaArticulosComponent implements OnChanges, OnInit {
   cpmsPorClues: CPMS[] = [];
   alertCircle = AlertCircleIcon;
   infoIcon = InfoIcon;
-
+  triangleAlertIcon = TriangleAlertIcon;
 
   private cdRef = inject(ChangeDetectorRef);
 

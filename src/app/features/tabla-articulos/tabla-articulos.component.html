@@ -43,14 +43,24 @@
 
                     <!-- Icono de advertencia cuando cantidad > CPM -->
                     <ng-container *ngIf="existenciaCPM > 0 && articulo.cantidad > existenciaCPM">
+                        <span class="relative flex"
+                         [attr.title]="'Cantidad solicitada excede el CPM estimado (' + existenciaCPM + ')'">
+                            <span
+                                class="absolute inline-flex h-full w-full bg-red-400 rounded-full opacity-75 animate-ping"></span>
+                            <lucide-angular [img]="triangleAlertIcon" class="w-4 h-4 text-red-800"></lucide-angular>
+                        </span>
+                    </ng-container>
+
+                    <!-- Icono de advertencia cuando cantidad < CPM -->
+                    <ng-container *ngIf="existenciaCPM > 0 && articulo.cantidad < existenciaCPM">
                         <lucide-angular [img]="alertCircle" class="w-4 h-4 text-yellow-500"
-                            [attr.title]="'Cantidad solicitada excede el CPM estimado (' + existenciaCPM + ')'">
+                            [attr.title]="'Cantidad solicitada es menor al CPM estimado (' + existenciaCPM + ')'">
                         </lucide-angular>
                     </ng-container>
 
                     <!-- Icono de información cuando CPM es 0 -->
                     <ng-container *ngIf="existenciaCPM === 0">
-                        <lucide-angular [img]="infoIcon" class="w-4 h-4 text-gray-400"
+                        <lucide-angular [img]="infoIcon" class="w-4 h-4 text-blue-800"
                             title="Sin datos de consumo promedio mensual para este insumo">
                         </lucide-angular>
                     </ng-container>
