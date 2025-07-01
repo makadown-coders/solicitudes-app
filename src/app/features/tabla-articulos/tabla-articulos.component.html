@@ -6,10 +6,11 @@
         <tr>
             <th class="p-2">#</th>
             <th class="p-2">Clave</th>
-            <th class="p-2">Clasificacion</th>
-            <th class="p-2">Descripción</th>
-            <th class="p-2">Unidad</th>
+            <th class="hidden p-2 xl:table-cell">Clasificacion</th>
+            <th class="hidden p-2 lg:table-cell">Descripción</th>
+            <th class="hidden p-2 xl:table-cell">Unidad</th>
             <th class="p-2">Solic.</th>
+            <th class="p-2">CPM</th>
             <th class="p-2">Exist. AZM </th>
             <th class="p-2">Exist. AZT </th>
             <th class="p-2">Exist. AZE </th>
@@ -27,15 +28,53 @@
             [class.text-xl.font-semibold.text-center.border.rounded]="modoEdicionIndex !== i && articulo.cantidad <= 0">
 
             <td class="p-2 w-[1%] text-center font-semibold text-gray-700 whitespace-nowrap">{{ i + 1 }}</td>
-            <td class="p-2">{{ articulo.clave }}</td>
-            <td class="overflow-hidden p-2 max-w-[100px] text-ellipsis whitespace-nowrap break-words sm:whitespace-normal"
+
+
+            @let existencia = buscarEnInventario(articulo.clave);
+
+            @let existenciaCPM = buscarCPM(articulo.clave);
+            @let existenciaAZT = existencia ? existencia.existenciasAZT : 0;
+            @let existenciaAZE = existencia ? existencia.existenciasAZE : 0;
+            @let existenciaAZM = existencia ? existencia.existenciasAZM : 0;
+
+            <td class="p-2" [attr.title]="articulo.descripcion">
+                <div class="flex items-center justify-left gap-1">
+                    <span class="font-semibold">{{ articulo.clave }}</span>
+
+                    <!-- Icono de advertencia cuando cantidad > CPM -->
+                    <ng-container *ngIf="existenciaCPM > 0 && articulo.cantidad > existenciaCPM">
+                        <span class="relative flex"
+                         [attr.title]="'Cantidad solicitada excede el CPM estimado (' + existenciaCPM + ')'">
+                            <span
+                                class="absolute inline-flex h-full w-full bg-red-400 rounded-full opacity-75 animate-ping"></span>
+                            <lucide-angular [img]="triangleAlertIcon" class="w-4 h-4 text-red-800"></lucide-angular>
+                        </span>
+                    </ng-container>
+
+                    <!-- Icono de advertencia cuando cantidad < CPM -->
+                    <ng-container *ngIf="existenciaCPM > 0 && articulo.cantidad < existenciaCPM">
+                        <lucide-angular [img]="alertCircle" class="w-4 h-4 text-yellow-500"
+                            [attr.title]="'Cantidad solicitada es menor al CPM estimado (' + existenciaCPM + ')'">
+                        </lucide-angular>
+                    </ng-container>
+
+                    <!-- Icono de información cuando CPM es 0 -->
+                    <ng-container *ngIf="existenciaCPM === 0">
+                        <lucide-angular [img]="infoIcon" class="w-4 h-4 text-blue-800"
+                            title="Sin datos de consumo promedio mensual para este insumo">
+                        </lucide-angular>
+                    </ng-container>
+                </div>
+            </td>
+            <td class="overflow-hidden hidden p-2 max-w-[100px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell"
                 [attr.title]="clasificacion(articulo.clave)">{{ clasificacion(articulo.clave) }}</td>
-            <td class="overflow-hidden p-2 max-w-[250px] text-ellipsis whitespace-pre-wrap break-words sm:whitespace-normal"
+            <td class="overflow-hidden hidden p-2 max-w-[250px] text-ellipsis whitespace-pre-wrap break-words sm:whitespace-normal lg:table-cell"
                 [attr.title]="articulo.descripcion">{{
                 articulo.descripcion }}</td>
-            <td class="overflow-hidden p-2 max-w-[150px] text-ellipsis whitespace-nowrap break-words sm:whitespace-normal"
+            <td class="overflow-hidden hidden p-2 max-w-[150px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell"
                 [attr.title]="articulo.unidadMedida">{{
                 articulo.unidadMedida }}</td>
+
             <td class="p-2">
                 <ng-container *ngIf="modoEdicionIndex === i; else cantidadNormal">
                     <div class="relative inline-block w-24">
@@ -50,19 +89,14 @@
                     </div>
                 </ng-container>
                 <ng-template #cantidadNormal>
-
                     {{ articulo.cantidad }}
-
                 </ng-template>
             </td>
-            @let existencia = buscarEnInventario(articulo.clave);
-            @let existenciaAZT = existencia ? existencia.existenciasAZT : 0;
-            @let existenciaAZE = existencia ? existencia.existenciasAZE : 0;
-            @let existenciaAZM = existencia ? existencia.existenciasAZM : 0;
 
+            <th class="p-2"> {{ existenciaCPM }} </th>
             <th class="p-2"> {{ existenciaAZM }} </th>
-            <th class="p-2"> {{existenciaAZT}} </th>
-            <th class="p-2"> {{existenciaAZE}} </th>
+            <th class="p-2"> {{ existenciaAZT }} </th>
+            <th class="p-2"> {{ existenciaAZE }} </th>
             <td class="p-2 text-center">
                 <ng-container *ngIf="modoEdicionIndex === i; else accionesNormales">
                     <button (click)="mandarConfirmacion(i)" title="Guardar"

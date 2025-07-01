@@ -84,7 +84,10 @@ export class CapturaCluesComponent implements OnInit {
       }
       this.tipoPedido = datosClues?.tipoPedido ?? 'Ordinario';
       this.responsableCaptura = datosClues?.responsableCaptura ?? '';
-
+    }
+    // TODO: TEMPORAL EN LO QUE RESUELVE CDMX
+    if ( this.estaEnModoCapturaPrimerNivel() ) {
+      this.tiposInsumoSeleccionados = ['Medicamento'];
     }
   }
 
@@ -134,6 +137,21 @@ export class CapturaCluesComponent implements OnInit {
     this.selectedHospital = hospital;
     this.nombreHospital = hospital.nombre;
     this.autocompleteHospitales = [];
+    
+    
+    if (this.esValido) {
+      // Envía los datos capturados si cambia de hospital con el formulario válido
+      this.datosCapturados.emit({
+        nombreHospital: this.nombreHospital,
+        tipoInsumo: this.tiposInsumoSeleccionados.join(', '),
+        periodo: this.periodoFormateado,
+        hospital: this.selectedHospital,
+        fechaInicio: this.fechaInicio,
+        fechaFin: this.fechaFin,
+        tipoPedido: this.tipoPedido,
+        responsableCaptura: this.responsableCaptura,
+      });
+    }
   }
 
   onHospitalKeyDown(event: KeyboardEvent) {

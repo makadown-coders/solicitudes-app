@@ -1,26 +1,36 @@
 // src/app/features/tabla-articulos/tabla-articulos.component.ts
-import { Component, Input, Output, EventEmitter, inject, ChangeDetectorRef, AfterContentChecked, AfterContentInit, OnChanges, SimpleChange, SimpleChanges, Sanitizer, SecurityContext } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, ChangeDetectorRef, AfterContentChecked, AfterContentInit, OnChanges, SimpleChange, SimpleChanges, Sanitizer, SecurityContext, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { clasificacionMedicamentosData } from '../../models/clasificacionMedicamentosData';
 import { ClasificadorVEN } from '../../models/clasificador-ven';
 import { Inventario, InventarioDisponibles } from '../../models/Inventario';
 import { DomSanitizer } from '@angular/platform-browser';
+import { StorageSolicitudService } from '../../services/storage-solicitud.service';
+import { DatosClues } from '../../models/datos-clues';
+import { CPMS } from '../../models/CPMS';
+import { InventarioService } from '../../services/inventario.service';
+import { ArticuloSolicitud } from '../../models/articulo-solicitud';
+import { AlertCircleIcon, InfoIcon, LucideAngularModule, TriangleAlertIcon } from 'lucide-angular';
 
 @Component({
   selector: 'app-tabla-articulos',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule],
   templateUrl: './tabla-articulos.component.html',
 })
-export class TablaArticulosComponent implements OnChanges {
+export class TablaArticulosComponent implements OnChanges, OnInit {
 
-  @Input() articulosSolicitados: any[] = [];
+  @Input() articulosSolicitados: ArticuloSolicitud[] = [];
   @Input() modoEdicionIndex: number | null = null;
   @Input() cantidadTemporal: number = 0;
   @Input() inventario: InventarioDisponibles[] = [];
 
-  tooltips: string[] = [];
+  cluesActual: string = '';
+  cpmsPorClues: CPMS[] = [];
+  alertCircle = AlertCircleIcon;
+  infoIcon = InfoIcon;
+  triangleAlertIcon = TriangleAlertIcon;
 
   private cdRef = inject(ChangeDetectorRef);
 
@@ -30,47 +40,48 @@ export class TablaArticulosComponent implements OnChanges {
   @Output() editar = new EventEmitter<number>();
   @Output() eliminar = new EventEmitter<number>();
 
-  activeTooltip: number | null = null;
-  currentTooltip: any = null;
-  tooltipPosition: { x: number, y: number } = { x: 0, y: 0 };
   sanitizer = inject(DomSanitizer);
+  storageSolicitudService = inject(StorageSolicitudService);
+  inventarioService = inject(InventarioService);
 
-  constructor() { }
+  constructor() {
+    // console.log('constructor de TablaArticulosComponent');
 
-  // Al actualizar articulosSolicitados, actualizar tooltips}
+  }
+
+  ngOnInit(): void {
+    this.inventarioService.cpms$.subscribe(cpms => {
+      if (!cpms || cpms.length === 0) return;
+
+      const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
+      if (cluesStr) {
+        const datosClues = JSON.parse(cluesStr) as DatosClues;
+        this.cluesActual = datosClues.hospital?.cluesimb ?? '';
+        // console.log('constructor - Buscando cpm por clues', this.cluesActual);
+        this.cpmsPorClues = cpms.filter(cpms => cpms.cluesimb === this.cluesActual);
+        this.inventarioService.emitirCPMSCluesActual(this.cpmsPorClues);
+        // console.log('constructor - CPMSCluesActual ha sido emitido');
+      }
+    });
+  }
+
+  // Al actualizar articulosSolicitados refrescar CPMs
   ngOnChanges(changes: SimpleChanges) {
     // console.log('ngOnChanges', changes);
     if (changes['articulosSolicitados']) {
-      this.actualizarTooltips();
+      // Actualizar CPMs por clave y clues
+      const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
+      if (cluesStr) {
+        const datosClues = JSON.parse(cluesStr) as DatosClues;
+        this.cluesActual = datosClues.hospital?.cluesimb ?? '';
+        //  console.log('ngOnChanges - Buscando cpm por clues', this.cluesActual);
+        const cpms = this.storageSolicitudService.getCPMSFromLocalStorage();
+        // console.log('ngOnChanges - cpms totales', cpms.length);
+        this.cpmsPorClues = cpms.filter(cpms => cpms.cluesimb === this.cluesActual);
+        this.inventarioService.emitirCPMSCluesActual(this.cpmsPorClues);
+        // console.log('ngOnChanges - cpms actualizados en articulosSolicitados', this.articulosSolicitados);
+      }
     }
-    /*if (changes['inventario'] && this.inventario.length > 0 && this.articulosSolicitados.length > 0) {
-      this.actualizarTooltips();
-    }*/
-  }
-
-  actualizarTooltips() {
-    // Por cada articulo solicitado, buscar en inventario y actualizar tooltip.
-    // El tooltip va mostrar en que almacen se encuentra el articulo, y cuantos hay, cuantos comprometidos.
-    // Es probable que el articulo esté en varios almacenes y varios lotes.
-    this.tooltips = [];
-    for (let i: number = 0; i < this.articulosSolicitados.length; i++) {
-      //const articuloSolicitado = this.articulosSolicitados[i];
-      let tooltip = '';
-
-      // TODO: quiza cambiar esto por leyenda sobre que este insumo no es medicamento
-      //       cuando la captura de insumos no sea de medicamentos...
-      /* if (this.inventario.length > 0) {
-         const inventariosConArticulo = this.inventario.filter(inventario => inventario.clave === articuloSolicitado.clave);
- 
-         if (inventariosConArticulo.length > 0) {
-           const inventario = inventariosConArticulo[0];
-           tooltip = `Almacen: ${inventario.almacen}, Disponibles: ${inventario.disponible}, Comprometidos: ${inventario.comprometidos}`;
-         }
-       }*/
-      this.tooltips.push(tooltip);
-    }
-    // console.log(this.tooltips);
-    this.cdRef.detectChanges();
   }
 
   esCantidadInvalida(): boolean {
@@ -88,35 +99,16 @@ export class TablaArticulosComponent implements OnChanges {
     return clasificacion ? ClasificadorVEN[clasificacion.ven] : '';
   }
 
-  showTooltip(index: number) {
-    this.activeTooltip = index;
-    this.currentTooltip = this.tooltips[index];
-  }
-
-  hideTooltip() {
-    this.activeTooltip = null;
-    this.currentTooltip = null;
-  }
-
-  moveTooltip(event: MouseEvent, i: number) {
-    if (this.activeTooltip === i) {
-      // Ajusta estos valores para cambiar el offset del tooltip
-      const offsetX = 15;
-      const offsetY = 15;
-
-      this.tooltipPosition = {
-        x: event.clientX + offsetX,
-        y: event.clientY + offsetY
-      };
-    }
-  }
-
   getSafeHtml(html: string) {
     return this.sanitizer.sanitize(SecurityContext.HTML,
       this.sanitizer.bypassSecurityTrustHtml(html));
   }
 
-  buscarEnInventario(clave: string) {
-    return this.inventario.find(inventario => inventario.clave === clave);
+  buscarEnInventario(clave: string): InventarioDisponibles | undefined {
+    return this.inventario.find(inventario => inventario.clave === clave) || undefined;
+  }
+
+  public buscarCPM(clave: string) {
+    return this.cpmsPorClues.find(cpm => cpm.clave === clave)?.cantidad ?? 0;
   }
 }

@@ -1,3 +1,5 @@
+// src/app/shared/storage-variables.ts
+ 
 export const enum StorageVariables {
     // Dashboard Abasto tab principal
     DASH_ABASTO_ACTIVE_TAB = 'dash_abasto_active_tab',
@@ -42,5 +44,6 @@ export const enum StorageVariables {
     SOLICITUD_DATOS_CLUES_PRIMER_NIVEL = 'solicitud_datos_clues_primer_nivel',
     SOLICITUD_DATOS_CLUES_SEGUNDO_NIVEL = 'datosClues',
     SOLICITUD_ACTIVE_TAB_PRIMER_NIVEL = 'solicitud_active_tab_primer_nivel',
-    SOLICITUD_ACTIVE_TAB_SEGUNDO_NIVEL = 'activeTab'
+    SOLICITUD_ACTIVE_TAB_SEGUNDO_NIVEL = 'activeTab',
+    SOLICITUD_CPMS = 'cpms',
 }

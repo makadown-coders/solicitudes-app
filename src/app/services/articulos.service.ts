@@ -25,6 +25,10 @@ export class ArticulosService {
     });
   }
 
+  esPrimerNivel(clave: string) {
+    return this.medicamentosPrimerNivel.some(art => art.clave === clave);
+  }
+
   buscarArticulos(termino: string): Observable<{ resultados: ArticuloSolicitud[]; total: number }> {
     return this.http.get<{ resultados: ArticuloSolicitud[]; total: number }>(
       `${this.apiUrl}?q=${encodeURIComponent(termino)}`
@@ -50,7 +54,8 @@ export class ArticulosService {
             clave: art.clave,
             descripcion: art.descripcion,
             unidadMedida: art.presentacion ?? '',
-            cantidad: 0, // valor neutral inicial
+            cantidad: 0, // valor neutral inicial,
+            cpm: 0 // valor neutral inicial
           }));
           return {
             resultados: res,
@@ -76,6 +81,7 @@ export class ArticulosService {
             descripcion: art.descripcion,
             unidadMedida: art.presentacion ?? '',
             cantidad: 0, // valor neutral inicial
+            cpm: 0 // valor neutral inicial
           }));
           return {
             resultados: res,

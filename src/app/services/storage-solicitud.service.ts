@@ -2,8 +2,11 @@
 import { Injectable } from '@angular/core';
 import { ModoCapturaSolicitud } from '../shared/modo-captura-solicitud';
 import { StorageVariables } from '../shared/storage-variables';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, defer, delay, map, Observable, of, timer } from 'rxjs';
 import { DatosClues } from '../models/datos-clues';
+import { CPMS } from '../models/CPMS';
+import * as LZString from 'lz-string';
+import { Inventario } from '../models/Inventario';
 
 /**
  * Servicio de solicitud
@@ -12,7 +15,7 @@ import { DatosClues } from '../models/datos-clues';
  * - Saber si se captura solo Unidades Médicas (1er nivel)
  * - Administra los nombres de las variables de localStorage que se usan
  */
-@Injectable({providedIn: 'root'})
+@Injectable({ providedIn: 'root' })
 export class StorageSolicitudService {
     private modoCapturaSolicitud = ModoCapturaSolicitud.SEGUNDO_NIVEL;
     private nombreUnidadSubject = new BehaviorSubject<string>('');
@@ -86,18 +89,56 @@ export class StorageSolicitudService {
         }
     }
 
+    getCPMSFromLocalStorage(): CPMS[] {
+        // obteniendo CPMS Serializado y comprimido para descomprimir y devolver
+        // console.log('obteniendo CPMS Serializado y comprimido para descomprimir y devolver');
+        const CPMScomprimido = localStorage.getItem(StorageVariables.SOLICITUD_CPMS);
+        // console.log('CPMScomprimido (un pedazo)', CPMScomprimido?.substring(0, 10));
+        if (CPMScomprimido) {
+            // console.log('descomprimiendo CPMS');
+            const raw = LZString.decompress(CPMScomprimido);
+            // console.log('raw tamanio', raw.length);
+            return raw ? JSON.parse(raw) : [];
+        }
+        return [];
+    }
+
+    getCPMSFromLocalStorage$(): Observable<CPMS[]> {
+        return defer(() => {
+            // El código dentro de defer solo se ejecuta cuando hay un suscriptor.
+            // timer(0) crea un micro-task. Esto permite que el hilo principal se libere
+            // y Angular pueda hacer su detección de cambios antes de que la descompresión bloquee.
+            return timer(0).pipe(
+                map(() => this.getCPMSFromLocalStorage()) // Llama a la función síncrona aquí
+            );
+        });
+    }
+
+    getInventarioFromLocalStorage(): Inventario[] {
+        // obteniendo inventario Serializado y comprimido para descomprimir y devolver
+        // console.log('obteniendo inventario Serializado y comprimido para descomprimir y devolver');
+        const inventarioComprimido = localStorage.getItem(StorageVariables.SOLICITUD_INVENTARIO);
+        // console.log('inventarioComprimido (un pedazo)', inventarioComprimido?.substring(0, 10));
+        if (inventarioComprimido) {
+            // console.log('descomprimiendo inventario');
+            const raw = LZString.decompress(inventarioComprimido);
+            // console.log('raw tamanio', raw.length);
+            return raw ? JSON.parse(raw) : [];
+        }
+        return [];
+    }
+
     private emitirNombreUnidad() {
-         let nombreUnidad = '';
-            const cluesStr = this.getDatosCluesFromLocalStorage();
-            if (cluesStr ) {
-              const datosClues = JSON.parse(cluesStr) as DatosClues;
-              nombreUnidad += datosClues.nombreHospital.split(' ') // Divide la cadena en palabras
+        let nombreUnidad = '';
+        const cluesStr = this.getDatosCluesFromLocalStorage();
+        if (cluesStr) {
+            const datosClues = JSON.parse(cluesStr) as DatosClues;
+            nombreUnidad += datosClues.nombreHospital.split(' ') // Divide la cadena en palabras
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitaliza cada palabra
                 .join(' '); // Une las palabras en una sola cadena
-              // nombreUnidad += '(' + datosClues.tipoInsumo + ')';
-            }
+            // nombreUnidad += '(' + datosClues.tipoInsumo + ')';
+        }
         this.nombreUnidadSubject.next(nombreUnidad);
     }
 
-    
 }

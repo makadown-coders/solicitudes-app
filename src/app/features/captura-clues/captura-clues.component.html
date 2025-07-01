@@ -61,8 +61,8 @@
 
         <div class="mb-4">
             <div class="grid gap-6 md:grid-cols-2">
-                <!-- Tipo de Insumo -->
-                <div>
+                <!-- Tipo de Insumo  (validacion temporal en lo que valida CDMX)-->
+                <div *ngIf="!this.estaEnModoCapturaPrimerNivel()">
                     <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de insumo</label>
                     <div class="space-y-2">
                         <div *ngFor="let tipo of tiposInsumoDisponibles" class="flex items-center">

@@ -39,7 +39,7 @@ export class DashboardService {
 
    // console.info('🔄 Actualizando datos del dashboard...');
     const url = `${environment.apiUrl}/citas/full`;
-    console.log('solicitando a ', url);
+    // console.log('solicitando a ', url);
     this.http.get<CitasFull>(url).subscribe({
       next: (response: CitasFull) => {        
         const citas = this.citasService.obtenerCitasDeBase64(response.citas);

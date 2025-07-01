@@ -3,6 +3,7 @@ export interface ArticuloSolicitud {
     descripcion: string;
     unidadMedida: string;
     cantidad: number;
+    cpm: number;
   }
   
 export interface Articulo {

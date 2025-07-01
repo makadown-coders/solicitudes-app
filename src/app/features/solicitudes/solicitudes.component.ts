@@ -1,8 +1,8 @@
 // src/app/features/solicitudes/solicitudes.component.ts
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
-import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { debounceTime, Subject } from 'rxjs';
+import { debounceTime, Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { NombrarArchivoModalComponent } from '../../shared/nombrar-archivo-modal/nombrar-archivo-modal.component';
 import { ConfirmacionModalComponent } from '../../shared/confirmacion-modal/confirmacion-modal.component';
@@ -15,6 +15,7 @@ import { InventarioService } from '../../services/inventario.service';
 import { Inventario, InventarioDisponibles } from '../../models/Inventario';
 import { StorageSolicitudService } from '../../services/storage-solicitud.service';
 import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
+import { CPMS } from '../../models/CPMS';
 
 
 @Component({
@@ -28,7 +29,7 @@ import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
   templateUrl: './solicitudes.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SolicitudesComponent implements OnInit, AfterViewInit {
+export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   mostrarModal = false;
   modalVisible = false;
@@ -73,6 +74,17 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   private router = inject(Router);
   public storageSolicitudService = inject(StorageSolicitudService);
 
+  // behaviorSubject para desuscribirme de todos los observables
+  private onDestroy$ = new Subject<void>();
+
+  constructor() {
+  }
+  ngOnDestroy(): void {
+    // desuscribirme usando un behaviorSubject
+    this.onDestroy$.next();
+    this.onDestroy$.complete();
+  }
+
   @HostListener('document:keydown.escape', ['$event'])
   onKeydownHandler(event: KeyboardEvent) {
     if (this.modalVisible) {
@@ -80,16 +92,22 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
     }
   }
 
-  private inventarioService = inject(InventarioService);
+  public inventarioService = inject(InventarioService);
   inventario: Inventario[] = [];
   inventarioDisponible: InventarioDisponibles[] = [];
+  cpmsDeCluesActual: CPMS[] = [];
 
   async ngOnInit() {
     if (this.router.url === '/solicitudv1') {
-      // Podrías activar un modo simplificado si lo deseas
       this.modoStandalone = true;
     } else {
       this.modoStandalone = false;
+      this.inventarioService.cpmsCluesActual$
+        .pipe(takeUntil(this.onDestroy$))
+        .subscribe(cpmsDeCluesActual => {
+          this.cpmsDeCluesActual = cpmsDeCluesActual;
+          // console.log('cpmsDeCluesActual', this.cpmsDeCluesActual[0]);
+        });
     }
 
     const guardados = this.storageSolicitudService.getArticulosSolicitadosFromLocalStorage();
@@ -97,28 +115,31 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       this.articulosSolicitados = JSON.parse(guardados);
     }
 
-    this.searchSubject.pipe(debounceTime(1000)).subscribe(texto => {
-      if (texto.length > 2) {
-        this.buscarEnDB(texto);
-      } else {
-        this.autocompleteResults = [];
-        this.selectedIndex = -1;
-        this.moreResults = false;
-        this.totalResults = 0;
-      }
-    });
+    this.searchSubject.pipe(debounceTime(1000), takeUntil(this.onDestroy$))
+      .subscribe(texto => {
+        if (texto.length > 2) {
+          this.buscarEnDB(texto);
+        } else {
+          this.autocompleteResults = [];
+          this.selectedIndex = -1;
+          this.moreResults = false;
+          this.totalResults = 0;
+        }
+      });
 
     // TODO: Comentar esto si no se desea mostrar info de inventario
-    this.inventarioService.inventario$.subscribe({
-      next: (data) => {
-        this.inventario = [...data];
-        this.calcularInventarioDisponible();
-        this.cdRef.detectChanges();
-      },
-      error: (error) => {
-        console.error('Error al obtener el inventario:', error);
-      }
-    });
+    this.inventarioService.inventario$
+      .pipe(takeUntil(this.onDestroy$))
+      .subscribe({
+        next: (data) => {
+          this.inventario = [...data];
+          this.calcularInventarioDisponible();
+          this.cdRef.detectChanges();
+        },
+        error: (error) => {
+          console.error('Error al obtener el inventario:', error);
+        }
+      });
   }
 
   calcularInventarioDisponible() {
@@ -142,6 +163,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
           existencia.existenciasAZT += item.disponible - item.comprometidos;
         }
       });
+
       this.inventarioDisponible.push(existencia);
     })
   }
@@ -296,12 +318,24 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       return;
     }
 
+    // Validar que si estoy capturando en modo primer nivel solo admita artículos de primer nivel
+    if (this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL) {
+      const esPrimerNivel = this.articulosService.esPrimerNivel(clave);
+      if (!esPrimerNivel) {
+        this.abrirModalInfo(
+          'Clave no permitida',
+          `El artículos con la clave "${clave}" no se captura en modo primer nivel.`);
+        return;
+      }
+    }
+
 
     this.articulosSolicitados.push({
       clave,
       descripcion: this.descripcionInput.trim(),
       unidadMedida: this.unidadInput.trim(),
-      cantidad: this.cantidadInput
+      cantidad: this.cantidadInput,
+      cpm: 0
     });
 
     this.storageSolicitudService
@@ -385,7 +419,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
   async exportarExcelConTemplate(nombreArchivo: string) {
     this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo,
-      this.articulosSolicitados, this.modoStandalone, this.inventarioDisponible);
+      this.articulosSolicitados, this.modoStandalone, this.inventarioDisponible,
+      this.cpmsDeCluesActual);
     this.abrirModalInfo(
       this.generarPrecarga ? 'Archivos generados' : 'Archivo generado',
       'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
@@ -519,6 +554,11 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   async manejarArchivoPrecarga(event: Event) {
     const input = event.target as HTMLInputElement;
     const archivo = (event.target as HTMLInputElement).files?.[0];
+    // este acumularía mensaje en caso de captura de primer nivel que se pretenda
+    // importar claves que no sean las de primer nivel (las de articulos-primernivel.json)
+    let mensajeErrorPrimerNivel = '';
+    let contadorErrorPrimerNivel = 0;
+
     if (!archivo) return;
 
     try {
@@ -531,12 +571,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
       // Intentar identificar columnas por nombres flexibles
       const headers = Object.keys(datos[0]).map(h => h.toLowerCase().trim());
-      console.log('datos[0]', datos[0]);
-      console.log('headers', headers);
+      // console.log('datos[0]', datos[0]);
+      // console.log('headers', headers);
       const colClave = headers.find(h => h.includes('clave'));
-      const colCantidad = headers.find(h => h.includes('cantidad')||h.includes('solicitado'));
+      const colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado'));
       if (!colClave) {
-        this.abrirModalInfo('Encabezado faltante', 
+        this.abrirModalInfo('Encabezado faltante',
           'El archivo no contiene columna con clave CNIS o formato no es válido.');
         return;
       }
@@ -555,16 +595,41 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
           existente.cantidad += cantidad;
           repetidas[clave] = (repetidas[clave] || existente.cantidad);
         } else {
+
+          // si modo captura es primer nivel, revisar primero que la clave sea de primer nivel
+          if (this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL) {
+            const esPrimerNivel = this.articulosService.esPrimerNivel(clave);
+            if (!esPrimerNivel) {
+              contadorErrorPrimerNivel++;
+              continue;
+            }
+          }
+
           nuevos.push({
             clave,
             descripcion: '',
             unidadMedida: '',
-            cantidad
+            cantidad,
+            cpm: 0
           });
+
         }
       }
 
-      if (nuevos.length === 0) {
+      // TODO: Esperar a que CDMX corrobore para ver si quitamos esta validación
+      if (contadorErrorPrimerNivel > 0) {
+        mensajeErrorPrimerNivel =
+          `Se importaron ${nuevos.length} artículos correctamente. 
+           Se encontraron ${contadorErrorPrimerNivel} claves que no pueden ser solicitadas en primer nivel.`;
+        if (Object.keys(repetidas).length > 0) {
+          mensajeErrorPrimerNivel += `Se acumularon cantidades para varias claves duplicadas.`
+        }
+        this.abrirModalInfo(nuevos.length === 0 ? 'Archivo inválido' :
+          'Claves no permitidas detectadas',
+          mensajeErrorPrimerNivel);
+      }
+
+      if (nuevos.length === 0 && contadorErrorPrimerNivel === 0) {
         this.abrirModalInfo('Archivo inválido', 'No se encontraron claves válidas para importar.');
         return;
       }
@@ -576,7 +641,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
 
       const clavesRepetidas = Object.keys(repetidas).length;
       // ⚠️ Opcional: aquí podrías invocar this.autocompletarDatos() si quieres precargar descripción/unidad
-      if (clavesRepetidas > 0) {
+      if (clavesRepetidas > 0 && contadorErrorPrimerNivel === 0) {
         const claves = Object.keys(repetidas).join(', ');
         this.abrirModalInfo('Claves repetidas detectadas',
           `Se importaron ${this.articulosSolicitados.length} artículos correctamente.
@@ -584,7 +649,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
       }
       this.autocompletarDatos(); // 👈 Aquí se llena lo demás
 
-      if (clavesRepetidas === 0) {
+      if (clavesRepetidas === 0 && contadorErrorPrimerNivel === 0) {
         this.mensajeImportacion = `Se importaron ${this.articulosSolicitados.length} artículos correctamente.`;
         setTimeout(() => {
           this.mensajeImportacion = null;
@@ -601,8 +666,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit {
   }
 
   autocompletarDatos() {
-    const claves = this.articulosSolicitados.map(a => a.clave.toLowerCase());
-
     this.articulosService.buscarArticulosv2('').subscribe({
       next: (data) => {
         const catalogo = data.resultados;
