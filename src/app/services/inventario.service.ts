@@ -6,7 +6,7 @@ import { environment } from '../../environments/environment';
 import { PeriodoFechasService } from '../shared/periodo-fechas.service';
 import { ExcelService } from './excel.service';
 import { Inventario, InventarioRow } from '../models/Inventario';
-import { StorageVariables } from '../shared/storage-variables';
+import { Existencias, StorageVariables } from '../shared/storage-variables';
 import { CPMSFull, InventarioFull } from '../models/ElementosBase64';
 import { CPMS } from '../models/CPMS';
 
@@ -26,14 +26,26 @@ export class InventarioService {
   public cpmsCluesActual$: Observable<CPMS[]> = this.cpmsCluesActualSubject.asObservable();
 
   // crear un booleano para avisar que se está cargando el CPMS
-  public cargandoCPMSBehaviorSubject = new BehaviorSubject<boolean>(false);
+  private cargandoCPMSBehaviorSubject = new BehaviorSubject<boolean>(false);
   public cargandoCPMS$ = this.cargandoCPMSBehaviorSubject.asObservable();
 
-  // crear un booleano para avisar que se está refrescando inventario
-  public cargandoInventarioBehaviorSubject = new BehaviorSubject<boolean>(false);
+  // crear un booleano para avisar que se está refrescando inventario y/o existencias
+  private cargandoInventarioBehaviorSubject = new BehaviorSubject<boolean>(false);
   public cargandoInventario$ = this.cargandoInventarioBehaviorSubject.asObservable();
 
-  constructor(private http: HttpClient) { }
+  // crear un Map de BehaviorSubject<Inventario[]> para cada uno de estos elementos: 
+  //  HGENS, HGMXL, HGTKT, HGTIJ, HMITIJ, HGPR, HMIMXL, UOMXL, HGTZE
+  private existenciasSubject: Map<Existencias, BehaviorSubject<Inventario[]>> = new Map<Existencias, BehaviorSubject<Inventario[]>>();
+  public existencias$: Map<Existencias, Observable<Inventario[]>> = new Map<Existencias, Observable<Inventario[]>>();
+  
+
+  constructor(private http: HttpClient) {
+    // Inicializar mapa de existencias
+    for (const existencia of Object.values(Existencias)) {
+      this.existenciasSubject.set(existencia, new BehaviorSubject<Inventario[]>([]));
+      this.existencias$.set(existencia, this.existenciasSubject.get(existencia)!.asObservable());
+    }
+   }
 
   refrescarDatosCPMS() {
     console.info('🔄 InventarioService.refrescarDatosCPMS() - Actualizando CPMS...');
@@ -119,6 +131,51 @@ export class InventarioService {
     });
   } 
 
+  /*
+  HGENS 
+  HGMXL
+  HGTKT
+  HGTIJ
+  HMITIJ 
+  HGPR 
+  HMIMXL
+  UOMXL 
+  HGTZE
+   */
+  refrescarDatosExistencias( existencia: Existencias = Existencias.HGENS ): void {
+    console.info('🔄 InventarioService.refrescarDatosExistencias() - Actualizando existencias de '+ existencia +'...');
+    // this.cargandoInventarioBehaviorSubject.next(true);
+    // purgar todo el localStorage
+    this.limpiarExistencias(existencia);
+    const url = this.apiUrl + '/' + existencia;
+    this.http.get<InventarioFull>(url).subscribe({
+      next: (response: InventarioFull) => {
+
+        const inventario = this.obtenerInventarioDeBase64(response.inventario);
+
+        // 1) Serializar y comprimir
+        const raw = JSON.stringify(inventario);
+        const compressed = LZString.compress(raw);
+        try {
+          localStorage.setItem(existencia, compressed);
+        } catch {
+          console.warn('😱 InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
+        }
+        // 2) Emitir
+        console.info('✅ InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
+
+        this.existenciasSubject.get(existencia)!.next(inventario as Inventario[]);
+        // this.cargandoInventarioBehaviorSubject.next(false);
+        console.info('✅ InventarioService.refrescarDatosExistencias() - ' +  existencia + ' FINALIZADO');
+      },
+      error: (err) => {
+        console.error('❌ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
+        // this.cargandoInventarioBehaviorSubject.next(false);
+      }
+    });
+  } 
+  
+
   private obtenerInventarioDeBase64(base64: string): Inventario[] {
 
     //console.info('🔁 Obteniendo info con Power Automate');
@@ -200,5 +257,9 @@ export class InventarioService {
   private limpiarInventario() {
     localStorage.removeItem(StorageVariables.SOLICITUD_INVENTARIO);
     this.inventarioSubject.next([]);
+  }
+
+  private limpiarExistencias(existencia: Existencias) {
+    localStorage.removeItem(existencia);
   }
 }

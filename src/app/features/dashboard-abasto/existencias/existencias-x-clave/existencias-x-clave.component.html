@@ -1,0 +1,42 @@
+<div class="mb-4">
+  <label class="block mb-1 text-sm font-medium text-gray-700">Buscar clave:</label>
+  <input
+    type="text"
+    [(ngModel)]="claveBusqueda"
+    (input)="filtrarClave()"
+    placeholder="Ej. 123456789"
+    class="px-3 py-2 w-64 border-gray-300 rounded-md shadow-sm border focus:ring focus:outline-none"
+  />
+</div>
+
+<div *ngIf="claveFiltrada">
+  <h2 class="mb-2 text-lg font-bold">Resultados para clave {{ claveFiltrada }}</h2>
+
+  <div *ngFor="let almacen of datosAgrupados">
+    <h3 class="mb-1 text-green-800 font-semibold text-base">{{ almacen.almacen }}</h3>
+
+    <div *ngFor="let unidad of almacen.unidades" class="ml-4 mb-4">
+      <h4 class="font-medium">{{ unidad.unidad }}</h4>
+      <table class="w-full text-sm">
+        <thead class="text-gray-600 border-b">
+          <tr>
+            <th class="text-left">Descripción</th>
+            <th class="text-right">CPM</th>
+            <th class="text-right">Existencia</th>
+            <th class="text-right">Reposición</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let clave of unidad.claves">
+            <td>{{ clave.descripcion }}</td>
+            <td class="text-right">{{ clave.cpm }}</td>
+            <td class="text-right">{{ clave.existencia }}</td>
+            <td class="text-right" [ngClass]="{ 'text-red-700 font-bold': clave.reposicion > 0 }">
+              {{ clave.reposicion }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

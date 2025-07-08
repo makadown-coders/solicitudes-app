@@ -8,10 +8,12 @@ import { Cita } from '../../models/Cita';
 import { DashboardService } from '../../services/dashboard.service';
 import { ProveedoresComponent } from './proveedores/proveedores.component';
 import { CitasPendientesComponent } from './citas-pendientes/citas-pendientes.component';
-import { StorageVariables } from '../../shared/storage-variables';
+import { Existencias, StorageVariables } from '../../shared/storage-variables';
 import { ResumenCitasComponent } from './resumen-citas/resumen-citas.component';
 import { InventarioCriticoComponent } from './inventario-critico/inventario-critico.component';
 import { ThemeService } from '../../services/theme.service';
+import { InventarioService } from '../../services/inventario.service';
+import { ExistenciasComponent } from "./existencias/existencias.component";
 
 @Component({
   selector: 'app-dashboard-abasto',
@@ -22,14 +24,14 @@ import { ThemeService } from '../../services/theme.service';
     ProveedoresComponent,
     CitasPendientesComponent,
     ResumenCitasComponent,
-    InventarioCriticoComponent
-  ],
+    InventarioCriticoComponent, ExistenciasComponent],
   templateUrl: './dashboard-abasto.component.html',
   styleUrl: './dashboard-abasto.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardAbastoComponent implements OnInit {
    themeService = inject(ThemeService);
+   inventarioService = inject(InventarioService);
   title = 'Dashboard Abasto';  
   get isDarkMode() { return this.themeService.isDarkMode(); }
   
@@ -40,6 +42,7 @@ export class DashboardAbastoComponent implements OnInit {
 
   // controla la pestaña activa
   tabs = ['Resumen', 
+    'Existencias',
     'Proveedores y entregas',
     'Citas pendientes', 
     'Cumplimiento Claves',
@@ -73,6 +76,10 @@ export class DashboardAbastoComponent implements OnInit {
     this.dashboardService.limpiarDatos();
     this.isLoading.set(true); // Establece isLoading = true;
     this.dashboardService.refrescarDatos();
+    this.inventarioService.refrescarDatosCPMS();
+    for (const existencia of Object.values(Existencias)) {
+      this.inventarioService.refrescarDatosExistencias(existencia);
+    }
   }
 
   seleccionarTab(tab: string) {
