@@ -44,6 +44,25 @@ export interface Unidad {
   tipoUnidad: string;
 }
 
+/**
+ * usado para dashboard abasto > Existencias > Existencias X Clave
+ */
+export interface UnidadExistente {
+  key: string; // enum de unidades HGE, HGM, etc
+  cluesssa: string;
+  cluesimb: string;
+  nombre: string;
+  municipio: string;
+  localidad: string;
+  jurisdiccion: string;
+  direccion: string;
+  latitud: string;
+  longitud: string;
+  estratoUnidad: string;
+  nivelAtencion: string;
+  tipoUnidad: string;
+}
+
 export interface ServicioEvaluado {
   nombre: string; // Ej. "HEMODIÁLISIS", "ALIMENTOS", etc.
   categoria: 'SMI' | 'SG'; // Para saber si es Médico o General

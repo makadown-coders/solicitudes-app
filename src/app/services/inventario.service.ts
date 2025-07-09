@@ -37,7 +37,7 @@ export class InventarioService {
   //  HGENS, HGMXL, HGTKT, HGTIJ, HMITIJ, HGPR, HMIMXL, UOMXL, HGTZE
   private existenciasSubject: Map<Existencias, BehaviorSubject<Inventario[]>> = new Map<Existencias, BehaviorSubject<Inventario[]>>();
   public existencias$: Map<Existencias, Observable<Inventario[]>> = new Map<Existencias, Observable<Inventario[]>>();
-  
+
 
   constructor(private http: HttpClient) {
     // Inicializar mapa de existencias
@@ -45,19 +45,19 @@ export class InventarioService {
       this.existenciasSubject.set(existencia, new BehaviorSubject<Inventario[]>([]));
       this.existencias$.set(existencia, this.existenciasSubject.get(existencia)!.asObservable());
     }
-   }
+  }
 
   refrescarDatosCPMS() {
     console.info('🔄 InventarioService.refrescarDatosCPMS() - Actualizando CPMS...');
     this.cargandoCPMSBehaviorSubject.next(true);
     // purgar todo el localStorage
-    this.limpiarCPMS();    
+    this.limpiarCPMS();
     const url = environment.apiUrl + '/cpms';
     this.http.get<CPMSFull>(url).subscribe({
       next: (response: CPMSFull) => {
         const arrayBuffer = this.excelService.base64ToArrayBuffer(response.cpms);
-        const cpms: CPMS[] = this.excelService.procesarArchivoCPMS(arrayBuffer);        
-        
+        const cpms: CPMS[] = this.excelService.procesarArchivoCPMS(arrayBuffer);
+
         // 1) Serializar y comprimir
         const raw = JSON.stringify(cpms);
         // console.log('InventarioService.refrescarDatosCPMS() - raw un pedazo', raw.substring(0, 10));
@@ -103,7 +103,7 @@ export class InventarioService {
     console.info('🔄 InventarioService.refrescarDatosInventario() - Actualizando datos de inventario temporal...');
     this.cargandoInventarioBehaviorSubject.next(true);
     // purgar todo el localStorage
-    this.limpiarInventario();    
+    this.limpiarInventario();
     const url = this.apiUrl;
     this.http.get<InventarioFull>(url).subscribe({
       next: (response: InventarioFull) => {
@@ -129,7 +129,7 @@ export class InventarioService {
         this.cargandoInventarioBehaviorSubject.next(false);
       }
     });
-  } 
+  }
 
   /*
   HGENS 
@@ -142,8 +142,8 @@ export class InventarioService {
   UOMXL 
   HGTZE
    */
-  refrescarDatosExistencias( existencia: Existencias = Existencias.HGENS ): void {
-    console.info('🔄 InventarioService.refrescarDatosExistencias() - Actualizando existencias de '+ existencia +'...');
+  refrescarDatosExistencias(existencia: Existencias = Existencias.HGENS): void {
+    console.info('🔄 InventarioService.refrescarDatosExistencias() - Actualizando existencias de ' + existencia + '...');
     // this.cargandoInventarioBehaviorSubject.next(true);
     // purgar todo el localStorage
     this.limpiarExistencias(existencia);
@@ -166,15 +166,15 @@ export class InventarioService {
 
         this.existenciasSubject.get(existencia)!.next(inventario as Inventario[]);
         // this.cargandoInventarioBehaviorSubject.next(false);
-        console.info('✅ InventarioService.refrescarDatosExistencias() - ' +  existencia + ' FINALIZADO');
+        console.info('✅ InventarioService.refrescarDatosExistencias() - ' + existencia + ' FINALIZADO');
       },
       error: (err) => {
         console.error('❌ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
         // this.cargandoInventarioBehaviorSubject.next(false);
       }
     });
-  } 
-  
+  }
+
 
   private obtenerInventarioDeBase64(base64: string): Inventario[] {
 
@@ -242,13 +242,6 @@ export class InventarioService {
     } catch (err: any) {
       console.error('❌ Error al obtener de power automate:', err);
       console.error('🔁 Procesando fila:', fila);
-    }
-
-    // Guardar en localstorage[StorageVariables.SOLICITUD_INVENTARIO]
-    try {
-      localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO, JSON.stringify(inventarioRetorno));
-    } catch {
-      console.warn('😱 localStorage lleno, omitiendo guardado');
     }
 
     return inventarioRetorno;

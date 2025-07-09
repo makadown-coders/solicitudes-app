@@ -165,7 +165,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       });
 
       this.inventarioDisponible.push(existencia);
-    })
+    });
   }
 
   ngAfterViewInit(): void {

@@ -1,7 +1,7 @@
 // src/app/models/existenciasTabInfo.ts
 import { Cita } from "./Cita";
 import { CPMS } from "./CPMS";
-import { Inventario } from "./Inventario";
+import { Inventario, InventarioDisponibles } from "./Inventario";
 
 /**
  * Información de las tabs de existencias de almacenes y unidades
@@ -10,23 +10,10 @@ import { Inventario } from "./Inventario";
 export class ExistenciasTabInfo {
     citas: Cita[] = [];
     cpms: CPMS[] = [];
-    existenciaAlmacenes: Inventario[] = [];    
+    /** Existencias de almacenes, readonly solo asignado en cargarDesdeLocalStorage */
+    // inventario: Inventario[] = [];
+    /** Existencias de almacenes, readonly solo asignado en cargarDesdeLocalStorage  */
+    // existenciaAlmacenes: InventarioDisponibles[] = [];
+    /** Mapa de existencias por unidad, readonly solo asignado en cargarDesdeLocalStorage */
     existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
-}
-
-export interface ClaveExistenciaResumen {
-  descripcion: string;
-  cpm: number;
-  existencia: number;
-  reposicion: number;
-}
-
-export interface UnidadExistenciaResumen {
-  unidad: string;
-  claves: ClaveExistenciaResumen[];
-}
-
-export interface AlmacenExistenciaResumen {
-  almacen: string;
-  unidades: UnidadExistenciaResumen[];
 }

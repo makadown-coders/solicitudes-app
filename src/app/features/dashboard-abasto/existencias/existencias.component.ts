@@ -7,7 +7,7 @@ import { StorageVariables } from '../../../shared/storage-variables';
 import { DashboardService } from '../../../services/dashboard.service';
 import { InventarioService } from '../../../services/inventario.service';
 import { CPMS } from '../../../models/CPMS';
-import { Inventario } from '../../../models/Inventario';
+import { Inventario, InventarioDisponibles } from '../../../models/Inventario';
 import { Subject, take, takeUntil } from 'rxjs';
 import { ExistenciasTabInfo } from '../../../models/existenciasTabInfo';
 import { ExistenciasXClaveComponent } from './existencias-x-clave/existencias-x-clave.component';
@@ -50,29 +50,20 @@ export class ExistenciasComponent implements OnInit, OnDestroy {
             next: (data: CPMS[]) => {
                 this.existenciasTabInfo.cpms = data as CPMS[];
             }
-        });
+        });      
 
-        // 3) Suscribirse al BehaviorSubject para recibir existencias de almacenes
-        this.inventarioService.inventario$.pipe(takeUntil(this.onDestroy$)).subscribe({
-            next: (data: Inventario[]) => {
-                console.log('Cargando existencias de almacenes', data);
-                this.existenciasTabInfo.existenciaAlmacenes = data as Inventario[];
-            }
-        });
-
-        // 4) iterar sobre this.inventarioService.existencias$ y suscribirse al BehaviorSubject para recibir existencias de unidades
+        // 3) iterar sobre this.inventarioService.existencias$ y suscribirse al BehaviorSubject para recibir existencias de unidades
         this.inventarioService.existencias$.forEach((value, key) => {
             value.pipe(takeUntil(this.onDestroy$)).subscribe({
                 next: (data: Inventario[]) => {
-                    console.log('Cargando existencias de unidad', key);
+                    // console.log('Cargando existencias de unidad', key);
                     this.existenciasTabInfo.existenciaUnidades.set(key, data as Inventario[]);
                 }
             });
         });
-    }
+    }   
 
-    ngOnInit(): void {
-        this.dashboardService.refrescarDeLocalStorage();
+    ngOnInit(): void {        
 
     }
 

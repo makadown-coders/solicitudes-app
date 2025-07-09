@@ -49,10 +49,6 @@ export class DashboardService {
         localStorage.removeItem(StorageVariables.SOLICITUD_CPMS);
       }
     }
-    // aplicar misma tecnica para inventario
-    const inventario = localStorage.getItem(StorageVariables.SOLICITUD_INVENTARIO);
-    existenciasData.existenciaAlmacenes = inventario ? JSON.parse(inventario) : [];
-    console.log('dashboard.service > cargarDesdeLocalStorage > existenciasData.existenciaAlmacenes', existenciasData.existenciaAlmacenes);
     
     // aplicar misma tecnica iterando sobre el enum de hospitales para emitir las existencias de cada uno
     for (const hospital of Object.values(Existencias)) {
@@ -68,6 +64,7 @@ export class DashboardService {
     }
     console.log('dashboard.service > cargarDesdeLocalStorage > emitiendo existenciasData');
     this.existenciasTabInfoSubject.next(existenciasData);
+    this.citasSubject.next(existenciasData.citas as Cita[]);
   }
 
   refrescarDatos(): void {

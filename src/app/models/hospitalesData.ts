@@ -1,12 +1,13 @@
 // src/app/models/hospitalesData.ts
 
-import { Unidad } from "./articulo-solicitud";
+import { UnidadExistente } from "./articulo-solicitud";
 
 /**
  * Usados para el tab de existencias
  */
-export const hospitalesData: Unidad[] = [
+export const hospitalesData: UnidadExistente[] = [
   {
+    key: "HGENS",
     cluesssa: "BCSSA000015",
     cluesimb: "BCIMB000010",
     nombre: "HOSPITAL GENERAL DE ENSENADA",
@@ -21,6 +22,7 @@ export const hospitalesData: Unidad[] = [
     tipoUnidad: "HOSPITALES"
   },
   {
+    key: "HGMXL",
     cluesssa: "BCSSA000440",
     cluesimb: "BCIMB000355",
     nombre: "HOSPITAL GENERAL DE MEXICALI",
@@ -35,6 +37,7 @@ export const hospitalesData: Unidad[] = [
     tipoUnidad: "HOSPITALES"
   },
   {
+    key: "HGTKT",
     cluesssa: "BCSSA000855",
     cluesimb: "BCIMB000676",
     nombre: "HOSPITAL GENERAL DE TECATE",
@@ -49,6 +52,7 @@ export const hospitalesData: Unidad[] = [
     tipoUnidad: "HOSPITALES"
   },
   {
+    key: "HGPR",
     cluesssa: "BCSSA017590",
     cluesimb: "BCIMB001422",
     nombre: "HOSPITAL GENERAL PLAYAS DE ROSARITO",
@@ -63,6 +67,7 @@ export const hospitalesData: Unidad[] = [
     tipoUnidad: "HOSPITALES"
   },
   {
+    key: "HGTIJ",
     cluesssa: "BCSSA000913",
     cluesimb: "BCIMB000734",
     nombre: "HOSPITAL GENERAL TIJUANA",
@@ -77,6 +82,7 @@ export const hospitalesData: Unidad[] = [
     tipoUnidad: "HOSPITALES"
   },
   {
+    key: "HGTZE",
     cluesssa: "N/A",
     cluesimb: "BCIMB001796",
     nombre: "HOSPITAL GENERAL TIJUANA ZONA ESTE",
@@ -91,6 +97,7 @@ export const hospitalesData: Unidad[] = [
     tipoUnidad: "HOSPITALES"
   },
   {
+    key: "HMIMXL",
     cluesssa: "BCSSA018046",
     cluesimb: "BCIMB001702",
     nombre: "HOSPITAL MATERNO INFANTIL",
@@ -105,6 +112,7 @@ export const hospitalesData: Unidad[] = [
     tipoUnidad: "HOSPITALES"
   },
   {
+    key: "HMITIJ",
     cluesssa: "BCSSA001770",
     cluesimb: "BCIMB001352",
     nombre: "HOSPITAL MATERNO INFANTIL DE TIJUANA",
@@ -119,6 +127,7 @@ export const hospitalesData: Unidad[] = [
     tipoUnidad: "HOSPITALES"
   },
   {
+    key: "UOMXL",
     cluesssa: "BCSSA018092",
     cluesimb: "BCIMB001726",
     nombre: "UNEME DE ONCOLOGÍA",

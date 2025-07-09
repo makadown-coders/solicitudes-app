@@ -68,6 +68,10 @@ export class DashboardAbastoComponent implements OnInit {
     if (this.citas.length === 0) {
       // 2) Dispara la carga inicial desde el endpoint
       this.onRefresh();
+    } else {
+      this.isLoading.set(true);
+      this.dashboardService.refrescarDeLocalStorage();
+      this.isLoading.set(false);
     }
   }
 
@@ -75,7 +79,8 @@ export class DashboardAbastoComponent implements OnInit {
   onRefresh() {
     this.dashboardService.limpiarDatos();
     this.isLoading.set(true); // Establece isLoading = true;
-    this.dashboardService.refrescarDatos();
+    this.dashboardService.refrescarDatos();    
+    this.inventarioService.refrescarDatosInventario();
     this.inventarioService.refrescarDatosCPMS();
     for (const existencia of Object.values(Existencias)) {
       this.inventarioService.refrescarDatosExistencias(existencia);
