@@ -1,27 +1,25 @@
 // src/app/features/dashboard-abasto/existencias/existencias-x-clave/existencias-x-clave.component.ts
-import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, Subject, takeUntil } from 'rxjs';
 
-import { DashboardService } from '../../../../services/dashboard.service';
 import { Inventario, InventarioDisponibles } from '../../../../models/Inventario';
 import { hospitalesData } from '../../../../models/hospitalesData';
 
 import { AlmacenClaveResumen } from '../../../../models/almacen-clave-resumen.model';
 import { UnidadClaveResumen } from '../../../../models/unidad-clave-resumen.model';
-import { DatosClaveSeleccionada } from '../../../../models/datos-clave-seleccionada.model';
 import { ArticulosService } from '../../../../services/articulos.service';
 import { clasificacionMedicamentosData } from '../../../../models/clasificacionMedicamentosData';
 import { ClasificadorVEN } from '../../../../models/clasificador-ven';
 import { InventarioService } from '../../../../services/inventario.service';
-import { ExistenciasTabInfo } from '../../../../models/existenciasTabInfo';
 import { StorageVariables } from '../../../../shared/storage-variables';
-import { Articulo, ArticuloSolicitud } from '../../../../models/articulo-solicitud';
+import { Articulo } from '../../../../models/articulo-solicitud';
 import { CircleAlertIcon, LucideAngularModule, LucidePill, OctagonAlertIcon, TriangleAlertIcon, TruckIcon } from 'lucide-angular';
 import { Cita } from '../../../../models/Cita';
 import { StorageSolicitudService } from '../../../../services/storage-solicitud.service';
 import { controlados } from '../../../../models/controlados';
+import { CPMS } from '../../../../models/CPMS';
 
 @Component({
     standalone: true,
@@ -29,17 +27,19 @@ import { controlados } from '../../../../models/controlados';
     templateUrl: './existencias-x-clave.component.html',
     imports: [CommonModule, FormsModule, LucideAngularModule],
 })
-export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
-    private dashboardService = inject(DashboardService);
+export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy {
     private onDestroy$ = new Subject<void>();
+
+    @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
+    @Input() cpms: CPMS[] = [];
+    @Input() citas: Cita[] = [];
+    
     pillIcon = LucidePill;
     triangleAlert = TriangleAlertIcon;
     octagonAlert = OctagonAlertIcon;
     circleAlert = CircleAlertIcon;
     truck = TruckIcon;
-
-    data: ExistenciasTabInfo = new ExistenciasTabInfo();
-    citasFull: Cita[] = [];
+    //citasFull: Cita[] = [];
     citasHalladasPorClave: Cita[] = [];
     /**
      * Cita para la descripcion de la clave
@@ -70,6 +70,10 @@ export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
     storageService = inject(StorageSolicitudService);
 
     constructor() {
+    }
+
+    ngOnChanges(changes: SimpleChanges): void {
+        
     }
 
 
@@ -112,12 +116,6 @@ export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
                 }
             }
 
-            this.dashboardService.existenciasTabInfo$
-                .pipe(takeUntil(this.onDestroy$))
-                .subscribe((data: ExistenciasTabInfo) => {
-                    this.data = data;
-                });
-
             this.searchSubject.pipe(debounceTime(400), takeUntil(this.onDestroy$))
                 .subscribe(texto => {
                     if (texto.length > 2) {
@@ -130,11 +128,11 @@ export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
                     }
                 });
 
-            this.dashboardService.citas$
+            /*this.dashboardService.citas$
                 .pipe(takeUntil(this.onDestroy$))
                 .subscribe((data: Cita[]) => {
                     this.citasFull = data as Cita[];
-                });
+                });*/
 
             if (this.inventario.length === 0) {
                 this.inventario = this.storageService.getInventarioFromLocalStorage();
@@ -253,20 +251,20 @@ export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
     }
 
     filtrarClave(): void {
+        //console.log('filtrarClave');
+        if (this.cpms.length===0) {            
+            this.cpms = [...this.storageService.getCPMSFromLocalStorage()];            
+        }
+        console.log('CPMS cargados', this.cpms.find(c => c.clave === this.claveBusqueda.trim().toUpperCase()));        
         const clave = this.claveBusqueda.trim().toUpperCase();
         this.claveFiltrada = clave;
         this.datosAgrupados = [];
 
         if (!clave) return;
 
-        // Buscar primer match para descripción
-        // const primerMatch = this.buscarInventarioDeClave(clave);
-        // console.log('primerMatch', primerMatch);
-
         const jurisdiccionAlmacenes = ['mexicali', 'tijuana', 'ensenada'];
 
         const agrupadoPorAlmacen = new Map<string, UnidadClaveResumen[]>();
-
 
         // iteramos por las jurisdicciones
         jurisdiccionAlmacenes.forEach((municipio) => {
@@ -275,10 +273,10 @@ export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
             const hospitalesDeJurisdiccion = hospitalesData.filter(h => h.jurisdiccion.toLocaleLowerCase() === municipio)
             hospitalesDeJurisdiccion.forEach(hospital => {
                 const clues = hospital.cluesimb;
-                // console.log(`Iterando municipio ${municipio} vs hospital ${hospital.key} `);
+                //console.log(`Iterando municipio ${municipio} vs hospital ${hospital.key} `);
                 // buscamos la existencia del insumo en el hospital
-                const existenciasInsumo = this.data.existenciaUnidades.get(hospital.key)?.filter(i => i.clave === clave);
-                // console.log('existenciasInsumo de hospital', existenciasInsumo);
+                const existenciasInsumo = this.existenciaUnidades.get(hospital.key)?.filter(i => i.clave === clave);
+                //console.log('existenciasInsumo de hospital', existenciasInsumo);
 
                 const unidadResumen: UnidadClaveResumen = {
                     unidad: hospital?.nombre ?? clues,
@@ -289,7 +287,8 @@ export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
                         reposicion: 0,
                     },
                 };
-                const cpmEntry = this.data.cpms.find(c => c.clave === clave && c.cluesimb === clues);
+                const cpmEntry = this.cpms.find(c => c.clave === clave && c.cluesimb === clues);
+                console.log('cpmEntry', cpmEntry);
                 const cpm = cpmEntry?.cantidad ?? 0;
 
                 unidadResumen.clave.cpm = cpm;
@@ -330,9 +329,11 @@ export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
         const hace15dias = new Date(hoy);
         hace15dias.setDate(hoy.getDate() - 200);
 
-        this.citaParaDescripcionDeClave = this.citasFull.find(c => c.clave_cnis === this.claveFiltrada)!;
+        // this.citaParaDescripcionDeClave = this.citasFull.find(c => c.clave_cnis === this.claveFiltrada)!;
+        this.citaParaDescripcionDeClave = this.citas.find(c => c.clave_cnis === this.claveFiltrada)!;
 
-        this.citasHalladasPorClave = this.citasFull.filter(c => {
+        //this.citasHalladasPorClave = this.citasFull.filter(c => {
+        this.citasHalladasPorClave = this.citas.filter(c => {
             const esClave = c.clave_cnis === this.claveFiltrada;
             const esVigente = c.estatus === 'Vigente';
 
@@ -362,12 +363,12 @@ export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
     }
 
     calcularInventarioDisponible(clave: string) {
-        console.log('calcularInventarioDisponible', clave);
+        
         this.existenciaAlmacenes = new InventarioDisponibles();
         this.existenciaAlmacenes.clave = clave;
-        console.log('this.inventario', this.inventario);
+        
         const inventarioItems = this.inventario.filter(item => item.clave === clave);
-        console.log('buscando en inventarioItems', inventarioItems);
+        
         this.existenciaAlmacenes.existenciasAZE = 0;
         this.existenciaAlmacenes.existenciasAZM = 0;
         this.existenciaAlmacenes.existenciasAZT = 0;

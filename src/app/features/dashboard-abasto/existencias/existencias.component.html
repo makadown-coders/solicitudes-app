@@ -13,6 +13,12 @@
 
 
   <div>
-    <app-existencias-x-clave *ngIf="activeExistenciaTab === 'xClave'"></app-existencias-x-clave>
-    <app-existencias-x-unidad *ngIf="activeExistenciaTab === 'xUnidad'" [data]="existenciasTabInfo"></app-existencias-x-unidad>
+    <app-existencias-x-clave *ngIf="activeExistenciaTab === 'xClave'"
+     [existenciaUnidades]="existenciaUnidades"
+     [cpms]="cpms"
+     [citas]="citas"></app-existencias-x-clave>
+    <app-existencias-x-unidad *ngIf="activeExistenciaTab === 'xUnidad'"
+     [existenciaUnidades]="existenciaUnidades"
+     [cpms]="cpms"
+     [citas]="citas"></app-existencias-x-unidad>
   </div>

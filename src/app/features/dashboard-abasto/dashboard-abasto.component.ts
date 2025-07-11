@@ -30,21 +30,21 @@ import { ExistenciasComponent } from "./existencias/existencias.component";
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardAbastoComponent implements OnInit {
-   themeService = inject(ThemeService);
-   inventarioService = inject(InventarioService);
-  title = 'Dashboard Abasto';  
+  themeService = inject(ThemeService);
+  inventarioService = inject(InventarioService);
+  title = 'Dashboard Abasto';
   get isDarkMode() { return this.themeService.isDarkMode(); }
-  
+
   // aquí recibiremos el arreglo de citas
   citas: Cita[] = [];
   // isLoading: boolean = true;
   isLoading = signal(false);
 
   // controla la pestaña activa
-  tabs = ['Resumen', 
+  tabs = ['Resumen',
     'Existencias (CPM)',
     'Proveedores y entregas',
-    'Citas pendientes', 
+    'Citas pendientes',
     'Cumplimiento Claves',
     'Entregas pendientes'];
   activeTab = 'Resumen';
@@ -71,6 +71,10 @@ export class DashboardAbastoComponent implements OnInit {
     } else {
       this.isLoading.set(true);
       this.dashboardService.refrescarDeLocalStorage();
+      this.inventarioService.cargarCPMSdesdeLocalStorage();
+      for (const existencia of Object.values(Existencias)) {
+        this.inventarioService.refrescarDatosExistenciasDeLocalStorage(existencia);
+      }
       this.isLoading.set(false);
     }
   }
@@ -79,7 +83,7 @@ export class DashboardAbastoComponent implements OnInit {
   onRefresh() {
     this.dashboardService.limpiarDatos();
     this.isLoading.set(true); // Establece isLoading = true;
-    this.dashboardService.refrescarDatos();    
+    this.dashboardService.refrescarDatos();
     this.inventarioService.refrescarDatosInventario();
     this.inventarioService.refrescarDatosCPMS();
     for (const existencia of Object.values(Existencias)) {

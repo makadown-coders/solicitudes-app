@@ -44,7 +44,7 @@
 
   <div *ngIf="!isLoading()">
     <app-resumen *ngIf="activeTab === 'Resumen'" [citas]="citas"></app-resumen>
-    <app-existencias *ngIf="activeTab === 'Existencias (CPM)'"></app-existencias>
+    <app-existencias *ngIf="activeTab === 'Existencias (CPM)'" [citas]="citas"></app-existencias>
     <app-proveedores *ngIf="activeTab === 'Proveedores y entregas'" [citas]="citas"></app-proveedores>
     <app-citas-pendientes *ngIf="activeTab === 'Citas pendientes'" [citas]="citas"></app-citas-pendientes>    
     <app-inventario-critico *ngIf="activeTab === 'Cumplimiento Claves'" [citas]="citas"></app-inventario-critico>    

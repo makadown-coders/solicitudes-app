@@ -7,7 +7,6 @@ import * as LZString from 'lz-string';
 import { CitasService } from './citas.service';
 import { CitasFull, InventarioFull } from '../models/ElementosBase64';
 import { Existencias, StorageVariables } from '../shared/storage-variables';
-import { ExistenciasTabInfo } from '../models/existenciasTabInfo';
 
 @Injectable({
   providedIn: 'root'
@@ -15,9 +14,7 @@ import { ExistenciasTabInfo } from '../models/existenciasTabInfo';
 export class DashboardService {
   private STORAGE_KEY = 'citasFull';
   private citasSubject = new BehaviorSubject<Cita[]>([]);
-  public citas$: Observable<Cita[]> = this.citasSubject.asObservable();
-  private existenciasTabInfoSubject = new BehaviorSubject<ExistenciasTabInfo>(new ExistenciasTabInfo());
-  public existenciasTabInfo$: Observable<ExistenciasTabInfo> = this.existenciasTabInfoSubject.asObservable();
+  public citas$: Observable<Cita[]> = this.citasSubject.asObservable();  
   
   private citasService = inject(CitasService);
 
@@ -26,45 +23,16 @@ export class DashboardService {
   }
 
   private cargarDesdeLocalStorage() {
-    console.log('cargarDesdeLocalStorage');
     const compressed = localStorage.getItem(this.STORAGE_KEY);
-    let existenciasData: ExistenciasTabInfo = new ExistenciasTabInfo();
-    existenciasData.citas = [];
     if (compressed) {
       try {
         const raw = LZString.decompress(compressed);
-        existenciasData.citas = raw ? JSON.parse(raw) : [];
-        this.citasSubject.next(existenciasData.citas as Cita[]);
+        const citas = raw ? JSON.parse(raw) : [];
+        this.citasSubject.next(citas as Cita[]);
       } catch {
         localStorage.removeItem(this.STORAGE_KEY);
       }
     }
-    // aplicar misma tecnica para cpms
-    const compressedCPMS = localStorage.getItem(StorageVariables.SOLICITUD_CPMS);
-    if (compressedCPMS) {
-      try {
-        const raw = LZString.decompress(compressedCPMS);
-        existenciasData.cpms = raw ? JSON.parse(raw) : [];
-      } catch {
-        localStorage.removeItem(StorageVariables.SOLICITUD_CPMS);
-      }
-    }
-    
-    // aplicar misma tecnica iterando sobre el enum de hospitales para emitir las existencias de cada uno
-    for (const hospital of Object.values(Existencias)) {
-      const compressedExistencias = localStorage.getItem(hospital);
-      if (compressedExistencias) {
-        try {
-          const raw = LZString.decompress(compressedExistencias);
-          existenciasData.existenciaUnidades.set(hospital,  raw ? JSON.parse(raw) : [] );
-        } catch {
-          localStorage.removeItem(hospital);
-        }
-      }
-    }
-    console.log('dashboard.service > cargarDesdeLocalStorage > emitiendo existenciasData');
-    this.existenciasTabInfoSubject.next(existenciasData);
-    this.citasSubject.next(existenciasData.citas as Cita[]);
   }
 
   refrescarDatos(): void {

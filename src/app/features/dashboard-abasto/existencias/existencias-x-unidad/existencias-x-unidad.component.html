@@ -33,13 +33,20 @@
     </div>
 
     <!-- mostra en tabla cpmsElegidos -->
-    <div *ngIf="cpmsElegidos.length > 0" class="mt-4">
-      <h3 class="font-medium text-gray-700 dark:text-white detalle-cita">Claves seleccionadas:</h3>
-      <ul class="pl-5 list-disc">
-        <li *ngFor="let cpm of cpmsElegidos; let i = index">
-          {{ i + 1 }} - {{ cpm.clave }} - {{ cpm.cantidad }} ({{ cpm.cluesimb }})
-        </li>
-      </ul>
+    <div class="flex-1">
+      <div *ngIf="cpmsElegidos.length > 0" class="mt-4">
+        @let resumen = resumenCPMs(); 
+        <h3 class="font-medium text-gray-700 dark:text-white detalle-cita">
+          CPMs ({{ cpmsElegidos.length }}) - 
+          totalPiezasDisponibles {{ resumen.totalPiezasDisponibles }} - 
+          totalClaveDisponibles  {{ resumen.totalClaveDisponibles }}</h3>
+        <ul class="pl-5 list-disc">
+          <li *ngFor="let cpm of cpmsElegidos; let i = index">
+            @let piezasDisponibles = disponibles(cpm.clave);
+            {{ i + 1 }} - {{ cpm.clave }} - {{ cpm.cantidad }} ({{ cpm.cluesimb }}) - Disponible {{ piezasDisponibles }}
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </div>

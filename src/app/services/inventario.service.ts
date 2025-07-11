@@ -9,6 +9,7 @@ import { Inventario, InventarioRow } from '../models/Inventario';
 import { Existencias, StorageVariables } from '../shared/storage-variables';
 import { CPMSFull, InventarioFull } from '../models/ElementosBase64';
 import { CPMS } from '../models/CPMS';
+import { StorageSolicitudService } from './storage-solicitud.service';
 
 @Injectable({
   providedIn: 'root'
@@ -56,20 +57,48 @@ export class InventarioService {
     this.http.get<CPMSFull>(url).subscribe({
       next: (response: CPMSFull) => {
         const arrayBuffer = this.excelService.base64ToArrayBuffer(response.cpms);
-        const cpms: CPMS[] = this.excelService.procesarArchivoCPMS(arrayBuffer);
+        let cpms: CPMS[] = this.excelService.procesarArchivoCPMS(arrayBuffer);
 
-        // 1) Serializar y comprimir
-        const raw = JSON.stringify(cpms);
-        // console.log('InventarioService.refrescarDatosCPMS() - raw un pedazo', raw.substring(0, 10));
-        const compressed = LZString.compress(raw);
-        try {
-          // console.log('InventarioService.refrescarDatosCPMS() - comprimiendo');
-          localStorage.setItem(StorageVariables.SOLICITUD_CPMS, compressed);
-        } catch {
-          console.warn('😱 InventarioService.refrescarDatosCPMS() - localStorage lleno, omitiendo guardado');
+        console.info('✅ InventarioService.refrescarDatosCPMS() - CPMS tamanio original', cpms.length);
+        // 0-1) Procesar los cpms para que excluya claves que tienen cantidad cero en todas las unidades 
+        if (cpms && cpms.length > 0) {
+          let resumenEstatal = this.agregarResumenEstatal(cpms);
+          // crear un arreglo de claves en resumenEstatal que tienen CPM total > 0
+          const clavesConCpmTotal = resumenEstatal.filter(item => item.cantidad > 0).map(item => item.clave);
+          console.info('🧹 Filtrando CPMS...');
+          // filtrar this.existenciasTabInfo.cpms para mantener solo las claves que tienen CPM total > 0
+          let cpmsFiltrados: CPMS[] = [];
+          for (let i = 0; i < clavesConCpmTotal.length; i++) {
+            const clave = clavesConCpmTotal[i];
+            const cpm = cpms.filter(item => item.clave === clave && item.cantidad > 0);
+            if (cpm) {
+              cpmsFiltrados = [...cpmsFiltrados, ...cpm];
+            }
+          }
+          console.log('cpmsFiltrados tamanio', cpmsFiltrados.filter(item => item.cantidad > 0).map(item => item.clave).length);
+          // agregando resumen estatal por si se ofrece
+          resumenEstatal = resumenEstatal.filter(item => clavesConCpmTotal.includes(item.clave));
+          console.log('resumenEstatal tamanio', resumenEstatal.filter(item => item.cantidad > 0).map(item => item.clave).length);
+
+          cpms = [];
+
+          cpms = [...resumenEstatal, ...cpmsFiltrados];
+          console.log('cpms tamanio',
+            cpms.map(item => item.clave).length);
+
+          // 1) Serializar y comprimir
+          const raw = JSON.stringify(cpms);
+          // console.log('InventarioService.refrescarDatosCPMS() - raw un pedazo', raw.substring(0, 10));
+          const compressed = LZString.compress(raw);
+          try {
+            // console.log('InventarioService.refrescarDatosCPMS() - comprimiendo');
+            localStorage.setItem(StorageVariables.SOLICITUD_CPMS, compressed);
+          } catch {
+            console.warn('😱 InventarioService.refrescarDatosCPMS() - localStorage lleno, omitiendo guardado');
+          }
+
         }
-        console.info('✅ InventarioService.refrescarDatosCPMS() - CPMS tamanio', cpms.length);
-        // 2) Emitir
+        // 2) Emitir        
         this.cpmsSubject.next(cpms as CPMS[]);
         this.cargandoCPMSBehaviorSubject.next(false);
         console.info('✅ InventarioService.refrescarDatosCPMS() - FINALIZADO');
@@ -79,6 +108,25 @@ export class InventarioService {
         console.error('❌ InventarioService.refrescarDatosCPMS() - Error al cargar CPMS:', err);
       }
     });
+  }
+
+  private agregarResumenEstatal(cpmsList: CPMS[]): CPMS[] {
+    const resumenPorClave = new Map<string, number>();
+
+    cpmsList.forEach(item => {
+      const clave = item.clave;
+      const cantidadActual = resumenPorClave.get(clave) || 0;
+      resumenPorClave.set(clave, cantidadActual + item.cantidad);
+    });
+
+    const registrosEstatales: CPMS[] = Array.from(resumenPorClave.entries()).map(([clave, cantidad]) => ({
+      cluesimb: 'ESTATAL',
+      clave: clave,
+      cantidad: cantidad,
+      // otros campos opcionales: nombre: '', fecha: null, etc.
+    }));
+
+    return registrosEstatales;
   }
 
   emitirCPMS(cpms: CPMS[]) {
@@ -97,6 +145,10 @@ export class InventarioService {
     console.info('🧹 Limpiando CPMS...');
     localStorage.removeItem(StorageVariables.SOLICITUD_CPMS);
     this.cpmsSubject.next([]);
+  }
+
+  cargarCPMSdesdeLocalStorage() {
+     this.cpmsSubject.next(new StorageSolicitudService().getCPMSFromLocalStorage());
   }
 
   refrescarDatosInventario(): void {
@@ -142,6 +194,17 @@ export class InventarioService {
   UOMXL 
   HGTZE
    */
+  refrescarDatosExistenciasDeLocalStorage(existencia: Existencias = Existencias.HGENS): void {
+    const comprimido = localStorage.getItem(existencia);
+    if (!comprimido) {
+      console.warn('😱 InventarioService.refrescarDatosExistencias() - No se encontraron datos de ' + existencia + ' en localStorage.')
+      return;      
+    }
+    const raw = LZString.decompress(comprimido);
+    const inventario = raw ? JSON.parse(raw) : [];
+    this.existenciasSubject.get(existencia)!.next(inventario as Inventario[]);
+  }
+
   refrescarDatosExistencias(existencia: Existencias = Existencias.HGENS): void {
     console.info('🔄 InventarioService.refrescarDatosExistencias() - Actualizando existencias de ' + existencia + '...');
     // this.cargandoInventarioBehaviorSubject.next(true);
