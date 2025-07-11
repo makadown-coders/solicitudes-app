@@ -18,7 +18,7 @@ import { InventarioService } from '../../../../services/inventario.service';
 import { ExistenciasTabInfo } from '../../../../models/existenciasTabInfo';
 import { StorageVariables } from '../../../../shared/storage-variables';
 import { Articulo, ArticuloSolicitud } from '../../../../models/articulo-solicitud';
-import { LucideAngularModule, LucidePill } from 'lucide-angular';
+import { CircleAlertIcon, LucideAngularModule, LucidePill, OctagonAlertIcon, TriangleAlertIcon, TruckIcon } from 'lucide-angular';
 import { Cita } from '../../../../models/Cita';
 import { StorageSolicitudService } from '../../../../services/storage-solicitud.service';
 import { controlados } from '../../../../models/controlados';
@@ -32,7 +32,11 @@ import { controlados } from '../../../../models/controlados';
 export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
     private dashboardService = inject(DashboardService);
     private onDestroy$ = new Subject<void>();
-    pillIcon = LucidePill
+    pillIcon = LucidePill;
+    triangleAlert = TriangleAlertIcon;
+    octagonAlert = OctagonAlertIcon;
+    circleAlert = CircleAlertIcon;
+    truck = TruckIcon;
 
     data: ExistenciasTabInfo = new ExistenciasTabInfo();
     citasFull: Cita[] = [];
@@ -67,6 +71,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
 
     constructor() {
     }
+
 
     ngOnInit(): void {
         // console.log('ExistenciasXClaveComponent ngOnInit');
@@ -139,6 +144,22 @@ export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
             console.error(error);
         }
     }
+    
+
+    getIconoFecha(fecha: Date): any {
+        if (this.esVencida(fecha)) return this.triangleAlert;
+        if (this.esHoy(fecha)) return this.octagonAlert;
+        if (this.esProxima(fecha)) return this.circleAlert;
+        return this.truck;
+    }
+
+    getColorClase(fecha: Date): string {
+        if (this.esVencida(fecha)) return 'text-red-600';
+        if (this.esHoy(fecha)) return 'text-yellow-500';
+        if (this.esProxima(fecha)) return 'text-orange-500';
+        return 'text-green-600';
+    }
+
 
     buscarArticulosConFallback(texto: string) {
         this.articulosService.buscarArticulos(texto).subscribe({
@@ -387,6 +408,6 @@ export class ExistenciasXClaveComponent implements OnInit, OnDestroy {
         const hoy = new Date();
         const fecha = new Date(fechaLimite);
         const diff = (hoy.getTime() - fecha.getTime()) / (1000 * 3600 * 24);
-        return diff > 0 && diff <= 15;
+        return diff > 0 ;
     }
 }

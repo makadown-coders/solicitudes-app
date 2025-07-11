@@ -11,6 +11,8 @@ export const enum StorageVariables {
     DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES = 'dash_abasto_existencias_exc_almacenes',
     DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS = 'dash_abasto_existencias_exc_datos_agrupados',
     DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE = 'dash_abasto_existencias_exc_cita_para_descripcion_de_clave',
+    // Dashboard Abasto tab Existencias > Existencias x Unidad
+    DASH_ABASTO_EXISTENCIAS_EXU_FILTRO_UNIDAD = 'dash_abasto_existencias_filtro_unidad',
     // Dashboard Abasto tab Resumen
     DASH_ABASTO_RESUMEN_FECHA_INICIO = 'dash_abasto_resumen_fecha_inicio',
     DASH_ABASTO_RESUMEN_FECHA_FIN = 'dash_abasto_resumen_fecha_fin',

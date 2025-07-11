@@ -1,1 +1,45 @@
-ExistenciasXUnidadComponent
+<div class="flex flex-col gap-4">
+  <!-- Autocomplete / selector -->
+  <div>
+    <label *ngIf="!unidadConfirmada" class="block mb-1 text-sm font-medium text-gray-700">Buscar unidad:</label>
+
+    <!-- Input visible si NO hay unidad confirmada -->
+    <div *ngIf="!unidadConfirmada" class="relative">
+      <input type="text" [(ngModel)]="unidadBusqueda" (input)="filtrarUnidades()" (keydown)="onInputKeyDown($event)"
+        placeholder="Buscar unidad (mínimo 3 caracteres)"
+        class="px-3 py-2 w-full border-gray-300 rounded-md shadow-sm border focus:ring focus:outline-none" />
+
+
+      <ul *ngIf="autocompleteResults.length"
+        class="overflow-auto z-10 absolute top-12 left-0 right-0 max-h-52 bg-white shadow-md border rounded">
+        <li *ngFor="let item of autocompleteResults; let i = index" [class.bg-gray-200]="i === selectedIndex"
+          (click)="seleccionarUnidad(item)" class="p-2 cursor-pointer hover:bg-gray-200">
+          {{ item.nombre }} ({{ item.cluesimb }})
+        </li>
+      </ul>
+    </div>
+
+    <!-- Chip con unidad seleccionada -->
+    <div *ngIf="unidadConfirmada" class="flex items-start gap-3 px-3 py-2 bg-blue-50 border-blue-200 rounded-md border">
+      <lucide-icon [img]="hospitalIcon" class="mt-1 w-5 h-5 text-green-700"></lucide-icon>
+      <div class="flex-1 text-sm">
+        <p class="font-semibold text-green-800">{{ unidadSeleccionada?.nombre }}</p>
+        <p class="text-gray-700 text-xs">
+          {{ unidadSeleccionada?.cluesimb }} · {{ unidadSeleccionada?.municipio }}</p>
+        <button (click)="reiniciarBusquedaUnidad()" class="text-sm text-green-600 underline hover:text-green-800">
+          Cambiar
+        </button>
+      </div>
+    </div>
+
+    <!-- mostra en tabla cpmsElegidos -->
+    <div *ngIf="cpmsElegidos.length > 0" class="mt-4">
+      <h3 class="font-medium text-gray-700 dark:text-white detalle-cita">Claves seleccionadas:</h3>
+      <ul class="pl-5 list-disc">
+        <li *ngFor="let cpm of cpmsElegidos; let i = index">
+          {{ i + 1 }} - {{ cpm.clave }} - {{ cpm.cantidad }} ({{ cpm.cluesimb }})
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
