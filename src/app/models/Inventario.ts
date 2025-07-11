@@ -1,4 +1,7 @@
-
+// src/app/models/Inventario.ts
+/**
+ * Interfaz para la estructura de un inventario
+ */
 export class Inventario {
     public clave: string;
     public partida: string;
@@ -12,6 +15,10 @@ export class Inventario {
     public fecha_entrada: string | Date | null;
 }
 
+/**
+ * Interfaz para la estructura de existencias. 
+ * Usada en solicitudes, podría usarse en dashboard
+ */
 export class InventarioDisponibles {
    public clave: string;
    public existenciasAZM: number;
@@ -19,7 +26,11 @@ export class InventarioDisponibles {
    public existenciasAZT: number;
 }
 
-    
+
+/**
+ * Interfaz para la estructura de una fila del Excel, usada por servicio de excel...
+ * no se usa para dashboard
+ */
 export interface InventarioRow {
   [key: string]: string | number | Date | null | undefined;
   0?: string; // clave
