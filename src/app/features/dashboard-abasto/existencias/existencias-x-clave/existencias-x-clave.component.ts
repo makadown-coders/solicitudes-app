@@ -255,7 +255,6 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         if (this.cpms.length===0) {            
             this.cpms = [...this.storageService.getCPMSFromLocalStorage()];            
         }
-        console.log('CPMS cargados', this.cpms.find(c => c.clave === this.claveBusqueda.trim().toUpperCase()));        
         const clave = this.claveBusqueda.trim().toUpperCase();
         this.claveFiltrada = clave;
         this.datosAgrupados = [];
@@ -288,7 +287,6 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                     },
                 };
                 const cpmEntry = this.cpms.find(c => c.clave === clave && c.cluesimb === clues);
-                console.log('cpmEntry', cpmEntry);
                 const cpm = cpmEntry?.cantidad ?? 0;
 
                 unidadResumen.clave.cpm = cpm;
@@ -382,7 +380,6 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                 this.existenciaAlmacenes.existenciasAZT += item.disponible - item.comprometidos;
             }
         });
-        console.log('this.existenciaAlmacenes', this.existenciaAlmacenes);
         // guardar en localstorage
         localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES, JSON.stringify(this.existenciaAlmacenes));
     }

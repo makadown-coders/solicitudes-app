@@ -1,24 +1,24 @@
 <div class="mb-6 border-b border-gray-200">
-    <nav class="flex -mb-px space-x-6" aria-label="existenciasTabs">
-      <button *ngFor="let tab of existenciasTabs" (click)="seleccionarExistenciaTab(tab)" [class]="
+  <nav class="flex -mb-px space-x-6" aria-label="existenciasTabs">
+    <button *ngFor="let tab of existenciasTabs" (click)="seleccionarExistenciaTab(tab)" [class]="
           'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ' +
           (activeExistenciaTab === tab
             ? 'border-green-800 text-green-800 active-tab'
             : 'border-transparent text-gray-500 hover:text-gray-700  hover:border-gray-300 inactive-tab')
         ">
-        {{ tab }}
-      </button>
-    </nav>
-  </div>
+      {{ tab }}
+    </button>
+  </nav>
+</div>
 
 
-  <div>
-    <app-existencias-x-clave *ngIf="activeExistenciaTab === 'xClave'"
-     [existenciaUnidades]="existenciaUnidades"
-     [cpms]="cpms"
-     [citas]="citas"></app-existencias-x-clave>
-    <app-existencias-x-unidad *ngIf="activeExistenciaTab === 'xUnidad'"
-     [existenciaUnidades]="existenciaUnidades"
-     [cpms]="cpms"
-     [citas]="citas"></app-existencias-x-unidad>
+<div>
+  <div [hidden]="activeExistenciaTab !== 'xClave'">
+    <app-existencias-x-clave [existenciaUnidades]="existenciaUnidades" [cpms]="cpms"
+      [citas]="citas"></app-existencias-x-clave>
   </div>
+  <div [hidden]="activeExistenciaTab !== 'xUnidad'">
+  <app-existencias-x-unidad [existenciaUnidades]="existenciaUnidades"
+    [cpms]="cpms" [citas]="citas"></app-existencias-x-unidad>
+    </div>
+</div>

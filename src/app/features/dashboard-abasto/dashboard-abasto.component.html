@@ -1,3 +1,4 @@
+<!-- src/app/features/dashboard-abasto/dashboard-abasto.component.html -->
 <!-- Loading overlay -->
 <div *ngIf="isLoading()" id="loader"
   class="z-50 fixed inset-0 flex items-center justify-center bg-white bg-opacity-80 dark:bg-gray-800">
@@ -8,47 +9,61 @@
     <p class="text-lg font-semibold text-gray-700 dark:text-gray-200">Cargando...</p>
   </div>
 </div>
+<div class="mx-auto px-4 w-full max-w-[1450px]">
 
-<div class="p-6" [class.opacity-50]="isLoading()">
-  <!-- Header con botón de refrescar -->
-  <div class="flex justify-between items-center mb-4 dark:bg-black">
-    <h1 class="text-2xl font-bold">Dashboard Abasto (Ordenes de Suministro)</h1>
-    <div class="flex items-center ml-auto">
-      <button (click)="themeService.toggleTheme()" [disabled]="isLoading()"
-        class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] rounded disabled:opacity-50 boton-modo">
-        {{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}
-      </button>
-      <button (click)="onRefresh()" [disabled]="isLoading()"
-        class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] rounded disabled:opacity-50 boton-refrescar">
-        🔄 Refrescar datos
-      </button>
-      <!-- Logo -->
-      <img [src]="themeService.isDarkMode() ? 'imssb-logo-blanco.png' : 'imssb-logo.svg'" alt="IMSS Bienestar" class="ml-auto h-10 md:h-12" />
+  <div class="p-6" [class.opacity-50]="isLoading()">
+    <!-- Header con botón de refrescar -->
+    <div class="flex justify-between items-center mb-4 dark:bg-black">
+      <h1 class="text-2xl font-bold">Dashboard Abasto (Ordenes de Suministro)</h1>
+      <div class="flex items-center ml-auto">
+        <button (click)="themeService.toggleTheme()" [disabled]="isLoading()"
+          class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] rounded disabled:opacity-50 boton-modo">
+          {{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}
+        </button>
+        <button (click)="onRefresh()" [disabled]="isLoading()"
+          class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] rounded disabled:opacity-50 boton-refrescar">
+          🔄 Refrescar datos
+        </button>
+        <!-- Logo -->
+        <img [src]="themeService.isDarkMode() ? 'imssb-logo-blanco.png' : 'imssb-logo.svg'" alt="IMSS Bienestar"
+          class="ml-auto h-10 md:h-12" />
+      </div>
     </div>
-  </div>
 
 
-  <div class="mb-6 border-b border-gray-200">
-    <nav class="flex -mb-px space-x-6" aria-label="Tabs">
-      <button *ngFor="let tab of tabs" (click)="seleccionarTab(tab)" [class]="
+    <div class="mb-6 border-b border-gray-200">
+      <nav class="flex -mb-px space-x-6" aria-label="Tabs">
+        <button *ngFor="let tab of tabs" (click)="seleccionarTab(tab)" [class]="
           'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ' +
           (activeTab === tab
             ? 'border-green-800 text-green-800 active-tab'
             : 'border-transparent text-gray-500 hover:text-gray-700  hover:border-gray-300 inactive-tab')
         ">
-        {{ tab }}
-      </button>
-    </nav>
-  </div>
+          {{ tab }}
+        </button>
+      </nav>
+    </div>
 
 
-  <div *ngIf="!isLoading()">
-    <app-resumen *ngIf="activeTab === 'Resumen'" [citas]="citas"></app-resumen>
-    <app-existencias *ngIf="activeTab === 'Existencias (CPM)'" [citas]="citas"></app-existencias>
-    <app-proveedores *ngIf="activeTab === 'Proveedores y entregas'" [citas]="citas"></app-proveedores>
-    <app-citas-pendientes *ngIf="activeTab === 'Citas pendientes'" [citas]="citas"></app-citas-pendientes>    
-    <app-inventario-critico *ngIf="activeTab === 'Cumplimiento Claves'" [citas]="citas"></app-inventario-critico>    
-    <app-resumen-citas *ngIf="activeTab === 'Entregas pendientes'" [citas]="citas"></app-resumen-citas>
-    
+    <div *ngIf="!isLoading()">
+      <div [hidden]="activeTab !== 'Resumen'">
+        <app-resumen [citas]="citas"></app-resumen>
+      </div>
+      <div [hidden]="activeTab !== 'Existencias (CPM)'">
+        <app-existencias [citas]="citas"></app-existencias>
+      </div>
+      <div [hidden]="activeTab !== 'Proveedores y entregas'">
+        <app-proveedores [citas]="citas"></app-proveedores>
+      </div>
+      <div [hidden]="activeTab !== 'Citas pendientes'">
+        <app-citas-pendientes [citas]="citas"></app-citas-pendientes>
+      </div>
+      <div [hidden]="activeTab !== 'Cumplimiento Claves'">
+        <app-inventario-critico [citas]="citas"></app-inventario-critico>
+      </div>
+      <div [hidden]="activeTab !== 'Entregas pendientes'">
+        <app-resumen-citas [citas]="citas"></app-resumen-citas>
+      </div>
+    </div>
   </div>
 </div>

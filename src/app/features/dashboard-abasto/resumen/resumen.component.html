@@ -9,14 +9,14 @@
       <!-- Anio -->
       <div class="form-group">
         <label class="block mb-1 text-sm font-medium text-gray-700">Año</label>
-        <ng-select class="w-48" [items]="aniosDisponibles" [multiple]="true" bindLabel="Año" bindValue="value"
+        <ng-select id="RESUMEN_anio" class="w-48" [items]="aniosDisponibles" [multiple]="true" bindLabel="Año" bindValue="value"
           [(ngModel)]="filtrosSeleccionados.anios" placeholder="Seleccione..." (change)="calcularDatos()">
         </ng-select>
       </div>
       <!-- Estatus -->
       <div class="form-group">
         <label class="block mb-1 text-sm font-medium text-gray-700">Estatus</label>
-        <ng-select class="w-48 custom-ngselect" [items]="estatusDisponibles" [multiple]="true"
+        <ng-select id="RESUMEN_estatus" class="w-48 custom-ngselect" [items]="estatusDisponibles" [multiple]="true"
           [(ngModel)]="filtrosSeleccionados.estatus" placeholder="Seleccione..." (change)="calcularDatos()">
         </ng-select>
       </div>
@@ -24,7 +24,7 @@
       <!-- Tipo de Entrega -->
       <div class="form-group">
         <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de Entrega</label>
-        <ng-select class="w-64 custom-ngselect" [items]="tipoEntregaDisponibles" [multiple]="true"
+        <ng-select id="RESUMEN_tipoEntrega" class="w-64 custom-ngselect" [items]="tipoEntregaDisponibles" [multiple]="true"
           [(ngModel)]="filtrosSeleccionados.tipoEntrega" placeholder="Seleccione..." (change)="calcularDatos()">
         </ng-select>
       </div>
@@ -32,7 +32,7 @@
       <!-- Tipo de compra -->
       <div class="form-group">
         <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de compra</label>
-        <ng-select class="w-64 custom-ngselect" [items]="tiposCompraDisponibles" [multiple]="true"
+        <ng-select id="RESUMEN_tipoCompra" class="w-64 custom-ngselect" [items]="tiposCompraDisponibles" [multiple]="true"
           [(ngModel)]="filtrosSeleccionados.tipoCompra" placeholder="Seleccione..." (change)="calcularDatos()">
         </ng-select>
       </div>

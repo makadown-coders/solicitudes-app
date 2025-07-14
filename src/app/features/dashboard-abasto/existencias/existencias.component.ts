@@ -53,9 +53,7 @@ export class ExistenciasComponent implements OnInit, OnDestroy {
         // suscribirse al observable de cpms 
         this.inventarioService.cpms$.pipe(takeUntil(this.onDestroy$)).subscribe({
             next: (cpms: CPMS[]) => {
-                console.log('Cargando CPMS');
                 this.cpms = [...cpms];
-                console.log('CPMS cargados', this.cpms.length);
             }
         });
     }

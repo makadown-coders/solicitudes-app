@@ -1,17 +1,21 @@
 // src/app/features/dashboard-abasto/existencias/existencias-x-unidad/existencias-x-unidad.component.ts
-import { ChangeDetectionStrategy, Component, inject, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
+import { Component, inject, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Unidad, UnidadExistente } from '../../../../models/articulo-solicitud';
+import { Articulo, UnidadExistente } from '../../../../models/articulo-solicitud';
 import { hospitalesData } from '../../../../models/hospitalesData';
-import { Subject, takeUntil } from 'rxjs';
+import * as LZString from 'lz-string';
+import { Subject } from 'rxjs';
 import { DashboardService } from '../../../../services/dashboard.service';
-import { Inventario } from '../../../../models/Inventario';
+import { Inventario, InventarioDisponibles } from '../../../../models/Inventario';
 import { StorageSolicitudService } from '../../../../services/storage-solicitud.service';
-import { HospitalIcon, LucideAngularModule } from 'lucide-angular';
+import { AlertCircleIcon, HospitalIcon, InfoIcon, LucideAngularModule, TriangleAlertIcon } from 'lucide-angular';
 import { FormsModule } from '@angular/forms';
 import { StorageVariables } from '../../../../shared/storage-variables';
 import { CPMS } from '../../../../models/CPMS';
 import { Cita } from '../../../../models/Cita';
+import { clasificacionMedicamentosData } from '../../../../models/clasificacionMedicamentosData';
+import { ClasificadorVEN } from '../../../../models/clasificador-ven';
+import { ArticulosService } from '../../../../services/articulos.service';
 
 @Component({
     standalone: true,
@@ -27,6 +31,7 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
 
     unidades: UnidadExistente[] = hospitalesData;
     dashboardService = inject(DashboardService);
+    articulosService = inject(ArticulosService);
     storageService = inject(StorageSolicitudService);
     inventario: Inventario[] = [];
     onDestroy$ = new Subject<void>();
@@ -37,6 +42,13 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
     autocompleteResults: UnidadExistente[] = [];
     hospitalIcon = HospitalIcon;
     cpmsElegidos: CPMS[] = [];
+    articulos: Articulo[] = [];
+    articulosMap = new Map<string, Articulo>();
+
+    alertCircle = AlertCircleIcon;
+    infoIcon = InfoIcon;
+    triangleAlertIcon = TriangleAlertIcon;
+
     existenciaUnidadesElegidas: Inventario[] = [];
     cmp: any;
 
@@ -119,8 +131,7 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_FILTRO_UNIDAD,
             JSON.stringify(unidad));
 
-        console.log('( seleccionarUnidad() ) this.data.cpms tamanio',
-            this.cpms.map(item => item.clave).length);
+        // console.log('( seleccionarUnidad() ) this.data.cpms tamanio', this.cpms.map(item => item.clave).length);
         this.cpmsElegidos = [...this.cpms.filter(cpms =>
             cpms.cluesimb.toLocaleLowerCase() === unidad.cluesimb.toLocaleLowerCase())];
         // ordenar this.cpmsElegidos por clave
@@ -131,7 +142,16 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             JSON.stringify(this.cpmsElegidos));
         // cargar existenciaUnidadesElegidas de this.existenciaUnidades
         this.existenciaUnidadesElegidas = this.existenciaUnidades.get(unidad.key) || [];
-        console.log('this.existenciaUnidadesElegidas', this.existenciaUnidadesElegidas);
+        // console.log('this.existenciaUnidadesElegidas', this.existenciaUnidadesElegidas);
+        /* si this.existenciaUnidadesElegidas no tiene el resumen estatal 
+            lo agregamos a this.existenciaUnidadesElegidas y a this.existenciaUnidades con esa key */
+        if (this.existenciaUnidadesElegidas.length === 0) {
+            // para crear el resumen estatal "peino" todas las keys de this.existenciaUnidades y acumulo cada clave en this.existenciaUnidadesElegidas
+            this.existenciaUnidadesElegidas = [...this.existenciaUnidades.values()].reduce((acc, val) => [...acc, ...val], []);
+            this.existenciaUnidades.set('ESTATAL', this.existenciaUnidadesElegidas);
+        }
+
+
         // guardar this.existenciaUnidadesElegidas en localStorage DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS
         localStorage.setItem(
             StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS,
@@ -144,7 +164,10 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
         this.unidadBusqueda = '';
         this.autocompleteResults = [];
         this.selectedIndex = -1;
+        // LIMPIAR DE LOCALSTORAGE TODO LO DE ESTA PESTAÑA EXCEPTO DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP
         localStorage.removeItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_FILTRO_UNIDAD);
+        localStorage.removeItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_CPMS_ELEGIDOS);
+        localStorage.removeItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS);
     }
 
     ngOnInit() {
@@ -163,18 +186,49 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             if (unidadesElegidasGuardadas) {
                 this.existenciaUnidadesElegidas = JSON.parse(unidadesElegidasGuardadas) as Inventario[];
             }
+            // obtener DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP de localstorage y guardar en this.articulosMap
+            this.cargarArticulosMapDeLocalStorage();
         }
         if (this.inventario.length === 0) {
             this.inventario = this.storageService.getInventarioFromLocalStorage();
         }
+
+        // suscribirse a buscarArticulosv2 si DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP de localstorage no existe
+        if (localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP) === null) {
+            this.articulosService.buscarArticulosv2('')  // vacío para traer todo
+                .subscribe({
+                    next: (response) => {
+                        this.articulos = response.resultados.map(r => ({
+                            clave: r.clave,
+                            descripcion: r.descripcion,
+                            presentacion: r.unidadMedida ?? '',
+                        })) as Articulo[];
+                        // al cargar:
+                        this.articulos.forEach(a => this.articulosMap.set(a.clave, a));
+                        // Guardar comprimido de articulosMap en localStorage (DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP)
+                        const articulosString = JSON.stringify(Array.from(this.articulosMap.entries()));
+                        const articulosComprimido = LZString.compress(articulosString);
+                        localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP, articulosComprimido);
+                    },
+                    error: (err) => {
+                        console.warn('⚠️ Error cargando artículos:', err);
+                    }
+                });
+        } else {
+            this.cargarArticulosMapDeLocalStorage();
+        }
+    }
+
+    cargarArticulosMapDeLocalStorage() {
+        const articulosMapComprimido = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP);
+        if (articulosMapComprimido) {
+            // descomprimir 
+            const articulosMapGuardados = LZString.decompress(articulosMapComprimido);
+            this.articulosMap = new Map(JSON.parse(articulosMapGuardados));
+        }
     }
 
     ngOnChanges(changes: SimpleChanges): void {
-        // si el cambio es a data, actualizar this.cpmsElegidos
-        if (changes['data']) {
-            console.log('(ngOnChanges) this.data.cpms tamanio',
-                this.cpms.map(item => item.clave).length);
-        }
     }
 
     disponibles(clave: string): number {
@@ -194,8 +248,42 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
                 totalClaveDisponibles++;
             }
         }
-
         return { totalPiezasDisponibles, totalClaveDisponibles };
     }
 
+    obtenerClasificacion(clave: string): string {
+        const clasificacion = clasificacionMedicamentosData.find(c => c.clave === clave);
+        return clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
+    }
+
+    obtenerDescripcion(clave: string): string {
+        return this.articulosMap.get(clave)?.descripcion || '-';
+    }
+
+    obtenerUnidad(clave: string): string {
+        return this.articulosMap.get(clave)?.presentacion || '-';
+    }
+
+    obtenerExistenciaAlmacenes(clave: string): InventarioDisponibles {
+        const existenciaAlmacenes = new InventarioDisponibles();
+        existenciaAlmacenes.clave = clave;
+
+        const inventarioItems = this.inventario.filter(item => item.clave === clave);
+
+        existenciaAlmacenes.existenciasAZE = 0;
+        existenciaAlmacenes.existenciasAZM = 0;
+        existenciaAlmacenes.existenciasAZT = 0;
+        inventarioItems.forEach(item => {
+            if (item.almacen.toLowerCase().includes('almacen estatal zona mexicali') ||
+                item.almacen.toLowerCase().includes('almacen zona mexicali')) {
+                existenciaAlmacenes.existenciasAZM += item.disponible - item.comprometidos;
+            } else if (item.almacen.toLowerCase().includes('almacen zona ensenada')) {
+                existenciaAlmacenes.existenciasAZE += item.disponible - item.comprometidos;
+            } else if (item.almacen.toLowerCase().includes('almacen zona tijuana')) {
+                existenciaAlmacenes.existenciasAZT += item.disponible - item.comprometidos;
+            }
+        });
+        // console.log('existenciaAlmacenes', existenciaAlmacenes);
+        return existenciaAlmacenes;
+    }
 }

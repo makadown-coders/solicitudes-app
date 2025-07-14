@@ -59,13 +59,13 @@
             Importar Precarga
         </button>
     </div>
-    <div class="mt-4 p-2 border rounded" *ngIf="articulosSolicitados.length">
+    <div class="mt-4 p-2 border rounded" [hidden]="!articulosSolicitados || articulosSolicitados.length===0">
         <app-tabla-articulos [articulosSolicitados]="articulosSolicitados" [modoEdicionIndex]="modoEdicionIndex"
             [cantidadTemporal]="cantidadTemporal" (cantidadTemporalChange)="cambiarCantidad($event)"
             [inventario]="inventarioDisponible"
             (confirmar)="confirmarEdicion($event)" (cancelar)="cancelarEdicion()" (editar)="activarEdicion($event)"
             (eliminar)="eliminarArticuloConConfirmacion($event)" />
-    </div>   
+    </div>
 
     <button *ngIf="articulosSolicitados.length > 0 && todosMayorACero" (click)="mostrarModalExportar()"
         class="p-2 mt-4 ml-2 text-white bg-green-600 rounded hover:bg-green-700" [disabled]="modoEdicionIndex !== null"

@@ -5,8 +5,7 @@ import { environment } from '../../environments/environment';
 import { Cita } from '../models/Cita';
 import * as LZString from 'lz-string';
 import { CitasService } from './citas.service';
-import { CitasFull, InventarioFull } from '../models/ElementosBase64';
-import { Existencias, StorageVariables } from '../shared/storage-variables';
+import { CitasFull } from '../models/ElementosBase64';
 
 @Injectable({
   providedIn: 'root'
