@@ -23,7 +23,7 @@
 
     <!-- Chip con unidad seleccionada -->
     <div *ngIf="unidadConfirmada" class="p-4 w-full bg-blue-50 border-blue-200 rounded-md border">
-      <div class="flex flex-col gap-4 md:flex-row items-center justify-between">
+      <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
         <!-- Chip unidad -->
         <div class="flex items-start gap-2">
           <lucide-icon [img]="hospitalIcon" class="flex-shrink-0 w-6 h-6 text-green-700"></lucide-icon>
@@ -145,5 +145,8 @@
       </table>
     </div>
   </div>
-
+  <!-- Gráfica escondida al fondo -->
+  <div class="absolute bottom-2 right-2 w-20 h-20 opacity-20 pointer-events-none">
+    <canvas baseChart [options]="doughnutChartOptions" [data]="doughnutChartData" [type]="'doughnut'"></canvas>
+  </div>
 </div>

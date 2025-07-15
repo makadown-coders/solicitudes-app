@@ -112,7 +112,17 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const guardados = this.storageSolicitudService.getArticulosSolicitadosFromLocalStorage();
     if (guardados) {
-      this.articulosSolicitados = JSON.parse(guardados);
+      const articulosGuardados: ArticuloSolicitud[] = JSON.parse(guardados);
+      // Normalizar claves
+      this.articulosSolicitados = articulosGuardados.map(art => {
+        const clavesNormalizadas = this.inventarioService.normalizarClavesCompatibles(art.clave);
+        // Siempre guardamos la versión de 10 dígitos si aplica
+        const clavePreferida = clavesNormalizadas.length > 1 ? clavesNormalizadas[1] : art.clave;        
+        return {
+          ...art,
+          clave: clavePreferida
+        };
+      });
     }
 
     this.searchSubject.pipe(debounceTime(1000), takeUntil(this.onDestroy$))
@@ -585,12 +595,16 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       const repetidas: Record<string, number> = {};
 
       for (const fila of datos) {
-        const clave = (fila[colClave] ?? '').toString().trim().toUpperCase();
+        let clave:string  = (fila[colClave] ?? '').toString().trim().toUpperCase();
         if (!clave) continue;
+        
+        const clavesNormalizadas = this.inventarioService.normalizarClavesCompatibles(clave+'');
+        // Siempre guardamos la versión de 10 dígitos si aplica
+        clave = clavesNormalizadas.length > 1 ? clavesNormalizadas[1] : clave+'';
 
         const cantidad = colCantidad ? parseInt(fila[colCantidad]) || 0 : 0;
 
-        const existente = nuevos.find(a => a.clave === clave);
+        const existente = nuevos.find(a => a.clave === clave + '');
         if (existente) {
           existente.cantidad += cantidad;
           repetidas[clave] = (repetidas[clave] || existente.cantidad);
@@ -603,7 +617,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
               contadorErrorPrimerNivel++;
               continue;
             }
-          }
+          }          
 
           nuevos.push({
             clave,

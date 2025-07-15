@@ -64,7 +64,7 @@ export class DashboardService {
   }
 
   limpiarDatos(): void {
-    console.info('🧹 Limpiando datos del dashboard...');
+//    console.info('🧹 Limpiando datos del dashboard...');
     localStorage.removeItem(this.STORAGE_KEY);
     this.citasSubject.next([] as Cita[]);
   }

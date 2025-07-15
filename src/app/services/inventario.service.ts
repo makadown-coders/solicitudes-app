@@ -49,7 +49,7 @@ export class InventarioService {
   }
 
   refrescarDatosCPMS() {
-    console.info('🔄 InventarioService.refrescarDatosCPMS() - Actualizando CPMS...');
+    //    console.info('🔄 InventarioService.refrescarDatosCPMS() - Actualizando CPMS...');
     this.cargandoCPMSBehaviorSubject.next(true);
     // purgar todo el localStorage
     this.limpiarCPMS();
@@ -59,13 +59,13 @@ export class InventarioService {
         const arrayBuffer = this.excelService.base64ToArrayBuffer(response.cpms);
         let cpms: CPMS[] = this.excelService.procesarArchivoCPMS(arrayBuffer);
 
-        console.info('✅ InventarioService.refrescarDatosCPMS() - CPMS tamanio original', cpms.length);
+        // console.info('✅ InventarioService.refrescarDatosCPMS() - CPMS tamanio original', cpms.length);
         // 0-1) Procesar los cpms para que excluya claves que tienen cantidad cero en todas las unidades 
         if (cpms && cpms.length > 0) {
           let resumenEstatal = this.agregarResumenEstatal(cpms);
           // crear un arreglo de claves en resumenEstatal que tienen CPM total > 0
           const clavesConCpmTotal = resumenEstatal.filter(item => item.cantidad > 0).map(item => item.clave);
-          console.info('🧹 Filtrando CPMS...');
+          //          console.info('🧹 Filtrando CPMS...');
           // filtrar this.existenciasTabInfo.cpms para mantener solo las claves que tienen CPM total > 0
           let cpmsFiltrados: CPMS[] = [];
           for (let i = 0; i < clavesConCpmTotal.length; i++) {
@@ -75,16 +75,15 @@ export class InventarioService {
               cpmsFiltrados = [...cpmsFiltrados, ...cpm];
             }
           }
-          console.log('cpmsFiltrados tamanio', cpmsFiltrados.filter(item => item.cantidad > 0).map(item => item.clave).length);
+          //          console.log('cpmsFiltrados tamanio', cpmsFiltrados.filter(item => item.cantidad > 0).map(item => item.clave).length);
           // agregando resumen estatal por si se ofrece
           resumenEstatal = resumenEstatal.filter(item => clavesConCpmTotal.includes(item.clave));
-          console.log('resumenEstatal tamanio', resumenEstatal.filter(item => item.cantidad > 0).map(item => item.clave).length);
+          // console.log('resumenEstatal tamanio', resumenEstatal.filter(item => item.cantidad > 0).map(item => item.clave).length);
 
           cpms = [];
 
           cpms = [...resumenEstatal, ...cpmsFiltrados];
-          console.log('cpms tamanio',
-            cpms.map(item => item.clave).length);
+          // console.log('cpms tamanio', cpms.map(item => item.clave).length);
 
           // 1) Serializar y comprimir
           const raw = JSON.stringify(cpms);
@@ -101,7 +100,7 @@ export class InventarioService {
         // 2) Emitir        
         this.cpmsSubject.next(cpms as CPMS[]);
         this.cargandoCPMSBehaviorSubject.next(false);
-        console.info('✅ InventarioService.refrescarDatosCPMS() - FINALIZADO');
+        //        console.info('✅ InventarioService.refrescarDatosCPMS() - FINALIZADO');
       },
       error: (err) => {
         this.cargandoCPMSBehaviorSubject.next(false);
@@ -142,17 +141,17 @@ export class InventarioService {
   }
 
   limpiarCPMS() {
-    console.info('🧹 Limpiando CPMS...');
+    //    console.info('🧹 Limpiando CPMS...');
     localStorage.removeItem(StorageVariables.SOLICITUD_CPMS);
     this.cpmsSubject.next([]);
   }
 
   cargarCPMSdesdeLocalStorage() {
-     this.cpmsSubject.next(new StorageSolicitudService().getCPMSFromLocalStorage());
+    this.cpmsSubject.next(new StorageSolicitudService().getCPMSFromLocalStorage());
   }
 
   refrescarDatosInventario(): void {
-    console.info('🔄 InventarioService.refrescarDatosInventario() - Actualizando datos de inventario temporal...');
+    //    console.info('🔄 InventarioService.refrescarDatosInventario() - Actualizando datos de inventario temporal...');
     this.cargandoInventarioBehaviorSubject.next(true);
     // purgar todo el localStorage
     this.limpiarInventario();
@@ -161,9 +160,10 @@ export class InventarioService {
       next: (response: InventarioFull) => {
 
         const inventario = this.obtenerInventarioDeBase64(response.inventario);
+        const inventarioNormalizado = this.normalizarClavesInventario(inventario);
 
         // 1) Serializar y comprimir
-        const raw = JSON.stringify(inventario);
+        const raw = JSON.stringify(inventarioNormalizado);
         const compressed = LZString.compress(raw);
         try {
           localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO, compressed);
@@ -171,10 +171,10 @@ export class InventarioService {
           console.warn('😱 InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
         }
         // 2) Emitir
-        console.info('✅ InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
-        this.inventarioSubject.next(inventario as Inventario[]);
+        //        console.info('✅ InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
+        this.inventarioSubject.next(inventarioNormalizado as Inventario[]);
         this.cargandoInventarioBehaviorSubject.next(false);
-        console.info('✅ InventarioService.refrescarDatosInventario() - FINALIZADO');
+        //        console.info('✅ InventarioService.refrescarDatosInventario() - FINALIZADO');
       },
       error: (err) => {
         console.error('❌ InventarioService.refrescarDatosInventario() - Error al cargar datos:', err);
@@ -198,7 +198,7 @@ export class InventarioService {
     const comprimido = localStorage.getItem(existencia);
     if (!comprimido) {
       console.warn('😱 InventarioService.refrescarDatosExistencias() - No se encontraron datos de ' + existencia + ' en localStorage.')
-      return;      
+      return;
     }
     const raw = LZString.decompress(comprimido);
     const inventario = raw ? JSON.parse(raw) : [];
@@ -206,7 +206,7 @@ export class InventarioService {
   }
 
   refrescarDatosExistencias(existencia: Existencias = Existencias.HGENS): void {
-    console.info('🔄 InventarioService.refrescarDatosExistencias() - Actualizando existencias de ' + existencia + '...');
+    //    console.info('🔄 InventarioService.refrescarDatosExistencias() - Actualizando existencias de ' + existencia + '...');
     // this.cargandoInventarioBehaviorSubject.next(true);
     // purgar todo el localStorage
     this.limpiarExistencias(existencia);
@@ -215,9 +215,10 @@ export class InventarioService {
       next: (response: InventarioFull) => {
 
         const inventario = this.obtenerInventarioDeBase64(response.inventario);
+        const inventarioNormalizado = this.normalizarClavesInventario(inventario);
 
         // 1) Serializar y comprimir
-        const raw = JSON.stringify(inventario);
+        const raw = JSON.stringify(inventarioNormalizado);
         const compressed = LZString.compress(raw);
         try {
           localStorage.setItem(existencia, compressed);
@@ -225,11 +226,11 @@ export class InventarioService {
           console.warn('😱 InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
         }
         // 2) Emitir
-        console.info('✅ InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
+        //console.info('✅ InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
 
-        this.existenciasSubject.get(existencia)!.next(inventario as Inventario[]);
+        this.existenciasSubject.get(existencia)!.next(inventarioNormalizado as Inventario[]);
         // this.cargandoInventarioBehaviorSubject.next(false);
-        console.info('✅ InventarioService.refrescarDatosExistencias() - ' + existencia + ' FINALIZADO');
+        //console.info('✅ InventarioService.refrescarDatosExistencias() - ' + existencia + ' FINALIZADO');
       },
       error: (err) => {
         console.error('❌ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
@@ -318,4 +319,40 @@ export class InventarioService {
   private limpiarExistencias(existencia: Existencias) {
     localStorage.removeItem(existencia);
   }
+
+  private normalizarClavesInventario(inventario: Inventario[]): Inventario[] {
+    const prefijos10 = ['060', '533', '080', '070'];
+    return inventario.map(item => {
+      const claveSinPuntos = item.clave.replace(/\./g, '');
+      if (claveSinPuntos.length === 12 &&
+        prefijos10.includes(claveSinPuntos.substring(0, 3)) &&
+        claveSinPuntos.endsWith('00')) {
+        // Convertir 12 dígitos a 10, manteniendo formato con puntos
+        const clave10 = claveSinPuntos.substring(0, 10);
+        item.clave = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
+      }
+      return item;
+    });
+  }
+
+  public normalizarClavesCompatibles(clave: string): string[] {
+    const claveSinPuntos = clave.replace(/\./g, '');
+    const prefijo = claveSinPuntos.substring(0, 3);
+
+    if (['060', '533', '080', '070'].includes(prefijo)) {
+      if (claveSinPuntos.length === 10) {
+        // Generar versión con .00
+        const conPuntos12 = `${claveSinPuntos.substring(0, 3)}.${claveSinPuntos.substring(3, 6)}.${claveSinPuntos.substring(6, 10)}.00`;
+        return [clave, conPuntos12];
+      }
+      if (claveSinPuntos.length === 12 && claveSinPuntos.endsWith('00')) {
+        // Generar versión sin .00
+        const clave10 = claveSinPuntos.substring(0, 10);
+        const conPuntos10 = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
+        return [clave, conPuntos10];
+      }
+    }
+    return [clave];
+  }
+
 }
