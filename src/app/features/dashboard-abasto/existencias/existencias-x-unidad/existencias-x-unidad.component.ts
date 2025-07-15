@@ -210,6 +210,7 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
         this.unidadSeleccionada = null;
         this.unidadBusqueda = '';
         this.autocompleteResults = [];
+        this.existenciaUnidadesElegidas = [];
         this.selectedIndex = -1;
         // LIMPIAR DE LOCALSTORAGE TODO LO DE ESTA PESTAÑA EXCEPTO DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP
         localStorage.removeItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_FILTRO_UNIDAD);
