@@ -1,5 +1,5 @@
 // src/app/features/dashboard-abasto/existencias/existencias-x-unidad/existencias-x-unidad.component.ts
-import { Component, inject, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Articulo, UnidadExistente } from '../../../../models/articulo-solicitud';
 import { hospitalesData } from '../../../../models/hospitalesData';
@@ -16,10 +16,12 @@ import { Cita } from '../../../../models/Cita';
 import { clasificacionMedicamentosData } from '../../../../models/clasificacionMedicamentosData';
 import { ClasificadorVEN } from '../../../../models/clasificador-ven';
 import { ArticulosService } from '../../../../services/articulos.service';
+import { ChartConfiguration, ChartOptions, ChartType } from 'chart.js';
+import { BaseChartDirective } from 'ng2-charts';
 
 @Component({
     standalone: true,
-    imports: [CommonModule, LucideAngularModule, FormsModule],
+    imports: [CommonModule, LucideAngularModule, FormsModule, BaseChartDirective],
     selector: 'app-existencias-x-unidad',
     templateUrl: 'existencias-x-unidad.component.html'
 })
@@ -44,10 +46,51 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
     cpmsElegidos: CPMS[] = [];
     articulos: Articulo[] = [];
     articulosMap = new Map<string, Articulo>();
+    cdRef = inject(ChangeDetectorRef);
 
     alertCircle = AlertCircleIcon;
     infoIcon = InfoIcon;
     triangleAlertIcon = TriangleAlertIcon;
+
+    public doughnutChartOptions: ChartOptions<'doughnut'> = {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+            legend: {
+                position: 'right',
+                align: 'center',
+                labels: {
+                    boxWidth: 10,
+                    padding: 6,
+                    font: {
+                        size: 11,
+                    },
+                    usePointStyle: true,
+                },
+            },
+            tooltip: {
+                callbacks: {
+                    label: function (context) {
+                        let label = context.label || '';
+                        let value = context.formattedValue || '';
+                        return `${label}: ${value}`;
+                    }
+                }
+            }
+        },
+    }
+    public doughnutChartLabels: string[] = ['Disponibles', 'Faltantes'];
+    public doughnutChartData: ChartConfiguration<'doughnut'>['data'] = {
+
+        labels: this.doughnutChartLabels,
+        datasets: [
+            {
+                data: [0, 0], // inicial
+            },
+        ],
+    };
+    public doughnutChartType: ChartType = 'doughnut';
 
     existenciaUnidadesElegidas: Inventario[] = [];
     cmp: any;
@@ -152,10 +195,14 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
         }
 
 
+        // comprimir this.existenciaUnidadesElegidas y
         // guardar this.existenciaUnidadesElegidas en localStorage DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS
+        const existenciaUnidadesElegidasString = JSON.stringify(this.existenciaUnidadesElegidas);
+        const existenciaUnidadesElegidasComprimido = LZString.compress(existenciaUnidadesElegidasString);
         localStorage.setItem(
             StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS,
-            JSON.stringify(this.existenciaUnidadesElegidas));
+            JSON.stringify(existenciaUnidadesElegidasComprimido));
+
     }
 
     reiniciarBusquedaUnidad() {
@@ -168,6 +215,7 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
         localStorage.removeItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_FILTRO_UNIDAD);
         localStorage.removeItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_CPMS_ELEGIDOS);
         localStorage.removeItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS);
+        this.cdRef.detectChanges();
     }
 
     ngOnInit() {
@@ -182,12 +230,15 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
                 this.cpmsElegidos = JSON.parse(cpmsElegidosGuardados) as CPMS[];
             }
             // obtener de localstorage DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS y guardar en this.existenciaUnidadesElegidas
-            const unidadesElegidasGuardadas = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS);
-            if (unidadesElegidasGuardadas) {
+            const comprimidoUnidadesElegidasGuardadas = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS);
+            if (comprimidoUnidadesElegidasGuardadas) {
+                // descomprimir
+                const unidadesElegidasGuardadas = LZString.decompress(comprimidoUnidadesElegidasGuardadas);
                 this.existenciaUnidadesElegidas = JSON.parse(unidadesElegidasGuardadas) as Inventario[];
             }
             // obtener DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP de localstorage y guardar en this.articulosMap
             this.cargarArticulosMapDeLocalStorage();
+            this.seleccionarUnidad(this.unidadSeleccionada);
         }
         if (this.inventario.length === 0) {
             this.inventario = this.storageService.getInventarioFromLocalStorage();
@@ -232,12 +283,16 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
     }
 
     disponibles(clave: string): number {
+        if (!this.existenciaUnidadesElegidas || this.existenciaUnidadesElegidas.length === 0) return 0; // si no hay this.existenciaUnidadesElegidas
+
         const filtrado = this.existenciaUnidadesElegidas.filter(item => item.clave === clave);
         if (filtrado.length === 0) return 0;
         return filtrado.reduce((total, item) => total + item.disponible, 0);
     }
 
     resumenCPMs() {
+        if (!this.cpmsElegidos || this.cpmsElegidos.length === 0) return { totalPiezasDisponibles: 0, totalClaveDisponibles: 0 };
+
         let totalPiezasDisponibles = 0;
         let totalClaveDisponibles = 0;
 
@@ -285,5 +340,28 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
         });
         // console.log('existenciaAlmacenes', existenciaAlmacenes);
         return existenciaAlmacenes;
+    }
+
+    obtenerPorcentajeAbasto(totalClaveDisponibles: number, cpmsElegidos: number): number {
+        this.actualizarGraficoResumen(totalClaveDisponibles, cpmsElegidos - totalClaveDisponibles);
+        return totalClaveDisponibles / cpmsElegidos;
+    }
+
+    actualizarGraficoResumen(conAbasto: number, sinAbasto: number) {
+
+        this.doughnutChartData = {
+            labels: this.doughnutChartLabels,
+            datasets: [
+                {
+                    data: [conAbasto, sinAbasto],
+                    backgroundColor: ['#16a34a', '#f87171'], // verde, rojo
+                    hoverBackgroundColor: ['#16a34a', '#dc2626'],  // verde oscuro, rojo intenso al pasar mouse
+                    borderWidth: 1,
+                },
+            ],
+        };
+
+        // this.cdRef.detectChanges();
+
     }
 }

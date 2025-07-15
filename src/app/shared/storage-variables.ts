@@ -4,7 +4,7 @@ export const enum StorageVariables {
     // Dashboard Abasto tab principal
     DASH_ABASTO_ACTIVE_TAB = 'dash_abasto_active_tab',
     // Dashboard Abasto tab Existencias
-    DASH_ABASTO_ACTIVE_EXISTENCIA_TAB = 'dash_abasto_active_existencia_tab',    
+    DASH_ABASTO_ACTIVE_EXISTENCIA_TAB = 'dash_abasto_active_existencia_tab',
     // Dashboard Abasto tab Existencias > Existencias x Clave
     DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE = 'dash_abasto_existencias_filtro_clave',
     DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE = 'dash_abasto_existencias_citas_x_clave',
