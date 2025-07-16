@@ -1,3 +1,4 @@
+<!-- src/app/layout/layout/layout.component.html  -->
 <div class="container mx-auto p-4">
   <div class="flex mb-4 border-b border-gray-300">
     <button class="px-4 py-2" [ngClass]="{
@@ -14,10 +15,13 @@
     </button>
     <!-- Logo -->
     <img src="imssb-logo.svg" alt="IMSS Bienestar" class="ml-auto h-10 md:h-12" />
-    <div class="flex items-center gap-2">      
+    <div class="flex items-center gap-2 mt-1">
       <!-- Ícono de ayuda -->
       <button (click)="mostrarGuia()" title="Ayuda contextual">
-        <lucide-angular [img]="CircleHelp" [color]="'#006341'" class="mr-2 mt-1 w-8 h-8" />
+        <lucide-angular [img]="CircleHelp" [color]="'#006341'" class="mr-2 mt-1 w-6 h-6 cursor-pointer" />
+      </button>
+      <button (click)="refrescarExistenciasYCPMS()" title="Refrescar existencia almacenes">
+        <lucide-angular [img]="RefreshCCWDotIcon" [color]="'#006341'" class="mr-2 mt-1 w-6 h-6 cursor-pointer" />
       </button>
     </div>
   </div>
@@ -47,41 +51,112 @@
     <ng-container [ngSwitch]="activeTab">
       <!-- Sección de CLUES -->
       <div *ngSwitchCase="'clues'" class="text-sm text-gray-700 space-y-2">
-        <p><strong>Nombre del hospital:</strong> Escribe una parte del nombre o CLUES para buscar.</p>
-        <p><strong>Tipo de insumo:</strong> Puedes seleccionar uno o más tipos que correspondan a tu solicitud.</p>
-        <p><strong>Periodo:</strong> Selecciona un rango válido de fechas.</p>
-        <p><strong>Tipo de pedido:</strong> Selecciona si es una solicitud Ordinaria o Extraordinaria.</p>
-        <p><strong>Responsable:</strong> Ingresa tu nombre completo para registro interno.</p>
+        <hr class="my-2 border-t border-gray-300">
+        <h3 class="font-semibold text-green-700">✏️ Captura de datos CLUES</h3>
+        <hr class="my-2 border-t border-gray-300">
+
+        <ng-container
+          *ngIf="storageSolicitudService.getModoCapturaSolicitud() === 'PRIMER_NIVEL'; else segundoNivelGuia">
+          <p><strong>Nombre de la unidad:</strong> Escribe parte del nombre, CLUES SSA, CLUES IMB o municipio para
+            buscar unidades médicas de Primer Nivel.</p>
+          <p><strong>Tipo de pedido:</strong> Elige si la solicitud es Ordinaria o Extraordinaria.</p>
+          <p><strong>Responsable:</strong> Ingresa tu nombre completo para registro interno.</p>
+          <p><strong>Periodo:</strong> Define un rango válido de fechas que abarque la solicitud.</p>
+          <hr class="my-2 border-t border-gray-300">
+          <p class="mt-2 text-xs text-gray-500">
+            ℹ️ En modo Primer Nivel, el sistema filtra exclusivamente unidades no hospitalarias.
+          </p>
+          <p class="mt-2 text-xs text-gray-500">
+            💡 Todos los campos son obligatorios para habilitar el tab de solicitud.
+          </p>
+        </ng-container>
+
+        <ng-template #segundoNivelGuia>
+          <p><strong>Nombre del hospital:</strong> Escribe parte del nombre, CLUES SSA o CLUES IMB para buscar
+            hospitales de Segundo Nivel.</p>
+          <p><strong>Tipo de insumo:</strong> Selecciona uno o más tipos aplicables a tu solicitud.</p>
+          <p><strong>Tipo de pedido:</strong> Elige si la solicitud es Ordinaria o Extraordinaria.</p>
+          <p><strong>Responsable:</strong> Ingresa tu nombre completo para registro interno.</p>
+          <p><strong>Periodo:</strong> Define un rango válido de fechas que abarque la solicitud.</p>
+          <hr class="my-2 border-t border-gray-300">
+          <p class="mt-2 text-xs text-gray-500">
+            ℹ️ En modo Segundo Nivel, el sistema filtra exclusivamente hospitales.
+          </p>
+          <p class="mt-2 text-xs text-gray-500">
+            💡 Todos los campos son obligatorios para habilitar el tab de solicitud.
+          </p>
+        </ng-template>
+
+        <hr class="my-2 border-t border-gray-300">
       </div>
+
 
       <!-- Sección de SOLICITUD -->
       <div *ngSwitchCase="'solicitud'" class="text-sm text-gray-700 space-y-2">
-        <p><strong>Clave:</strong> Escribe al menos 3 caracteres para activar el autocompletado.</p>
-        <p><strong>Descripción y unidad:</strong> Se llenan automáticamente, pero puedes editarlas.</p>
-        <p><strong>Cantidad:</strong> Solo se permiten cantidades mayores a 0 y menores a 99999.</p>
-        <p><strong>Edición:</strong> Puedes modificar cualquier renglón antes de exportar.</p>
-        <p><strong>Exportación:</strong> Al finalizar, nombra el archivo y se descargará en Excel.</p>
+        <hr class="my-2 border-t border-gray-300">
+        <h3 class="font-semibold text-green-700">📦 Captura de artículos</h3>
+        <hr class="my-2 border-t border-gray-300">
+
+        <ul class="pl-5 list-disc space-y-1">
+          <li><strong>Clave:</strong> Escribe al menos 3 caracteres para activar el autocompletado.</li>
+          <li><strong>Descripción y unidad:</strong> Se llenan automáticamente, pero puedes editarlas.</li>
+          <li><strong>Cantidad:</strong> Solo se permiten valores mayores a 0 y menores a 99999.</li>
+          <li><strong>Edición:</strong> Puedes modificar cantidades o eliminar renglones antes de exportar.</li>
+          <li><strong>Exportación:</strong> Al finalizar, nombra el archivo y se descargará en Excel.
+            Opcionalmente, puedes generar también un archivo de <em>precarga</em> para reutilizarlo en futuras capturas
+            o compartirlo con otros usuarios.
+          </li>
+        </ul>
+
+        <hr class="my-2 border-t border-gray-300">
+
+        <ng-container *ngIf="storageSolicitudService.getModoCapturaSolicitud() === 'PRIMER_NIVEL'; else segundoNivel">
+          <p class="mt-2 text-xs text-gray-500">
+            ⚠️ En Primer Nivel solo es posible capturar claves autorizadas específicas para unidades médicas de este
+            nivel,
+            principalmente medicamentos básicos definidos por Abasto. Si tienes dudas, consulta el listado oficial.
+          </p>
+        </ng-container>
+
+        <ng-template #segundoNivel>
+          <p class="mt-2 text-xs text-gray-500">
+            ℹ️ Las claves que comienzan con 060, 070 o 080 se muestran conforme al Compendio Nacional de Insumos,
+            sin sufijos locales como “.00”. Esto es completamente normal y no afecta su validez.
+            Existen algunas excepciones específicas donde claves con sufijos diferentes se incluyen deliberadamente
+            (por ejemplo, para distinguir calibres u otras variantes relevantes).
+          </p>
+        </ng-template>
+
+        <p class="mt-1 text-xs text-gray-500">
+          ⚙️ Los datos de CPM y existencias se refrescan automáticamente cada 24 horas, o manualmente usando el botón de
+          recarga.
+        </p>
+        <hr class="my-2 border-t border-gray-300">
       </div>
+
     </ng-container>
+
 
     <button (click)="guiaVisible = false"
       class="absolute top-2 right-2 text-gray-500 text-lg font-bold hover:text-gray-700">×</button>
   </div>
 </div>
 
-<!-- Modal flotante para avisar que se están cargando los CPMS -->
-<div *ngIf="(inventarioService.cargandoCPMS$| async) || refrescandoCPMSdesdeLayout()"  
-        class="z-50 fixed inset-0 flex items-center justify-center pointer-events-none">
-    <div
-        class="px-6 py-4 w-[90%] text-green-900 text-center text-base font-semibold bg-white/90 rounded-xl border-green-300 shadow-lg border sm:w-auto">
-        🚀 Refrescando CPMs...
-    </div>
-</div>
+<!-- Modal flotante para avisar que se están cargando los CPMS o existencias -->
+<div
+  *ngIf="(inventarioService.cargandoCPMS$| async) || refrescandoCPMSdesdeLayout() || (inventarioService.cargandoInventario$| async)"
+  class="z-50 fixed inset-0 flex items-center justify-center pointer-events-none">
 
-<div *ngIf="(inventarioService.cargandoInventario$| async)" 
-        class="z-50 fixed inset-0 flex items-center justify-center pointer-events-none">
-    <div
-        class="px-6 py-4 w-[90%] text-green-900 text-center text-base font-semibold bg-white/90 rounded-xl border-green-300 shadow-lg border sm:w-auto">
-        🚀 Refrescando existencias ...
-    </div>
+  @let mensaje = (inventarioService.cargandoCPMS$| async) || refrescandoCPMSdesdeLayout() ? 'CPMs' : '';
+
+  <div
+    class="flex items-center gap-2 px-6 py-4 w-120 text-green-900 text-center text-base font-semibold bg-white/90 rounded-xl border-green-300 shadow-lg border sm:w-120">
+    <lucide-angular [img]="LoaderIcon" class="w-5 h-5 animate-spin" />
+    <span>Refrescando
+      {{ mensaje }}
+      {{ (inventarioService.cargandoInventario$| async) ? (mensaje.length > 0 ? ' y existencias' : 'existencias') : ''
+      }}
+      espere un momento...
+    </span>
+  </div>
 </div>

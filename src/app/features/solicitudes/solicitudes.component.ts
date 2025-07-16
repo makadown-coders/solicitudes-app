@@ -121,7 +121,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
           clave: claveNormalizada
         };
       });
-      console.log('articulos guardados', this.articulosSolicitados);
     }
 
     this.searchSubject.pipe(debounceTime(1000), takeUntil(this.onDestroy$))
