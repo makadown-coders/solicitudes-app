@@ -15,7 +15,7 @@ import { ClasificadorVEN } from '../../../../models/clasificador-ven';
 import { InventarioService } from '../../../../services/inventario.service';
 import { StorageVariables } from '../../../../shared/storage-variables';
 import { Articulo } from '../../../../models/articulo-solicitud';
-import { CircleAlertIcon, LucideAngularModule, LucidePill, OctagonAlertIcon, TriangleAlertIcon, TruckIcon } from 'lucide-angular';
+import { CircleAlertIcon, CircleCheckIcon, LucideAngularModule, LucidePill, OctagonAlertIcon, TriangleAlertIcon, TruckIcon } from 'lucide-angular';
 import { Cita } from '../../../../models/Cita';
 import { StorageSolicitudService } from '../../../../services/storage-solicitud.service';
 import { controlados } from '../../../../models/controlados';
@@ -39,6 +39,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     octagonAlert = OctagonAlertIcon;
     circleAlert = CircleAlertIcon;
     truck = TruckIcon;
+    circleCheck = CircleCheckIcon
     //citasFull: Cita[] = [];
     citasHalladasPorClave: Cita[] = [];
     /**
@@ -314,9 +315,9 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         }));
 
         localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS, JSON.stringify(this.datosAgrupados));
-
-        this.buscarExistenciasDeClave();
+        
         this.calcularInventarioDisponible(this.claveFiltrada);
+        this.buscarExistenciasDeClave();
     }
 
     /**
@@ -325,15 +326,12 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     buscarExistenciasDeClave() {
         const hoy = new Date();
         const hace15dias = new Date(hoy);
-        hace15dias.setDate(hoy.getDate() - 200);
-
-        // this.citaParaDescripcionDeClave = this.citasFull.find(c => c.clave_cnis === this.claveFiltrada)!;
+        hace15dias.setDate(hoy.getDate() - 15);
+        
         this.citaParaDescripcionDeClave = this.citas.find(c => c.clave_cnis === this.claveFiltrada)!;
-
-        //this.citasHalladasPorClave = this.citasFull.filter(c => {
+        
         this.citasHalladasPorClave = this.citas.filter(c => {
             const esClave = c.clave_cnis === this.claveFiltrada;
-            const esVigente = c.estatus === 'Vigente';
 
             const fechaLimite = c.fecha_limite_de_entrega
                 ? new Date(c.fecha_limite_de_entrega)
@@ -341,8 +339,13 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
 
             const fechaValida = fechaLimite &&
                 (fechaLimite >= hoy || fechaLimite >= hace15dias);
+            
+            // si se recibio recientemente o si fecha_recepcion_almacen es null
+            const recibidoRecientementeONoSeHaRecibido = c.fecha_recepcion_almacen
+                ? new Date(c.fecha_recepcion_almacen) >= hace15dias
+                : true;
 
-            return esClave && esVigente && fechaValida;
+            return esClave  && fechaValida && recibidoRecientementeONoSeHaRecibido;
         });
         localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE, JSON.stringify(this.citasHalladasPorClave));
         localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE, JSON.stringify(this.citaParaDescripcionDeClave));

@@ -108,7 +108,7 @@ export class TablaArticulosComponent implements OnChanges, OnInit {
     const claveSinPuntos = clave.replace(/\./g, '');
     const prefijo = claveSinPuntos.substring(0, 3);
 
-    if (['060', '533', '080', '070'].includes(prefijo)) {
+    if (['060', '533', '513', '535', '537', '080', '070'].includes(prefijo)) {
       if (claveSinPuntos.length === 10) {
         // Generar versión con .00
         const conPuntos12 = `${claveSinPuntos.substring(0, 3)}.${claveSinPuntos.substring(3, 6)}.${claveSinPuntos.substring(6, 10)}.00`;

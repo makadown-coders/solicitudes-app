@@ -42,7 +42,11 @@
           @let resumen = resumenCPMs();
           @let porcentajeAbasto = obtenerPorcentajeAbasto(resumen.totalClaveDisponibles, cpmsElegidos.length);
           <p class="mb-1">
-            <span class="font-bold">Abasto:</span> {{ porcentajeAbasto | percent }}
+            <span class="font-bold">Abasto: </span>
+            <button (click)="abrirModalGrafica()"
+              class="text-green-700 font-bold cursor-pointer underline hover:text-green-900 focus:outline-none">
+              {{ porcentajeAbasto | percent }}
+            </button>
           </p>
           <p class="mb-1">
             <span class="font-bold">Claves con abasto:</span> {{ resumen.totalClaveDisponibles }} / {{
@@ -145,8 +149,32 @@
       </table>
     </div>
   </div>
-  <!-- Gráfica escondida al fondo -->
-  <div class="absolute bottom-2 right-2 w-20 h-20 opacity-20 pointer-events-none">
-    <canvas baseChart [options]="doughnutChartOptions" [data]="doughnutChartData" [type]="'doughnut'"></canvas>
+</div>
+
+<!-- Modal gráfica -->
+<div *ngIf="modalGraficaVisible"
+  class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+  <div class="relative p-6 w-full max-w-lg bg-white rounded-lg shadow-xl">
+    <h2 class="mb-2 text-lg font-semibold text-green-700">
+      {{ nombreUnidadModal }}
+    </h2>
+    <p class="mb-4 text-sm text-gray-600">
+      Detalle de abasto actual
+    </p>
+
+    <!-- Gráfica -->
+    <div class="mb-4">
+      <canvas baseChart [data]="doughnutChartData" [options]="doughnutChartOptions" [type]="'doughnut'"></canvas>
+    </div>
+
+    <!-- Leyenda / detalles -->
+    <ul class="text-sm text-gray-700 space-y-1">
+      <li><strong>Total claves con abasto:</strong> {{ resumenModal.totalClaveDisponibles }} / {{ cpmsElegidos.length }}</li>
+      <li><strong>Total piezas disponibles:</strong> {{ resumenModal.totalPiezasDisponibles | number }}</li>
+    </ul>
+
+    <!-- Botón cerrar -->
+    <button (click)="cerrarModalGrafica()"
+      class="absolute top-2 right-2 text-gray-500 text-xl font-bold hover:text-gray-700">&times;</button>
   </div>
 </div>
