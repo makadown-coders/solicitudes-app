@@ -1,3 +1,4 @@
+// src/app/features/captura-clues/captura-clues.component.ts
 import { Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
 import { DatosClues } from '../../models/datos-clues';
 import { CommonModule } from '@angular/common';

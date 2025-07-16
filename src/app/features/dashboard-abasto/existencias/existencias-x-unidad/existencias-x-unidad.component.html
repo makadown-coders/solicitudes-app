@@ -1,0 +1,152 @@
+<!-- src/app/features/dashboard-abasto/existencias/existencias-x-unidad/existencias-x-unidad.component.html -->
+
+<div class="flex flex-col gap-4">
+  <!-- Autocomplete / selector -->
+  <div>
+    <label *ngIf="!unidadConfirmada" class="block mb-1 text-sm font-medium text-gray-700">Buscar unidad:</label>
+
+    <!-- Input visible si NO hay unidad confirmada -->
+    <div *ngIf="!unidadConfirmada" class="relative">
+      <input id="EXU_unidadInput" type="text" [(ngModel)]="unidadBusqueda" (input)="filtrarUnidades()"
+        (keydown)="onInputKeyDown($event)" placeholder="Buscar unidad (mínimo 3 caracteres)"
+        class="px-3 py-2 w-full border-gray-300 rounded-md shadow-sm border focus:ring focus:outline-none" />
+
+
+      <ul *ngIf="autocompleteResults.length"
+        class="overflow-auto z-10 absolute top-12 left-0 right-0 max-h-52 bg-white shadow-md border rounded">
+        <li *ngFor="let item of autocompleteResults; let i = index" [class.bg-gray-200]="i === selectedIndex"
+          (click)="seleccionarUnidad(item)" class="p-2 cursor-pointer hover:bg-gray-200">
+          {{ item.nombre }} ({{ item.cluesimb }})
+        </li>
+      </ul>
+    </div>
+
+    <!-- Chip con unidad seleccionada -->
+    <div *ngIf="unidadConfirmada" class="p-4 w-full bg-blue-50 border-blue-200 rounded-md border">
+      <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+        <!-- Chip unidad -->
+        <div class="flex items-start gap-2">
+          <lucide-icon [img]="hospitalIcon" class="flex-shrink-0 w-6 h-6 text-green-700"></lucide-icon>
+          <div>
+            <p class="font-semibold text-green-800">{{ unidadSeleccionada?.nombre }}</p>
+            <p class="text-xs text-gray-700">{{ unidadSeleccionada?.cluesimb }} · {{ unidadSeleccionada?.municipio }}
+            </p>
+            <button (click)="reiniciarBusquedaUnidad()" class="text-sm text-green-600 underline hover:text-green-800">
+              Cambiar
+            </button>
+          </div>
+        </div>
+
+        <!-- Texto resumen a la derecha -->
+        <div class="text-sm">
+          @let resumen = resumenCPMs();
+          @let porcentajeAbasto = obtenerPorcentajeAbasto(resumen.totalClaveDisponibles, cpmsElegidos.length);
+          <p class="mb-1">
+            <span class="font-bold">Abasto:</span> {{ porcentajeAbasto | percent }}
+          </p>
+          <p class="mb-1">
+            <span class="font-bold">Claves con abasto:</span> {{ resumen.totalClaveDisponibles }} / {{
+            cpmsElegidos.length }}
+          </p>
+          <p>
+            <span class="font-bold">Piezas disponibles:</span> {{ resumen.totalPiezasDisponibles | number }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+
+
+
+    <!-- mostra en tabla cpmsElegidos -->
+
+    <div
+      *ngIf="cpmsElegidos.length > 0 && this.existenciaUnidadesElegidas && this.existenciaUnidadesElegidas.length > 0"
+      class="overflow-auto mt-6">
+
+
+      <table class="mt-2 w-full text-sm">
+        <thead class="text-white bg-green-600">
+          <tr>
+            <th class="px-2 py-1 text-left">#</th>
+            <th class="px-2 py-1 text-left">Clave</th>
+            <th class="hidden p-2 xl:table-cell">Clasificación</th>
+            <th class="hidden p-2 lg:table-cell">Descripción</th>
+            <th class="hidden p-2 xl:table-cell">Unidad</th>
+            <th class="px-2 py-1 text-right">CPM</th>
+            <th class="px-2 py-1 text-right">Existencia</th>
+            <th class="px-2 py-1 text-right">AZM</th>
+            <th class="px-2 py-1 text-right">AZT</th>
+            <th class="px-2 py-1 text-right">AZE</th>
+            <th class="px-2 py-1 text-right">P. Reorden</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let cpm of cpmsElegidos; let i = index" class="border-b transition-all duration-300 ease-in-out">
+            <td class="p-2 w-[1%] text-center font-semibold text-gray-700 whitespace-nowrap">{{ i + 1 }}</td>
+            @let descripcion = obtenerDescripcion(cpm.clave);
+            @let unidad = obtenerUnidad(cpm.clave);
+            @let existencia = disponibles(cpm.clave);
+            @let reorden = cpm.cantidad - existencia;
+            @let clasificacion = obtenerClasificacion(cpm.clave);
+            <td class="px-2 py-1" [attr.title]="descripcion">
+              <div class="flex items-center justify-left gap-1">
+                <span class="font-semibold">{{ cpm.clave }}</span>
+
+                <!-- Icono de advertencia cuando cantidad > CPM -->
+                <ng-container
+                  *ngIf="cpm.cantidad > 0 && existencia < cpm.cantidad && (clasificacion === 'Vital' || clasificacion === 'Escencial')">
+                  <span class="relative flex"
+                    [attr.title]="'Clave ' + clasificacion + ' por debajo del CPM estimado (' + cpm.cantidad + ')'">
+                    <span
+                      class="absolute inline-flex h-full w-full bg-red-400 rounded-full opacity-75 animate-ping"></span>
+                    <lucide-angular [img]="triangleAlertIcon" class="w-4 h-4 text-red-800"></lucide-angular>
+                  </span>
+                </ng-container>
+
+                <!-- Icono de advertencia cuando cantidad < CPM -->
+                <ng-container
+                  *ngIf="cpm.cantidad > 0 && existencia < cpm.cantidad && !(clasificacion === 'Vital' || clasificacion === 'Escencial')">
+                  <lucide-angular [img]="alertCircle" class="w-4 h-4 text-yellow-500"
+                    [attr.title]="'Existencia es menor al CPM estimado (' + cpm.cantidad + ')'">
+                  </lucide-angular>
+                </ng-container>
+
+                <!-- Icono de información cuando CPM es 0 -->
+                <ng-container *ngIf="cpm.cantidad > 0 && existencia > cpm.cantidad">
+                  <lucide-angular [img]="infoIcon" class="w-4 h-4 text-blue-800"
+                    title="Existencia excede el CPM estimado">
+                  </lucide-angular>
+                </ng-container>
+              </div>
+            </td>
+            <td
+              class="overflow-hidden hidden p-2 max-w-[100px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell">
+              {{ clasificacion }}
+            </td>
+            <td [attr.title]="descripcion"
+              class="overflow-hidden hidden p-2 max-w-[250px] text-ellipsis whitespace-pre-wrap break-words sm:whitespace-normal lg:table-cell">
+              {{ (descripcion.length > 300) ? (descripcion | slice: 0:280) + ' [...]' : descripcion }}
+            </td>
+            <td
+              class="overflow-hidden hidden p-2 max-w-[150px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell">
+              {{ unidad }}
+            </td>
+            @let existenciaAlmacenes = obtenerExistenciaAlmacenes(cpm.clave);
+            <td class="px-2 py-1 text-right">{{ cpm.cantidad }}</td>
+            <td class="px-2 py-1 text-right">{{ existencia }}</td>
+            <td class="px-2 py-1 text-right">{{ existenciaAlmacenes.existenciasAZM }}</td>
+            <td class="px-2 py-1 text-right">{{ existenciaAlmacenes.existenciasAZT }}</td>
+            <td class="px-2 py-1 text-right">{{ existenciaAlmacenes.existenciasAZE }}</td>
+            <td class="px-2 py-1 text-right" [ngClass]="{ 'text-red-600 font-bold': reorden > 0 }">
+              {{ reorden < 0 ? 0 : reorden }} </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <!-- Gráfica escondida al fondo -->
+  <div class="absolute bottom-2 right-2 w-20 h-20 opacity-20 pointer-events-none">
+    <canvas baseChart [options]="doughnutChartOptions" [data]="doughnutChartData" [type]="'doughnut'"></canvas>
+  </div>
+</div>

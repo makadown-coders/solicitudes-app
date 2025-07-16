@@ -1,9 +1,10 @@
+// src/app/layout/layout/layout.component.ts
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnChanges, OnInit, signal, SimpleChanges } from '@angular/core';
 import { CapturaCluesComponent } from '../../features/captura-clues/captura-clues.component';
 import { SolicitudesComponent } from '../../features/solicitudes/solicitudes.component';
 import { DatosClues } from '../../models/datos-clues';
-import { LucideAngularModule, CircleHelp } from 'lucide-angular';
+import { LucideAngularModule, CircleHelp, RefreshCcwDotIcon, LoaderIcon } from 'lucide-angular';
 import { InventarioService } from '../../services/inventario.service';
 import { StorageSolicitudService } from '../../services/storage-solicitud.service';
 import { Router } from '@angular/router';
@@ -27,6 +28,8 @@ import { concatAll, finalize, map, of } from 'rxjs';
 export class LayoutComponent implements OnInit, OnChanges {
   title: Title = inject(Title);
   readonly CircleHelp = CircleHelp;
+  readonly RefreshCCWDotIcon = RefreshCcwDotIcon;
+  readonly LoaderIcon = LoaderIcon;
   activeTab: 'clues' | 'solicitud' = 'clues';
   datosClues: DatosClues | null = null;
   guiaVisible = false;
@@ -34,7 +37,7 @@ export class LayoutComponent implements OnInit, OnChanges {
   solicitudService = inject(StorageSolicitudService);
   private cdRef = inject(ChangeDetectorRef);
   private router = inject(Router);
-  private storageSolicitudService = inject(StorageSolicitudService);
+  public storageSolicitudService = inject(StorageSolicitudService);
   refrescandoCPMSdesdeLayout = signal(false);
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -64,6 +67,9 @@ export class LayoutComponent implements OnInit, OnChanges {
     this.refrescarCPMS();
   }
 
+  /**
+   * Recarga las existencias en los almacenes
+   */
   refrescarInventario() {
     // EN PRUEBA PILOTO (INVENTARIO - SAS / SACIA / SIAN )
     const timestampFallback = localStorage.getItem('ultimaVezRefrescadoInventario');
@@ -82,6 +88,10 @@ export class LayoutComponent implements OnInit, OnChanges {
     }
   }
 
+  refrescarExistenciasYCPMS(): void {
+    this.inventarioService.refrescarDatosInventario();
+    this.inventarioService.refrescarDatosCPMS();
+  }
 
   refrescarCPMS(): void {
     // TODO: PRUEBA PILOTO
@@ -92,13 +102,13 @@ export class LayoutComponent implements OnInit, OnChanges {
 
     // Verificar si la fecha de refrescado es la misma que la actual para evitar refrescados innecesarios
     const timestampFallback = localStorage.getItem('ultimaVezRefrescadoCPMS');
-    const ahora = Date.now(); 
+    const ahora = Date.now();
     // verificar si hay valor en timestampFallback
     if (timestampFallback) {
-       // si la fecha (NO EL NUMERO) de refrescado corresponde a la fecha actual, establecer la bandera a true
+      // si la fecha (NO EL NUMERO) de refrescado corresponde a la fecha actual, establecer la bandera a true
       if (new Date(timestampFallback).getDate() === new Date().getDate()) {
         banderaRefrescado = true;
-      }    
+      }
     }
 
     // 2. Suscríbete al Observable que obtiene los CPMS del localStorage.
@@ -109,7 +119,7 @@ export class LayoutComponent implements OnInit, OnChanges {
         //console.log('CPMS obtenidos de localStorage:', cpms); // Para depuración
         // Si la cantidad de CPMS es 0 o si hoy es primero o 15 de mes, refrescar datos del servicio.
         if (cpms.length === 0 ||
-            ((new Date().getDate() === 1 || new Date().getDate() === 15 ) && banderaRefrescado === true)) {
+          ((new Date().getDate() === 1 || new Date().getDate() === 15) && banderaRefrescado === true)) {
           // Asume que inventarioService.refrescarDatosCPMS() también devuelve un Observable.
           // Por ejemplo, para una llamada HTTP.
           this.inventarioService.refrescarDatosCPMS();
@@ -119,7 +129,7 @@ export class LayoutComponent implements OnInit, OnChanges {
           // Si no necesita refrescar, simplemente emite los CPMS existentes.
           // Asume que inventarioService.emitirCPMS() es síncrono o devuelve un Observable
           // que se completa inmediatamente (ej. `of(null)`).
-          this.inventarioService.emitirCPMS(cpms);          
+          this.inventarioService.emitirCPMS(cpms);
         }
         return of(null); // Retorna un Observable que se completa inmediatamente.
       }),

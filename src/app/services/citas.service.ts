@@ -60,7 +60,9 @@ export class CitasService {
      // console.info('🔁 Procesando', rows.length, 'filas.');
 
       let headerLeido = false;
+      let renglon = 0;
       for (const popo of rows) {
+        renglon++;
         fila = popo;
         if (!headerLeido) {
           headerLeido = true;
@@ -68,7 +70,7 @@ export class CitasService {
         }
         const ejercicio = fila[0];
         if (!ejercicio || (ejercicio + '').trim().length === 0) {
-          console.info('🔁 fin de archivo detectado. Finalizando obtención de datos', fila);
+          console.info('🔁 fin de archivo detectado en renglón '+ renglon + '. Finalizando obtención de datos', fila);
           break;
         }
         const ordenSuministro = fila[1];

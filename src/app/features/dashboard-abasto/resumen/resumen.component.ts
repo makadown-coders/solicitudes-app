@@ -183,8 +183,12 @@ export class ResumenComponent implements OnInit {
     } else {
       const hoy = new Date();
       this.fechaFin = hoy;
-      // this.fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1); // 1ero del mes actual
-      this.fechaInicio = new Date(hoy.getFullYear(), 0, 1); // 1ero del 1er mes del año actual
+      this.fechaInicio = new Date(hoy.getFullYear(), 0, 1); 
+      
+      /* OPCIONAL POR SI SE OFRECE:
+        // calcular this.fechaInicio como this.fechaFin menos 90 dias
+      const d90 = 90 * 24 * 60 * 60 * 1000;
+      this.fechaInicio = new Date(hoy.getTime() - d90); */
     }
   }
 

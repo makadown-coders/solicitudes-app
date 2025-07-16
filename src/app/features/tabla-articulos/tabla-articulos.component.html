@@ -69,8 +69,9 @@
             <td class="overflow-hidden hidden p-2 max-w-[100px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell"
                 [attr.title]="clasificacion(articulo.clave)">{{ clasificacion(articulo.clave) }}</td>
             <td class="overflow-hidden hidden p-2 max-w-[250px] text-ellipsis whitespace-pre-wrap break-words sm:whitespace-normal lg:table-cell"
-                [attr.title]="articulo.descripcion">{{
-                articulo.descripcion }}</td>
+                [attr.title]="articulo.descripcion">
+{{ ( articulo.descripcion | slice : 0:495 ) + (articulo.descripcion.length > 495 ? ' [...]' : '') }}
+            </td>
             <td class="overflow-hidden hidden p-2 max-w-[150px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell"
                 [attr.title]="articulo.unidadMedida">{{
                 articulo.unidadMedida }}</td>

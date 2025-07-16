@@ -5,7 +5,7 @@ import { environment } from '../../environments/environment';
 import { Cita } from '../models/Cita';
 import * as LZString from 'lz-string';
 import { CitasService } from './citas.service';
-import { CitasFull, InventarioFull } from '../models/ElementosBase64';
+import { CitasFull } from '../models/ElementosBase64';
 
 @Injectable({
   providedIn: 'root'
@@ -13,7 +13,8 @@ import { CitasFull, InventarioFull } from '../models/ElementosBase64';
 export class DashboardService {
   private STORAGE_KEY = 'citasFull';
   private citasSubject = new BehaviorSubject<Cita[]>([]);
-  public citas$: Observable<Cita[]> = this.citasSubject.asObservable();
+  public citas$: Observable<Cita[]> = this.citasSubject.asObservable();  
+  
   private citasService = inject(CitasService);
 
   constructor(private http: HttpClient) {
@@ -37,11 +38,11 @@ export class DashboardService {
     // purgar todo el localStorage
     // this.limpiarDatos();
 
-   // console.info('🔄 Actualizando datos del dashboard...');
+    // console.info('🔄 Actualizando datos del dashboard...');
     const url = `${environment.apiUrl}/citas/full`;
     // console.log('solicitando a ', url);
     this.http.get<CitasFull>(url).subscribe({
-      next: (response: CitasFull) => {        
+      next: (response: CitasFull) => {
         const citas = this.citasService.obtenerCitasDeBase64(response.citas);
 
         // 1) Serializar y comprimir
@@ -53,7 +54,7 @@ export class DashboardService {
           console.warn('😱 localStorage lleno, omitiendo guardado');
         }
         // 2) Emitir
-       // console.info('✅ Datos del dashboard actualizados.');
+        // console.info('✅ Datos del dashboard actualizados.');
         this.citasSubject.next(citas as Cita[]);
       },
       error: (err) => {
@@ -63,9 +64,13 @@ export class DashboardService {
   }
 
   limpiarDatos(): void {
-    console.info('🧹 Limpiando datos del dashboard...');
+//    console.info('🧹 Limpiando datos del dashboard...');
     localStorage.removeItem(this.STORAGE_KEY);
     this.citasSubject.next([] as Cita[]);
+  }
+
+  refrescarDeLocalStorage(): void {
+    this.cargarDesdeLocalStorage();
   }
 }
 

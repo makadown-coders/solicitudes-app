@@ -104,11 +104,36 @@ export class TablaArticulosComponent implements OnChanges, OnInit {
       this.sanitizer.bypassSecurityTrustHtml(html));
   }
 
-  buscarEnInventario(clave: string): InventarioDisponibles | undefined {
-    return this.inventario.find(inventario => inventario.clave === clave) || undefined;
+  private normalizarClaveBusqueda(clave: string): string[] {
+    const claveSinPuntos = clave.replace(/\./g, '');
+    const prefijo = claveSinPuntos.substring(0, 3);
+
+    if (['060', '533', '080', '070'].includes(prefijo)) {
+      if (claveSinPuntos.length === 10) {
+        // Generar versión con .00
+        const conPuntos12 = `${claveSinPuntos.substring(0, 3)}.${claveSinPuntos.substring(3, 6)}.${claveSinPuntos.substring(6, 10)}.00`;
+        return [clave, conPuntos12];
+      }
+      if (claveSinPuntos.length === 12 && claveSinPuntos.endsWith('00')) {
+        // Generar versión sin .00
+        const clave10 = claveSinPuntos.substring(0, 10);
+        const conPuntos10 = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
+        return [clave, conPuntos10];
+      }
+    }
+    // Claves normales (no especiales)
+    return [clave];
   }
 
-  public buscarCPM(clave: string) {
-    return this.cpmsPorClues.find(cpm => cpm.clave === clave)?.cantidad ?? 0;
+  buscarEnInventario(clave: string): InventarioDisponibles | undefined {
+    const clavesBuscar = this.normalizarClaveBusqueda(clave);
+    return this.inventario.find(inventario => clavesBuscar.includes(inventario.clave));
   }
+
+  public buscarCPM(clave: string): number {
+    const clavesBuscar = this.normalizarClaveBusqueda(clave);
+    const cpm = this.cpmsPorClues.find(cpmItem => clavesBuscar.includes(cpmItem.clave));
+    return cpm ? cpm.cantidad : 0;
+  }
+
 }
