@@ -321,7 +321,7 @@ export class InventarioService {
   }
 
   private normalizarClavesInventario(inventario: Inventario[]): Inventario[] {
-    const prefijos10 = ['060', '533', '080', '070'];
+    const prefijos10 = ['060', '533', '535', '513', '537', '080', '070'];
     return inventario.map(item => {
       const claveSinPuntos = item.clave.replace(/\./g, '');
       if (claveSinPuntos.length === 12 &&
@@ -336,7 +336,7 @@ export class InventarioService {
   }
 
   public normalizarClave(clave: string): string {
-    const prefijos10 = ['060', '533', '080', '070'];
+    const prefijos10 = ['060', '533', '535', '513', '537', '080', '070'];
     let normalizado = clave;
 
     const claveSinPuntos = clave.replace(/\./g, '');

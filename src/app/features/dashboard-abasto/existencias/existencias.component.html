@@ -1,4 +1,4 @@
-<div class="mb-6 border-b border-gray-200">
+<div class="mb-6 border-b border-gray-200 dark:border-gray-700">
   <nav class="flex -mb-px space-x-6" aria-label="existenciasTabs">
     <button *ngFor="let tab of existenciasTabs" (click)="seleccionarExistenciaTab(tab)" [class]="
           'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ' +
@@ -12,7 +12,7 @@
 </div>
 
 
-<div>
+<div >
   <div [hidden]="activeExistenciaTab !== 'xClave'">
     <app-existencias-x-clave [existenciaUnidades]="existenciaUnidades" [cpms]="cpms"
       [citas]="citas"></app-existencias-x-clave>

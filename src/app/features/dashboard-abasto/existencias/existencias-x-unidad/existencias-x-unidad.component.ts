@@ -52,6 +52,13 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
     infoIcon = InfoIcon;
     triangleAlertIcon = TriangleAlertIcon;
 
+    modalGraficaVisible = false;
+    nombreUnidadModal: string = '';
+    resumenModal: { totalPiezasDisponibles: number, totalClaveDisponibles: number } = {
+        totalPiezasDisponibles: 0,
+        totalClaveDisponibles: 0
+    };
+
     public doughnutChartOptions: ChartOptions<'doughnut'> = {
         responsive: true,
         maintainAspectRatio: false,
@@ -361,8 +368,17 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
                 },
             ],
         };
-
         // this.cdRef.detectChanges();
+    }
 
+    abrirModalGrafica() {
+        const resumen = this.resumenCPMs();
+        this.resumenModal = resumen;
+        this.nombreUnidadModal = this.unidadSeleccionada ? this.unidadSeleccionada.nombre : 'Unidad desconocida';
+        this.modalGraficaVisible = true;
+    }
+
+    cerrarModalGrafica() {
+        this.modalGraficaVisible = false;
     }
 }
