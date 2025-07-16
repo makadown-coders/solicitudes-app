@@ -335,24 +335,19 @@ export class InventarioService {
     });
   }
 
-  public normalizarClavesCompatibles(clave: string): string[] {
-    const claveSinPuntos = clave.replace(/\./g, '');
-    const prefijo = claveSinPuntos.substring(0, 3);
+  public normalizarClave(clave: string): string {
+    const prefijos10 = ['060', '533', '080', '070'];
+    let normalizado = clave;
 
-    if (['060', '533', '080', '070'].includes(prefijo)) {
-      if (claveSinPuntos.length === 10) {
-        // Generar versión con .00
-        const conPuntos12 = `${claveSinPuntos.substring(0, 3)}.${claveSinPuntos.substring(3, 6)}.${claveSinPuntos.substring(6, 10)}.00`;
-        return [clave, conPuntos12];
-      }
-      if (claveSinPuntos.length === 12 && claveSinPuntos.endsWith('00')) {
-        // Generar versión sin .00
-        const clave10 = claveSinPuntos.substring(0, 10);
-        const conPuntos10 = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
-        return [clave, conPuntos10];
-      }
+    const claveSinPuntos = clave.replace(/\./g, '');
+    if (claveSinPuntos.length === 12 &&
+      prefijos10.includes(claveSinPuntos.substring(0, 3)) &&
+      claveSinPuntos.endsWith('00')) {
+      // Convertir 12 dígitos a 10, manteniendo formato con puntos
+      const clave10 = claveSinPuntos.substring(0, 10);
+      normalizado = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
     }
-    return [clave];
+    return normalizado;
   }
 
 }

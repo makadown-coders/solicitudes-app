@@ -115,14 +115,13 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       const articulosGuardados: ArticuloSolicitud[] = JSON.parse(guardados);
       // Normalizar claves
       this.articulosSolicitados = articulosGuardados.map(art => {
-        const clavesNormalizadas = this.inventarioService.normalizarClavesCompatibles(art.clave);
-        // Siempre guardamos la versión de 10 dígitos si aplica
-        const clavePreferida = clavesNormalizadas.length > 1 ? clavesNormalizadas[1] : art.clave;        
+        const claveNormalizada = this.inventarioService.normalizarClave(art.clave);      
         return {
           ...art,
-          clave: clavePreferida
+          clave: claveNormalizada
         };
       });
+      console.log('articulos guardados', this.articulosSolicitados);
     }
 
     this.searchSubject.pipe(debounceTime(1000), takeUntil(this.onDestroy$))
@@ -596,11 +595,10 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
       for (const fila of datos) {
         let clave:string  = (fila[colClave] ?? '').toString().trim().toUpperCase();
-        if (!clave) continue;
+        if (!clave) continue;        
         
-        const clavesNormalizadas = this.inventarioService.normalizarClavesCompatibles(clave+'');
         // Siempre guardamos la versión de 10 dígitos si aplica
-        clave = clavesNormalizadas.length > 1 ? clavesNormalizadas[1] : clave+'';
+        clave = this.inventarioService.normalizarClave(clave+'');
 
         const cantidad = colCantidad ? parseInt(fila[colCantidad]) || 0 : 0;
 
