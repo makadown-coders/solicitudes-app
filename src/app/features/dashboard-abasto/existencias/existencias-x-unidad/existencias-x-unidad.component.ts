@@ -1,4 +1,5 @@
 // src/app/features/dashboard-abasto/existencias/existencias-x-unidad/existencias-x-unidad.component.ts
+import { ExistenciasXClaveComponent } from '../existencias-x-clave/existencias-x-clave.component';
 import { ChangeDetectorRef, Component, inject, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Articulo, UnidadExistente } from '../../../../models/articulo-solicitud';
@@ -19,9 +20,14 @@ import { ArticulosService } from '../../../../services/articulos.service';
 import { ChartConfiguration, ChartOptions, ChartType } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 
+
 @Component({
     standalone: true,
-    imports: [CommonModule, LucideAngularModule, FormsModule, BaseChartDirective],
+    imports: [CommonModule,
+        LucideAngularModule,
+        FormsModule,
+        BaseChartDirective,
+        ExistenciasXClaveComponent],
     selector: 'app-existencias-x-unidad',
     templateUrl: 'existencias-x-unidad.component.html'
 })
@@ -58,6 +64,8 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
         totalPiezasDisponibles: 0,
         totalClaveDisponibles: 0
     };
+    claveModalVisible = false;
+    claveSeleccionadaModal: string = '';
 
     public doughnutChartOptions: ChartOptions<'doughnut'> = {
         responsive: true,
@@ -380,5 +388,14 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
 
     cerrarModalGrafica() {
         this.modalGraficaVisible = false;
+    }
+
+    abrirDetalleClave(clave: string) {
+        this.claveSeleccionadaModal = clave;
+        this.claveModalVisible = true;
+    }
+    cerrarDetalleClave() {
+        this.claveModalVisible = false;
+        this.claveSeleccionadaModal = '';
     }
 }
