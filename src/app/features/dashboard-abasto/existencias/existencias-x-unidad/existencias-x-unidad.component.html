@@ -95,8 +95,14 @@
             @let clasificacion = obtenerClasificacion(cpm.clave);
             <td class="px-2 py-1" [attr.title]="descripcion">
               <div class="flex items-center justify-left gap-1">
-                <span class="font-semibold">{{ cpm.clave }}</span>
-
+                <span *ngIf="unidadSeleccionada?.key === 'ESTATAL'"
+                  class="font-semibold cursor-pointer hover:underline"
+                  (click)="abrirDetalleClave(cpm.clave)">
+                  {{ cpm.clave }}
+                </span>
+                <span class="font-semibold" *ngIf="unidadSeleccionada?.key !== 'ESTATAL'">
+                  {{ cpm.clave }}
+                </span>
                 <!-- Icono de advertencia cuando cantidad > CPM -->
                 <ng-container
                   *ngIf="cpm.cantidad > 0 && existencia < cpm.cantidad && (clasificacion === 'Vital' || clasificacion === 'Escencial')">
@@ -152,8 +158,7 @@
 </div>
 
 <!-- Modal gráfica -->
-<div *ngIf="modalGraficaVisible"
-  class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+<div *ngIf="modalGraficaVisible" class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
   <div class="relative p-6 w-full max-w-lg bg-white rounded-lg shadow-xl">
     <h2 class="mb-2 text-lg font-semibold text-green-700">
       {{ nombreUnidadModal }}
@@ -169,12 +174,24 @@
 
     <!-- Leyenda / detalles -->
     <ul class="text-sm text-gray-700 space-y-1">
-      <li><strong>Total claves con abasto:</strong> {{ resumenModal.totalClaveDisponibles }} / {{ cpmsElegidos.length }}</li>
+      <li><strong>Total claves con abasto:</strong> {{ resumenModal.totalClaveDisponibles }} / {{ cpmsElegidos.length }}
+      </li>
       <li><strong>Total piezas disponibles:</strong> {{ resumenModal.totalPiezasDisponibles | number }}</li>
     </ul>
 
     <!-- Botón cerrar -->
     <button (click)="cerrarModalGrafica()"
       class="absolute top-2 right-2 text-gray-500 text-xl font-bold hover:text-gray-700">&times;</button>
+  </div>
+</div>
+
+<div *ngIf="claveModalVisible" class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+  <div class="relative p-6 w-full max-w-10/12 bg-white rounded-lg shadow-xl">
+    <app-existencias-x-clave [clavePreseleccionada]="claveSeleccionadaModal" [citas]="citas"></app-existencias-x-clave>
+
+    <button (click)="cerrarDetalleClave()"
+      class="absolute top-2 right-2 ml-4 text-xl font-extrabold cursor-pointer hover:text-gray-700">
+      &times;
+    </button>
   </div>
 </div>

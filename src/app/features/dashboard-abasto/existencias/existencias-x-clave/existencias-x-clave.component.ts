@@ -33,7 +33,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
     @Input() cpms: CPMS[] = [];
     @Input() citas: Cita[] = [];
-    
+
     pillIcon = LucidePill;
     triangleAlert = TriangleAlertIcon;
     octagonAlert = OctagonAlertIcon;
@@ -70,70 +70,81 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     inventarioService = inject(InventarioService);
     storageService = inject(StorageSolicitudService);
 
+    // para cuando se abra este componente como si fuera modal dialog
+    @Input() clavePreseleccionada: string | null = null;
+
     constructor() {
     }
 
     ngOnChanges(changes: SimpleChanges): void {
-        
+
     }
 
 
     ngOnInit(): void {
         // console.log('ExistenciasXClaveComponent ngOnInit');
         try {
-            const articulo = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE);
-            // console.log('ExistenciasXClaveComponent - cargando info desde localstorage', articulo);
-            if (articulo && articulo.includes('{')) {
-                // console.log('ExistenciasXClaveComponent - cargando más info desde localstorage...');
-                this.claveConfirmada = true;
-                const item = JSON.parse(articulo) as Articulo;
-                this.claveBusqueda = item.clave;
-                this.claveFiltrada = item.clave;
-                this.descripcion = item.descripcion;
-                this.unidad = item.presentacion ?? '';
-                const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
-                this.clasificacion = clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
-                // obtener de DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE
-                const citasls = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE);
-                if (citasls) {
-                    this.citasHalladasPorClave = JSON.parse(citasls) as Cita[];
-                }
-                // obtener de DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES
-                const exc = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES);
-                if (exc) {
-                    this.existenciaAlmacenes = JSON.parse(exc) as InventarioDisponibles;
-                }
-
-                // obtener de DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS
-                const exc2 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS);
-                if (exc2) {
-                    this.datosAgrupados = JSON.parse(exc2) as AlmacenClaveResumen[];
-                }
-
-                // obtener de DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE
-                const exc3 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE);
-                if (exc3 && exc3.includes('{')) {
-                    this.citaParaDescripcionDeClave = JSON.parse(exc3) as Cita;
-                }
-            }
-
-            this.searchSubject.pipe(debounceTime(400), takeUntil(this.onDestroy$))
-                .subscribe(texto => {
-                    if (texto.length > 2) {
-                        this.buscarArticulosConFallback(texto);
-                    } else {
-                        this.autocompleteResults = [];
-                        this.selectedIndex = -1;
-                        this.moreResults = false;
-                        this.totalResults = 0;
+            if (this.clavePreseleccionada) {
+                this.articulosService.buscarArticulos(this.clavePreseleccionada).subscribe({
+                    next: (data) => {
+                        const item = data.resultados.find(a => a.clave === this.clavePreseleccionada);
+                        if (item) {
+                            this.selectClave(item, true);
+                        }
+                    },
+                    error: (err) => {
+                        console.warn('⚠️ Error buscando clave en modal:', err);
                     }
                 });
+            } else {
+                const articulo = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE);
+                // console.log('ExistenciasXClaveComponent - cargando info desde localstorage', articulo);
+                if (articulo && articulo.includes('{')) {
+                    // console.log('ExistenciasXClaveComponent - cargando más info desde localstorage...');
+                    this.claveConfirmada = true;
+                    const item = JSON.parse(articulo) as Articulo;
+                    this.claveBusqueda = item.clave;
+                    this.claveFiltrada = item.clave;
+                    this.descripcion = item.descripcion;
+                    this.unidad = item.presentacion ?? '';
+                    const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
+                    this.clasificacion = clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
+                    // obtener de DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE
+                    const citasls = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE);
+                    if (citasls) {
+                        this.citasHalladasPorClave = JSON.parse(citasls) as Cita[];
+                    }
+                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES
+                    const exc = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES);
+                    if (exc) {
+                        this.existenciaAlmacenes = JSON.parse(exc) as InventarioDisponibles;
+                    }
 
-            /*this.dashboardService.citas$
-                .pipe(takeUntil(this.onDestroy$))
-                .subscribe((data: Cita[]) => {
-                    this.citasFull = data as Cita[];
-                });*/
+                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS
+                    const exc2 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS);
+                    if (exc2) {
+                        this.datosAgrupados = JSON.parse(exc2) as AlmacenClaveResumen[];
+                    }
+
+                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE
+                    const exc3 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE);
+                    if (exc3 && exc3.includes('{')) {
+                        this.citaParaDescripcionDeClave = JSON.parse(exc3) as Cita;
+                    }
+                }
+
+                this.searchSubject.pipe(debounceTime(400), takeUntil(this.onDestroy$))
+                    .subscribe(texto => {
+                        if (texto.length > 2) {
+                            this.buscarArticulosConFallback(texto);
+                        } else {
+                            this.autocompleteResults = [];
+                            this.selectedIndex = -1;
+                            this.moreResults = false;
+                            this.totalResults = 0;
+                        }
+                    });
+            }
 
             if (this.inventario.length === 0) {
                 this.inventario = this.storageService.getInventarioFromLocalStorage();
@@ -143,7 +154,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
             console.error(error);
         }
     }
-    
+
 
     getIconoFecha(fecha: Date): any {
         if (this.esVencida(fecha)) return this.triangleAlert;
@@ -192,10 +203,12 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         });
     }
 
-    selectClave(item: any) {
+    selectClave(item: any, skipLocalStorage = false) {
         this.claveBusqueda = item.clave;
 
-        localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE, JSON.stringify(item));
+        if (!skipLocalStorage) {
+            localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE, JSON.stringify(item));
+        }
         this.descripcion = item.descripcion;
         this.unidad = item.unidadMedida ?? item.presentacion ?? '';
         const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
@@ -203,7 +216,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         this.autocompleteResults = [];
         this.selectedIndex = -1;
         this.cdRef.detectChanges();
-        this.filtrarClave();
+        this.filtrarClave(skipLocalStorage);
         this.claveConfirmada = true;
     }
 
@@ -251,10 +264,10 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         this.onDestroy$.complete();
     }
 
-    filtrarClave(): void {
+    filtrarClave(skipLocalStorage = false): void {
         //console.log('filtrarClave');
-        if (this.cpms.length===0) {            
-            this.cpms = [...this.storageService.getCPMSFromLocalStorage()];            
+        if (this.cpms.length === 0) {
+            this.cpms = [...this.storageService.getCPMSFromLocalStorage()];
         }
         const clave = this.claveBusqueda.trim().toUpperCase();
         this.claveFiltrada = clave;
@@ -314,22 +327,25 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
             unidades
         }));
 
-        localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS, JSON.stringify(this.datosAgrupados));
-        
-        this.calcularInventarioDisponible(this.claveFiltrada);
-        this.buscarExistenciasDeClave();
+        if (!skipLocalStorage) {
+            localStorage.setItem(
+                StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS,
+                JSON.stringify(this.datosAgrupados));
+        }
+        this.calcularInventarioDisponible(this.claveFiltrada, skipLocalStorage);
+        this.buscarExistenciasDeClave(skipLocalStorage);
     }
 
     /**
      * Busca las citas de un insumo en la variable que contiene todas las citas
      */
-    buscarExistenciasDeClave() {
+    buscarExistenciasDeClave(skipLocalStorage = false) {
         const hoy = new Date();
         const hace15dias = new Date(hoy);
         hace15dias.setDate(hoy.getDate() - 15);
-        
+
         this.citaParaDescripcionDeClave = this.citas.find(c => c.clave_cnis === this.claveFiltrada)!;
-        
+
         this.citasHalladasPorClave = this.citas.filter(c => {
             const esClave = c.clave_cnis === this.claveFiltrada;
 
@@ -339,16 +355,19 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
 
             const fechaValida = fechaLimite &&
                 (fechaLimite >= hoy || fechaLimite >= hace15dias);
-            
+
             // si se recibio recientemente o si fecha_recepcion_almacen es null
             const recibidoRecientementeONoSeHaRecibido = c.fecha_recepcion_almacen
                 ? new Date(c.fecha_recepcion_almacen) >= hace15dias
                 : true;
 
-            return esClave  && fechaValida && recibidoRecientementeONoSeHaRecibido;
+            return esClave && fechaValida && recibidoRecientementeONoSeHaRecibido;
         });
-        localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE, JSON.stringify(this.citasHalladasPorClave));
-        localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE, JSON.stringify(this.citaParaDescripcionDeClave));
+
+        if (!skipLocalStorage) {
+            localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE, JSON.stringify(this.citasHalladasPorClave));
+            localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE, JSON.stringify(this.citaParaDescripcionDeClave));
+        }
         this.cdRef.detectChanges();
     }
 
@@ -363,13 +382,13 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         return 0;
     }
 
-    calcularInventarioDisponible(clave: string) {
-        
+    calcularInventarioDisponible(clave: string, skipLocalStorage = false) {
+
         this.existenciaAlmacenes = new InventarioDisponibles();
         this.existenciaAlmacenes.clave = clave;
-        
+
         const inventarioItems = this.inventario.filter(item => item.clave === clave);
-        
+
         this.existenciaAlmacenes.existenciasAZE = 0;
         this.existenciaAlmacenes.existenciasAZM = 0;
         this.existenciaAlmacenes.existenciasAZT = 0;
@@ -383,8 +402,10 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                 this.existenciaAlmacenes.existenciasAZT += item.disponible - item.comprometidos;
             }
         });
-        // guardar en localstorage
-        localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES, JSON.stringify(this.existenciaAlmacenes));
+        if (!skipLocalStorage) {
+            // guardar en localstorage
+            localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES, JSON.stringify(this.existenciaAlmacenes));
+        }
     }
 
     claveEsControlado(clave: string): boolean {
@@ -409,6 +430,6 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         const hoy = new Date();
         const fecha = new Date(fechaLimite);
         const diff = (hoy.getTime() - fecha.getTime()) / (1000 * 3600 * 24);
-        return diff > 0 ;
+        return diff > 0;
     }
 }
