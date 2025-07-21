@@ -58,6 +58,8 @@ export class ExcelService {
      * @param nombreArchivo 
      * @param articulosSolicitados 
      * @param standalone 
+     * @param existencias 
+     * @param cpmsDeCluesActual
      */
     async exportarExcelConTemplate(
         templateUrl: string,
@@ -175,6 +177,7 @@ export class ExcelService {
         const base64 = await this.convertirBufferABase64(buffer);
 
         // 2. Enviar al backend (ajusta URL si es necesario)
+        /*
         await fetch(environment.apiUrl + '/historial', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -188,6 +191,7 @@ export class ExcelService {
                 tipoMime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             })
         });
+        */
         this.descargarArchivo(buffer, nombreArchivo);
     }
 

@@ -21,6 +21,10 @@ import { StorageSolicitudService } from '../../../../services/storage-solicitud.
 import { controlados } from '../../../../models/controlados';
 import { CPMS } from '../../../../models/CPMS';
 
+/**
+ * Componente para mostrar las existencias por clave.
+ * Tambien se usa en existencias x unidad por medio de un "modal dialog"
+ */
 @Component({
     standalone: true,
     selector: 'app-existencias-x-clave',
@@ -174,7 +178,8 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     buscarArticulosConFallback(texto: string) {
         this.articulosService.buscarArticulos(texto).subscribe({
             next: (data) => {
-                this.autocompleteResults = data.resultados || [];
+                this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave))
+                                 || [];
                 this.totalResults = data.total || 0;
                 this.moreResults = this.totalResults > 12;
                 this.selectedIndex = 0;
@@ -190,7 +195,8 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     usarBusquedaLocal(texto: string) {
         this.articulosService.buscarArticulosv2(texto).subscribe({
             next: (data) => {
-                this.autocompleteResults = data.resultados || [];
+                this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave))
+                 || [];
                 this.totalResults = data.total || 0;
                 this.moreResults = this.totalResults > 12;
                 this.selectedIndex = 0;
@@ -341,8 +347,8 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
      */
     buscarExistenciasDeClave(skipLocalStorage = false) {
         const hoy = new Date();
-        const hace15dias = new Date(hoy);
-        hace15dias.setDate(hoy.getDate() - 15);
+        const hace30dias = new Date(hoy);
+        hace30dias.setDate(hoy.getDate() - 30);
 
         this.citaParaDescripcionDeClave = this.citas.find(c => c.clave_cnis === this.claveFiltrada)!;
 
@@ -354,11 +360,11 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                 : null;
 
             const fechaValida = fechaLimite &&
-                (fechaLimite >= hoy || fechaLimite >= hace15dias);
+                (fechaLimite >= hoy || fechaLimite >= hace30dias);
 
             // si se recibio recientemente o si fecha_recepcion_almacen es null
             const recibidoRecientementeONoSeHaRecibido = c.fecha_recepcion_almacen
-                ? new Date(c.fecha_recepcion_almacen) >= hace15dias
+                ? new Date(c.fecha_recepcion_almacen) >= hace30dias
                 : true;
 
             return esClave && fechaValida && recibidoRecientementeONoSeHaRecibido;
