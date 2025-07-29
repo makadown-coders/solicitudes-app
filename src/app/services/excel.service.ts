@@ -1,3 +1,5 @@
+// src/app/services/excel.service.ts 
+
 import { inject, Injectable } from '@angular/core';
 import { ArticuloSolicitud } from '../models/articulo-solicitud';
 import * as XLSX from 'xlsx';
@@ -14,6 +16,7 @@ import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
+
     solicitudService = inject(StorageSolicitudService);
 
     exportarExcelPrecarga(nombreArchivo: string, articulosSolicitados: ArticuloSolicitud[]) {
@@ -58,6 +61,8 @@ export class ExcelService {
      * @param nombreArchivo 
      * @param articulosSolicitados 
      * @param standalone 
+     * @param existencias 
+     * @param cpmsDeCluesActual
      */
     async exportarExcelConTemplate(
         templateUrl: string,
@@ -157,13 +162,13 @@ export class ExcelService {
                     };
                 }
             }
-            
+
             const celdaCpm = worksheet!.getCell(`H${renglon}`);
             celdaCpm.value = cpm;
             // poner background de la celda de cpm en f3ff33 si cpm === 0
             if (cpm === 0) {
                 // FONDO EN AMARILLO!
-                celdaCpm.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'f3ff33' } }; 
+                celdaCpm.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'f3ff33' } };
             }
 
             worksheet!.getCell(`I${renglon}`).value = existenciaAZM;
@@ -188,6 +193,7 @@ export class ExcelService {
                 tipoMime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             })
         });
+
         this.descargarArchivo(buffer, nombreArchivo);
     }
 
@@ -448,5 +454,62 @@ export class ExcelService {
         return CPMs;
     }
 
+    /**
+     * Metodo para exportar el listado de existencias por unidad
+     * Usado en dashboard abasto > Existencias > Existencias X Clave
+     */
+    async exportarExcelExistenciasUnidadConTemplate(
+        templateUrl: string,
+        nombreArchivo: string,
+        existencias: {
+            clave: string;
+            clasificacionVEN: string;
+            descripcion: string;
+            unidadMedida: string;
+            cpm: number;
+            existenciaTotal: number;
+            existenciaAZM: number;
+            existenciaAZT: number;
+            existenciaAZE: number;
+            puntoReorden: number;
+        }[],
+        disponibles: number,
+        faltantes: number,
+        totalPiezasDisponibles: number
+    ) {
+        const workbook = new ExcelJS.Workbook();
+        const response = await fetch(templateUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        await workbook.xlsx.load(arrayBuffer);
+
+        /** Hoja 1: Existencias **/
+        const hojaExistencias = workbook.getWorksheet(1); // primera hoja
+        existencias.forEach((item, index) => {
+            const row = hojaExistencias!.getRow(index + 2); // desde la fila 2
+            row.getCell(1).value = index + 1; // #
+            row.getCell(2).value = item.clave;
+            row.getCell(3).value = item.clasificacionVEN;
+            row.getCell(4).value = item.descripcion;
+            row.getCell(5).value = item.unidadMedida;
+            row.getCell(6).value = item.cpm;
+            row.getCell(7).value = item.existenciaTotal;
+            row.getCell(8).value = item.existenciaAZM;
+            row.getCell(9).value = item.existenciaAZT;
+            row.getCell(10).value = item.existenciaAZE;
+            row.getCell(11).value = item.puntoReorden;
+        });
+
+        /** Hoja 2: Resumen Abasto **/
+        const hojaResumen = workbook.getWorksheet(2); // segunda hoja
+        hojaResumen!.getCell('B1').value = disponibles;
+        hojaResumen!.getCell('B2').value = faltantes;
+        hojaResumen!.getCell('B4').value = disponibles;
+        hojaResumen!.getCell('D4').value = faltantes + disponibles;
+        hojaResumen!.getCell('B5').value = totalPiezasDisponibles;
+
+        /** Guardar archivo **/
+        const buffer = await workbook.xlsx.writeBuffer();
+        this.descargarArchivo(buffer, nombreArchivo.endsWith('.xlsx') ? nombreArchivo : `${nombreArchivo}.xlsx`);
+    }
 
 }

@@ -211,7 +211,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     // 🔌 Intenta con backend koyeb
     this.articulosService.buscarArticulos(texto).subscribe({
       next: (data) => {
-        this.autocompleteResults = data.resultados || [];
+        this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
         this.totalResults = data.total || 0;
         this.moreResults = this.totalResults > 12;
         this.selectedIndex = 0;
@@ -229,7 +229,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   usarBusquedaLocal(texto: string) {
     this.articulosService.buscarArticulosv2(texto).subscribe({
       next: (data) => {
-        this.autocompleteResults = data.resultados || [];
+        this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
         this.totalResults = data.total || 0;
         this.moreResults = this.totalResults > 12;
         this.selectedIndex = 0;

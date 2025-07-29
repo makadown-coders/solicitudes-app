@@ -9,7 +9,7 @@ import { Subject } from 'rxjs';
 import { DashboardService } from '../../../../services/dashboard.service';
 import { Inventario, InventarioDisponibles } from '../../../../models/Inventario';
 import { StorageSolicitudService } from '../../../../services/storage-solicitud.service';
-import { AlertCircleIcon, HospitalIcon, InfoIcon, LucideAngularModule, TriangleAlertIcon } from 'lucide-angular';
+import { AlertCircleIcon, HospitalIcon, InfoIcon, LucideAngularModule, SheetIcon, TriangleAlertIcon } from 'lucide-angular';
 import { FormsModule } from '@angular/forms';
 import { StorageVariables } from '../../../../shared/storage-variables';
 import { CPMS } from '../../../../models/CPMS';
@@ -19,6 +19,7 @@ import { ClasificadorVEN } from '../../../../models/clasificador-ven';
 import { ArticulosService } from '../../../../services/articulos.service';
 import { ChartConfiguration, ChartOptions, ChartType } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
+import { ExcelService } from '../../../../services/excel.service';
 
 
 @Component({
@@ -49,10 +50,12 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
     unidadSeleccionada: UnidadExistente | null = null;
     autocompleteResults: UnidadExistente[] = [];
     hospitalIcon = HospitalIcon;
+    sheetIcon = SheetIcon;
     cpmsElegidos: CPMS[] = [];
     articulos: Articulo[] = [];
     articulosMap = new Map<string, Articulo>();
     cdRef = inject(ChangeDetectorRef);
+    excelService = inject(ExcelService);
 
     alertCircle = AlertCircleIcon;
     infoIcon = InfoIcon;
@@ -397,5 +400,44 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
     cerrarDetalleClave() {
         this.claveModalVisible = false;
         this.claveSeleccionadaModal = '';
+    }
+
+    exportarExcelExistenciasUnidad() {
+        const resumen = this.resumenCPMs();
+        const disponibles = resumen.totalClaveDisponibles;
+        const faltantes = this.cpmsElegidos.length - disponibles;
+        const totalPiezasDisponibles = resumen.totalPiezasDisponibles;
+
+        // Formato anónimo requerido
+        const existenciasData = this.cpmsElegidos.map((cpm, index) => {
+            const clasificacionVEN = this.obtenerClasificacion(cpm.clave);
+            const descripcion = this.obtenerDescripcion(cpm.clave);
+            const unidad = this.obtenerUnidad(cpm.clave);
+            const existenciaTotal = this.disponibles(cpm.clave);
+            const existenciaAlmacenes = this.obtenerExistenciaAlmacenes(cpm.clave);
+            const puntoReorden = Math.max(cpm.cantidad - existenciaTotal, 0);
+
+            return {
+                clave: cpm.clave,
+                clasificacionVEN,
+                descripcion,
+                unidadMedida: unidad,
+                cpm: cpm.cantidad,
+                existenciaTotal,
+                existenciaAZM: existenciaAlmacenes.existenciasAZM,
+                existenciaAZT: existenciaAlmacenes.existenciasAZT,
+                existenciaAZE: existenciaAlmacenes.existenciasAZE,
+                puntoReorden
+            };
+        });
+
+        this.excelService.exportarExcelExistenciasUnidadConTemplate(
+            'template_abasto.xlsx',
+            `ExistenciasXUnidad_${this.unidadSeleccionada?.nombre}_${new Date().toISOString().slice(0, 10)}.xlsx`,
+            existenciasData,
+            disponibles,
+            faltantes,
+            totalPiezasDisponibles
+        );
     }
 }
