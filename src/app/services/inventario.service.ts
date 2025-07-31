@@ -8,7 +8,7 @@ import { ExcelService } from './excel.service';
 import { Inventario, InventarioRow } from '../models/Inventario';
 import { Existencias, StorageVariables } from '../shared/storage-variables';
 import { CPMSFull, InventarioFull } from '../models/ElementosBase64';
-import { CPMS } from '../models/CPMS';
+import { ClaveGrupo, CPMS } from '../models/CPMS';
 import { StorageSolicitudService } from './storage-solicitud.service';
 
 @Injectable({
@@ -57,7 +57,9 @@ export class InventarioService {
     this.http.get<CPMSFull>(url).subscribe({
       next: (response: CPMSFull) => {
         const arrayBuffer = this.excelService.base64ToArrayBuffer(response.cpms);
-        let cpms: CPMS[] = this.excelService.procesarArchivoCPMS(arrayBuffer);
+        let cpms: CPMS[]  = []; 
+        let claveGrupos: ClaveGrupo[] = [];
+        [cpms, claveGrupos] = this.excelService.procesarArchivoCPMS(arrayBuffer);
 
         // console.info('✅ InventarioService.refrescarDatosCPMS() - CPMS tamanio original', cpms.length);
         // 0-1) Procesar los cpms para que excluya claves que tienen cantidad cero en todas las unidades 
@@ -75,6 +77,10 @@ export class InventarioService {
               cpmsFiltrados = [...cpmsFiltrados, ...cpm];
             }
           }
+          // filtrar en claveGrupos para que muestre lo que hay tambien en cpmsFiltrados
+          claveGrupos = claveGrupos.filter(item => clavesConCpmTotal.includes(item.clave));
+
+
           //          console.log('cpmsFiltrados tamanio', cpmsFiltrados.filter(item => item.cantidad > 0).map(item => item.clave).length);
           // agregando resumen estatal por si se ofrece
           resumenEstatal = resumenEstatal.filter(item => clavesConCpmTotal.includes(item.clave));
@@ -92,6 +98,7 @@ export class InventarioService {
           try {
             // console.log('InventarioService.refrescarDatosCPMS() - comprimiendo');
             localStorage.setItem(StorageVariables.SOLICITUD_CPMS, compressed);
+            localStorage.setItem(StorageVariables.SOLICITUD_CLAVEGRUPOS, JSON.stringify(claveGrupos));
           } catch {
             console.warn('😱 InventarioService.refrescarDatosCPMS() - localStorage lleno, omitiendo guardado');
           }
@@ -121,7 +128,7 @@ export class InventarioService {
     const registrosEstatales: CPMS[] = Array.from(resumenPorClave.entries()).map(([clave, cantidad]) => ({
       cluesimb: 'ESTATAL',
       clave: clave,
-      cantidad: cantidad,
+      cantidad: cantidad
       // otros campos opcionales: nombre: '', fecha: null, etc.
     }));
 

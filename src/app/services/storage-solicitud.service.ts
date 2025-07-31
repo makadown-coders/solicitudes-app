@@ -4,7 +4,7 @@ import { ModoCapturaSolicitud } from '../shared/modo-captura-solicitud';
 import { StorageVariables } from '../shared/storage-variables';
 import { BehaviorSubject, defer, delay, map, Observable, of, timer } from 'rxjs';
 import { DatosClues } from '../models/datos-clues';
-import { CPMS } from '../models/CPMS';
+import { ClaveGrupo, CPMS } from '../models/CPMS';
 import * as LZString from 'lz-string';
 import { Inventario } from '../models/Inventario';
 
@@ -79,7 +79,7 @@ export class StorageSolicitudService {
         } else {
             return localStorage.getItem(StorageVariables.SOLICITUD_ACTIVE_TAB_SEGUNDO_NIVEL);
         }
-    }
+    }    
 
     setActiveTabInLocalStorage(clues: string) {
         if (this.modoCapturaSolicitud === ModoCapturaSolicitud.PRIMER_NIVEL) {
@@ -126,6 +126,12 @@ export class StorageSolicitudService {
             return raw ? JSON.parse(raw) : [];
         }
         return [];
+    }
+
+    getClaveGruposFromLocalStorage() : ClaveGrupo[] { 
+        // obtener de StorageVariables.SOLICITUD_CLAVEGRUPOS (no esta comprimido)
+        const raw = localStorage.getItem(StorageVariables.SOLICITUD_CLAVEGRUPOS);
+        return raw ? JSON.parse(raw) as ClaveGrupo[] : [];        
     }
 
     private emitirNombreUnidad() {

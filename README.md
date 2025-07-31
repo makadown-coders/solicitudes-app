@@ -4,6 +4,8 @@ Aplicación desarrollada con Angular 17 + TailwindCSS para capturar, visualizar 
 
 Incluye autocompletado, validaciones, persistencia local, dashboard analítico, exportación avanzada a Excel y generación opcional de archivos de precarga para futuras solicitudes.
 
+Proyecto enfocado al departamento del abasto de IMSS Bienestar Baja California.
+
 
 ![alt text](image.png)
 ![MIT License](https://img.shields.io/badge/license-MIT-green)
