@@ -59,6 +59,7 @@ export const enum StorageVariables {
     SOLICITUD_ACTIVE_TAB_PRIMER_NIVEL = 'solicitud_active_tab_primer_nivel',
     SOLICITUD_ACTIVE_TAB_SEGUNDO_NIVEL = 'activeTab',
     SOLICITUD_CPMS = 'cpms',
+    SOLICITUD_CLAVEGRUPOS = 'clavegrupos',
     // variables usadas tanto en solicitudes como en dashboard abasto
     // se refieren al nombre del endpoint en /api/inventario
     EXISTENCIA_HGENS = 'HGENS', 

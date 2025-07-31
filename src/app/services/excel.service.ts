@@ -11,7 +11,7 @@ import { clasificacionMedicamentosData } from '../models/clasificacionMedicament
 import { ClasificadorVEN } from '../models/clasificador-ven';
 import { Inventario, InventarioDisponibles, InventarioRow } from '../models/Inventario';
 import { StorageSolicitudService } from './storage-solicitud.service';
-import { CPMS } from '../models/CPMS';
+import { ClaveGrupo, CPMS } from '../models/CPMS';
 import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -405,11 +405,13 @@ export class ExcelService {
      * El archivo es de acuerdo es al formato oficial proporcionado por unidad medica
      * @param buffer 
      */
-    public procesarArchivoCPMS(buffer: ArrayBuffer) {
+    public procesarArchivoCPMS(buffer: ArrayBuffer) : [CPMS[], ClaveGrupo[]] {
         const workbook = XLSX.read(buffer, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
         const CPMs: CPMS[] = [];
+        // aqui se guarda relacion unica de claves y grupos (no mas de 2000 registros)
+        const clavesGrupos: ClaveGrupo[] = [];
 
         // 1. Obtener claves desde A5 hacia abajo hasta encontrar celda vacía
         const claves: string[] = [];
@@ -418,6 +420,7 @@ export class ExcelService {
             const celda = sheet[`A${row}`];
             if (!celda || !celda.v) break;
             claves.push(celda.v.toString());
+            clavesGrupos.push({ clave: celda.v.toString(), gpo: '', grupoTerapeutico: '' });
             row++;
         }
 
@@ -439,6 +442,15 @@ export class ExcelService {
                 const colLetter = XLSX.utils.encode_col(startCol + idxCol);
                 const celda = sheet[`${colLetter}${fila}`];
                 const cantidad = celda?.v ? Number(celda.v) : 0;
+                const gpo = sheet[`C${fila}`]?.v?.toString() ?? '';
+                const grupoTerapeutico = sheet[`D${fila}`]?.v?.toString() ?? '';
+
+                // buscar y actualizar en clavesGrupos
+                const claveGrupo = clavesGrupos.find(cg => cg.clave === clave);
+                if (claveGrupo) {
+                    claveGrupo.gpo = gpo;
+                    claveGrupo.grupoTerapeutico = grupoTerapeutico;
+                }
 
                 CPMs.push({
                     clave,
@@ -451,7 +463,7 @@ export class ExcelService {
         // 4. Guardar en localStorage
         // const STORAGE_KEY = 'SOLICITUD_CPMS'; // o usa StorageVariables.SOLICITUD_CPMS
         // localStorage.setItem(STORAGE_KEY, JSON.stringify(CPMs));
-        return CPMs;
+        return [CPMs, clavesGrupos];
     }
 
     /**
@@ -466,6 +478,8 @@ export class ExcelService {
             clasificacionVEN: string;
             descripcion: string;
             unidadMedida: string;
+            gpo: string;
+            grupoTerapeutico: string;
             cpm: number;
             existenciaTotal: number;
             existenciaAZM: number;
@@ -491,12 +505,14 @@ export class ExcelService {
             row.getCell(3).value = item.clasificacionVEN;
             row.getCell(4).value = item.descripcion;
             row.getCell(5).value = item.unidadMedida;
-            row.getCell(6).value = item.cpm;
-            row.getCell(7).value = item.existenciaTotal;
-            row.getCell(8).value = item.existenciaAZM;
-            row.getCell(9).value = item.existenciaAZT;
-            row.getCell(10).value = item.existenciaAZE;
-            row.getCell(11).value = item.puntoReorden;
+            row.getCell(6).value = item.gpo;
+            row.getCell(7).value = item.grupoTerapeutico;
+            row.getCell(8).value = item.cpm;
+            row.getCell(9).value = item.existenciaTotal;
+            row.getCell(10).value = item.existenciaAZM;
+            row.getCell(11).value = item.existenciaAZT;
+            row.getCell(12).value = item.existenciaAZE;
+            row.getCell(13).value = item.puntoReorden;
         });
 
         /** Hoja 2: Resumen Abasto **/
