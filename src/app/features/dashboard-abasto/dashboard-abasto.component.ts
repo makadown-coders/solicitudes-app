@@ -46,7 +46,8 @@ export class DashboardAbastoComponent implements OnInit {
     'Proveedores y entregas',
     'Citas pendientes',
     'Cumplimiento Claves',
-    'Entregas pendientes'];
+    'Entregas pendientes',
+    'Acerca de'];
   activeTab = 'Resumen';
 
   constructor(private dashboardService: DashboardService) { }
@@ -94,5 +95,9 @@ export class DashboardAbastoComponent implements OnInit {
   seleccionarTab(tab: string) {
     this.activeTab = tab;
     localStorage.setItem(StorageVariables.DASH_ABASTO_ACTIVE_TAB, tab.toString());
+  }
+
+  anioActual() {
+    return new Date().getFullYear();
   }
 }

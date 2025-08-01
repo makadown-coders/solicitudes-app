@@ -1,7 +1,7 @@
 // src/app/features/dashboard-abasto/existencias/existencias-x-grupo/existencias-x-grupo.component.ts
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { UnidadExistente } from '../../../../models/articulo-solicitud';
+import { Articulo, UnidadExistente } from '../../../../models/articulo-solicitud';
 import { CPMS, ClaveGrupo } from '../../../../models/CPMS';
 import { Inventario, InventarioDisponibles } from '../../../../models/Inventario';
 import { hospitalesData } from '../../../../models/hospitalesData';
@@ -14,6 +14,7 @@ import { StorageVariables } from '../../../../shared/storage-variables';
 import { ResumenXGrupo } from '../../../../models/resumen-x-grupo.model';
 import { ExcelService } from '../../../../services/excel.service';
 import { LucideAngularModule, SheetIcon } from 'lucide-angular';
+import { ArticulosService } from '../../../../services/articulos.service';
 
 @Component({
     selector: 'app-existencias-x-grupo',
@@ -37,7 +38,8 @@ export class ExistenciasXGrupoComponent implements OnInit {
     grupoSeleccionado: string = '';
 
     constructor(private storageService: StorageSolicitudService,
-        private excelService: ExcelService
+        private excelService: ExcelService,
+        private articulosService: ArticulosService
     ) { }
 
     ngOnInit() {
@@ -55,7 +57,27 @@ export class ExistenciasXGrupoComponent implements OnInit {
             this.grupoSeleccionado = grupoGuardado;
             this.calcularResumenXGrupo();
         }
-        if (this.articulosMap.size === 0) {
+        if (localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP) === null) {
+            this.articulosService.buscarArticulosv2('')  // vacío para traer todo
+                .subscribe({
+                    next: (response) => {
+                        const articulos = response.resultados.map(r => ({
+                            clave: r.clave,
+                            descripcion: r.descripcion,
+                            presentacion: r.unidadMedida ?? '',
+                        })) as Articulo[];
+                        // al cargar:
+                        articulos.forEach(a => this.articulosMap.set(a.clave, a));
+                        // Guardar comprimido de articulosMap en localStorage (DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP)
+                        const articulosString = JSON.stringify(Array.from(this.articulosMap.entries()));
+                        const articulosComprimido = LZString.compress(articulosString);
+                        localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP, articulosComprimido);
+                    },
+                    error: (err) => {
+                        console.warn('⚠️ Error cargando artículos:', err);
+                    }
+                });
+        } else {
             this.cargarArticulosMapDeLocalStorage();
         }
     }
@@ -123,7 +145,7 @@ export class ExistenciasXGrupoComponent implements OnInit {
 
                 // Nueva lógica de desabasto: CPM > total existencias
                 // TODO: Confirmar si esta lógica es correcta o dejar ( totalExistencias === 0 )
-                if ( totalExistencias === 0 ) { //(cpm.cantidad > totalExistencias) {
+                if (totalExistencias === 0) { //(cpm.cantidad > totalExistencias) {
                     clavesDesabasto++;
                 }
             }
