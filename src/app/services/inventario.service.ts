@@ -23,6 +23,9 @@ export class InventarioService {
   private cpmsSubject = new BehaviorSubject<CPMS[]>([]);
   public cpms$: Observable<CPMS[]> = this.cpmsSubject.asObservable();
 
+  private claveGruposSubject = new BehaviorSubject<ClaveGrupo[]>([]);
+  public claveGrupos$: Observable<ClaveGrupo[]> = this.claveGruposSubject.asObservable();
+
   private cpmsCluesActualSubject = new BehaviorSubject<CPMS[]>([]);
   public cpmsCluesActual$: Observable<CPMS[]> = this.cpmsCluesActualSubject.asObservable();
 
@@ -106,6 +109,7 @@ export class InventarioService {
         }
         // 2) Emitir        
         this.cpmsSubject.next(cpms as CPMS[]);
+        this.claveGruposSubject.next(claveGrupos as ClaveGrupo[]);
         this.cargandoCPMSBehaviorSubject.next(false);
         //        console.info('✅ InventarioService.refrescarDatosCPMS() - FINALIZADO');
       },

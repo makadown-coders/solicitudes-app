@@ -13,6 +13,7 @@ import { Inventario, InventarioDisponibles, InventarioRow } from '../models/Inve
 import { StorageSolicitudService } from './storage-solicitud.service';
 import { ClaveGrupo, CPMS } from '../models/CPMS';
 import { environment } from '../../environments/environment';
+import { ResumenXGrupo } from '../models/resumen-x-grupo.model';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
@@ -405,7 +406,7 @@ export class ExcelService {
      * El archivo es de acuerdo es al formato oficial proporcionado por unidad medica
      * @param buffer 
      */
-    public procesarArchivoCPMS(buffer: ArrayBuffer) : [CPMS[], ClaveGrupo[]] {
+    public procesarArchivoCPMS(buffer: ArrayBuffer): [CPMS[], ClaveGrupo[]] {
         const workbook = XLSX.read(buffer, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
@@ -528,4 +529,130 @@ export class ExcelService {
         this.descargarArchivo(buffer, nombreArchivo.endsWith('.xlsx') ? nombreArchivo : `${nombreArchivo}.xlsx`);
     }
 
+    public async exportarResumenXGrupo(
+        nombreArchivo: string,
+        resumenData: ResumenXGrupo[],
+        cpms: CPMS[],
+        existenciaUnidades: Map<string, Inventario[]>,
+        obtenerDescripcion: (clave: string) => string,
+        obtenerUnidad: (clave: string) => string,
+        obtenerExistenciaAlmacenes: (clave: string) => InventarioDisponibles,
+        claveGrupos: ClaveGrupo[],
+        grupoSeleccionado: string
+    ) {
+        const workbook = new ExcelJS.Workbook();
+
+        // ===== Hoja principal =====
+        const hojaResumen = workbook.addWorksheet('Resumen X Grupo');
+        hojaResumen.columns = [
+            { header: 'Municipio', key: 'municipio', width: 20 },
+            { header: 'CLUES', key: 'clues', width: 15 },
+            { header: 'Nombre de Unidad', key: 'nombreUnidad', width: 35 },
+            { header: 'Nivel Atención', key: 'nivelAtencion', width: 15 },
+            { header: 'Tipología', key: 'tipologia', width: 20 },
+            { header: 'Categoría', key: 'categoria', width: 15 },
+            { header: 'Claves Manejadas', key: 'clavesManejadas', width: 18 },
+            { header: 'Claves Desabasto', key: 'clavesDesabasto', width: 18 },
+            { header: '% Desabasto', key: 'porcentajeDesabasto', width: 15 }
+        ];
+        hojaResumen.getRow(1).font = { bold: true };
+
+        resumenData.forEach(row => {
+            hojaResumen.addRow({
+                ...row,
+                porcentajeDesabasto: `${row.porcentajeDesabasto.toFixed(1)}%`
+            });
+        });
+
+        resumenData.forEach(row => {
+            const hojaUnidad = workbook.addWorksheet(row.clues);
+
+            // Fila 1: nombre de la unidad
+            hojaUnidad.addRow([row.nombreUnidad]);
+            hojaUnidad.addRow([]); // Fila 2 vacía
+
+            // Encabezados (fila 3)
+            hojaUnidad.addRow([
+                '#',
+                'Clave',
+                'Descripción',
+                'Unidad',
+                'CPM',
+                'Existencia',
+                'AZM',
+                'AZT',
+                'AZE',
+                'Desabasto'
+            ]);
+            hojaUnidad.getRow(3).font = { bold: true };
+
+            const clavesUnidad = cpms
+                .filter(c => c.cluesimb.toLowerCase() === row.clues.toLowerCase())
+                .filter(c => claveGrupos.some(
+                    cg => cg.clave === c.clave && cg.grupoTerapeutico === grupoSeleccionado
+                ))
+                .sort((a, b) => a.clave.localeCompare(b.clave));
+
+            clavesUnidad.forEach((cpm, index) => {
+                const descripcion = obtenerDescripcion(cpm.clave);
+                const unidadMedida = obtenerUnidad(cpm.clave);
+
+                const existenciaTotal = (existenciaUnidades.get(row.key) || [])
+                    .filter(item => item.clave === cpm.clave)
+                    .reduce((sum, item) => sum + item.disponible, 0);
+
+                const existenciaAlmacenes = obtenerExistenciaAlmacenes(cpm.clave);
+                const totalAlmacenes = existenciaAlmacenes.existenciasAZM +
+                    existenciaAlmacenes.existenciasAZT +
+                    existenciaAlmacenes.existenciasAZE;
+
+                const totalExistencias = existenciaTotal + totalAlmacenes;
+                
+                // const desabasto = cpm.cantidad > totalExistencias; // puede variar 
+                const desabasto = totalExistencias === 0;
+
+                hojaUnidad.addRow([
+                    index + 1,
+                    cpm.clave,
+                    descripcion,
+                    unidadMedida,
+                    cpm.cantidad,
+                    existenciaTotal,
+                    existenciaAlmacenes.existenciasAZM,
+                    existenciaAlmacenes.existenciasAZT,
+                    existenciaAlmacenes.existenciasAZE,
+                    desabasto ? 'Sí' : 'No'
+                ]);
+            });
+
+            hojaUnidad.columns.forEach(col => col.width = 15);
+            hojaUnidad.getColumn(3).width = 40; // Descripción más ancha
+
+            const lastRowIndex = hojaUnidad.lastRow!.number;
+            const totalRowIndex = lastRowIndex + 2;
+
+            hojaUnidad.getCell(`A${totalRowIndex}`).value = 'TOTAL';
+            hojaUnidad.getCell(`A${totalRowIndex}`).font = { bold: true };
+            hojaUnidad.getCell(`B${totalRowIndex}`).value = {
+                formula: `SUBTOTAL(103, B4:B${lastRowIndex})`
+            };
+            hojaUnidad.getCell(`B${totalRowIndex}`).font = { bold: true };
+            hojaUnidad.getCell(`C${totalRowIndex}`).value = 'DE';
+            hojaUnidad.getCell(`C${totalRowIndex}`).font = { bold: true };
+            hojaUnidad.getCell(`D${totalRowIndex}`).value = {
+                formula: `COUNTA(B4:B${lastRowIndex})`
+            };
+            hojaUnidad.getCell(`D${totalRowIndex}`).font = { bold: true };
+        });
+
+        // Descargar archivo
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nombreArchivo.endsWith('.xlsx') ? nombreArchivo : `${nombreArchivo}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
 }

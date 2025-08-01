@@ -86,7 +86,7 @@ export class ResumenComponent implements OnInit {
       y: {
         stacked: true,
         beginAtZero: true,
-        ticks: { stepSize: 1 }
+        ticks: { source: 'labels', count: 1000 }
       }
     }
   };
@@ -119,6 +119,7 @@ export class ResumenComponent implements OnInit {
         ticks: {
           color: '#2E8B57',
           precision: 0,
+          source: 'labels',  count: 1000 
         },
         grid: {
           color: '#e0e0e0',
@@ -128,6 +129,7 @@ export class ResumenComponent implements OnInit {
         //stacked: true,
         ticks: {
           color: '#2E8B57',
+          source: 'labels',  count: 1000 
         },
         grid: {
           color: '#f0f0f0',

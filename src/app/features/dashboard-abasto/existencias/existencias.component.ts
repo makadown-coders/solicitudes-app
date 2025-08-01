@@ -6,15 +6,22 @@ import { FormsModule } from '@angular/forms';
 import { StorageVariables } from '../../../shared/storage-variables';
 import { DashboardService } from '../../../services/dashboard.service';
 import { InventarioService } from '../../../services/inventario.service';
-import { CPMS } from '../../../models/CPMS';
+import { ClaveGrupo, CPMS } from '../../../models/CPMS';
 import { Inventario, InventarioDisponibles } from '../../../models/Inventario';
 import { Subject, take, takeUntil } from 'rxjs';
 import { ExistenciasXClaveComponent } from './existencias-x-clave/existencias-x-clave.component';
 import { ExistenciasXUnidadComponent } from './existencias-x-unidad/existencias-x-unidad.component';
+import { ExistenciasXGrupoComponent } from './existencias-x-grupo/existencias-x-grupo.component';
 
 @Component({
     standalone: true,
-    imports: [CommonModule, FormsModule, ExistenciasXClaveComponent, ExistenciasXUnidadComponent],
+    imports: [
+        CommonModule,
+        FormsModule,
+        ExistenciasXClaveComponent,
+        ExistenciasXUnidadComponent,
+        ExistenciasXGrupoComponent
+    ],
     selector: 'app-existencias',
     templateUrl: 'existencias.component.html',
 
@@ -24,6 +31,7 @@ export class ExistenciasComponent implements OnInit, OnDestroy {
     @Input() citas: Cita[] = [];
     existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
     cpms: CPMS[] = [];
+    claveGrupos: ClaveGrupo[] = [];
     cdRef: ChangeDetectorRef = inject(ChangeDetectorRef);
     dashboardService = inject(DashboardService);
     inventarioService = inject(InventarioService);
@@ -32,7 +40,7 @@ export class ExistenciasComponent implements OnInit, OnDestroy {
 
 
     // en construccion
-    existenciasTabs = ['xClave', 'xUnidad'];
+    existenciasTabs = ['xClave', 'xUnidad', 'xGrupo'];
     activeExistenciaTab = 'xClave';
     constructor() {
         const tabGuardado = localStorage.getItem(StorageVariables.DASH_ABASTO_ACTIVE_EXISTENCIA_TAB);
@@ -54,6 +62,13 @@ export class ExistenciasComponent implements OnInit, OnDestroy {
         this.inventarioService.cpms$.pipe(takeUntil(this.onDestroy$)).subscribe({
             next: (cpms: CPMS[]) => {
                 this.cpms = [...cpms];
+            }
+        });
+
+        // suscribirse al observable de claveGrupos
+        this.inventarioService.claveGrupos$.pipe(takeUntil(this.onDestroy$)).subscribe({
+            next: (claveGrupos: ClaveGrupo[]) => {
+                this.claveGrupos = [...claveGrupos];
             }
         });
     }
