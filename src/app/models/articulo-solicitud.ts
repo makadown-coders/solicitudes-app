@@ -48,6 +48,10 @@ export interface Unidad {
  * usado para dashboard abasto > Existencias > Existencias X Clave
  */
 export interface UnidadExistente {
+  /**
+   * Este campo es escencial. Es para ligar con el enum de unidades con la clave de hospital que 
+   * se usaria para llenar en Tab Existencias (CPMs) > Existencias X Clave
+   */
   key: string; // enum de unidades HGE, HGM, etc
   cluesssa: string;
   cluesimb: string;

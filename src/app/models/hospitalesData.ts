@@ -138,7 +138,7 @@ export const hospitalesData: UnidadExistente[] = [
     latitud: "32.6223833",
     longitud: "-115.376862",
     estratoUnidad: "URBANO",
-    nivelAtencion: "PRIMER NIVEL",
+    nivelAtencion: "SEGUNDO NIVEL",
     tipoUnidad: "HOSPITALES"
   },
 ];

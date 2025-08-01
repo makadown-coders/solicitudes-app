@@ -12,13 +12,19 @@
 </div>
 
 
-<div >
+<div>
   <div [hidden]="activeExistenciaTab !== 'xClave'">
     <app-existencias-x-clave [existenciaUnidades]="existenciaUnidades" [cpms]="cpms"
       [citas]="citas"></app-existencias-x-clave>
   </div>
   <div [hidden]="activeExistenciaTab !== 'xUnidad'">
-  <app-existencias-x-unidad [existenciaUnidades]="existenciaUnidades"
-    [cpms]="cpms" [citas]="citas"></app-existencias-x-unidad>
-    </div>
+    <app-existencias-x-unidad [existenciaUnidades]="existenciaUnidades" [cpms]="cpms"
+      [citas]="citas"></app-existencias-x-unidad>
+  </div>
+  <div [hidden]="activeExistenciaTab !== 'xGrupo'">
+    <app-existencias-x-grupo [claveGrupos]="claveGrupos"
+      [existenciaUnidades]="existenciaUnidades" [cpms]="cpms"
+      [citas]="citas"></app-existencias-x-grupo>
+  </div>
+
 </div>

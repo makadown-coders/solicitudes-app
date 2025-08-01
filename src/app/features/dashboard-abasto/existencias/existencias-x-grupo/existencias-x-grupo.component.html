@@ -1,0 +1,48 @@
+<div class="flex flex-col gap-4">
+  <!-- Selector de grupo terapéutico con ng-select -->
+  <div>
+    <label class="block mb-1 text-sm font-medium">Seleccionar Grupo Terapéutico:</label>
+    <ng-select [items]="gruposDisponibles" bindLabel="" [clearable]="true" placeholder="Buscar y seleccionar grupo..."
+      [(ngModel)]="grupoSeleccionado" (change)="onGrupoChange($event)">
+    </ng-select>
+  </div>
+
+  <div class="flex justify-end mt-4" *ngIf="resumenXGrupo.length > 0">
+    <button (click)="exportarExcelXGrupo()"
+      class="flex items-center gap-2 px-4 py-2 text-white bg-green-600 rounded hover:bg-green-700">
+      <lucide-icon [img]="sheetIcon" class="w-5 h-5"></lucide-icon>
+      Exportar
+    </button>
+  </div>
+
+  <table *ngIf="resumenXGrupo.length > 0" class="mt-4 w-full text-sm border-gray-300 border">
+    <thead class="text-white bg-green-600">
+      <tr>
+        <th class="px-2 py-1">Municipio</th>
+        <th class="px-2 py-1">CLUES</th>
+        <th class="px-2 py-1">Nombre</th>
+        <th class="px-2 py-1">Nivel</th>
+        <th class="px-2 py-1">Tipología</th>
+        <th class="px-2 py-1">Categoría</th>
+        <th class="px-2 py-1">Claves Manejadas</th>
+        <th class="px-2 py-1">Claves Desabasto</th>
+        <th class="px-2 py-1">% Desabasto</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of resumenXGrupo" class="border-b">
+        <td class="px-2 py-1">{{ row.municipio }}</td>
+        <td class="px-2 py-1">{{ row.clues }}</td>
+        <td class="px-2 py-1">{{ row.nombreUnidad }}</td>
+        <td class="px-2 py-1">{{ row.nivelAtencion }}</td>
+        <td class="px-2 py-1">{{ row.tipologia }}</td>
+        <td class="px-2 py-1">{{ row.categoria }}</td>
+        <td class="px-2 py-1 text-right">{{ row.clavesManejadas }}</td>
+        <td class="px-2 py-1 text-right">{{ row.clavesDesabasto }}</td>
+        <td class="px-2 py-1 text-right">{{ row.clavesManejadas > 0? (row.porcentajeDesabasto | number: '1.0-1') + '%' :
+          'No aplica' }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>

@@ -16,6 +16,8 @@ export const enum StorageVariables {
     DASH_ABASTO_EXISTENCIAS_EXU_CPMS_ELEGIDOS = 'dash_abasto_existencias_exu_cpms_elegidos',
     DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS = 'dash_abasto_existencias_exu_unidades_elegidas',
     DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP = 'dash_abasto_existencias_exu_articulos_map',
+    // Dashboard Abasto tab Existencias > Existencias x Grupo Terapéutico
+    DASH_ABASTO_EXISTENCIAS_EXG_GRUPO = 'DASH_ABASTO_EXISTENCIAS_EXG_GRUPO',
     // Dashboard Abasto tab Resumen
     DASH_ABASTO_RESUMEN_FECHA_INICIO = 'dash_abasto_resumen_fecha_inicio',
     DASH_ABASTO_RESUMEN_FECHA_FIN = 'dash_abasto_resumen_fecha_fin',
