@@ -370,6 +370,13 @@ export class ExcelService {
         this.descargarArchivo(buffer, nombreArchivo);
     }
 
+    /**
+     * Usado en 
+     * - precarga de solicitud de articulos
+     * - carga masiva (herramienta escondida)
+     * @param file 
+     * @returns 
+     */
     leerArchivoPrecarga(file: File): Promise<any[]> {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
