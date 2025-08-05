@@ -551,8 +551,9 @@ export class ExcelService {
             });
 
             row.getCell(14).value = citasHalladasPorClave.length;
-            // en columna 15 mostrar solo en un string cada orden de suministro, para darlo como observacion
-            row.getCell(15).value = citasHalladasPorClave.map(c => c.orden_de_suministro).join(', ');
+            // en columna 15 mostrar solo en un string cada orden de suministro y entre paréntesis la fecha de recepción de almacen,
+            //  para darlo como observacion...
+            row.getCell(15).value = citasHalladasPorClave.map(c => c.orden_de_suministro + ' (recibido ' + c.fecha_recepcion_almacen + ')').join(', ');
         });
 
         /** Hoja 2: Resumen Abasto **/
