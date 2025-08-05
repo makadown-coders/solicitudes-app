@@ -81,7 +81,7 @@
           <tr>
             <th class="px-2 py-1 text-left">#</th>
             <th class="px-2 py-1 text-left">Clave</th>
-            <th class="hidden p-2 xl:table-cell">Clasificación</th>
+            <th class="hidden p-2 xl:table-cell">Gpo Terapéutico</th>
             <th class="hidden p-2 lg:table-cell">Descripción</th>
             <th class="hidden p-2 xl:table-cell">Unidad</th>
             <th class="px-2 py-1 text-right">CPM</th>
@@ -100,6 +100,7 @@
             @let existencia = disponibles(cpm.clave);
             @let reorden = cpm.cantidad - existencia;
             @let clasificacion = obtenerClasificacion(cpm.clave);
+            @let grupoTerapeutico = obtenerGrupoTerapeutico(cpm.clave);
             <td class="px-2 py-1" [attr.title]="descripcion">
               <div class="flex items-center justify-left gap-1">
                 <span *ngIf="unidadSeleccionada?.key === 'ESTATAL'" class="font-semibold cursor-pointer hover:underline"
@@ -138,7 +139,7 @@
             </td>
             <td
               class="overflow-hidden hidden p-2 max-w-[100px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell">
-              {{ clasificacion }}
+              {{ grupoTerapeutico }}
             </td>
             <td [attr.title]="descripcion"
               class="overflow-hidden hidden p-2 max-w-[250px] text-ellipsis whitespace-pre-wrap break-words sm:whitespace-normal lg:table-cell">
