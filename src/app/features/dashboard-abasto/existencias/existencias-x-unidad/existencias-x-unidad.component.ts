@@ -417,7 +417,10 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             const unidad = this.obtenerUnidad(cpm.clave);
             const existenciaTotal = this.disponibles(cpm.clave);
             const existenciaAlmacenes = this.obtenerExistenciaAlmacenes(cpm.clave);
-            const puntoReorden = Math.max(cpm.cantidad - existenciaTotal, 0);
+            const puntoReorden = Math.max(cpm.cantidad - existenciaTotal - 
+                            existenciaAlmacenes.existenciasAZE - existenciaAlmacenes.existenciasAZM - 
+                            existenciaAlmacenes.existenciasAZT,
+                 0);
             const gpo = claveGrupos.find(grupo => grupo.clave === cpm.clave)?.gpo ?? '';
             const grupoTerapeutico = claveGrupos.find(grupo => grupo.clave === cpm.clave)?.grupoTerapeutico ?? '';
 
@@ -443,7 +446,8 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             existenciasData,
             disponibles,
             faltantes,
-            totalPiezasDisponibles
+            totalPiezasDisponibles,
+            this.citas
         );
     }
 }
