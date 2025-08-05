@@ -443,7 +443,9 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
                 puntoReorden
             };
         });
-
+        console.log('unidadBusqueda', this.unidadBusqueda);
+        // convertir las vocales mayúsculas con acentos a vocales mayusculas sin acentos
+        const unidadBusquedaSinAcentos = this.unidadBusqueda?.replace(/[áéí]/g, 'a').replace(/[é]/g, 'e').replace(/[í]/g, 'i').replace(/[ó]/g, 'o').replace(/[ú]/g, 'u');
         this.excelService.exportarExcelExistenciasUnidadConTemplate(
             'template_abasto.xlsx',
             `ExistenciasXUnidad_${this.unidadSeleccionada?.nombre}_${new Date().toISOString().slice(0, 10)}.xlsx`,
@@ -451,7 +453,10 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             disponibles,
             faltantes,
             totalPiezasDisponibles,
-            this.citas
+            this.unidadBusqueda === 'ESTATAL' || this.unidadBusqueda === 'Baja California' ? 
+                    this.citas : 
+                    this.citas.filter(cita => 
+                        cita.unidad.replace(/[áéí]/g, 'a').replace(/[é]/g, 'e').replace(/[í]/g, 'i').replace(/[ó]/g, 'o').replace(/[ú]/g, 'u').toLocaleUpperCase() === unidadBusquedaSinAcentos.toLocaleUpperCase())
         );
     }
 }
