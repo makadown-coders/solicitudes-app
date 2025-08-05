@@ -370,6 +370,13 @@ export class ExcelService {
         this.descargarArchivo(buffer, nombreArchivo);
     }
 
+    /**
+     * Usado en 
+     * - precarga de solicitud de articulos
+     * - carga masiva (herramienta escondida)
+     * @param file 
+     * @returns 
+     */
     leerArchivoPrecarga(file: File): Promise<any[]> {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -490,7 +497,8 @@ export class ExcelService {
         }[],
         disponibles: number,
         faltantes: number,
-        totalPiezasDisponibles: number
+        totalPiezasDisponibles: number,
+        citas: Cita[]
     ) {
         const workbook = new ExcelJS.Workbook();
         const response = await fetch(templateUrl);
@@ -499,6 +507,11 @@ export class ExcelService {
 
         /** Hoja 1: Existencias **/
         const hojaExistencias = workbook.getWorksheet(1); // primera hoja
+        const hoy = new Date();
+        const hace40dias = new Date(hoy);
+        hace40dias.setDate(hoy.getDate() - 40);
+
+
         existencias.forEach((item, index) => {
             const row = hojaExistencias!.getRow(index + 2); // desde la fila 2
             row.getCell(1).value = index + 1; // #
@@ -514,6 +527,32 @@ export class ExcelService {
             row.getCell(11).value = item.existenciaAZT;
             row.getCell(12).value = item.existenciaAZE;
             row.getCell(13).value = item.puntoReorden;
+            // obtener para la clave cuantas citas se recibieron los ultimos 40 dias... 
+            // si es por estado, buscar todo, si es por unidad, buscar por unidad
+            const citasHalladasPorClave = citas.filter(c => {
+                const esClave = c.clave_cnis === item.clave
+
+                const fechaRecibido = c.fecha_recepcion_almacen
+                    ? new Date(c.fecha_recepcion_almacen)
+                    : null;
+
+                const fechaValida = fechaRecibido &&
+                    (fechaRecibido >= hoy || fechaRecibido >= hace40dias);
+
+                // mostrar estatus completos
+                const estatusCompleto = c.estatus.toLocaleLowerCase() === 'completo';
+
+                // si se recibio recientemente o si fecha_recepcion_almacen es null
+               /* const recibidoRecientementeONoSeHaRecibido = c.fecha_recepcion_almacen
+                    ? new Date(c.fecha_recepcion_almacen) >= hace40dias
+                    : true;*/
+
+                return esClave &&  fechaValida && estatusCompleto /*&& recibidoRecientementeONoSeHaRecibido*/;
+            });
+
+            row.getCell(14).value = citasHalladasPorClave.length;
+            // en columna 15 mostrar solo en un string cada orden de suministro, para darlo como observacion
+            row.getCell(15).value = citasHalladasPorClave.map(c => c.orden_de_suministro).join(', ');
         });
 
         /** Hoja 2: Resumen Abasto **/
@@ -607,7 +646,7 @@ export class ExcelService {
                     existenciaAlmacenes.existenciasAZE;
 
                 const totalExistencias = existenciaTotal + totalAlmacenes;
-                
+
                 // const desabasto = cpm.cantidad > totalExistencias; // puede variar 
                 const desabasto = totalExistencias === 0;
 

@@ -12,7 +12,7 @@ import { StorageSolicitudService } from '../../../../services/storage-solicitud.
 import { AlertCircleIcon, HospitalIcon, InfoIcon, LucideAngularModule, SheetIcon, TriangleAlertIcon } from 'lucide-angular';
 import { FormsModule } from '@angular/forms';
 import { StorageVariables } from '../../../../shared/storage-variables';
-import { CPMS } from '../../../../models/CPMS';
+import { ClaveGrupo, CPMS } from '../../../../models/CPMS';
 import { Cita } from '../../../../models/Cita';
 import { clasificacionMedicamentosData } from '../../../../models/clasificacionMedicamentosData';
 import { ClasificadorVEN } from '../../../../models/clasificador-ven';
@@ -69,6 +69,7 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
     };
     claveModalVisible = false;
     claveSeleccionadaModal: string = '';
+    claveGrupos: ClaveGrupo[] = [];
 
     public doughnutChartOptions: ChartOptions<'doughnut'> = {
         responsive: true,
@@ -136,6 +137,7 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             // agregar el resumen estatal al inicio del array
             this.unidades.unshift(resumenEstatal);
         }
+        this.claveGrupos = this.storageService.getClaveGruposFromLocalStorage();
     }
 
     ngOnDestroy(): void {
@@ -330,6 +332,10 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
         return clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
     }
 
+    obtenerGrupoTerapeutico(clave: string): string {
+        return this.claveGrupos.find(grupo => grupo.clave === clave)?.grupoTerapeutico ?? '';
+    }
+
     obtenerDescripcion(clave: string): string {
         return this.articulosMap.get(clave)?.descripcion || '-';
     }
@@ -406,9 +412,7 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
         const resumen = this.resumenCPMs();
         const disponibles = resumen.totalClaveDisponibles;
         const faltantes = this.cpmsElegidos.length - disponibles;
-        const totalPiezasDisponibles = resumen.totalPiezasDisponibles;
-
-        const claveGrupos = this.storageService.getClaveGruposFromLocalStorage();
+        const totalPiezasDisponibles = resumen.totalPiezasDisponibles;        
 
         // Formato anónimo requerido
         const existenciasData = this.cpmsElegidos.map((cpm, index) => {
@@ -417,9 +421,12 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             const unidad = this.obtenerUnidad(cpm.clave);
             const existenciaTotal = this.disponibles(cpm.clave);
             const existenciaAlmacenes = this.obtenerExistenciaAlmacenes(cpm.clave);
-            const puntoReorden = Math.max(cpm.cantidad - existenciaTotal, 0);
-            const gpo = claveGrupos.find(grupo => grupo.clave === cpm.clave)?.gpo ?? '';
-            const grupoTerapeutico = claveGrupos.find(grupo => grupo.clave === cpm.clave)?.grupoTerapeutico ?? '';
+            const puntoReorden = Math.max(cpm.cantidad - existenciaTotal - 
+                            existenciaAlmacenes.existenciasAZE - existenciaAlmacenes.existenciasAZM - 
+                            existenciaAlmacenes.existenciasAZT,
+                 0);
+            const gpo = this.claveGrupos.find(grupo => grupo.clave === cpm.clave)?.gpo ?? '';
+            const grupoTerapeutico = this.claveGrupos.find(grupo => grupo.clave === cpm.clave)?.grupoTerapeutico ?? '';
 
             return {
                 clave: cpm.clave,
@@ -443,7 +450,8 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             existenciasData,
             disponibles,
             faltantes,
-            totalPiezasDisponibles
+            totalPiezasDisponibles,
+            this.citas
         );
     }
 }

@@ -1,0 +1,59 @@
+<div class="p-6 mx-auto max-w-4xl space-y-6">
+    <h1 class="text-2xl font-bold text-green-800">📂 Carga Masiva de Movimientos</h1>
+    <p class="text-gray-600">Selecciona los archivos de Entradas, Traspasos y Salidas y luego presiona <strong>Subir
+            todo</strong>.</p>
+
+    <!-- Entradas -->
+    <div class="p-5 bg-white rounded-lg shadow border">
+        <h2 class="text-lg font-semibold">📥 Entradas</h2>
+        <input type="file" multiple class="hidden" id="fileEntradas" (change)="onFileSelected($event, 'entradas')" />
+        <label for="fileEntradas"
+            class="px-4 py-2 text-white bg-green-600 cursor-pointer rounded hover:bg-green-700">Seleccionar
+            archivo</label>
+        <p class="mt-2 text-xs italic" *ngIf="fileNameEntradas">
+            {{ fileNameEntradas }} seleccionado(s)
+        </p>
+    </div>
+
+    <!-- Salidas -->
+    <div class="p-5 bg-white rounded-lg shadow border">
+        <h2 class="text-lg font-semibold">📤 Salidas</h2>
+        <input type="file" multiple class="hidden" id="fileSalidas" (change)="onFileSelected($event, 'salidas')" />
+        <label for="fileSalidas"
+            class="px-4 py-2 text-white bg-red-600 cursor-pointer rounded hover:bg-red-700">Seleccionar archivo</label>
+        <p class="mt-2 text-xs italic" *ngIf="fileNameSalidas">
+            {{ fileNameSalidas }} seleccionado(s)
+        </p>
+    </div>
+
+    <!-- Traspasos -->
+    <div class="p-5 bg-white rounded-lg shadow border">
+        <h2 class="text-lg font-semibold">🔄 Traspasos</h2>
+        <input type="file" multiple class="hidden" id="fileTraspasos" (change)="onFileSelected($event, 'traspasos')" />
+        <label for="fileTraspasos"
+            class="px-4 py-2 text-white bg-blue-600 cursor-pointer rounded hover:bg-blue-700">Seleccionar
+            archivo</label>
+        <p class="mt-2 text-xs italic" *ngIf="fileNameTraspasos">
+            {{ fileNameTraspasos }} seleccionado(s)
+        </p>
+    </div>
+
+
+    <!-- Botón Subir Todo -->
+    <div class="flex justify-end">
+        <button (click)="subirTodo()" [disabled]="!canUploadAll"
+            class="px-6 py-2 text-white font-semibold bg-green-700 rounded-lg cursor-pointer shadow hover:bg-green-800 disabled:opacity-50">
+            🚀 Subir todo
+        </button>
+    </div>
+    <!-- Overlay de progreso -->
+    <div *ngIf="isUploading" class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="p-6 w-96 text-center bg-white rounded-lg shadow-lg">
+            <h2 class="mb-4 text-lg font-semibold">Subiendo datos...</h2>
+            <div class="overflow-hidden w-full h-4 bg-gray-200 rounded-full">
+                <div class="h-4 bg-green-600" [style.width.%]="progress"></div>
+            </div>
+            <p class="mt-3 text-sm text-gray-600">{{ progress | number: '1.0-0' }}%</p>
+        </div>
+    </div>
+</div>
