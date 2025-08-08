@@ -6,6 +6,7 @@
 export interface UnidadClaveResumen {
   unidad: string;
   municipio: string;
+  cluesimb: string; 
   clave: {
     cpm: number;
     existencia: number;

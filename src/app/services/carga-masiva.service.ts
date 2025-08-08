@@ -9,11 +9,23 @@ export class CargaMasivaService {
   constructor(private http: HttpClient) { }
 
   init(tipo: string) {
-    return firstValueFrom( this.http.post(`${environment.apiUrl}/carga/${tipo}/init`, {}));
+    return firstValueFrom(this.http.post(`${environment.apiUrl}/carga/${tipo}/init`, {}));
   }
 
   batch(tipo: string, datos: any[]) {
-    return firstValueFrom( this.http.post(`${environment.apiUrl}/carga/${tipo}/batch`, datos));
+    return firstValueFrom(this.http.post(`${environment.apiUrl}/carga/${tipo}/batch`, datos));
+  }
+
+  // 🔹 nuevos para Inventario Inicial
+  initInventarioInicial() {
+    return this.http.post(`${environment.apiUrl}/carga/inventario-inicial/init`, {});
+  }
+  batchInventarioInicial(datos: any[], anio: number, resetAnio = true) {
+    return firstValueFrom(this.http.post(
+      `${environment.apiUrl}/carga/inventario-inicial/batch`,
+      datos,
+      { params: { anio, resetAnio } }
+    ));
   }
 
 }

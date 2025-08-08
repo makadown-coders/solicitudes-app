@@ -98,7 +98,6 @@
             @let descripcion = obtenerDescripcion(cpm.clave);
             @let unidad = obtenerUnidad(cpm.clave);
             @let existencia = disponibles(cpm.clave);
-            @let reorden = cpm.cantidad - existencia;
             @let clasificacion = obtenerClasificacion(cpm.clave);
             @let grupoTerapeutico = obtenerGrupoTerapeutico(cpm.clave);
             <td class="px-2 py-1" [attr.title]="descripcion">
@@ -149,7 +148,8 @@
               class="overflow-hidden hidden p-2 max-w-[150px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell">
               {{ unidad }}
             </td>
-            @let existenciaAlmacenes = obtenerExistenciaAlmacenes(cpm.clave);
+            @let existenciaAlmacenes = obtenerExistenciaAlmacenes(cpm.clave);            
+            @let reorden = cpm.cantidad - existencia - existenciaAlmacenes.existenciasAZM - existenciaAlmacenes.existenciasAZT - existenciaAlmacenes.existenciasAZE;
             <td class="px-2 py-1 text-right">{{ cpm.cantidad }}</td>
             <td class="px-2 py-1 text-right">{{ existencia }}</td>
             <td class="px-2 py-1 text-right">{{ existenciaAlmacenes.existenciasAZM }}</td>
