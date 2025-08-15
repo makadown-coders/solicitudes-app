@@ -7,11 +7,11 @@
       class="px-3 py-2 w-full rounded-lg border md:w-96" />
 
     <!-- Fuente -->
-    <select [ngModel]="fuente()" (ngModelChange)="fuente.set($event)" class="px-3 py-2 rounded-lg border">
+    <!-- <select [ngModel]="fuente()" (ngModelChange)="fuente.set($event)" class="px-3 py-2 rounded-lg border">
       <option value="ALL">Todos</option>
       <option value="HOSPITAL">Hospitales</option>
       <option value="ALMACEN">Almacenes</option>
-    </select>
+    </select> -->
 
     <!-- Categoría -->
     <select [ngModel]="categoriaFiltro()" (ngModelChange)="categoriaFiltro.set($event)"
@@ -33,7 +33,7 @@
     <div class="ml-auto text-sm text-gray-600">
       <ng-container *ngIf="!loading(); else loadingTpl">
         <button (click)="exportarExcel()"
-          class="flex items-center gap-2 py-1 px-4 text-white font-semibold bg-green-600 shadow-sm hover:bg-green-700 rounded">
+          class="flex items-center gap-2 py-1 px-4 text-white font-semibold bg-green-600 shadow-sm cursor-pointer hover:bg-green-700 rounded">
           📤 Exportar a Excel
         </button>
       </ng-container>
@@ -54,7 +54,7 @@
     </div>
 
     <!-- Contenedor con scroll principal (x/y) -->
-    <div #gridScroll class="overflow-auto max-h-[70vh]">
+    <div #gridScroll class="overflow-auto max-h-[60vh]">
       <table #dataTable class="min-w-[1400px] w-full text-sm">
         <thead #theadEl class="z-40 sticky top-0 text-white bg-green-700 shadow">
           <tr>
@@ -79,7 +79,7 @@
             <th class="p-2">Fabricación</th>
             <th class="p-2">Recepción</th>
             <th class="p-2">Unidad</th>
-            <th class="p-2">Fuente</th>
+            <!-- <th class="p-2">Fuente</th> -->
           </tr>
         </thead>
         <tbody>
@@ -105,7 +105,7 @@
             <td class="p-2">{{ r.fechaFabricacion }}</td>
             <td class="p-2">{{ r.fechaRecepcion }}</td>
             <td class="p-2">{{ r.unidadOrigenTexto || '—' }}</td>
-            <td class="p-2">{{ r.tipoFuente }}</td>
+            <!-- <td class="p-2">{{ r.tipoFuente }}</td> -->
           </tr>
         </tbody>
       </table>
@@ -122,7 +122,7 @@
 
       <!-- Botón Exportar a la derecha -->
       <button (click)="exportarExcel()"
-        class="flex items-center gap-2 py-1 px-4 text-white font-semibold bg-green-600 shadow-sm hover:bg-green-700 rounded">
+        class="flex items-center gap-2 py-1 px-4 text-white font-semibold bg-green-600 shadow-sm cursor-pointer hover:bg-green-700 rounded">
         📤 Exportar a Excel
       </button>
     </div>
@@ -138,9 +138,16 @@
       <option [ngValue]="100">100</option>
       <option [ngValue]="200">200</option>
     </select>
-    <button class="px-3 py-1 border rounded" (click)="prevPage()">Anterior</button>
-    <div class="text-sm">Página {{ page() }}</div>
-    <button class="px-3 py-1 border rounded" (click)="nextPage()"
-      [disabled]="page()*pageSize() >= totalItems()">Siguiente</button>
+    <button class="px-2 py-1 text-sm text-white bg-green-600 cursor-pointer border rounded enabled:hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed" (click)="goTo(1)" [disabled]="page()===1">« Primera</button>
+    <button class="px-2 py-1 text-sm text-white bg-green-600 cursor-pointer border rounded enabled:hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed" (click)="jump(-10)" [disabled]="page()===1">‹‹ -10</button>
+    <button class="px-2 py-1 text-sm text-white bg-green-600 cursor-pointer border rounded enabled:hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed" (click)="prevPage()" [disabled]="page()===1">‹ Anterior</button>
+
+    <div class="text-sm">Página {{ page() }} de {{ totalPages() }}</div>
+
+    <button class="px-2 py-1 text-sm text-white bg-green-600 cursor-pointer border rounded enabled:hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed" (click)="nextPage()" [disabled]="page()>=totalPages()">Siguiente ›</button>
+    <button class="px-2 py-1 text-sm text-white bg-green-600 cursor-pointer border rounded enabled:hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed" (click)="jump(10)" [disabled]="page()>=totalPages()">+10 ››</button>
+    <button class="px-2 py-1 text-sm text-white bg-green-600 cursor-pointer border rounded enabled:hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed" (click)="goTo(totalPages())" [disabled]="page()>=totalPages()">Última
+      »</button>
+
   </div>
 </div>

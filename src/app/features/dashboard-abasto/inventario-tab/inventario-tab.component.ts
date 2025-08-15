@@ -54,6 +54,10 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
     // Paginación front
     page = signal(1);
     pageSize = signal(50);
+    // 👇 páginas totales según filtro + pageSize
+    totalPages = computed(() =>
+        Math.max(1, Math.ceil(this.totalItems() / this.pageSize()))
+    );
 
     // Estado
     loading = signal(true);
@@ -218,6 +222,13 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             this.categoriaFiltro();
             this.grupoFiltro.set('');
         });
+
+        effect(() => {
+            const tp = this.totalPages();
+            const p = this.page();
+            if (p > tp) this.page.set(tp);
+            if (p < 1) this.page.set(1);
+        });
     }
 
     // Normaliza a “base” de categoría (medicamento / material / otro)
@@ -246,6 +257,21 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         const set = new Set(this.rows().map(r => r.categoria).filter(Boolean) as string[]);
         return Array.from(set).sort();
     });
+
+    // saltar varias páginas de un jalón
+    jump(by: number) {
+        const target = Math.min(this.totalPages(), Math.max(1, this.page() + by));
+        this.page.set(target);
+        // opcional: subir el grid al inicio
+        this.gridScroll?.nativeElement?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    goTo(n: number) {
+        if (n >= 1 && n <= this.totalPages()) {
+            this.page.set(n);
+            this.gridScroll?.nativeElement?.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
 
     // 🔎 Mapeo a las 18 columnas + extras
     rows = computed<InventarioVistaRow[]>(() => {
@@ -343,7 +369,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
 
             // Filtro texto libre
             if (!q) return okFuente && okCat && okGrupo;
-            const bag = `${r.clave} ${r.categoria ?? ''} ${r.grupoInsumo ?? ''} ${r.descripcion ?? ''} ${r.lote ?? ''} ${r.unidadOrigenTexto ?? ''} ${r.clues}`.toLowerCase();
+            const bag = `${r.clave} ${r.categoria ?? ''} ${r.grupoInsumo ?? ''} ${r.descripcion ?? ''} ${r.lote ?? ''} ${r.unidadOrigenTexto ?? ''} ${r.clues} ${r.ordenDeSuministro ?? ''} ${r.rfcProveedor ?? ''} ${r.fuenteFinanciamiento ?? ''} ${r.partidaPresupuestal ?? ''}`.toLowerCase();
             return okFuente && okCat && okGrupo && bag.includes(q);
         });
     });
@@ -371,65 +397,72 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         // 1) Tomamos TODO lo filtrado (no solo la página)
         const rows = this.filtered();
 
-        // 2) Definimos el orden de columnas (1..18)
+        // 👇 comparación estricta (respeta acento y mayúsculas)
+        const esMedOMat = (cat?: string | null) => {
+            if (!cat) return false;
+            return (
+                cat.localeCompare('MEDICAMENTO', 'es', { sensitivity: 'variant' }) === 0 ||
+                cat.localeCompare('MATERIAL DE CURACIÓN', 'es', { sensitivity: 'variant' }) === 0
+            );
+        };
+
+        // 2) Definimos el orden de columnas (1..20)
         const headers = [
             'ENTIDAD FEDERATIVA',  // 1
             'CLUES',               // 2
+            'UNIDAD',
             'ORDEN DE SUMINISTRO', // 3
             'RFC PROVEEDOR',       // 4
             'FUENTE DE FINANCIAMIENTO', // 5
             'PARTIDA PRESUPUESTAL',     // 6
             'CLAVE/CNIS',          // 7
-            'DESCRIPCIÓN',         // 8
-            'PRECIO UNITARIO',     // 9
-            'VALOR TOTAL',         // 10
-            'INSUMO EN CPM',       // 11
-            'ESTADO DEL INSUMO',   // 12
-            'INVENTARIO DISPONIBLE', // 13
-            'UNIDAD DE MEDIDA',    // 14
-            'LOTE',                // 15
-            'FECHA DE CADUCIDAD',  // 16
-            'FECHA DE FABRICACIÓN',// 17
-            'FECHA DE RECEPCIÓN',  // 18
+            'CATEGORÍA',            // 8
+            'GRUPO / INSUMO',       // 9
+            'DESCRIPCIÓN',         // 10
+            'PRECIO UNITARIO',     // 11
+            'VALOR TOTAL',         // 12
+            'INSUMO EN CPM',       // 13
+            'ESTADO DEL INSUMO',   // 14
+            'INVENTARIO DISPONIBLE', // 15
+            'UNIDAD DE MEDIDA',    // 16
+            'LOTE',                // 17
+            'FECHA DE CADUCIDAD',  // 18
+            'FECHA DE FABRICACIÓN',// 19
+            'FECHA DE RECEPCIÓN',  // 20
         ] as const;
 
         // 3) Mapeo a la forma requerida
-        const data = rows.map(r => ({
-            'ENTIDAD FEDERATIVA': 'BAJA CALIFORNIA',
-            'CLUES': r.clues ?? '',
-            'ORDEN DE SUMINISTRO': r.ordenDeSuministro ?? '',
-            'RFC PROVEEDOR': r.rfcProveedor ?? '',
+        const data = rows.map(r => {
+            const incluirGrupo = esMedOMat(r.categoria);
+            // resolver nombre de unidad por clues; fallback a texto de origen
+            const unidad = (r.clues && this.unidadesSrv.findByCluesimb(r.clues)?.nombre)
+                || r.unidadOrigenTexto
+                || '';
 
-            // Defaults de negocio cuando no hay datos:
-            'FUENTE DE FINANCIAMIENTO': r.fuenteFinanciamiento ?? '',
-            'PARTIDA PRESUPUESTAL': r.partidaPresupuestal ?? '',
-            'CLAVE/CNIS': r.clave ?? '',
-            'DESCRIPCIÓN': r.descripcion ?? '',
-
-            // Números: deja como number para que Excel calcule bien
-            'PRECIO UNITARIO': r.precioUnitario ?? null,
-            'VALOR TOTAL': r.valorTotal ?? null,
-
-            // CPM: “SI” / “NO”
-            'INSUMO EN CPM': r.insumoEnCPM ?? 'NO',
-
-            // Estado: 1/4/5/6 (de momento 1)
-            'ESTADO DEL INSUMO': r.estadoInsumo ?? 1,
-
-            // Disponible (ya ajustado por factor en tu rows)
-            'INVENTARIO DISPONIBLE': r.inventarioDisponible ?? 0,
-
-            // Unidad de medida (presentación)
-            'UNIDAD DE MEDIDA': r.unidadMedida ?? '',
-
-            // Lote
-            'LOTE': r.lote ?? '',
-
-            // Fechas (formato DD/MM/AAAA HH:mm:ss ya lo traes listo en rows)
-            'FECHA DE CADUCIDAD': r.fechaCaducidad ?? '31/12/2025 00:00:00',
-            'FECHA DE FABRICACIÓN': r.fechaFabricacion ?? '01/01/2025 00:00:00',
-            'FECHA DE RECEPCIÓN': r.fechaRecepcion ?? '01/01/2025 00:00:00',
-        }));
+            return {
+                'ENTIDAD FEDERATIVA': 'BAJA CALIFORNIA',
+                'CLUES': r.clues ?? '',
+                'UNIDAD': unidad,
+                'ORDEN DE SUMINISTRO': r.ordenDeSuministro ?? '',
+                'RFC PROVEEDOR': r.rfcProveedor ?? '',
+                'FUENTE DE FINANCIAMIENTO': r.fuenteFinanciamiento ?? '',
+                'PARTIDA PRESUPUESTAL': r.partidaPresupuestal ?? '',
+                'CLAVE/CNIS': r.clave ?? '',
+                'CATEGORÍA': r.categoria ?? '',
+                'GRUPO / INSUMO': incluirGrupo ? (r.grupoInsumo ?? '') : '',
+                'DESCRIPCIÓN': r.descripcion ?? '',
+                'PRECIO UNITARIO': r.precioUnitario ?? null,
+                'VALOR TOTAL': r.valorTotal ?? null,
+                'INSUMO EN CPM': r.insumoEnCPM ?? 'NO',
+                'ESTADO DEL INSUMO': r.estadoInsumo ?? 1,
+                'INVENTARIO DISPONIBLE': r.inventarioDisponible ?? 0,
+                'UNIDAD DE MEDIDA': r.unidadMedida ?? '',
+                'LOTE': r.lote ?? '',
+                'FECHA DE CADUCIDAD': r.fechaCaducidad ?? '31/12/2025 00:00:00',
+                'FECHA DE FABRICACIÓN': r.fechaFabricacion ?? '01/01/2025 00:00:00',
+                'FECHA DE RECEPCIÓN': r.fechaRecepcion ?? '01/01/2025 00:00:00',
+            };
+        });
 
         // 4) Hoja y libro
         const ws = XLSX.utils.json_to_sheet(data, { header: [...headers] as any });
@@ -437,19 +470,21 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         // 5) Ajustes visuales (anchos de columnas aproximados)
         ws['!cols'] = [
             { wch: 18 }, // ENTIDAD
-            { wch: 14 }, // CLUES
-            { wch: 28 }, // ORDEN
+            { wch: 16 }, // CLUES
+            { wch: 30 }, // ORDEN
             { wch: 18 }, // RFC
-            { wch: 24 }, // FUENTE FIN.
+            { wch: 26 }, // FUENTE FIN.
             { wch: 12 }, // PARTIDA
-            { wch: 16 }, // CLAVE/CNIS
+            { wch: 18 }, // CLAVE/CNIS
+            { wch: 18 }, // CATEGORÍA
+            { wch: 24 }, // GRUPO / INSUMO
             { wch: 60 }, // DESCRIPCIÓN
-            { wch: 12 }, // PRECIO UNIT.
-            { wch: 14 }, // VALOR TOTAL
+            { wch: 14 }, // PRECIO UNIT.
+            { wch: 16 }, // VALOR TOTAL
             { wch: 12 }, // EN CPM
             { wch: 8 }, // ESTADO
-            { wch: 14 }, // DISPONIBLE
-            { wch: 16 }, // U. MEDIDA
+            { wch: 16 }, // DISPONIBLE
+            { wch: 18 }, // U. MEDIDA
             { wch: 18 }, // LOTE
             { wch: 20 }, // CADUCIDAD
             { wch: 20 }, // FABRICACIÓN

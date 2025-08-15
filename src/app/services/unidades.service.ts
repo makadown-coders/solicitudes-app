@@ -103,7 +103,9 @@ export class UnidadesService {
       // haciendo join con [unidad_medica]
       if (nombre.toLocaleUpperCase().includes('UNEME ONCOLOGIA MEXICALI')){
         nombre = 'uneme de oncologia';
-      }            
+      } /*else {
+        console.log('no encontrado', nombre);
+      }*/
       encontrado = this.byNombreNorm.get(nombre);
     }
     return encontrado;
