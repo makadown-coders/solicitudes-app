@@ -31,11 +31,17 @@ export class TrazabilidadService {
     if (cached) return cached;
 
     const params = new HttpParams().set('clave', clave).set('clues', cluesimb);
-    const resp = await firstValueFrom(
+    let resp = await firstValueFrom(
       this.http.get<{ en_dispensacion: number | boolean; cantidad_fc: number }>(
         `${environment.apiUrl}/factores/factor`, { params }
       )
     );
+
+    // si resp es nulo inicializarlo en 0 para no romper el front    
+    if (!resp) {
+      resp = { en_dispensacion: 0, cantidad_fc: 1 };
+    }
+    
 
     // Normaliza tipos (por si backend envía boolean)
     const factor: FactorUnidad = {

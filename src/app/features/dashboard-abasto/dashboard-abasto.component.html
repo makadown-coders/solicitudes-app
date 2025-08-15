@@ -43,8 +43,6 @@
         </button>
       </nav>
     </div>
-
-
     <div *ngIf="!isLoading()">
       <div [hidden]="activeTab !== 'Resumen'">
         <app-resumen [citas]="citas"></app-resumen>
@@ -63,6 +61,12 @@
       </div>
       <div [hidden]="activeTab !== 'Entregas pendientes'">
         <app-resumen-citas [citas]="citas"></app-resumen-citas>
+      </div>
+      <div [hidden]="activeTab !== 'Inventario (beta)'">
+        <app-inventario-tab></app-inventario-tab>
+      </div>
+      <div [hidden]="activeTab !== 'RdlS'">
+        <app-rdls></app-rdls>
       </div>
       <div [hidden]="activeTab !== 'Acerca de'" class="p-6">
         @let anio = anioActual();

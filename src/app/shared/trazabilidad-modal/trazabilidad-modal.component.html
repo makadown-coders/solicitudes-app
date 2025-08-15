@@ -18,7 +18,7 @@
 
       <!-- Botones -->
       <div class="flex items-center gap-2">
-        <button (click)="exportarExcel()"
+        <button *ngIf="movimientos().length" (click)="exportarExcel()"
           class="px-3 py-1.5 text-sm font-medium text-white bg-green-600 cursor-pointer rounded hover:bg-green-700">
           ⬇️ Exportar
         </button>

@@ -45,6 +45,8 @@ export class CargaMasivaComponent {
     fileNameTraspasos = '';
     fileNameSalidas = '';
 
+    BATCH_SIZE_MOVS = 1000; // antes 500
+
     constructor(
         private excelService: ExcelService,
         private cargaMasivaService: CargaMasivaService
@@ -151,7 +153,7 @@ export class CargaMasivaComponent {
             // F: tipo, G: cantidades, H: costo
             return dataRows.map(r => {
                 const articuloRaw = r[2] ?? ''; // Col C
-                const [clave_cnis, ...descParts] = articuloRaw.toString().trim().split(/\s+/);                
+                const [clave_cnis, ...descParts] = articuloRaw.toString().trim().split(/\s+/);
                 return {
                     unidad: r[0] ?? null,
                     partida: r[1] ?? null,
@@ -170,22 +172,56 @@ export class CargaMasivaComponent {
     }
 
     async subirTodo() {
+        // si no hay nada, salimos
+        if (!this.fileEntradas.length && !this.fileTraspasos.length && !this.fileSalidas.length) {
+            alert('No hay archivos para subir');
+            return;
+        }
+
         this.isUploading = true;
         this.progress = 0;
 
-        const totalRegistros = this.fileEntradas.length + this.fileTraspasos.length + this.fileSalidas.length;
+        // total global
+        const totalRegistros =
+            this.fileEntradas.length + this.fileTraspasos.length + this.fileSalidas.length;
+
+        // acumulador central
         let procesados = 0;
+        const updateProgress = (n: number) => {
+            procesados += n;
+            this.progress = Math.min(100, Math.round((procesados / totalRegistros) * 100));
+        };
 
-        await this.cargaMasivaService.init('entradas');
-        await this.cargaMasivaService.init('traspasos');
-        await this.cargaMasivaService.init('salidas');
+        try {
+            // inicializa solo los tipos con data
+            const tiposConData: Array<'entradas' | 'traspasos' | 'salidas'> = [];
+            if (this.fileEntradas.length) tiposConData.push('entradas');
+            if (this.fileTraspasos.length) tiposConData.push('traspasos');
+            if (this.fileSalidas.length) tiposConData.push('salidas');
 
-        procesados = await this.uploadInBatches('entradas', this.fileEntradas, totalRegistros, procesados);
-        procesados = await this.uploadInBatches('traspasos', this.fileTraspasos, totalRegistros, procesados);
-        procesados = await this.uploadInBatches('salidas', this.fileSalidas, totalRegistros, procesados);
+            // init en paralelo
+            await Promise.all(tiposConData.map(t => this.cargaMasivaService.init(t)));
 
-        this.isUploading = false;
-        alert('✅ Carga masiva completada');
+            // sube TODO en paralelo (cada tipo por lotes secuenciales)
+            await Promise.all([
+                this.fileEntradas.length
+                    ? this.uploadInBatches('entradas', this.fileEntradas, totalRegistros, updateProgress)
+                    : Promise.resolve(),
+                this.fileTraspasos.length
+                    ? this.uploadInBatches('traspasos', this.fileTraspasos, totalRegistros, updateProgress)
+                    : Promise.resolve(),
+                this.fileSalidas.length
+                    ? this.uploadInBatches('salidas', this.fileSalidas, totalRegistros, updateProgress)
+                    : Promise.resolve(),
+            ]);
+
+            alert('✅ Carga masiva completada');
+        } catch (e) {
+            console.error(e);
+            alert('❌ Error durante la carga masiva');
+        } finally {
+            this.isUploading = false;
+        }
     }
 
     async subirInventarioInicial() {
@@ -257,16 +293,18 @@ export class CargaMasivaComponent {
         return null;
     }
 
-    private async uploadInBatches(tipo: 'entradas' | 'traspasos' | 'salidas', datos: any[], total: number, procesados: number) {
-        const batchSize = 500;
+    private async uploadInBatches(
+        tipo: 'entradas' | 'traspasos' | 'salidas',
+        datos: any[],
+        total: number,
+        onProgress: (n: number) => void
+    ) {
+        const batchSize = this.BATCH_SIZE_MOVS;
         for (let i = 0; i < datos.length; i += batchSize) {
             const batch = datos.slice(i, i + batchSize);
             await this.cargaMasivaService.batch(tipo, batch);
-
-            procesados += batch.length;
-            this.progress = Math.min(100, Math.round((procesados / total) * 100));
+            onProgress(batch.length); // <- progreso “atómico” centralizado
         }
-        return procesados;
     }
 
 

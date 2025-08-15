@@ -156,7 +156,7 @@
               <!-- Existencia base con tooltip mostrando dispensación -->
               @let tooltip = getTooltipExistencia(unidad);
               <td class="px-2 py-1 text-right" [title]="tooltip">
-                {{ unidad.clave.existencia }}
+                {{ unidad.clave.existencia }} {{ tooltip.length > 1 ? 'ℹ️' : '' }}
               </td>
               <td class="px-2 py-1 text-right" [ngClass]="{ 'text-red-700 font-bold': unidad.clave.reposicion > 0 }">
                 {{ unidad.clave.reposicion }}
@@ -171,14 +171,14 @@
       class="mt-3 p-3 w-full text-xs text-gray-700 bg-green-50/60 border-gray-300 rounded border dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700">
       <div class="flex items-center gap-2 mb-1">
         <span
-          class="inline-flex items-center px-2 py-[2px] text-[10px] font-semibold text-white bg-green-600/90 rounded-full">
-          Info
+          class="inline-flex items-center py-[2px] font-semibold text-white">
+          ℹ️
         </span>
         <span class="font-semibold text-green-800 dark:text-yellow-400">¿Qué estoy viendo?</span>
       </div>
 
       <p class="mb-2 leading-snug">
-        Las cantidades mostradas en <strong>Exist.</strong> para <strong>unidades médicas</strong> están en
+        Algunas cantidades mostradas en <strong>Exist.</strong> para <strong>unidades médicas</strong> están en
         <u>base</u> (sin factor de conversión). Si esta clave se dispensa con otra presentación,
         pasa el mouse para ver el <em>tooltip</em> con la existencia en dispensación o abre la trazabilidad (🔍).
       </p>

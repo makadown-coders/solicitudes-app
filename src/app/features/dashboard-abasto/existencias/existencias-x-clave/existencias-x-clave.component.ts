@@ -292,6 +292,8 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         this.clasificacion = '';
         this.unidad = '';
         this.datosAgrupados = [];
+        this.citasHalladasPorClave = [];
+        this.mostrarNotaFactor = false;
         // this.factorConv = { en_dispensacion: false, cantidad_fc: 1 };
         localStorage.removeItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE);
     }
@@ -544,18 +546,23 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     }
 
     getTooltipExistencia(unidad: any): string {
+        if (!unidad) return '—';
+
         const key = `${this.claveFiltrada}|${unidad.cluesimb}`;
-        const factor = (this as any)._factoresVista?.get?.(key) as FactorUnidad | undefined;
+        const factor = this.factorMap.get(key);  // 👈 usar el map real
+
         if (!factor) return '—';
 
-        const enDisp = (factor.en_dispensacion === 1);
-        const fc = Math.max(1, factor.cantidad_fc ?? 1);
+        const fc = Math.max(1, Number(factor.cantidad_fc ?? 1));
+        const enDisp = factor.en_dispensacion === 1 || factor.en_dispensacion === true as any;
 
         if (enDisp && fc > 1) {
-            // si guardaste DISP cruda, úsala; si no, calcula a partir de la base:
-            const disp = (unidad as any)._existenciaDisp ?? (unidad.clave.existencia * fc);
+            // usamos la existencia en dispensación cruda si la guardaste,
+            // si no, la calculamos desde la base mostrada
+            const disp = (unidad as any)._existenciaDisp ?? (Number(unidad?.clave?.existencia ?? 0) * fc);
             return `Disp.: ${disp} (fc ${fc})`;
         }
+
         return '—';
     }
 }
