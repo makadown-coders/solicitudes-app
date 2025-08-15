@@ -14,11 +14,14 @@ export class ArticulosService {
   public articulosPrimerNivel$: Observable<Articulo[]> = this.articulosPrimerNivelSubject.asObservable();
   private medicamentosPrimerNivel: Articulo[] = [];
 
+  /** para Tab Inventario en Dashboard abasto */
+  private _articulosMapaCache: Record<string, { descripcion: string; presentacion?: string }> | null = null;
+
   constructor(private http: HttpClient) {
     this.cargarArticulosPrimerNivel();
-   }
+  }
 
-   private cargarArticulosPrimerNivel() {
+  private cargarArticulosPrimerNivel() {
     this.http.get<Articulo[]>('/articulos-primernivel.json').subscribe(articulos => {
       this.medicamentosPrimerNivel = [...articulos];
       this.articulosPrimerNivelSubject.next(articulos);
@@ -65,17 +68,17 @@ export class ArticulosService {
       );
   }
 
-  
+
   buscarArticulosPrimerNivel(termino: string): Observable<{ resultados: ArticuloSolicitud[]; total: number }> {
     const filtro = termino.toLowerCase();
     // cargo los datos del json local en /public para no tener que hacer peticiones a la api de koyeb
     return this.http.get<Articulo[]>('/articulos-primernivel.json')
       .pipe(
-        map((articulosData: Articulo[]) => {          
+        map((articulosData: Articulo[]) => {
           const resultados = articulosData.filter(art =>
             art.clave.toLowerCase().includes(filtro) ||
             art.descripcion.toLowerCase().includes(filtro)
-          );          
+          );
           const res = resultados.map(art => ({
             clave: art.clave,
             descripcion: art.descripcion,
@@ -89,5 +92,27 @@ export class ArticulosService {
           };
         })
       );
+  }
+
+  /**
+   * Para uso en Dashboard abasto > Inventario
+   * @returns 
+   */
+  getArticulosMapaFromLocal() {
+    if (this._articulosMapaCache) return of(this._articulosMapaCache);
+    return this.http.get<Articulo[]>('/articulos.json').pipe(
+      map(arr => {
+        const mapa: Record<string, { descripcion: string; presentacion?: string; categoria?: string | null }> = {};
+        for (const a of arr) {
+          mapa[a.clave] = {
+            descripcion: a.descripcion,
+            presentacion: a.presentacion ?? '',
+            categoria: (a as any).categoria ?? null,     // 👈 incluir
+          };
+        }
+        this._articulosMapaCache = mapa;
+        return mapa;
+      })
+    );
   }
 }

@@ -6,5 +6,6 @@ import { UnidadClaveResumen } from './unidad-clave-resumen.model';
  */
 export interface AlmacenClaveResumen {
   almacen: string;
+  cluesimb: string; 
   unidades: UnidadClaveResumen[];
 }

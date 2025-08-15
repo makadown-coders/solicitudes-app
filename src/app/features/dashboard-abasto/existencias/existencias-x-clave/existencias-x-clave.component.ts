@@ -2,7 +2,7 @@
 import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { debounceTime, Subject, takeUntil } from 'rxjs';
+import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
 
 import { Inventario, InventarioDisponibles } from '../../../../models/Inventario';
 import { hospitalesData } from '../../../../models/hospitalesData';
@@ -20,6 +20,9 @@ import { Cita } from '../../../../models/Cita';
 import { StorageSolicitudService } from '../../../../services/storage-solicitud.service';
 import { controlados } from '../../../../models/controlados';
 import { CPMS } from '../../../../models/CPMS';
+import { TrazabilidadModalComponent } from '../../../../shared/trazabilidad-modal/trazabilidad-modal.component';
+import { TrazabilidadService } from '../../../../services/trazabilidad.service';
+import { FactorUnidad } from '../../../../models/factor-unidad';
 
 /**
  * Componente para mostrar las existencias por clave.
@@ -29,10 +32,12 @@ import { CPMS } from '../../../../models/CPMS';
     standalone: true,
     selector: 'app-existencias-x-clave',
     templateUrl: './existencias-x-clave.component.html',
-    imports: [CommonModule, FormsModule, LucideAngularModule],
+    imports: [CommonModule, FormsModule, LucideAngularModule, TrazabilidadModalComponent],
 })
 export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy {
     private onDestroy$ = new Subject<void>();
+    // arriba en la clase
+    mostrarNotaFactor = false;
 
     @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
     @Input() cpms: CPMS[] = [];
@@ -77,6 +82,23 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     // para cuando se abra este componente como si fuera modal dialog
     @Input() clavePreseleccionada: string | null = null;
 
+    // trazabilidad
+    modalVisible = false;
+    claveSeleccionada = '';
+    unidadSeleccionada = '';
+    cpmSeleccionada = 0;
+    trazabilidadService = inject(TrazabilidadService);
+
+    // al principio del componente
+    // factorConv = { en_dispensacion: false, cantidad_fc: 1 };
+    private factorMap = new Map<string, FactorUnidad>(); // key = `${clave}|${cluesimb}`
+
+    // helper
+    /*private aplicarFactorBase(cantidad: number): number {
+        if (!this.factorConv.en_dispensacion || this.factorConv.cantidad_fc <= 1) return cantidad;
+        return Math.round(cantidad / this.factorConv.cantidad_fc); // base
+    }*/
+
     constructor() {
     }
 
@@ -108,6 +130,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                     this.claveConfirmada = true;
                     const item = JSON.parse(articulo) as Articulo;
                     this.claveBusqueda = item.clave;
+                    // this.buscarFactor();
                     this.claveFiltrada = item.clave;
                     this.descripcion = item.descripcion;
                     this.unidad = item.presentacion ?? '';
@@ -179,7 +202,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         this.articulosService.buscarArticulos(texto).subscribe({
             next: (data) => {
                 this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave))
-                                 || [];
+                    || [];
                 this.totalResults = data.total || 0;
                 this.moreResults = this.totalResults > 12;
                 this.selectedIndex = 0;
@@ -196,7 +219,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         this.articulosService.buscarArticulosv2(texto).subscribe({
             next: (data) => {
                 this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave))
-                 || [];
+                    || [];
                 this.totalResults = data.total || 0;
                 this.moreResults = this.totalResults > 12;
                 this.selectedIndex = 0;
@@ -209,7 +232,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         });
     }
 
-    selectClave(item: any, skipLocalStorage = false) {
+    async selectClave(item: any, skipLocalStorage = false) {
         this.claveBusqueda = item.clave;
 
         if (!skipLocalStorage) {
@@ -226,6 +249,40 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         this.claveConfirmada = true;
     }
 
+    /*async buscarFactor() {
+        // 🔹 cargar factor de conversión después de fijar la clave
+        try {
+            const resp = await firstValueFrom(this.trazabilidadService.getFactorConversion(this.claveBusqueda));
+            if (resp) {
+                this.factorConv = resp;
+            } else {
+                this.factorConv = { en_dispensacion: false, cantidad_fc: 1 };
+            }
+            this.cdRef.detectChanges();
+        } catch {
+            this.factorConv = { en_dispensacion: false, cantidad_fc: 1 };
+        }
+    }*/
+    private async getFactor(clave: string, cluesimb: string): Promise<FactorUnidad> {
+        const key = `${clave}|${cluesimb}`;
+        const cached = this.factorMap.get(key);
+        if (cached) return cached;
+
+        // Si tu servicio regresa Observable, descomenta firstValueFrom:
+        // const resp = await firstValueFrom(this.trazabilidadService.getFactorConversionPorUnidad(clave, cluesimb));
+        const resp = await this.trazabilidadService.getFactorConversionPorUnidad(clave, cluesimb);
+
+        const factor: FactorUnidad = {
+            clave,
+            cluesimb,
+            en_dispensacion: (!!(resp as any)?.en_dispensacion) ? 1 : 0,
+            cantidad_fc: Math.max(1, Number((resp as any)?.cantidad_fc ?? 1)),
+        };
+
+        this.factorMap.set(key, factor);
+        return factor;
+    }
+
     reiniciarBusquedaClave() {
         this.claveConfirmada = false;
         this.claveBusqueda = '';
@@ -235,6 +292,9 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         this.clasificacion = '';
         this.unidad = '';
         this.datosAgrupados = [];
+        this.citasHalladasPorClave = [];
+        this.mostrarNotaFactor = false;
+        // this.factorConv = { en_dispensacion: false, cantidad_fc: 1 };
         localStorage.removeItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE);
     }
 
@@ -270,74 +330,100 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         this.onDestroy$.complete();
     }
 
-    filtrarClave(skipLocalStorage = false): void {
-        //console.log('filtrarClave');
+    async filtrarClave(skipLocalStorage = false) {
         if (this.cpms.length === 0) {
             this.cpms = [...this.storageService.getCPMSFromLocalStorage()];
         }
+
         const clave = this.claveBusqueda.trim().toUpperCase();
         this.claveFiltrada = clave;
         this.datosAgrupados = [];
-
+        this.mostrarNotaFactor = false;
         if (!clave) return;
 
+        const ALMACENES_JURIS: Record<string, { nombre: string; cluesimb: string }> = {
+            mexicali: { nombre: 'ALMACÉN DE MEXICALI', cluesimb: 'BCIMB001405' },
+            tijuana: { nombre: 'ALMACEN TIJUANA', cluesimb: 'BCIMB001335' },
+            ensenada: { nombre: 'ALMACEN ENSENADA', cluesimb: 'BCIMB001340' },
+        };
         const jurisdiccionAlmacenes = ['mexicali', 'tijuana', 'ensenada'];
 
         const agrupadoPorAlmacen = new Map<string, UnidadClaveResumen[]>();
 
-        // iteramos por las jurisdicciones
-        jurisdiccionAlmacenes.forEach((municipio) => {
+        for (const municipio of jurisdiccionAlmacenes) {
+            const hospitalesDeJurisdiccion = hospitalesData
+                .filter(h => h.jurisdiccion.toLocaleLowerCase() === municipio);
 
-            // Iteramos por los hospitales filtrado por cada uno de los 3 municipios
-            const hospitalesDeJurisdiccion = hospitalesData.filter(h => h.jurisdiccion.toLocaleLowerCase() === municipio)
-            hospitalesDeJurisdiccion.forEach(hospital => {
-                const clues = hospital.cluesimb;
-                //console.log(`Iterando municipio ${municipio} vs hospital ${hospital.key} `);
-                // buscamos la existencia del insumo en el hospital
-                const existenciasInsumo = this.existenciaUnidades.get(hospital.key)?.filter(i => i.clave === clave);
-                //console.log('existenciasInsumo de hospital', existenciasInsumo);
+            for (const hospital of hospitalesDeJurisdiccion) {
+                const hospitalClues = hospital.cluesimb;
+
+                // existencia DISP cruda de la unidad
+                const existenciasInsumo = this.existenciaUnidades
+                    .get(hospital.key)
+                    ?.filter(i => i.clave === clave);
 
                 const unidadResumen: UnidadClaveResumen = {
-                    unidad: hospital?.nombre ?? clues,
-                    municipio: municipio,
-                    clave: {
-                        cpm: 0,
-                        existencia: 0,
-                        reposicion: 0,
-                    },
-                };
-                const cpmEntry = this.cpms.find(c => c.clave === clave && c.cluesimb === clues);
-                const cpm = cpmEntry?.cantidad ?? 0;
+                    unidad: hospital?.nombre ?? hospitalClues,
+                    municipio,
+                    cluesimb: hospitalClues,
+                    clave: { cpm: 0, existencia: 0, reposicion: 0 },
+                } as any;
 
+                // CPM
+                const cpmEntry = this.cpms.find(c => c.clave === clave && c.cluesimb === hospitalClues);
+                const cpm = cpmEntry?.cantidad ?? 0;
                 unidadResumen.clave.cpm = cpm;
 
                 if (existenciasInsumo) {
-                    existenciasInsumo.forEach(i => {
+                    for (const i of existenciasInsumo) {
                         unidadResumen.clave.existencia += i.disponible;
-                    });
+                    }
                 }
-                unidadResumen.clave.reposicion = cpm > unidadResumen.clave.existencia ?
-                    cpm - unidadResumen.clave.existencia : 0;
+                const existenciaDisp = unidadResumen.clave.existencia;
+
+                // FC por unidad (CLUES)
+                const factor = await this.getFactor(clave, hospitalClues);
+                const enDisp = !!factor.en_dispensacion;
+                const fc = factor.cantidad_fc;
+
+                const existenciaBase = enDisp && fc > 1
+                    ? Math.round(existenciaDisp / fc)
+                    : existenciaDisp;
+
+                unidadResumen.clave.existencia = existenciaBase;
+                unidadResumen.clave.reposicion = cpm > existenciaBase ? (cpm - existenciaBase) : 0;
+
+                // guarda DISP cruda para tooltip
+                (unidadResumen as any)._existenciaDisp = existenciaDisp;
 
                 if (!agrupadoPorAlmacen.has(municipio)) {
                     agrupadoPorAlmacen.set(municipio, []);
                 }
-
                 agrupadoPorAlmacen.get(municipio)!.push(unidadResumen);
-            });
+            }
+        }
 
+        // Construir estructura final
+        this.datosAgrupados = Array.from(agrupadoPorAlmacen.entries()).map(([municipio, unidades]) => {
+            const meta = ALMACENES_JURIS[municipio] ?? { nombre: municipio.toUpperCase(), cluesimb: '' };
+            return { almacen: municipio, cluesimb: meta.cluesimb, unidades } as AlmacenClaveResumen;
         });
-        // console.log('agrupadoPorAlmacen', agrupadoPorAlmacen);
-        this.datosAgrupados = Array.from(agrupadoPorAlmacen.entries()).map(([almacen, unidades]) => ({
-            almacen,
-            unidades
-        }));
+
+        // Nota “¿Qué estoy viendo?”
+        this.mostrarNotaFactor = Array.from(this.factorMap.entries())
+            .some(([key, f]) =>
+                key.startsWith(`${this.claveFiltrada}|`) &&
+                f.en_dispensacion === 1 &&
+                (f.cantidad_fc ?? 1) > 1
+            );
 
         if (!skipLocalStorage) {
             localStorage.setItem(
                 StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS,
-                JSON.stringify(this.datosAgrupados));
+                JSON.stringify(this.datosAgrupados)
+            );
         }
+
         this.calcularInventarioDisponible(this.claveFiltrada, skipLocalStorage);
         this.buscarExistenciasDeClave(skipLocalStorage);
     }
@@ -437,5 +523,46 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         const fecha = new Date(fechaLimite);
         const diff = (hoy.getTime() - fecha.getTime()) / (1000 * 3600 * 24);
         return diff > 0;
+    }
+
+    /**
+     * Abre el modal de trazabilidad para la clave y unidad especificadas.
+     * @param clave Clave del insumo
+     * @param cluesimb Cluesimb de la unidad
+     */
+    abrirTrazabilidad(clave: string, cluesimb: string, cpm: number, descripcion: string) {
+        this.claveSeleccionada = clave;
+        this.unidadSeleccionada = cluesimb;
+        // si mando -1, es almacen
+        this.cpmSeleccionada = cpm;
+        this.descripcion = ((descripcion.length > 250) ? descripcion.slice(0, 240) + ' [...]' : descripcion);
+        // por si quedó en true por alguna razón, fuerza el flanco de bajada/subida
+        this.modalVisible = false;
+        queueMicrotask(() => this.modalVisible = true);
+    }
+
+    onModalClosed() {
+        this.modalVisible = false; // cierra de verdad
+    }
+
+    getTooltipExistencia(unidad: any): string {
+        if (!unidad) return '—';
+
+        const key = `${this.claveFiltrada}|${unidad.cluesimb}`;
+        const factor = this.factorMap.get(key);  // 👈 usar el map real
+
+        if (!factor) return '—';
+
+        const fc = Math.max(1, Number(factor.cantidad_fc ?? 1));
+        const enDisp = factor.en_dispensacion === 1 || factor.en_dispensacion === true as any;
+
+        if (enDisp && fc > 1) {
+            // usamos la existencia en dispensación cruda si la guardaste,
+            // si no, la calculamos desde la base mostrada
+            const disp = (unidad as any)._existenciaDisp ?? (Number(unidad?.clave?.existencia ?? 0) * fc);
+            return `Disp.: ${disp} (fc ${fc})`;
+        }
+
+        return '—';
     }
 }

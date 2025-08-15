@@ -14,6 +14,8 @@ import { InventarioCriticoComponent } from './inventario-critico/inventario-crit
 import { ThemeService } from '../../services/theme.service';
 import { InventarioService } from '../../services/inventario.service';
 import { ExistenciasComponent } from "./existencias/existencias.component";
+import { RdlSComponent } from './rdls/rdls.component';
+import { InventarioTabComponent } from './inventario-tab/inventario-tab.component';
 
 @Component({
   selector: 'app-dashboard-abasto',
@@ -24,7 +26,10 @@ import { ExistenciasComponent } from "./existencias/existencias.component";
     ProveedoresComponent,
     CitasPendientesComponent,
     ResumenCitasComponent,
-    InventarioCriticoComponent, ExistenciasComponent],
+    InventarioCriticoComponent,
+    ExistenciasComponent,
+    InventarioTabComponent,
+    RdlSComponent],
   templateUrl: './dashboard-abasto.component.html',
   styleUrl: './dashboard-abasto.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -47,6 +52,8 @@ export class DashboardAbastoComponent implements OnInit {
     'Citas pendientes',
     'Cumplimiento Claves',
     'Entregas pendientes',
+    'Inventario (beta)',
+    'RdlS',
     'Acerca de'];
   activeTab = 'Resumen';
 

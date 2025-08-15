@@ -1,0 +1,47 @@
+<div class="p-6 space-y-6">
+    <h2 class="text-2xl font-semibold tracking-tight">RdlS</h2>
+
+    <!-- 🗓️ Selector de periodo -->
+    <div class="flex justify-end gap-4">
+      <div class="min-w-[270px]">
+        <app-periodo-picker-dashboard
+          [fechaInicio]="fechaInicio()"
+          [fechaFin]="fechaFin()"
+          [titulo]="'Fecha de Envío'"
+          (rangoCambiado)="onPeriodoSeleccionado($event.fechaInicio, $event.fechaFin)">
+        </app-periodo-picker-dashboard>
+      </div>
+    </div>
+
+    <!-- 📈 Tabla -->
+    <div class="overflow-x-auto mt-6 bg-white rounded-lg shadow">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-100">
+          <tr class="renglon-info">
+            <th class="p-2 border">Fecha Envio</th>
+            <th class="p-2 border">Clues Origen</th>
+            <th class="p-2 border">Nombre Almacén Origen</th>
+            <th class="p-2 border">Nombre Unidad Médica Final</th>
+            <th class="p-2 border">Clave</th>
+            <th class="p-2 border">Descripcion</th>
+            <th class="p-2 border">Piezas x Envío</th>
+            <th class="p-2 border">Pickeado</th>
+            <th class="p-2 border">Fecha Entrega unidad final</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="renglon-info">
+            <td class="p-2 text-gray-500 border">en construccion</td>
+            <td class="p-2 text-gray-500 border">en construccion</td>
+            <td class="p-2 text-gray-500 border">en construccion</td>
+            <td class="p-2 text-gray-500 border">en construccion</td>
+            <td class="p-2 text-gray-500 border">en construccion</td>
+            <td class="p-2 text-gray-500 border">en construccion</td>
+            <td class="p-2 text-gray-500 border">en construccion</td>
+            <td class="p-2 text-gray-500 border">en construccion</td>
+            <td class="p-2 text-gray-500 border">en construccion</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>

@@ -1,0 +1,153 @@
+<div class="p-4 space-y-4">
+  <!-- Filtros -->
+  <div class="flex flex-wrap items-center gap-3">
+    <!-- Búsqueda -->
+    <input [ngModel]="query()" (ngModelChange)="query.set($event)"
+      placeholder="Buscar (clave, descripción, lote, unidad, CLUES)"
+      class="px-3 py-2 w-full rounded-lg border md:w-96" />
+
+    <!-- Fuente -->
+    <!-- <select [ngModel]="fuente()" (ngModelChange)="fuente.set($event)" class="px-3 py-2 rounded-lg border">
+      <option value="ALL">Todos</option>
+      <option value="HOSPITAL">Hospitales</option>
+      <option value="ALMACEN">Almacenes</option>
+    </select> -->
+
+    <!-- Categoría -->
+    <select [ngModel]="categoriaFiltro()" (ngModelChange)="categoriaFiltro.set($event)"
+      class="px-3 py-2 rounded-lg border">
+      <option value="">Todas las categorías</option>
+      <option *ngFor="let c of categoriasDisponibles()" [value]="c">{{ c }}</option>
+      <!-- Opcional: atajos “genéricos” para activar el select de grupos aunque
+         el catálogo tenga nombres largos como 'Categoria I. Medicamentos' -->
+    </select>
+
+    <!-- Grupo/Insumo (solo cuando base de categoría es medicamento o material) -->
+    <ng-container *ngIf="['MEDICAMENTO','MATERIAL DE CURACIÓN'].includes(catBase(categoriaFiltro()))">
+      <select [ngModel]="grupoFiltro()" (ngModelChange)="grupoFiltro.set($event)" class="px-3 py-2 rounded-lg border">
+        <option value="">Todos los grupos</option>
+        <option *ngFor="let g of gruposDisponibles()" [value]="g">{{ g }}</option>
+      </select>
+    </ng-container>
+
+    <div class="ml-auto text-sm text-gray-600">
+      <ng-container *ngIf="!loading(); else loadingTpl">
+        <button (click)="exportarExcel()"
+          class="flex items-center gap-2 py-1 px-4 text-white font-semibold bg-green-600 shadow-sm cursor-pointer hover:bg-green-700 rounded">
+          📤 Exportar a Excel
+        </button>
+      </ng-container>
+      <ng-template #loadingTpl> Cargando… </ng-template>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR -->
+  <div class="relative rounded-xl border">
+    <!-- Barra de scroll horizontal superior (sticky debajo del thead) -->
+    <div #topScrollbar class="z-30 sticky bg-white" [style.top.px]="theadHeight">
+      <div #topScroll
+        class="overflow-x-auto overflow-y-hidden h-4 [scrollbar-color:theme(colors.gray.400)_transparent]">
+        <!-- “Pista” para que aparezca el scroll: igualamos el ancho al scrollWidth de la tabla -->
+        <div [style.width.px]="tableScrollWidth" class="h-1"></div>
+      </div>
+      <div class="h-px bg-gray-200"></div>
+    </div>
+
+    <!-- Contenedor con scroll principal (x/y) -->
+    <div #gridScroll class="overflow-auto max-h-[60vh]">
+      <table #dataTable class="min-w-[1400px] w-full text-sm">
+        <thead #theadEl class="z-40 sticky top-0 text-white bg-green-700 shadow">
+          <tr>
+            <th class="p-2">Entidad</th>
+            <th class="p-2">CLUES</th>
+            <th class="p-2">Orden Suministro</th>
+            <th class="p-2">RFC Proveedor</th>
+            <th class="p-2">Fuente Financ.</th>
+            <th class="p-2">Partida</th>
+            <th class="p-2">Clave</th>
+            <th class="p-2">Categoria</th>
+            <th class="p-2">Grupo/Insumo</th>
+            <th class="p-2">Descripción</th>
+            <th class="p-2">Precio Unit.</th>
+            <th class="p-2">Valor Total</th>
+            <th class="p-2">Insumo en CPM</th>
+            <th class="p-2">Estado</th>
+            <th class="p-2">Inventario Disp.</th>
+            <th class="p-2">U. Medida</th>
+            <th class="p-2">Lote</th>
+            <th class="p-2">Caducidad</th>
+            <th class="p-2">Fabricación</th>
+            <th class="p-2">Recepción</th>
+            <th class="p-2">Unidad</th>
+            <!-- <th class="p-2">Fuente</th> -->
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of pageSlice()" class="odd:bg-white even:bg-green-50">
+            <td class="p-2">BAJA CALIFORNIA</td>
+            <td class="p-2">{{ r.clues }}</td>
+            <td class="p-2">{{ r.ordenDeSuministro || '—' }}</td>
+            <td class="p-2">{{ r.rfcProveedor || '—' }}</td>
+            <td class="p-2">{{ r.fuenteFinanciamiento || '—' }}</td>
+            <td class="p-2">{{ r.partidaPresupuestal || '—' }}</td>
+            <td class="p-2 font-mono">{{ r.clave }}</td>
+            <td class="p-2">{{ r.categoria }}</td>
+            <td class="p-2">{{ r.grupoInsumo }}</td>
+            <td class="p-2">{{ r.descripcion || '—' }}</td>
+            <td class="p-2">{{ r.precioUnitario == null ? '—' : (r.precioUnitario | number:'1.2-2') }}</td>
+            <td class="p-2">{{ r.valorTotal == null ? '—' : (r.valorTotal | number:'1.2-2') }}</td>
+            <td class="p-2">{{ r.insumoEnCPM }}</td>
+            <td class="p-2">{{ r.estadoInsumo }}</td>
+            <td class="p-2 font-semibold">{{ r.inventarioDisponible | number }}</td>
+            <td class="p-2">{{ r.unidadMedida || '—' }}</td>
+            <td class="p-2 font-mono">{{ r.lote || '—' }}</td>
+            <td class="p-2">{{ r.fechaCaducidad }}</td>
+            <td class="p-2">{{ r.fechaFabricacion }}</td>
+            <td class="p-2">{{ r.fechaRecepcion }}</td>
+            <td class="p-2">{{ r.unidadOrigenTexto || '—' }}</td>
+            <!-- <td class="p-2">{{ r.tipoFuente }}</td> -->
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Footer de la tabla -->
+    <div class="flex justify-between items-center mt-2 text-sm text-gray-600">
+      <!-- Total a la izquierda -->
+      <div>
+        <ng-container *ngIf="!loading(); else loadingTpl">
+          Total: {{ totalItems() | number }}
+        </ng-container>
+        <ng-template #loadingTpl>Cargando…</ng-template>
+      </div>
+
+      <!-- Botón Exportar a la derecha -->
+      <button (click)="exportarExcel()"
+        class="flex items-center gap-2 py-1 px-4 text-white font-semibold bg-green-600 shadow-sm cursor-pointer hover:bg-green-700 rounded">
+        📤 Exportar a Excel
+      </button>
+    </div>
+  </div>
+
+
+  <!-- Paginación -->
+  <div class="flex items-center justify-end gap-3">
+    <label class="text-sm">Filas por página</label>
+    <select [(ngModel)]="pageSize" class="px-2 py-1 border rounded">
+      <option [ngValue]="25">25</option>
+      <option [ngValue]="50">50</option>
+      <option [ngValue]="100">100</option>
+      <option [ngValue]="200">200</option>
+    </select>
+    <button class="px-2 py-1 text-sm text-white bg-green-600 cursor-pointer border rounded enabled:hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed" (click)="goTo(1)" [disabled]="page()===1">« Primera</button>
+    <button class="px-2 py-1 text-sm text-white bg-green-600 cursor-pointer border rounded enabled:hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed" (click)="jump(-10)" [disabled]="page()===1">‹‹ -10</button>
+    <button class="px-2 py-1 text-sm text-white bg-green-600 cursor-pointer border rounded enabled:hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed" (click)="prevPage()" [disabled]="page()===1">‹ Anterior</button>
+
+    <div class="text-sm">Página {{ page() }} de {{ totalPages() }}</div>
+
+    <button class="px-2 py-1 text-sm text-white bg-green-600 cursor-pointer border rounded enabled:hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed" (click)="nextPage()" [disabled]="page()>=totalPages()">Siguiente ›</button>
+    <button class="px-2 py-1 text-sm text-white bg-green-600 cursor-pointer border rounded enabled:hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed" (click)="jump(10)" [disabled]="page()>=totalPages()">+10 ››</button>
+    <button class="px-2 py-1 text-sm text-white bg-green-600 cursor-pointer border rounded enabled:hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed" (click)="goTo(totalPages())" [disabled]="page()>=totalPages()">Última
+      »</button>
+
+  </div>
+</div>
