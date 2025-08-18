@@ -8,7 +8,7 @@
         <h2 class="text-xl font-bold text-green-800 dark:text-yellow-400">
           🔎 Trazabilidad: {{ clave }} — {{ cluesimb }}
         </h2>
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+        <p class="mt-1 text-m font-extrabold text-gray-600 dark:text-gray-300">
           {{ movimientos().length ? movimientos()[0].nombre_unidad : '' }}
         </p>
         <p *ngIf="descripcionArticulo" class="mt-0.5 text-xs text-gray-500 italic dark:text-gray-400">

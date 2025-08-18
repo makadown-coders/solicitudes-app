@@ -1,5 +1,5 @@
 // src/app/features/dashboard-abasto/existencias/existencias-x-clave/existencias-x-clave.component.ts
-import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, Input, OnChanges, SimpleChanges, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
@@ -92,6 +92,9 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     // al principio del componente
     // factorConv = { en_dispensacion: false, cantidad_fc: 1 };
     private factorMap = new Map<string, FactorUnidad>(); // key = `${clave}|${cluesimb}`
+
+    // Variable para loading mientras se busca toda la info sobre la clave
+    loadingClave = signal(false);
 
     // helper
     /*private aplicarFactorBase(cantidad: number): number {
@@ -233,20 +236,25 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     }
 
     async selectClave(item: any, skipLocalStorage = false) {
-        this.claveBusqueda = item.clave;
+        this.loadingClave.set(true);
+        try {
+            this.claveBusqueda = item.clave;
 
-        if (!skipLocalStorage) {
-            localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE, JSON.stringify(item));
+            if (!skipLocalStorage) {
+                localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE, JSON.stringify(item));
+            }
+            this.descripcion = item.descripcion;
+            this.unidad = item.unidadMedida ?? item.presentacion ?? '';
+            const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
+            this.clasificacion = clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
+            this.autocompleteResults = [];
+            this.selectedIndex = -1;
+            this.cdRef.detectChanges();
+            await this.filtrarClave(skipLocalStorage);
+            this.claveConfirmada = true;
+        } finally {
+            this.loadingClave.set(false);
         }
-        this.descripcion = item.descripcion;
-        this.unidad = item.unidadMedida ?? item.presentacion ?? '';
-        const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
-        this.clasificacion = clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
-        this.autocompleteResults = [];
-        this.selectedIndex = -1;
-        this.cdRef.detectChanges();
-        this.filtrarClave(skipLocalStorage);
-        this.claveConfirmada = true;
     }
 
     /*async buscarFactor() {

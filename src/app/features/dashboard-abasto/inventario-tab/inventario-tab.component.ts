@@ -15,7 +15,44 @@ import { FactorUnidad } from '../../../models/factor-unidad';
 import { ProveedoresService } from '../../../services/proveedores.service';
 import { GruposClavesService } from '../../../services/grupo-clases.service';
 import * as XLSX from 'xlsx';
+// amCharts v5
+import * as am5 from "@amcharts/amcharts5";
+import * as am5xy from "@amcharts/amcharts5/xy";
+import * as am5percent from "@amcharts/amcharts5/percent";
+import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import { StorageSolicitudService } from '../../../services/storage-solicitud.service';
 
+
+type FuenteRow = { categoria: string; hospital: number; almacen: number };
+
+// Paleta IMSS-Bienestar (hex -> am5.color)
+const IMSS_COLORS = {
+    verde: 0x006341,       // Hospital
+    verdeClaro: 0x00A67C,
+    dorado: 0xFFD166,
+    azul: 0x3B82F6,        // Almacén
+    gris: 0x6B7280,
+    celeste: 0x60A5FA,
+};
+
+const NO_CAT = 'NO ESPECIFICADO';
+
+function normalizeCategoria(cat?: string | null): string {
+    const s = (cat ?? '').trim();
+    return s ? s : NO_CAT;
+}
+
+
+function imssColorList(root: am5.Root) {
+    return [
+        am5.color(IMSS_COLORS.verde),
+        am5.color(IMSS_COLORS.azul),
+        am5.color(IMSS_COLORS.dorado),
+        am5.color(IMSS_COLORS.verdeClaro),
+        am5.color(IMSS_COLORS.gris),
+        am5.color(IMSS_COLORS.celeste),
+    ];
+}
 
 @Component({
     selector: 'app-inventario-tab',
@@ -33,6 +70,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
     private trazSrv = inject(TrazabilidadService);
     private provSrv = inject(ProveedoresService);
     private gruposSrv = inject(GruposClavesService);
+    private storageSolicitudService = inject(StorageSolicitudService);
 
     private env = inject(EnvironmentInjector);
 
@@ -43,8 +81,6 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
 
     // para evitar disparar múltiples fetches simultáneos
     private fetchingKeys = new Set<string>();
-
-
 
     // Filtros UI
     query = signal('');
@@ -79,6 +115,21 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
 
     tableScrollWidth = 0;
     theadHeight = 0;
+
+    @ViewChild('chartAbasto', { static: true }) chartAbasto!: ElementRef<HTMLDivElement>;
+    @ViewChild('chartCategoria', { static: true }) chartCategoria!: ElementRef<HTMLDivElement>;
+    @ViewChild('chartFuente', { static: true }) chartFuente!: ElementRef<HTMLDivElement>;
+
+    // amCharts roots / series
+    private rootAbasto?: am5.Root;
+    private rootCategoria?: am5.Root;
+    private rootFuente?: am5.Root;
+
+    private pieSeries?: am5percent.PieSeries;
+    private catSeries?: am5xy.ColumnSeries;
+    private fuenteSeriesHosp?: am5xy.ColumnSeries;
+    private fuenteSeriesAlm?: am5xy.ColumnSeries;
+
     private onGridScroll = () => { };
     private onTopScroll = () => { };
     private onResize = () => { };
@@ -92,6 +143,8 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         this.onGridScroll = () => { top.scrollLeft = grid.scrollLeft; };
         this.onTopScroll = () => { grid.scrollLeft = top.scrollLeft; };
         this.onResize = () => this.measureGrid();
+        // Crear charts una sola vez
+        this.createCharts();
 
         grid.addEventListener('scroll', this.onGridScroll, { passive: true });
         top.addEventListener('scroll', this.onTopScroll, { passive: true });
@@ -134,7 +187,12 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         // 2)  Cargar proveedores una vez (cachea e indexa)
         this.provSrv.load().subscribe();
         // 3) Almacenes (ya lo emite tu servicio)
-        this.invSrv.inventario$.subscribe(rows => this.almacenes.set(rows ?? []));
+        this.invSrv.inventario$.subscribe(rows => {
+            if (!rows || rows.length === 0) {
+                rows = this.storageSolicitudService.getInventarioFromLocalStorage();
+            }
+            this.almacenes.set(rows ?? []);
+         });
 
         // 4) Hospitales: combinamos TODAS las existencias$ (map) en un solo arreglo
         const existenciasStreams = Array.from(this.invSrv.existencias$.values());
@@ -229,6 +287,12 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             if (p > tp) this.page.set(tp);
             if (p < 1) this.page.set(1);
         });
+
+        effect(() => {
+            // cuando cambian filtros/paginación, actualizamos gráficos con TODO el filtrado (no solo slice)
+            this.filtered();
+            queueMicrotask(() => this.updateCharts());
+        });
     }
 
     // Normaliza a “base” de categoría (medicamento / material / otro)
@@ -317,7 +381,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
                 fuenteFinanciamiento: citaInfo.fte ?? (inv as any).fuente ?? null,
                 partidaPresupuestal: slicePartida(inv.partida),
                 clave,
-                categoria: art.categoria ?? null,
+                categoria: normalizeCategoria(art.categoria),
                 grupoInsumo,
                 descripcion: safeStr(inv.descripcion) || art.descripcion || null,
                 precioUnitario: (citaInfo.precio ?? null) as number | null,
@@ -327,9 +391,9 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
                 inventarioDisponible: dispAjustado,
                 unidadMedida: art.presentacion ?? null,
                 lote: cleanLote(inv.lote),
-                fechaCaducidad: formatOrDefault(inv.caducidad, '31/12/2025 00:00:00'),
-                fechaFabricacion: '01/01/2025 00:00:00',
-                fechaRecepcion: formatOrDefault(inv.fecha_entrada, '01/01/2025 00:00:00'),
+                fechaCaducidad: formatOrDefault(inv.caducidad, '2025-01-01' /*'31/12/2025 00:00:00'*/),
+                fechaFabricacion: '2025-01-01',//'01/01/2025 00:00:00',
+                fechaRecepcion: formatOrDefault(inv.fecha_entrada, '2025-01-01' /*'31/12/2025 00:00:00'*/),
                 unidadOrigenTexto: safeStr((inv as any).almacen) ?? safeStr((inv as any).unidad) ?? null,
                 tipoFuente: tipo,
             };
@@ -391,7 +455,181 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         if (grid) grid.removeEventListener('scroll', this.onGridScroll);
         if (top) top.removeEventListener('scroll', this.onTopScroll);
         window.removeEventListener('resize', this.onResize);
+        if (this.rootAbasto) { this.rootAbasto.dispose(); this.rootAbasto = undefined; }
+        if (this.rootCategoria) { this.rootCategoria.dispose(); this.rootCategoria = undefined; }
+        if (this.rootFuente) { this.rootFuente.dispose(); this.rootFuente = undefined; }
     }
+
+    private updateCharts() {
+        const rows = this.filtered();
+
+        // ----- Donut % abasto -----
+        const totalCpm = rows.filter(r => r.insumoEnCPM === 'SI').length;
+        const conInv = rows.filter(r => r.insumoEnCPM === 'SI' && (r.inventarioDisponible ?? 0) > 0).length;
+        const abastoData = [
+            { label: "Con inventario", value: conInv },
+            { label: "Sin inventario", value: Math.max(0, totalCpm - conInv) }
+        ];
+        if (this.pieSeries) {
+            this.pieSeries.data.setAll(abastoData);
+            const pct = totalCpm ? Math.round((conInv * 100) / totalCpm) : 0;
+            const lbl = (this as any)._abastoCenterLabel as am5.Label | undefined;
+            lbl?.set("text", `${pct}%`);
+        }
+
+        // ----- Barras por categoría -----
+        const byCat = new Map<string, number>();
+        for (const r of rows) {
+            const cat = r.categoria ?? NO_CAT;
+            byCat.set(cat, (byCat.get(cat) ?? 0) + (Number(r.inventarioDisponible) || 0));
+        }
+        const catData = Array.from(byCat, ([categoria, inventario]) => ({ categoria, inventario }));
+        if (this.catSeries) {
+            const x = this.catSeries.get("xAxis") as am5xy.CategoryAxis<any>;
+            x.data.setAll(catData);
+            this.catSeries.data.setAll(catData);
+        }
+
+        // ----- Stacked por fuente -----
+        const mapa = new Map<string, { categoria: string; HOSPITAL: number; ALMACEN: number }>();
+        for (const r of rows) {
+            const cat = r.categoria ?? NO_CAT;
+            if (!mapa.has(cat)) mapa.set(cat, { categoria: cat, HOSPITAL: 0, ALMACEN: 0 });
+            const acc = mapa.get(cat)!;
+            const val = Number(r.inventarioDisponible) || 0;
+            if (r.tipoFuente === 'HOSPITAL') acc.HOSPITAL += val;
+            else if (r.tipoFuente === 'ALMACEN') acc.ALMACEN += val;
+        }
+        const fuenteData = Array.from(mapa.values());
+        if (this.fuenteSeriesHosp && this.fuenteSeriesAlm) {
+            const x = this.fuenteSeriesHosp.get("xAxis") as am5xy.CategoryAxis<any>;
+            x.data.setAll(fuenteData);
+            this.fuenteSeriesHosp.data.setAll(fuenteData);
+            this.fuenteSeriesAlm.data.setAll(fuenteData);
+        }
+    }
+
+    private createCharts() {
+        // 1) % Abasto CPM (donut)
+        this.rootAbasto = am5.Root.new(this.chartAbasto.nativeElement);
+        this.rootAbasto.setThemes([am5themes_Animated.new(this.rootAbasto)]);
+        const chartA = this.rootAbasto.container.children.push(
+            am5percent.PieChart.new(this.rootAbasto, {
+                endAngle: 360,
+                innerRadius: am5.percent(50)
+            })
+        );
+        this.pieSeries = chartA.series.push(
+            am5percent.PieSeries.new(this.rootAbasto, {
+                valueField: "value",
+                categoryField: "label",
+                endAngle: 360
+            })
+        );
+
+        this.pieSeries.set("colors", am5.ColorSet.new(this.rootAbasto, {
+            colors: [am5.color(IMSS_COLORS.verde), am5.color(IMSS_COLORS.gris)]
+        }));
+
+        // label central (guárdalo en la instancia para actualizarlo)
+        const centerLabel = chartA.children.push(am5.Label.new(this.rootAbasto, {
+            text: "0%",
+            centerX: am5.p50,
+            centerY: am5.p50,
+            fontSize: 24,
+            fontWeight: "700"
+        }));
+        // @ts-ignore: guardamos referencia para updateCharts
+        (this as any)._abastoCenterLabel = centerLabel;
+
+        // 2) Inventario por categoría (barras)
+        this.rootCategoria = am5.Root.new(this.chartCategoria.nativeElement);
+        this.rootCategoria.setThemes([am5themes_Animated.new(this.rootCategoria)]);
+        const chartC = this.rootCategoria.container.children.push(
+            am5xy.XYChart.new(this.rootCategoria, {
+                layout: this.rootCategoria.verticalLayout
+            })
+        );
+        const colorSetCat = am5.ColorSet.new(this.rootCategoria, { colors: imssColorList(this.rootCategoria) });
+        chartC.set("colors", colorSetCat);
+
+        const xCat = chartC.xAxes.push(am5xy.CategoryAxis.new(this.rootCategoria, {
+            categoryField: "categoria",
+            renderer: am5xy.AxisRendererX.new(this.rootCategoria, { minGridDistance: 20 }),
+            tooltip: am5.Tooltip.new(this.rootCategoria, {})
+        }));
+        xCat.get("renderer")!.labels.template.setAll({
+            fontSize: 10,
+            rotation: -30,
+            centerY: am5.p50,
+            dy: 10,
+            maxWidth: 110,
+            oversizedBehavior: "truncate" // evita empalmes
+        });
+        const yCat = chartC.yAxes.push(am5xy.ValueAxis.new(this.rootCategoria, {
+            renderer: am5xy.AxisRendererY.new(this.rootCategoria, {})
+        }));
+        this.catSeries = chartC.series.push(am5xy.ColumnSeries.new(this.rootCategoria, {
+            name: "Inventario",
+            xAxis: xCat,
+            yAxis: yCat,
+            valueYField: "inventario",
+            categoryXField: "categoria",
+            tooltip: am5.Tooltip.new(this.rootCategoria, { labelText: "{valueY}" })
+        }));
+        // etiquetas pequeñas
+        xCat.get("renderer")!.labels.template.setAll({ fontSize: 10, rotation: -30, centerY: am5.p50, dy: 10 });
+
+        // 3) Inventario por fuente (stacked HOSPITAL vs ALMACEN)
+        this.rootFuente = am5.Root.new(this.chartFuente.nativeElement);
+        this.rootFuente.setThemes([am5themes_Animated.new(this.rootFuente)]);
+        const chartF = this.rootFuente.container.children.push(
+            am5xy.XYChart.new(this.rootFuente, {
+                layout: this.rootFuente.verticalLayout
+            })
+        );
+        const xFuente = chartF.xAxes.push(am5xy.CategoryAxis.new(this.rootFuente, {
+            categoryField: "categoria",
+            renderer: am5xy.AxisRendererX.new(this.rootFuente, { minGridDistance: 20 })
+        }));
+        xFuente.get("renderer")!.labels.template.setAll({
+            fontSize: 10,
+            rotation: -15,
+            centerY: am5.p50,
+            dy: 8,
+            maxWidth: 110,
+            oversizedBehavior: "truncate"
+        });
+        const yFuente = chartF.yAxes.push(am5xy.ValueAxis.new(this.rootFuente, {
+            renderer: am5xy.AxisRendererY.new(this.rootFuente, {})
+        }));
+
+        this.fuenteSeriesHosp = chartF.series.push(am5xy.ColumnSeries.new(this.rootFuente, {
+            name: "Hospital",
+            stacked: true,
+            xAxis: xFuente, yAxis: yFuente,
+            valueYField: "HOSPITAL",
+            categoryXField: "categoria",
+            tooltip: am5.Tooltip.new(this.rootFuente, { labelText: "Hospital: {valueY}" })
+        }));
+
+        this.fuenteSeriesAlm = chartF.series.push(am5xy.ColumnSeries.new(this.rootFuente, {
+            name: "Almacén",
+            stacked: true,
+            xAxis: xFuente, yAxis: yFuente,
+            valueYField: "ALMACEN",
+            categoryXField: "categoria",
+            tooltip: am5.Tooltip.new(this.rootFuente, { labelText: "Almacén: {valueY}" })
+        }));
+
+        // Leyenda para stacked
+        const legend = chartF.children.push(am5.Legend.new(this.rootFuente, { centerX: am5.p50, x: am5.p50 }));
+        legend.data.setAll([this.fuenteSeriesHosp, this.fuenteSeriesAlm]);
+
+        // Primera carga
+        this.updateCharts();
+    }
+
 
     exportarExcel() {
         // 1) Tomamos TODO lo filtrado (no solo la página)
@@ -434,7 +672,6 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         // 3) Mapeo a la forma requerida
         const data = rows.map(r => {
             const incluirGrupo = esMedOMat(r.categoria);
-            // resolver nombre de unidad por clues; fallback a texto de origen
             const unidad = (r.clues && this.unidadesSrv.findByCluesimb(r.clues)?.nombre)
                 || r.unidadOrigenTexto
                 || '';
@@ -458,9 +695,17 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
                 'INVENTARIO DISPONIBLE': r.inventarioDisponible ?? 0,
                 'UNIDAD DE MEDIDA': r.unidadMedida ?? '',
                 'LOTE': r.lote ?? '',
-                'FECHA DE CADUCIDAD': r.fechaCaducidad ?? '31/12/2025 00:00:00',
-                'FECHA DE FABRICACIÓN': r.fechaFabricacion ?? '01/01/2025 00:00:00',
-                'FECHA DE RECEPCIÓN': r.fechaRecepcion ?? '01/01/2025 00:00:00',
+
+                // ⬇⬇ aquí el formateo fijo a "dd/mm/yyyy 00:00:00", sin UTC
+                'FECHA DE CADUCIDAD': formatExcelDate0(
+                    r.fechaCaducidad, '31/12/2025 00:00:00'
+                ),
+                'FECHA DE FABRICACIÓN': formatExcelDate0(
+                    r.fechaFabricacion, '01/01/2025 00:00:00'
+                ),
+                'FECHA DE RECEPCIÓN': formatExcelDate0(
+                    r.fechaRecepcion, '01/01/2025 00:00:00'
+                ),
             };
         });
 
@@ -507,6 +752,184 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         // 7) Descargar
         XLSX.writeFile(wb, filename, { bookType: 'xlsx' });
     }
+
+    private buildInventarioPorCategoria(containerId: string, rows: Array<{ categoria: string, total: number }>) {
+        const root = am5.Root.new(containerId);
+        root.setThemes([am5themes_Animated.new(root)]);
+        root._logo?.dispose?.();
+
+        const chart = root.container.children.push(am5xy.XYChart.new(root, {
+            layout: root.verticalLayout,
+            panX: false, panY: false, wheelX: 'none', wheelY: 'none'
+        }));
+
+        // Ejes
+        const xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 20, inside: false });
+        // oculta/estiliza la grilla DESPUÉS de crear el renderer
+        xRenderer.grid.template.setAll({ visible: false });       // o { strokeOpacity: 0 }
+
+        const x = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
+            categoryField: 'categoria',
+            renderer: xRenderer,
+        }));
+
+        const yRenderer = am5xy.AxisRendererY.new(root, {});
+        yRenderer.grid.template.setAll({ strokeOpacity: 0.1 });
+        const y = chart.yAxes.push(am5xy.ValueAxis.new(root, { renderer: yRenderer }));
+
+        x.data.setAll(rows);
+
+        const series = chart.series.push(am5xy.ColumnSeries.new(root, {
+            name: 'Inventario',
+            xAxis: x, yAxis: y,
+            valueYField: 'total',
+            categoryXField: 'categoria',
+            tooltip: am5.Tooltip.new(root, { labelText: '{valueY.formatNumber("#,###")}' })
+        }));
+
+        const colorSet = am5.ColorSet.new(root, { colors: imssColorList(root) });
+        chart.set('colors', colorSet);
+
+        // columnas y labels de valor
+        series.columns.template.setAll({
+            width: am5.percent(70),
+            strokeOpacity: 0,
+        });
+
+        series.bullets.push(() => am5.Bullet.new(root, {
+            locationY: 0.5,
+            sprite: am5.Label.new(root, {
+                text: '{valueY.formatNumber("#,###")}',
+                centerX: am5.p50, centerY: am5.p100,
+                dy: -12, fontSize: 12, fill: am5.color(0x111827)
+            })
+        }));
+
+        series.data.setAll(rows);
+
+        return root;
+    }
+
+    private buildAbastoDonut(containerId: string, data: Array<{ label: string, value: number }>) {
+        const root = am5.Root.new(containerId);
+        root.setThemes([am5themes_Animated.new(root)]);
+
+        // paleta
+        root.interfaceColors.set('grid', am5.color(0xE5E7EB));
+        root.interfaceColors.set('text', am5.color(0x111827));
+        root._logo?.dispose?.();
+
+        const chart = root.container.children.push(
+            am5percent.PieChart.new(root, {
+                layout: root.verticalLayout,
+                innerRadius: am5.percent(60),
+                radius: am5.percent(95)
+            })
+        );
+
+        const series = chart.series.push(
+            am5percent.PieSeries.new(root, {
+                name: 'Abasto',
+                valueField: 'value',
+                categoryField: 'label'
+            })
+        );
+
+        // Colores: disponible (verde) / sin inventario (gris)
+        series.get('colors')!.set('colors', [
+            am5.color(IMSS_COLORS.verde),
+            am5.color(IMSS_COLORS.gris)
+        ]);
+
+        series.data.setAll(data);
+
+        // Label central con % (primer elemento asumido como “Con inventario”)
+        const total = data.reduce((a, b) => a + b.value, 0) || 1;
+        const pct = Math.round((data[0]?.value ?? 0) * 100 / total);
+        chart.children.push(am5.Label.new(root, {
+            text: `${pct}%`,
+            centerX: am5.p50, centerY: am5.p50,
+            fontSize: 24, fontWeight: '700'
+        }));
+
+        // tooltips
+        series.slices.template.setAll({
+            tooltipText: '{category}: {value.formatNumber("#,###")}'
+        });
+
+        // bullets de valor en cada slice (opcional)
+        series.labels.template.setAll({
+            text: '{category}',
+            fill: am5.color(0x374151),
+        });
+
+        return root;
+    }
+
+    private buildInventarioPorFuenteStacked(containerId: string, rows: FuenteRow[]) {
+        const root = am5.Root.new(containerId);
+        root.setThemes([am5themes_Animated.new(root)]);
+        root._logo?.dispose?.();
+
+        const chart = root.container.children.push(am5xy.XYChart.new(root, {
+            layout: root.verticalLayout,
+            panX: false, panY: false, wheelX: 'none', wheelY: 'none'
+        }));
+
+        const xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 20 });
+        xRenderer.grid.template.setAll({ visible: false });  // o { strokeOpacity: 0 }
+
+        const x = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
+            categoryField: 'categoria',
+            renderer: xRenderer
+        }));
+
+        const y = chart.yAxes.push(am5xy.ValueAxis.new(root, {
+            renderer: am5xy.AxisRendererY.new(root, {}),
+            calculateTotals: true
+        }));
+
+        x.data.setAll(rows);
+
+        const makeSeries = (name: string, field: keyof FuenteRow, colorHex: number) => {
+            const s = chart.series.push(am5xy.ColumnSeries.new(root, {
+                name, xAxis: x, yAxis: y,
+                valueYField: field as string,
+                categoryXField: 'categoria',
+                stacked: true,
+                tooltip: am5.Tooltip.new(root, { labelText: `${name}: {valueY.formatNumber("#,###")}` })
+            }));
+            s.columns.template.setAll({
+                width: am5.percent(80),
+                strokeOpacity: 0,
+                fill: am5.color(colorHex)
+            });
+            // labels
+            s.bullets.push(() => am5.Bullet.new(root, {
+                locationY: 0.5,
+                sprite: am5.Label.new(root, {
+                    text: '{valueY.formatNumber("#,###")}',
+                    centerX: am5.p50, centerY: am5.p100, dy: -12, fontSize: 11
+                })
+            }));
+            s.data.setAll(rows);
+            return s;
+        };
+
+        const sHospital = makeSeries('Hospital', 'hospital', IMSS_COLORS.verde);
+        const sAlmacen = makeSeries('Almacén', 'almacen', IMSS_COLORS.azul);
+
+        // Leyenda
+        chart.children.push(am5.Legend.new(root, {
+            useDefaultMarker: true,
+            centerX: am5.p50, x: am5.p50,
+            dy: 8
+        })).data.setAll([sHospital, sAlmacen]);
+
+        return root;
+    }
+
+
 }
 
 function aplicarFactor(disponible: number, factor?: FactorUnidad): number {
@@ -522,12 +945,32 @@ function aplicarFactor(disponible: number, factor?: FactorUnidad): number {
 function toNum(v: any): number { const n = Number(v); return isFinite(n) ? n : 0; }
 function safeStr(v: any): string | null { return v == null ? null : String(v); }
 function formatOrDefault(d: any, fallback: string) {
-    if (!d) return fallback;
-    const dt = new Date(d);
-    if (isNaN(+dt)) return fallback;
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}/${dt.getFullYear()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+    // null/undefined/cadena vacía → fallback
+    if (d == null || d === '') return fallback;
+
+    // 🔸 Si ya es string, NO la toques: regresa tal cual
+    if (typeof d === 'string') {
+        const s = d.trim();
+        if (!s || s.includes('NaN')) return fallback; // sanidad básica
+        return s; // <-- sin convertir ni re-formatear
+    }
+
+    // 🔸 Si es un Date válido, formatea DD/MM/AAAA HH:mm:ss
+    if (d instanceof Date && !isNaN(+d)) {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    // 🔸 Otros tipos (número Excel serial, etc.) → intenta como Date, si no, a string
+    const maybe = new Date(d);
+    if (!isNaN(+maybe)) {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${pad(maybe.getDate())}/${pad(maybe.getMonth() + 1)}/${maybe.getFullYear()} ${pad(maybe.getHours())}:${pad(maybe.getMinutes())}:${pad(maybe.getSeconds())}`;
+    }
+
+    return String(d);
 }
+
 function cleanLote(l?: string) {
     if (!l) return '';
     return l.replace(/[\/"']/g, '').slice(0, 20).trim();
@@ -538,3 +981,43 @@ function slicePartida(p?: string | number | null) {
     const m = String(p).match(/\d{5,6}/);
     return m ? m[0] : String(p);
 }
+
+function formatExcelDate0(d: any, fallback: string) {
+    // 1) vacío → fallback
+    if (d == null || d === '') return fallback;
+
+    // 2) si ya es string:
+    if (typeof d === 'string') {
+        const s = d.trim();
+        if (!s || s.includes('NaN')) return fallback;
+
+        // a) ISO corto: YYYY-MM-DD → dd/mm/yyyy 00:00:00
+        const iso = /^(\d{4})-(\d{2})-(\d{2})$/;
+        const mIso = s.match(iso);
+        if (mIso) {
+            const [, yyyy, mm, dd] = mIso;
+            return `${dd}/${mm}/${yyyy} 00:00:00`;
+        }
+
+        // b) Ya viene como dd/mm/yyyy o dd/mm/yyyy hh:mm:ss → normalizar a 00:00:00
+        const dmy = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+\d{2}:\d{2}:\d{2})?$/;
+        const mDmy = s.match(dmy);
+        if (mDmy) {
+            const [, dd, mm, yyyy] = mDmy;
+            return `${dd}/${mm}/${yyyy} 00:00:00`;
+        }
+
+        // c) Otro string → lo dejamos tal cual (mejor no tocar)
+        return s;
+    }
+
+    // 3) Date u otros tipos -> formatear a dd/mm/yyyy 00:00:00 sin cambiar huso
+    const dt = d instanceof Date ? d : new Date(d);
+    if (isNaN(+dt)) return fallback;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const dd = pad(dt.getDate());
+    const mm = pad(dt.getMonth() + 1);
+    const yyyy = dt.getFullYear();
+    return `${dd}/${mm}/${yyyy} 00:00:00`;
+}
+
