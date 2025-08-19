@@ -87,6 +87,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     claveSeleccionada = '';
     unidadSeleccionada = '';
     cpmSeleccionada = 0;
+    existenciaReal = 0;
     trazabilidadService = inject(TrazabilidadService);
 
     // al principio del componente
@@ -384,7 +385,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
 
                 if (existenciasInsumo) {
                     for (const i of existenciasInsumo) {
-                        unidadResumen.clave.existencia += i.disponible;
+                        unidadResumen.clave.existencia += (i.disponible - i.comprometidos);
                     }
                 }
                 const existenciaDisp = unidadResumen.clave.existencia;
@@ -538,11 +539,12 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
      * @param clave Clave del insumo
      * @param cluesimb Cluesimb de la unidad
      */
-    abrirTrazabilidad(clave: string, cluesimb: string, cpm: number, descripcion: string) {
+    abrirTrazabilidad(clave: string, cluesimb: string, cpm: number, descripcion: string, existenciaReal: number) {
         this.claveSeleccionada = clave;
         this.unidadSeleccionada = cluesimb;
         // si mando -1, es almacen
         this.cpmSeleccionada = cpm;
+        this.existenciaReal = existenciaReal;
         this.descripcion = ((descripcion.length > 250) ? descripcion.slice(0, 240) + ' [...]' : descripcion);
         // por si quedó en true por alguna razón, fuerza el flanco de bajada/subida
         this.modalVisible = false;
@@ -568,7 +570,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
             // usamos la existencia en dispensación cruda si la guardaste,
             // si no, la calculamos desde la base mostrada
             const disp = (unidad as any)._existenciaDisp ?? (Number(unidad?.clave?.existencia ?? 0) * fc);
-            return `Disp.: ${disp} (fc ${fc})`;
+            return +disp > 0 ? `Disp.: ${disp} (fc ${fc})` : '';
         }
 
         return '—';

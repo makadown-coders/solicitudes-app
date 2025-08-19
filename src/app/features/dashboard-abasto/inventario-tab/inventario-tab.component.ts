@@ -192,7 +192,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
                 rows = this.storageSolicitudService.getInventarioFromLocalStorage();
             }
             this.almacenes.set(rows ?? []);
-         });
+        });
 
         // 4) Hospitales: combinamos TODAS las existencias$ (map) en un solo arreglo
         const existenciasStreams = Array.from(this.invSrv.existencias$.values());
@@ -463,9 +463,13 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
     private updateCharts() {
         const rows = this.filtered();
 
-        // ----- Donut % abasto -----
-        const totalCpm = rows.filter(r => r.insumoEnCPM === 'SI').length;
-        const conInv = rows.filter(r => r.insumoEnCPM === 'SI' && (r.inventarioDisponible ?? 0) > 0).length;
+        // ----- Donut % abasto -----        
+        const totalCpm = this.cpmsSet().size; // rows.filter(r => r.insumoEnCPM === 'SI').length;
+        console.log('updateDonut totalCpms', totalCpm);
+        const conInventario = rows.filter(r => r.insumoEnCPM === 'SI' && (r.inventarioDisponible ?? 0) > 0);
+        // hacer un distinct de clave en conInventario
+        const conInv = new Set(conInventario.map(r => r.clave)).size;
+        console.log('updateDonut conInv', conInv);
         const abastoData = [
             { label: "Con inventario", value: conInv },
             { label: "Sin inventario", value: Math.max(0, totalCpm - conInv) }
@@ -474,7 +478,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             this.pieSeries.data.setAll(abastoData);
             const pct = totalCpm ? Math.round((conInv * 100) / totalCpm) : 0;
             const lbl = (this as any)._abastoCenterLabel as am5.Label | undefined;
-            lbl?.set("text", `${pct}%`);
+            lbl?.set("text", `${conInv}/${totalCpm} (${pct}%)`);
         }
 
         // ----- Barras por categoría -----
@@ -527,17 +531,41 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             })
         );
 
+        // Evita recortes: quita labels/ticks del pie y agrega padding al chart
+        /*this.pieSeries.labels.template.setAll({ forceHidden: true });
+        this.pieSeries.ticks.template.setAll({ forceHidden: true });
+        chartA.setAll({ paddingTop: 8, paddingRight: 12, paddingBottom: 8, paddingLeft: 12 });*/
+        this.pieSeries.labels.template.setAll({
+            text: "{category}",
+            inside: true,
+            radius: 10
+        });
+        this.pieSeries.ticks.template.setAll({ visible: true });
+        chartA.setAll({ paddingLeft: 64, paddingRight: 64, paddingTop: 18, paddingBottom: 18 });
+
+
+        // Leyenda centrada abajo
+        const legendA = chartA.children.push(am5.Legend.new(this.rootAbasto, {
+            centerX: am5.p50, x: am5.p50,
+            centerY: am5.p100, y: am5.p100,
+            paddingTop: 8
+        }));
+        legendA.data.setAll(this.pieSeries.dataItems);
+
+
         this.pieSeries.set("colors", am5.ColorSet.new(this.rootAbasto, {
             colors: [am5.color(IMSS_COLORS.verde), am5.color(IMSS_COLORS.gris)]
         }));
 
         // label central (guárdalo en la instancia para actualizarlo)
         const centerLabel = chartA.children.push(am5.Label.new(this.rootAbasto, {
-            text: "0%",
+            // text: "0%",
             centerX: am5.p50,
-            centerY: am5.p50,
-            fontSize: 24,
-            fontWeight: "700"
+            x: am5.p50,
+            layout: this.rootAbasto.verticalLayout,
+            // centerY: am5.p50,
+            // fontSize: 26,
+            // fontWeight: "700",
         }));
         // @ts-ignore: guardamos referencia para updateCharts
         (this as any)._abastoCenterLabel = centerLabel;

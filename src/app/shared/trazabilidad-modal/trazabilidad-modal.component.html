@@ -53,14 +53,19 @@
             <th class="px-4 py-2 text-right">Saldo</th>
           </tr>
         </thead>
-
+        @let hoy = fechaDeHoy();
         <tbody>
           <!-- OJO: ahora iteramos movimientosConSaldo() -->
           <tr *ngFor="let mov of movimientosConSaldo()">
             <td class="px-4 py-2 border">{{ mov.fecha | date:'dd/MM/yyyy' }}</td>
             <td class="px-4 py-2 border">{{ mov.lote || '—' }}</td>
+            <!-- si mov.fecha_caducidad es menor que el dia de hoy
+              se muestra la fecha de caducidad en rojo bold -->            
             <td class="px-4 py-2 border">
+              @let fechaCaducidad =  fechaDeString(mov.fecha_caducidad);
+              <span [ngClass]="mov.fecha_caducidad && fechaCaducidad && fechaCaducidad < hoy ? 'font-bold text-red-600 dark:text-red-400' : ''">
               {{ mov.fecha_caducidad ? (mov.fecha_caducidad | date:'dd/MM/yyyy') : '—' }}
+              </span>
             </td>
             <td class="px-4 py-2 border">{{ 
               mov.proveedor + (mov.observaciones ? ' ('+ mov.observaciones + ')' : '')
@@ -96,6 +101,16 @@
               {{ totales().saldo | number:'1.0-0' }}
             </td>
           </tr>
+          <tr class="bg-green-50 dark:bg-green-900" 
+            *ngIf="totales().saldo !== existenciaReal">
+            <!-- Si existenciaReal es diferente a totales().saldo,
+             mostrar una leyenda diciendo algo como "El saldo mostrado puede ser diferente al de la existencia real debido a factores como existencias comprometidas o insumos caducados" -->
+            <td colspan="7" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300">
+              El saldo mostrado podría no reflejar la existencia real, ya que no considera existencias comprometidas o insumos caducados.
+            </td>
+          </tr>
+
+
           <!-- Resumen comparativo (CPM / FC / Saldo base) -->
           <tr *ngIf="(cpmBase ?? -1) > -1">
             <td colspan="7" class="px-4 py-3 bg-green-50 dark:bg-green-900">

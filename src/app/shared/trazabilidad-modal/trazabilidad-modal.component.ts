@@ -26,6 +26,7 @@ export class TrazabilidadModalComponent implements OnChanges {
     @Input() cluesimb: string = '';
     @Input() cpmBase: number = 0;
     @Input() descripcionArticulo: string = '';
+    @Input() existenciaReal: number = 0;
 
     @Input() visible = false;
     @Output() closed = new EventEmitter<void>(); // 👈 avisa al padre
@@ -82,7 +83,7 @@ export class TrazabilidadModalComponent implements OnChanges {
 
                 // 2) factor (rápido)
                 const fc = await this.trazabilidadService.getFactorConversionPorUnidad(this.clave, this.cluesimb);
-                console.log('factor', fc);
+                // console.log('factor', fc);
                 this.factor.set(fc);
             } finally {
                 this.loading.set(false);
@@ -163,5 +164,27 @@ export class TrazabilidadModalComponent implements OnChanges {
         const filename = `trazabilidad_${safeClave}_${safeUnidad}_${hoy}.xlsx`;
 
         XLSX.writeFile(wb, filename);
+    }
+
+    fechaDeHoy() : Date {
+        return new Date();
+    }
+
+
+    fechaDeString(fecha: string | null | undefined) : Date | null {
+        if (!fecha) return null;
+        // la fecha recibida siempre tiene formato con timezone, ej.
+        // 2025-03-31T07:00:00.000Z
+        const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
+        if (!regex.test(fecha)) return null;
+    
+        //Quitar del string el timezone
+        const fechaSinTimezone = fecha.split('T')[0];
+        // Convertir a date usando los pedazos yyyy-mm-dd 
+        // usando split en fechaSinTimezone
+        const year = parseInt(fechaSinTimezone.split('-')[0]);
+        const month = parseInt(fechaSinTimezone.split('-')[1]);
+        const day = parseInt(fechaSinTimezone.split('-')[2]);
+        return new Date(year, month - 1, day);
     }
 }
