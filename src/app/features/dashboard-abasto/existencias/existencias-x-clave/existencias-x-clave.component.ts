@@ -1,5 +1,5 @@
 // src/app/features/dashboard-abasto/existencias/existencias-x-clave/existencias-x-clave.component.ts
-import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, Input, OnChanges, SimpleChanges, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
@@ -87,11 +87,15 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     claveSeleccionada = '';
     unidadSeleccionada = '';
     cpmSeleccionada = 0;
+    existenciaReal = 0;
     trazabilidadService = inject(TrazabilidadService);
 
     // al principio del componente
     // factorConv = { en_dispensacion: false, cantidad_fc: 1 };
     private factorMap = new Map<string, FactorUnidad>(); // key = `${clave}|${cluesimb}`
+
+    // Variable para loading mientras se busca toda la info sobre la clave
+    loadingClave = signal(false);
 
     // helper
     /*private aplicarFactorBase(cantidad: number): number {
@@ -233,20 +237,25 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     }
 
     async selectClave(item: any, skipLocalStorage = false) {
-        this.claveBusqueda = item.clave;
+        this.loadingClave.set(true);
+        try {
+            this.claveBusqueda = item.clave;
 
-        if (!skipLocalStorage) {
-            localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE, JSON.stringify(item));
+            if (!skipLocalStorage) {
+                localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE, JSON.stringify(item));
+            }
+            this.descripcion = item.descripcion;
+            this.unidad = item.unidadMedida ?? item.presentacion ?? '';
+            const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
+            this.clasificacion = clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
+            this.autocompleteResults = [];
+            this.selectedIndex = -1;
+            this.cdRef.detectChanges();
+            await this.filtrarClave(skipLocalStorage);
+            this.claveConfirmada = true;
+        } finally {
+            this.loadingClave.set(false);
         }
-        this.descripcion = item.descripcion;
-        this.unidad = item.unidadMedida ?? item.presentacion ?? '';
-        const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
-        this.clasificacion = clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
-        this.autocompleteResults = [];
-        this.selectedIndex = -1;
-        this.cdRef.detectChanges();
-        this.filtrarClave(skipLocalStorage);
-        this.claveConfirmada = true;
     }
 
     /*async buscarFactor() {
@@ -376,7 +385,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
 
                 if (existenciasInsumo) {
                     for (const i of existenciasInsumo) {
-                        unidadResumen.clave.existencia += i.disponible;
+                        unidadResumen.clave.existencia += (i.disponible - i.comprometidos);
                     }
                 }
                 const existenciaDisp = unidadResumen.clave.existencia;
@@ -530,11 +539,12 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
      * @param clave Clave del insumo
      * @param cluesimb Cluesimb de la unidad
      */
-    abrirTrazabilidad(clave: string, cluesimb: string, cpm: number, descripcion: string) {
+    abrirTrazabilidad(clave: string, cluesimb: string, cpm: number, descripcion: string, existenciaReal: number) {
         this.claveSeleccionada = clave;
         this.unidadSeleccionada = cluesimb;
         // si mando -1, es almacen
         this.cpmSeleccionada = cpm;
+        this.existenciaReal = existenciaReal;
         this.descripcion = ((descripcion.length > 250) ? descripcion.slice(0, 240) + ' [...]' : descripcion);
         // por si quedó en true por alguna razón, fuerza el flanco de bajada/subida
         this.modalVisible = false;
@@ -560,7 +570,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
             // usamos la existencia en dispensación cruda si la guardaste,
             // si no, la calculamos desde la base mostrada
             const disp = (unidad as any)._existenciaDisp ?? (Number(unidad?.clave?.existencia ?? 0) * fc);
-            return `Disp.: ${disp} (fc ${fc})`;
+            return +disp > 0 ? `Disp.: ${disp} (fc ${fc})` : '';
         }
 
         return '—';

@@ -308,7 +308,7 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
 
         const filtrado = this.existenciaUnidadesElegidas.filter(item => item.clave === clave);
         if (filtrado.length === 0) return 0;
-        return filtrado.reduce((total, item) => total + item.disponible, 0);
+        return filtrado.reduce((total, item) => total + (item.disponible - item.comprometidos), 0);
     }
 
     resumenCPMs() {

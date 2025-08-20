@@ -148,6 +148,7 @@ export class InventarioService {
   }
 
   emitirInventario(inventario: Inventario[]) {
+    // console.info('📦 InventarioService.emitirInventario()', inventario);
     this.inventarioSubject.next(inventario);
   }
 
@@ -323,6 +324,7 @@ export class InventarioService {
   }
 
   private limpiarInventario() {
+    // console.info('🧹 Limpiando inventario...');
     localStorage.removeItem(StorageVariables.SOLICITUD_INVENTARIO);
     this.inventarioSubject.next([]);
   }
