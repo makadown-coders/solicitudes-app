@@ -349,6 +349,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             const cluesDirecto = (inv as any).clues ?? (inv as any).cluesimb ?? null;
             const nombreUnidad = (inv as any).unidad ?? (inv as any).almacen ?? null;
             const clues = (cluesDirecto ?? this.unidadesSrv.getCluesimbFor(nombreUnidad ?? undefined, undefined) ?? '').trim();
+            const cluesSSA = this.unidadesSrv.getCluesSSAFor(nombreUnidad ?? undefined, undefined) ?? '';
 
             // 2) Citas y Artículos
             const keyCita = `${clave}__${cleanLote(inv.lote)}`;
@@ -370,7 +371,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
                 grupoInsumo = hit.grupoInsumo;
             }
 
-            const prov = this.provSrv.findByNombreStrict(citaInfo.proveedor ?? '');
+            const prov = this.provSrv.findByNombre(citaInfo.proveedor ?? '');
             const rfcProveedor = prov?.rfc ?? null;
 
             return {
@@ -396,7 +397,8 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
                 fechaRecepcion: formatOrDefault(inv.fecha_entrada, '2025-01-01' /*'31/12/2025 00:00:00'*/),
                 unidadOrigenTexto: safeStr((inv as any).almacen) ?? safeStr((inv as any).unidad) ?? null,
                 tipoFuente: tipo,
-            };
+                cluesSSA: cluesSSA
+            } as InventarioVistaRow;
         };
 
 
@@ -465,11 +467,11 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
 
         // ----- Donut % abasto -----        
         const totalCpm = this.cpmsSet().size; // rows.filter(r => r.insumoEnCPM === 'SI').length;
-        console.log('updateDonut totalCpms', totalCpm);
+        // console.log('updateDonut totalCpms', totalCpm);
         const conInventario = rows.filter(r => r.insumoEnCPM === 'SI' && (r.inventarioDisponible ?? 0) > 0);
         // hacer un distinct de clave en conInventario
         const conInv = new Set(conInventario.map(r => r.clave)).size;
-        console.log('updateDonut conInv', conInv);
+        // console.log('updateDonut conInv', conInv);
         const abastoData = [
             { label: "Con inventario", value: conInv },
             { label: "Sin inventario", value: Math.max(0, totalCpm - conInv) }
@@ -776,6 +778,106 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         const mi = String(stamp.getMinutes()).padStart(2, '0');
         const ss = String(stamp.getSeconds()).padStart(2, '0');
         const filename = `Inventario_IMSSB_${yyyy}${mm}${dd}_${hh}${mi}${ss}.xlsx`;
+
+        // 7) Descargar
+        XLSX.writeFile(wb, filename, { bookType: 'xlsx' });
+    }
+
+    /**
+     * Exporta a Excel la información del inventario en formato requerido por SACIA
+     * 
+     * @remarks
+     * La exportación incluye solo las filas con ordenes de suministro válidas y con inventario disponible > 0.
+     * Se mantiene el orden de columnas siguiente:
+     * 1. ENTIDAD
+     * 2. CLUES
+     * 3. ORDEN DE SUMINISTRO
+     * 4. RFC
+     * 5. CLAVE
+     * 14. ESTADO DEL INSUMO
+     * 15. INVENTARIO DISPONIBLE
+     * 16. LOTE
+     * 18. F_CAD (fecha de caducidad)
+     * 19. F_FAB (fecha de fabricación)
+     * 20. F_REC (fecha de recepción)
+     * 
+     * El nombre del archivo se genera con un timestamp en formato "dd/mm/yyyy hh:mm:ss"
+     */
+    exportarExcelSACIA() {
+        // 1) Tomamos TODO lo filtrado (no solo la página)
+        const rows = this.filtered();
+
+        // 2) Definimos el orden de columnas (1..20)
+        const headers = [
+            'ENTIDAD',  // 1
+            'CLUES',               // 2
+            'ORDEN DE SUMINISTRO', // 3
+            'RFC',       // 4
+            'CLAVE',          // 7
+            'ESTADO DEL INSUMO',   // 14
+            'INVENTARIO DISPONIBLE', // 15
+            'LOTE',              // 16
+            'F_CAD',  // 18
+            'F_FAB',// 19
+            'F_REC',  // 20
+        ] as const;
+
+        // 3) Mapeo a la forma requerida ignorando ordenes de suministro nulas y con inventario disponible > 0
+        const data = rows.filter(r => r.ordenDeSuministro !== null && 
+            r.ordenDeSuministro !== '' && 
+            r.inventarioDisponible > 0).map(r => {
+            return {
+                'ENTIDAD': 'BAJA CALIFORNIA',
+                'CLUES': r.cluesSSA ?? (r.clues ?? ''),
+                'ORDEN DE SUMINISTRO': r.ordenDeSuministro ?? '',
+                'RFC': r.rfcProveedor ?? '',
+                'CLAVE': r.clave ?? '',
+                'ESTADO DEL INSUMO': r.estadoInsumo ?? 1,
+                'INVENTARIO DISPONIBLE': r.inventarioDisponible ?? 0,
+                'LOTE': r.lote ?? '',
+                // ⬇⬇ aquí el formateo fijo a "dd/mm/yyyy 00:00:00", sin UTC
+                'F_CAD': formatExcelDate0(
+                    r.fechaCaducidad, '31/12/2025 00:00:00'
+                ),
+                'F_FAB': formatExcelDate0(
+                    r.fechaFabricacion, '01/01/2025 00:00:00'
+                ),
+                'F_REC': formatExcelDate0(
+                    r.fechaRecepcion, '01/01/2025 00:00:00'
+                ),
+            };
+        });
+
+        // 4) Hoja y libro
+        const ws = XLSX.utils.json_to_sheet(data, { header: [...headers] as any });
+
+        // 5) Ajustes visuales (anchos de columnas aproximados)
+        ws['!cols'] = [
+            { wch: 18 }, // ENTIDAD
+            { wch: 16 }, // CLUES
+            { wch: 30 }, // ORDEN
+            { wch: 18 }, // RFC
+            { wch: 18 }, // CLAVE/CNIS
+            { wch: 8 }, // ESTADO
+            { wch: 16 }, // DISPONIBLE
+            { wch: 18 }, // LOTE
+            { wch: 20 }, // CADUCIDAD
+            { wch: 20 }, // FABRICACIÓN
+            { wch: 20 }, // RECEPCIÓN
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+
+        // 6) Nombre del archivo con timestamp
+        const stamp = new Date();
+        const yyyy = stamp.getFullYear();
+        const mm = String(stamp.getMonth() + 1).padStart(2, '0');
+        const dd = String(stamp.getDate()).padStart(2, '0');
+        const hh = String(stamp.getHours()).padStart(2, '0');
+        const mi = String(stamp.getMinutes()).padStart(2, '0');
+        const ss = String(stamp.getSeconds()).padStart(2, '0');
+        const filename = `LAYOUT_SACIA_IMSSB_${yyyy}${mm}${dd}_${hh}${mi}${ss}.xlsx`;
 
         // 7) Descargar
         XLSX.writeFile(wb, filename, { bookType: 'xlsx' });
