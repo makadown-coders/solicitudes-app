@@ -64,6 +64,10 @@
         "descripcion": "ADVANCED STERILIZATION S DE RL DE CV"
     },
     {
+        "rfc": "SPG -060508-AF7",
+        "descripcion": "STERN PHARMA GMBH SA DE CV"
+    },    
+    {
         "rfc": "APH -210611-1C0",
         "descripcion": "ADVANTA PHARMA SAPI DE CV"
     },
@@ -78,6 +82,10 @@
     {
         "rfc": "ADZ -841009-FY9",
         "descripcion": "ALEACIONES DENTALES ZEYCO SA DE CV"
+    },
+    {
+        "rfc": "NEO -041207-F29",
+        "descripcion": "NEOLPHARMA SA DE CV"
     },
     {
         "rfc": "ALA -860401-IN8",
@@ -200,7 +208,7 @@
         "descripcion": "AZUL RIESTRA SA DE CV"
     },
     {
-        "rfc": "PSE -001026-IZE",
+        "rfc": "PSE -001026-IZ6",
         "descripcion": "BAXTER HEALTHCARE MÉXICO S DE RL DE CV"
     },
     {
@@ -254,6 +262,10 @@
     {
         "rfc": "BSP -091210-BA1",
         "descripcion": "BIOSISTEMAS Y SEGURIDADPRIVADA SA DE CV"
+    },
+    {
+        "rfc": "BSP -091210-BA1",
+        "descripcion": "BIOSISTEMAS Y SEGURIDAD PRIVADA SA DE CV"
     },
     {
         "rfc": "BIO -980320-9V6",
@@ -338,6 +350,10 @@
     {
         "rfc": "POC -150708-S34",
         "descripcion": "CBH ESPECIALISTAS EN INNOVACION MEDICA SA DE CV"
+    },
+    {
+        "rfc": "NIN -780801-IH0",
+        "descripcion": "NOVAG INFANCIA SA DE CV"
     },
     {
         "rfc": "CLS -140321-AU9",
@@ -844,6 +860,10 @@
         "descripcion": "GABAME SA DECV"
     },
     {
+        "rfc": "GAB -130627-FV2",
+        "descripcion": "GABAME SA DE CV"
+    },
+    {
         "rfc": "ROVG-750412-4E8",
         "descripcion": "GABRIELA ROJAS VÁZQUEZ   MUEBLES GAROVA   MEDITEMS"
     },
@@ -866,6 +886,14 @@
     {
         "rfc": "GME -170117-QQ4",
         "descripcion": "GARKEN MEDICAL SA DE CV"
+    },
+    {
+        "rfc": "LKE -600127-8F9",
+        "descripcion": "LABORATORIOS KENER SA DE CV"
+    },
+    {
+        "rfc": "IQF -390915-327",
+        "descripcion": "INDUSTRIAS QUIMICO FARMACEUTICAS AMERICANAS SA DE CV"
     },
     {
         "rfc": "DPH -001106-B70",
@@ -1266,6 +1294,10 @@
     {
         "rfc": "MAP -160728-P91",
         "descripcion": "MAPETZIN SA DE CV"
+    },
+    {
+        "rfc": "MAP -160728-P91",
+        "descripcion": "MAPE+TZIN SA DE CV"
     },
     {
         "rfc": "MNE -040922-6K9",
@@ -1708,6 +1740,10 @@
         "descripcion": "SANOFI PASTEUR SA DE CV"
     },
     {
+        "rfc": "SPA -960328-P62",
+        "descripcion": "SANOFI PASTEUR DE MÉXICO SA DE CV"
+    },
+    {
         "rfc": "SNM -190128-6B3",
         "descripcion": "SANULAC NUTRICIÓN MÉXICO SA DE CV"
     },
@@ -1926,5 +1962,181 @@
     {
         "rfc": "LAL -690421-KQ0",
         "descripcion": "LABORATORIOS ALPHARMA SA DE CV"
+    },
+    {
+        "rfc": "LSC -130111-DL8",
+        "descripcion": "LABORATORIOS SCHOEN SA DE CV"
+    },
+    {
+        "rfc": "IFA -831021-3W1",
+        "descripcion": "INVESTIGACIÓN FARMACÉUTICA SA DE CV"
+    },
+    {
+        "rfc": "PMA -930216-GB2",
+        "descripcion": "PRODUCTOS MAVER SA DE CV"
+    },
+    {
+        "rfc": "LLI -811201-IX6",
+        "descripcion": "LABORATORIOS LIOMONT SA DE CV"
+    },
+    {
+        "rfc": "SSN -980813-9K6",
+        "descripcion": "SON S NATURAL SA DE CV"
+    },
+    {
+        "rfc": "OSY -150327-NI1",
+        "descripcion": "OPERADORA DE SERVICIOS YAMA S DE RL DE CV"
+    },
+    {
+        "rfc": "ISU -990420-765",
+        "descripcion": "INDUSTRIAS SUANCA SA DE CV"
+    },
+    {
+        "rfc": "LRS -030905-Q16",
+        "descripcion": "LABORATORIO RAAM DE SAHUAYO SA DE CV"
+    },
+    {
+        "rfc": "QFA -830613-BM2",
+        "descripcion": "QUÍMICA Y FARMACIA SA DE CV"
+    },
+    {
+        "rfc": "SAN -641110-MK7",
+        "descripcion": "SANDOZ SA DE CV"
+    },
+    {
+        "rfc": "FAR -970211-7V4",
+        "descripcion": "FARMABIOT SA DE CV"
+    },
+    {
+        "rfc": "OME -790320-1N0",
+        "descripcion": "OFFENBACH MEXICANA SA DE CV"
+    },
+    {
+        "rfc": "MLC -170629-IG2",
+        "descripcion": "MSN LIFE CARE SA DE CV"
+    },
+    {
+        "rfc": "NHI -130801-BT7",
+        "descripcion": "NATURAL HEALTH II SA DE CV"
+    },
+    {
+        "rfc": "JME -841231-168",
+        "descripcion": "JANSSEN-CILAG DE MÉXICO S DE RL DE CV"
+    },
+    {
+        "rfc": "MJN -081127-NC5",
+        "descripcion": "MEAD JOHNSON NUTRICIONALES DE MEXICO S DE RL DE CV"
+    },
+    {
+        "rfc": "NQU -080725-TH4",
+        "descripcion": "NATURALMEDIC QUIM SA DE CV"
+    },
+    {
+        "rfc": "MAY -070823-5I4",
+        "descripcion": "MAYDIN SA DE CV"
+    },
+    {
+        "rfc": "CAL -180129-784",
+        "descripcion": "COMERCIALIZADORA ALEFARM SA DE CV"
+    },
+    {
+        "rfc": "ONI -990914-816",
+        "descripcion": "OPERADORA NACIONAL E INTERNACIONAL DE PRODUCTOS ODONTOLOGICOS SA DE CV"
+    },    
+    {
+        "rfc": "SOL -980404-M83",
+        "descripcion": "SOLOMED SA DE CV"
+    },    
+    {
+        "rfc": "PCD -141007-9D4",
+        "descripcion": "PDM CONSORCIO DENTAL SA DE CV"
+    },
+    {
+        "rfc": "AMC -900913-2L3",
+        "descripcion": "ARTE MANUFACTURA Y COMERCIO SA DE CV"
+    },
+    {
+        "rfc": "IME -170707-DT7",
+        "descripcion": "IDEM MEDICAL SA DE CV"
+    },
+    {
+        "rfc": "MAT -900112-GN4",
+        "descripcion": "MATCUR SA DE CV"
+    },
+    {
+        "rfc": "PFF -021025-1V4",
+        "descripcion": "PIERRE FABRE FARMA DE MEXICO"
+    },
+    {
+        "rfc": "PFF -021025-1V4",
+        "descripcion": "PIERRE FABRE FARMA DE MÉXICO SA DE CV"
+    },
+    {
+        "rfc": "AOC -160517-GJ8",
+        "descripcion": "A1 OPERADORA COMERCIAL DE SERVICIOS Y PUBLICIDAD SA DE CV"
+    },
+    {
+        "rfc": "S&N -921215-RG4",
+        "descripcion": "SMITH & NEPHEW SA DE CV"
+    },
+    {
+        "rfc": "HME -020304-BP8",
+        "descripcion": "HI-TEC MEDICAL SA DE CV"
+    },
+    {
+        "rfc": "GSM -920409-JL6",
+        "descripcion": "GE SISTEMAS MEDICOS DE MEXICO SA DE CV"
+    },
+    {
+        "rfc": "COR -141022-CT0",
+        "descripcion": "COMERCIALIZADORA ORTICHART SA DE CV"
+    },
+    {
+        "rfc": "SAN -190509-SQ6",
+        "descripcion": "SANBARI SA DE CV"
+    },
+    {
+        "rfc": "MMD -060815-3FA",
+        "descripcion": "MERKA MED DESECHABLES SA DE CV"
+    },
+    {
+        "rfc": "JJM -920909-BM6",
+        "descripcion": "JOHNSON & JOHNSON MEDICAL MÉXICO SA DE CV"
+    },
+    {
+        "rfc": "MTE -150924-MB9",
+        "descripcion": "MÉDICA TEYCO SA DE CV"
+    },
+    {
+        "rfc": "DIS -240117-S16",
+        "descripcion": "DISCALAB SA DE CV"
+    },
+    {
+        "rfc": "BME -860331-7X2",
+        "descripcion": "BIOMEDICA MEXICANA SA DE CV"
+    },
+    {
+        "rfc": "DME -010612-B53",
+        "descripcion": "DKT DE MÉXICO SA DE CV"
+    },
+    {
+        "rfc": "DSO -200708-M27",
+        "descripcion": "DIANMA SOLUTIONS SA DE CV"
+    },
+    {
+        "rfc": "AME -051208-JD9",
+        "descripcion": "ATYDE MEXICO SA DE CV"
+    },
+    {
+        "rfc": "SEB -080617-NDA",
+        "descripcion": "SERVICIOS EMPRESARIALES BLANROJ SA DE CV"
+    },
+    {
+        "rfc": "BMD -140409-8S9",
+        "descripcion": "BSN MEDICAL DC SA DE CV"
+    },
+    {
+        "rfc": "NEO -080507-BY0",
+        "descripcion": "NEODREN S DE RL DE CV"
     }
 ]

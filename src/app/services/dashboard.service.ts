@@ -101,10 +101,10 @@ export class DashboardService {
     })
   );
 
-  // 2) Mapa clave__lote → {precio, orden, fte} ya listo para el tab
+  // 2) Mapa clave__lote → {precio, orden, fte, proveedor, clues_destino} ya listo para el tab
   public citasSlimMap$ = this.citasSlim$.pipe(
     map(list => {
-      const mp = new Map<string, { precio?: number | null; orden?: string | null; fte?: string | null; proveedor?: string | null }>();
+      const mp = new Map<string, { precio?: number | null; orden?: string | null; fte?: string | null; proveedor?: string | null; }>();
       for (const c of list) {
         const key = `${(c.clave_cnis ?? '').trim()}__${(c.lote ?? '').trim()}`;
         if (!mp.has(key)) {
@@ -112,7 +112,7 @@ export class DashboardService {
             precio: c.precio_unitario ?? null,
             orden: c.orden_de_suministro ?? null,
             fte: c.fte_fmto ?? null,
-            proveedor: c.proveedor ?? null
+            proveedor: c.proveedor ?? null,
           });
         }
       }

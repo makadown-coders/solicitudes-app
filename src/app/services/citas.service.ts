@@ -14,8 +14,14 @@ export class CitasService {
   private apiUrl = environment.apiUrl + '/citas'; // Ajusta si necesitas proxy
   private fechaService = inject(PeriodoFechasService);
   private excelService = inject(ExcelService);
+  private mapCluesUnidad: Map<string, string> = new Map<string, string>();
 
   constructor(private http: HttpClient) { }
+
+  // Obtener clues de la unidad por unidad
+  getCluesUnidad(unidad: string) {
+    return this.mapCluesUnidad.get(unidad);
+  }
 
   obtenerCitas(
     page = 1,
@@ -136,7 +142,7 @@ export class CitasService {
         nuevoRegistro.institucion = institucion;
         nuevoRegistro.contrato = contrato;
         nuevoRegistro.procedimiento = procedimiento;
-        nuevoRegistro.tipo_de_entrega = tipoEntrega;
+        nuevoRegistro.tipo_de_entrega = tipoEntrega;        
         nuevoRegistro.clues_destino = cluesDestino;
         nuevoRegistro.unidad = unidad;
         nuevoRegistro.fte_fmto = fuenteFinanciamiento;
@@ -173,10 +179,10 @@ export class CitasService {
 
       // creando rapidamente un map para relacion entre clues_destino y unidad
       // donde unidad no tenga valor vacío
-      const mapCluesUnidad: Map<string, string> = new Map<string, string>();
+      this.mapCluesUnidad = new Map<string, string>();
       citasRetorno.forEach((cita: Cita) => {
         if (cita.clues_destino && cita.unidad && cita.unidad.trim().length > 0) {
-          mapCluesUnidad.set(cita.clues_destino, cita.unidad);
+          this.mapCluesUnidad.set(cita.clues_destino, cita.unidad);
         }
       });
 
@@ -189,7 +195,7 @@ export class CitasService {
           cita.tipo_de_entrega = 'Operador Logístico';
         }
         if (cita.unidad.trim().length == 0) {
-          cita.unidad = mapCluesUnidad.get(cita.clues_destino) ?? '';
+          cita.unidad = this.mapCluesUnidad.get(cita.clues_destino) ?? '';
         }
         if (cita.unidad.trim() == 'Almacén Zona Ensenada') {
           cita.unidad = cita.unidad.toLocaleUpperCase();

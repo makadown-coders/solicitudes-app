@@ -44,6 +44,22 @@ export interface Unidad {
   tipoUnidad: string;
 }
 
+export interface Unidadv2 {
+  cluesssa: string;
+  cluesimb: string;
+  nombre: string;
+  aliasSas: string;
+  municipio: string;
+  localidad: string;
+  jurisdiccion: string;
+  direccion: string;
+  latitud: string;
+  longitud: string;
+  estratoUnidad: string;
+  nivelAtencion: string;
+  tipoUnidad: string;
+}
+
 /**
  * usado para dashboard abasto > Existencias > Existencias X Clave
  */

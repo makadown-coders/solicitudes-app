@@ -47,4 +47,5 @@ export interface InventarioVistaRow {
   // extra visible en grid
   unidadOrigenTexto: string | null;        // hospital/almacén
   tipoFuente: 'HOSPITAL' | 'ALMACEN';
+  cluesSSA?: string | null;
 }
