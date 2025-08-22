@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InventarioVistaRow } from '../../../models/inventario-vista.model';
 import { ArticulosService } from '../../../services/articulos.service';
-import { CitasService } from '../../../services/citas.service';
 import { InventarioService } from '../../../services/inventario.service';
 import { Inventario } from '../../../models/Inventario';
 import { combineLatest } from 'rxjs';
@@ -16,10 +15,10 @@ import { ProveedoresService } from '../../../services/proveedores.service';
 import { GruposClavesService } from '../../../services/grupo-clases.service';
 import * as XLSX from 'xlsx';
 // amCharts v5
-import * as am5 from "@amcharts/amcharts5";
-import * as am5xy from "@amcharts/amcharts5/xy";
-import * as am5percent from "@amcharts/amcharts5/percent";
-import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import * as am5 from '@amcharts/amcharts5';
+import * as am5xy from '@amcharts/amcharts5/xy';
+import * as am5percent from '@amcharts/amcharts5/percent';
+import am5themes_Animated from '@amcharts/amcharts5/themes/Animated';
 import { StorageSolicitudService } from '../../../services/storage-solicitud.service';
 
 
@@ -203,7 +202,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             });
         }
 
-        // 5) CPMS → set de claves con cantidad > 0 (considera los "ESTATAL" que generas)
+        // 5) CPMS → set de claves con cantidad > 0 (considera los 'ESTATAL' que generas)
         this.invSrv.cpms$.subscribe(cpms => {
             const claves = new Set<string>();
             for (const r of (cpms ?? [])) {
@@ -392,9 +391,9 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
                 inventarioDisponible: dispAjustado,
                 unidadMedida: art.presentacion ?? null,
                 lote: cleanLote(inv.lote),
-                fechaCaducidad: inv.caducidad ? 
-                                formatOrDefault(inv.caducidad, '2025-01-01') :
-                                null,
+                fechaCaducidad: inv.caducidad ?
+                    formatOrDefault(inv.caducidad, '2025-01-01') :
+                    null,
                 fechaFabricacion: '2025-01-01',
                 fechaRecepcion: formatOrDefault(inv.fecha_entrada, '2025-01-01'),
                 unidadOrigenTexto: safeStr((inv as any).almacen) ?? safeStr((inv as any).unidad) ?? null,
@@ -475,14 +474,14 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         const conInv = new Set(conInventario.map(r => r.clave)).size;
         // console.log('updateDonut conInv', conInv);
         const abastoData = [
-            { label: "Con inventario", value: conInv },
-            { label: "Sin inventario", value: Math.max(0, totalCpm - conInv) }
+            { label: 'Con inventario', value: conInv },
+            { label: 'Sin inventario', value: Math.max(0, totalCpm - conInv) }
         ];
         if (this.pieSeries) {
             this.pieSeries.data.setAll(abastoData);
             const pct = totalCpm ? Math.round((conInv * 100) / totalCpm) : 0;
             const lbl = (this as any)._abastoCenterLabel as am5.Label | undefined;
-            lbl?.set("text", `${conInv}/${totalCpm} (${pct}%)`);
+            lbl?.set('text', `${conInv}/${totalCpm} (${pct}%)`);
         }
 
         // ----- Barras por categoría -----
@@ -493,7 +492,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         }
         const catData = Array.from(byCat, ([categoria, inventario]) => ({ categoria, inventario }));
         if (this.catSeries) {
-            const x = this.catSeries.get("xAxis") as am5xy.CategoryAxis<any>;
+            const x = this.catSeries.get('xAxis') as am5xy.CategoryAxis<any>;
             x.data.setAll(catData);
             this.catSeries.data.setAll(catData);
         }
@@ -510,7 +509,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         }
         const fuenteData = Array.from(mapa.values());
         if (this.fuenteSeriesHosp && this.fuenteSeriesAlm) {
-            const x = this.fuenteSeriesHosp.get("xAxis") as am5xy.CategoryAxis<any>;
+            const x = this.fuenteSeriesHosp.get('xAxis') as am5xy.CategoryAxis<any>;
             x.data.setAll(fuenteData);
             this.fuenteSeriesHosp.data.setAll(fuenteData);
             this.fuenteSeriesAlm.data.setAll(fuenteData);
@@ -529,8 +528,8 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         );
         this.pieSeries = chartA.series.push(
             am5percent.PieSeries.new(this.rootAbasto, {
-                valueField: "value",
-                categoryField: "label",
+                valueField: 'value',
+                categoryField: 'label',
                 endAngle: 360
             })
         );
@@ -540,7 +539,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         this.pieSeries.ticks.template.setAll({ forceHidden: true });
         chartA.setAll({ paddingTop: 8, paddingRight: 12, paddingBottom: 8, paddingLeft: 12 });*/
         this.pieSeries.labels.template.setAll({
-            text: "{category}",
+            text: '{category}',
             inside: true,
             radius: 10
         });
@@ -557,19 +556,19 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         legendA.data.setAll(this.pieSeries.dataItems);
 
 
-        this.pieSeries.set("colors", am5.ColorSet.new(this.rootAbasto, {
+        this.pieSeries.set('colors', am5.ColorSet.new(this.rootAbasto, {
             colors: [am5.color(IMSS_COLORS.verde), am5.color(IMSS_COLORS.gris)]
         }));
 
         // label central (guárdalo en la instancia para actualizarlo)
         const centerLabel = chartA.children.push(am5.Label.new(this.rootAbasto, {
-            // text: "0%",
+            // text: '0%',
             centerX: am5.p50,
             x: am5.p50,
             layout: this.rootAbasto.verticalLayout,
             // centerY: am5.p50,
             // fontSize: 26,
-            // fontWeight: "700",
+            // fontWeight: '700',
         }));
         // @ts-ignore: guardamos referencia para updateCharts
         (this as any)._abastoCenterLabel = centerLabel;
@@ -583,34 +582,34 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             })
         );
         const colorSetCat = am5.ColorSet.new(this.rootCategoria, { colors: imssColorList(this.rootCategoria) });
-        chartC.set("colors", colorSetCat);
+        chartC.set('colors', colorSetCat);
 
         const xCat = chartC.xAxes.push(am5xy.CategoryAxis.new(this.rootCategoria, {
-            categoryField: "categoria",
+            categoryField: 'categoria',
             renderer: am5xy.AxisRendererX.new(this.rootCategoria, { minGridDistance: 20 }),
             tooltip: am5.Tooltip.new(this.rootCategoria, {})
         }));
-        xCat.get("renderer")!.labels.template.setAll({
+        xCat.get('renderer')!.labels.template.setAll({
             fontSize: 10,
             rotation: -30,
             centerY: am5.p50,
             dy: 10,
             maxWidth: 110,
-            oversizedBehavior: "truncate" // evita empalmes
+            oversizedBehavior: 'truncate' // evita empalmes
         });
         const yCat = chartC.yAxes.push(am5xy.ValueAxis.new(this.rootCategoria, {
             renderer: am5xy.AxisRendererY.new(this.rootCategoria, {})
         }));
         this.catSeries = chartC.series.push(am5xy.ColumnSeries.new(this.rootCategoria, {
-            name: "Inventario",
+            name: 'Inventario',
             xAxis: xCat,
             yAxis: yCat,
-            valueYField: "inventario",
-            categoryXField: "categoria",
-            tooltip: am5.Tooltip.new(this.rootCategoria, { labelText: "{valueY}" })
+            valueYField: 'inventario',
+            categoryXField: 'categoria',
+            tooltip: am5.Tooltip.new(this.rootCategoria, { labelText: '{valueY}' })
         }));
         // etiquetas pequeñas
-        xCat.get("renderer")!.labels.template.setAll({ fontSize: 10, rotation: -30, centerY: am5.p50, dy: 10 });
+        xCat.get('renderer')!.labels.template.setAll({ fontSize: 10, rotation: -30, centerY: am5.p50, dy: 10 });
 
         // 3) Inventario por fuente (stacked HOSPITAL vs ALMACEN)
         this.rootFuente = am5.Root.new(this.chartFuente.nativeElement);
@@ -621,37 +620,37 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             })
         );
         const xFuente = chartF.xAxes.push(am5xy.CategoryAxis.new(this.rootFuente, {
-            categoryField: "categoria",
+            categoryField: 'categoria',
             renderer: am5xy.AxisRendererX.new(this.rootFuente, { minGridDistance: 20 })
         }));
-        xFuente.get("renderer")!.labels.template.setAll({
+        xFuente.get('renderer')!.labels.template.setAll({
             fontSize: 10,
             rotation: -15,
             centerY: am5.p50,
             dy: 8,
             maxWidth: 110,
-            oversizedBehavior: "truncate"
+            oversizedBehavior: 'truncate'
         });
         const yFuente = chartF.yAxes.push(am5xy.ValueAxis.new(this.rootFuente, {
             renderer: am5xy.AxisRendererY.new(this.rootFuente, {})
         }));
 
         this.fuenteSeriesHosp = chartF.series.push(am5xy.ColumnSeries.new(this.rootFuente, {
-            name: "Hospital",
+            name: 'Hospital',
             stacked: true,
             xAxis: xFuente, yAxis: yFuente,
-            valueYField: "HOSPITAL",
-            categoryXField: "categoria",
-            tooltip: am5.Tooltip.new(this.rootFuente, { labelText: "Hospital: {valueY}" })
+            valueYField: 'HOSPITAL',
+            categoryXField: 'categoria',
+            tooltip: am5.Tooltip.new(this.rootFuente, { labelText: 'Hospital: {valueY}' })
         }));
 
         this.fuenteSeriesAlm = chartF.series.push(am5xy.ColumnSeries.new(this.rootFuente, {
-            name: "Almacén",
+            name: 'Almacén',
             stacked: true,
             xAxis: xFuente, yAxis: yFuente,
-            valueYField: "ALMACEN",
-            categoryXField: "categoria",
-            tooltip: am5.Tooltip.new(this.rootFuente, { labelText: "Almacén: {valueY}" })
+            valueYField: 'ALMACEN',
+            categoryXField: 'categoria',
+            tooltip: am5.Tooltip.new(this.rootFuente, { labelText: 'Almacén: {valueY}' })
         }));
 
         // Leyenda para stacked
@@ -728,7 +727,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
                 'UNIDAD DE MEDIDA': r.unidadMedida ?? '',
                 'LOTE': r.lote ?? '',
 
-                // ⬇⬇ aquí el formateo fijo a "dd/mm/yyyy 00:00:00", sin UTC
+                // ⬇⬇ aquí el formateo fijo a 'dd/mm/yyyy 00:00:00', sin UTC
                 'FECHA DE CADUCIDAD': formatExcelDate0(
                     r.fechaCaducidad, '31/12/2025 00:00:00'
                 ),
@@ -803,11 +802,50 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
      * 19. F_FAB (fecha de fabricación)
      * 20. F_REC (fecha de recepción)
      * 
-     * El nombre del archivo se genera con un timestamp en formato "dd/mm/yyyy hh:mm:ss"
+     * El nombre del archivo se genera con un timestamp en formato 'dd/mm/yyyy hh:mm:ss'
      */
     exportarExcelSACIA() {
-        // 1) Tomamos TODO lo filtrado (no solo la página)
-        const rows = this.filtered();
+
+        const clavesAExcluir = ['060.025.0632', '060.066.0104', '060.132.0204', '060.168.3347', '060.598.0077', '070.161.9001', '180.251.0125.00', '180.251.0207.00', '180.251.0208.00', '110.253.0200.00', '110.253.0221.00',
+            '110.253.0222.00', '110.253.0231.00', '110.253.0232.00', '110.253.0233.00', '110.253.0237.00', '250.501.0000.00', '060.066.0609', '070.203.0615', '160.000.0326.00', '160.088.9001.00', '160.167.0482.00',
+            '160.168.1311.00', '160.203.0612.00', '160.203.0613.00', '160.254.0180.00', '160.254.0231.00', '160.254.0235.00',
+            '160.254.0236.00', '160.254.0246.00', '160.254.0286.00', '160.254.0323.00', '160.254.0342.00', '160.254.0344.00',
+            '160.254.0555.00', '160.254.0600.00', '160.254.0672.00', '160.254.1027.00', '160.254.1028.00', '160.254.1029.00',
+            '160.307.3301.00', '160.621.7480.00', '160.621.7484.00', '160.621.7485.00', '160.621.7486.00', '160.621.7487.00',
+            '160.621.7489.00', '160.621.7490.00', '160.621.9006.00', '160.621.9024.00', '160.641.9056.00', '160.810.0283.00',
+            '160.810.0552.01', '160.841.0221.00', '160.935.6346.00', '160.979.0230.00', '204.020.0398.00', '254.001.0058.00',
+            '254.001.0334.00', '254.001.0394.00', '311.685.5119.00', '204.030.0098.00', '060.402.0092', '060.436.0115', '060.532.1010', '070.168.1313', '070.168.1314',
+            '070.168.1315', '070.777.7772.01', '160.120.1008.00', '160.161.1221.00', '160.161.9006.00', '160.161.9008.00', '160.161.9012.00', '160.161.9023.00', '160.166.0103.00', '160.189.0304.00',
+            '160.231.0666.00', '160.254.0003.00', '160.254.0204.00', '160.254.0208.00', '160.254.0223.00', '160.254.0240.00', '160.254.0241.00', '160.254.0245.00', '160.254.0265.00', '160.254.0277.00',
+            '160.254.0322.00', '160.254.0345.00', '160.254.0445.00', '160.254.0448.00', '160.254.0474.00', '160.254.0524.00', '160.254.0534.00', '160.254.0547.00', '160.254.0814.00', '160.268.1206.00',
+            '160.300.1002.00', '160.307.3302.00', '160.345.1355.00', '160.345.1356.00', '160.621.7481.00',
+            '160.621.7488.00', '160.621.7491.00', '160.674.0339.00', '160.777.7772.00', '204.020.0080.00',
+            '204.020.0119.00', '204.020.0491.00', '204.050.0073.00', '254.001.0057.00', '254.001.0131.00',
+            '254.002.0001.00', '180.000.0060.00', '180.000.0062.00', '180.000.0063.00', '180.000.0065.00',
+            '180.000.0066.00', '180.000.0067.00', '180.000.0068.00', '180.000.0069.00', '180.000.0099.00',
+            '180.000.0152.00', '180.000.0153.00', '180.000.0154.00', '180.000.0163.00', '180.000.0164.00',
+            '180.000.0165.00', '180.000.0166.00', '180.000.0290.00', '180.259.0057.00', '180.259.0058.00',
+            '180.259.0059.00', '180.259.0060.00', '180.259.0061.00', '180.259.0062.00', '180.259.0063.00',
+            '180.259.0064.00', '180.259.0065.00', '180.259.0066.00', '180.259.0067.00', '180.259.0068.00',
+            '180.259.0069.00', '180.259.0070.00', '180.259.0079.00', '180.259.0080.00', '180.259.0081.00',
+            '180.259.0082.00', '180.259.0099.00', '180.259.0100.00', '180.259.0102.00', '180.259.0103.00',
+            '180.259.0105.00', '180.259.0106.00', '180.259.0107.00', '180.259.0108.00', '180.259.0109.00',
+            '180.259.0110.00', '180.259.0113.00', '180.259.0117.00', '180.259.0118.00', '180.259.0132.00',
+            '180.259.0133.00', '180.259.0134.00', '180.259.0136.00', '180.259.0151.00', '180.259.0152.00',
+            '180.259.0154.00', '180.259.0155.00', '180.259.0156.00', '180.259.0157.00', '180.259.0158.00',
+            '180.259.0159.00', '180.259.0160.00', '180.259.0161.00', '180.259.0162.00', '180.259.0327.00',
+            '180.259.0328.00', '180.259.0329.00', '180.259.0353.00', '180.259.0354.00', '180.259.0355.00',
+            '180.259.0356.00', '180.259.0357.00', '180.259.0358.00', '180.259.0359.00', '180.259.0360.00',
+            '180.259.0361.00', '180.259.0362.00', '180.259.0363.00', '180.259.0364.00', '180.259.0389.00', '180.259.0390.00',
+            '180.259.0497.00', '180.259.0498.00', '180.259.0499.00', '180.259.0507.00', '180.259.0544.00',
+            '180.259.0545.00', '180.259.0546.00', '180.259.0580.00', '180.259.0581.00', '180.259.0582.00',
+            '180.259.0583.00', '180.259.0584.00', '180.259.0585.00', '180.259.0586.00', '180.259.0587.00', '180.259.0588.00',
+            '180.259.0591.00', '180.259.0592.00', '060.235.0140', '060.010.0011', '060.066.0757', '060.088.0208', '060.168.3339', '060.402.2019', '060.405.0105', '070.168.1316', '070.777.7772', '160.000.0320.00', '160.040.3799.11', '160.111.1431.00', '160.131.0641.00', '160.161.9021.00', '160.168.1310.00', '160.168.1312.00', '160.168.1408.00', '160.203.0167.00', '160.207.0014.00', '160.207.0015.00', '160.254.0184.00', '160.254.0203.00', '160.254.0317.00', '160.254.0330.00', '160.254.0586.00', '160.254.0599.00', '160.254.0635.00', '160.254.0649.00', '160.254.0677.00', '160.555.5001.00', '160.596.0138.00', '160.611.9361.00', '160.621.7479.00', '160.621.9003.00', '204.020.0051.00', '204.020.0313.00', '204.020.0484.00',
+            '060.168.4301'
+        ];
+
+        // 1) Tomamos TODO lo filtrado (no solo la página) excluyendo las claves a excluir
+        const rows = this.filtered().filter(r => !clavesAExcluir.includes(r.clave));
 
         // 2) Definimos el orden de columnas (1..20)
         const headers = [
@@ -825,19 +863,23 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         ] as const;
 
         // 3) Mapeo a la forma requerida ignorando ordenes de suministro nulas y con inventario disponible > 0
-        const data = rows.filter(r => r.ordenDeSuministro !== null && 
-            r.ordenDeSuministro !== '' && 
-            r.inventarioDisponible > 0).map(r => {
+        const data = rows.filter(r => r.inventarioDisponible > 0).map(r => {
+            let RFC = (r.rfcProveedor ?? 'IMSS999999999').trim();
+            // caso especifico
+            if (RFC === 'PFA800109TG4' || RFC === 'PFA -800109-TG4') {
+                RFC = 'PFF -021025-1V4'; // pierre fabre 
+            }
+
             return {
                 'ENTIDAD': 'BAJA CALIFORNIA',
                 'CLUES': r.cluesSSA ?? (r.clues ?? ''),
-                'ORDEN DE SUMINISTRO': r.ordenDeSuministro ?? '',
-                'RFC': r.rfcProveedor ?? '',
+                'ORDEN DE SUMINISTRO': r.ordenDeSuministro ?? 'SIN ORDEN',
+                'RFC': RFC,
                 'CLAVE': r.clave ?? '',
                 'ESTADO DEL INSUMO': r.estadoInsumo ?? 1,
                 'INVENTARIO DISPONIBLE': r.inventarioDisponible ?? 0,
                 'LOTE': r.lote ?? '',
-                // ⬇⬇ aquí el formateo fijo a "dd/mm/yyyy 00:00:00", sin UTC
+                // ⬇⬇ aquí el formateo fijo a 'dd/mm/yyyy 00:00:00', sin UTC
                 'F_CAD': formatExcelDate0(
                     r.fechaCaducidad, '31/12/2025 00:00:00'
                 ),
@@ -1105,7 +1147,7 @@ function formatOrDefault(d: any, fallback: string) {
 
 function cleanLote(l?: string) {
     if (!l) return '';
-    return l.replace(/[\/"']/g, '').slice(0, 20).trim();
+    return l.replace(/[\/'']/g, '').slice(0, 20).trim();
 }
 function slicePartida(p?: string | number | null) {
     if (p == null) return null;
