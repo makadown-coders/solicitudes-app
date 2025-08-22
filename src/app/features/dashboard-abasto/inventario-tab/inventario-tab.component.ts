@@ -392,9 +392,11 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
                 inventarioDisponible: dispAjustado,
                 unidadMedida: art.presentacion ?? null,
                 lote: cleanLote(inv.lote),
-                fechaCaducidad: formatOrDefault(inv.caducidad, '2025-01-01' /*'31/12/2025 00:00:00'*/),
-                fechaFabricacion: '2025-01-01',//'01/01/2025 00:00:00',
-                fechaRecepcion: formatOrDefault(inv.fecha_entrada, '2025-01-01' /*'31/12/2025 00:00:00'*/),
+                fechaCaducidad: inv.caducidad ? 
+                                formatOrDefault(inv.caducidad, '2025-01-01') :
+                                null,
+                fechaFabricacion: '2025-01-01',
+                fechaRecepcion: formatOrDefault(inv.fecha_entrada, '2025-01-01'),
                 unidadOrigenTexto: safeStr((inv as any).almacen) ?? safeStr((inv as any).unidad) ?? null,
                 tipoFuente: tipo,
                 cluesSSA: cluesSSA
