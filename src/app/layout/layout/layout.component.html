@@ -16,6 +16,10 @@
     <!-- Logo -->
     <img src="imssb-logo.svg" alt="IMSS Bienestar" class="ml-auto h-10 md:h-12" />
     <div class="flex items-center gap-2 mt-1">
+      <!-- Ícono de información general -->
+      <button (click)="mostrarAcercaDe()" title="Acerca de esta aplicación">
+        <lucide-angular [img]="InfoIcon" [color]="'#006341'" class="mr-2 mt-1 w-6 h-6 cursor-pointer" />
+      </button>
       <!-- Ícono de ayuda -->
       <button (click)="mostrarGuia()" title="Ayuda contextual">
         <lucide-angular [img]="CircleHelp" [color]="'#006341'" class="mr-2 mt-1 w-6 h-6 cursor-pointer" />
@@ -160,3 +164,51 @@
     </span>
   </div>
 </div>
+
+<!-- Modal de información general -->
+<div *ngIf="acercaDeVisible" class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+  <div class="relative p-12 max-w-fit w-full bg-white rounded-lg shadow-lg">
+    @let anio = anioActual();
+    <div class="mx-auto max-w-xl text-center">
+      <h2 class="mb-6 text-3xl font-bold text-green-800">📋 Acerca de esta aplicación </h2>
+      <p class="text-sm text-gray-700">
+        Esta herramienta es un apoyo en piloto para capturar solicitudes de insumos médicos en IMSS-Bienestar Baja California.
+      </p>
+      <p class="text-sm text-gray-700">
+        Facilita pedidos ordinarios y extraordinarios, con validaciones, precargas y exportación a Excel.
+      </p>
+      <p class="mb-6 text-sm text-gray-700">
+        No reemplaza sistemas oficiales.
+      </p>
+      <div class="p-6 text-left bg-green-50 border-green-200 rounded-lg shadow-sm border">
+        <div class="space-y-4">
+          <div>
+            <p class="font-semibold text-gray-800">Coordinador Institucional del Proyecto</p>
+            <p class="text-gray-600">Lic. Héctor Manuel Avelar Morales</p>
+          </div>
+          <div>
+            <p class="font-semibold text-gray-800">Referente Técnico-Operativo <span
+                class="text-sm text-gray-500">(Lineamientos de Abasto)</span></p>
+            <p class="text-gray-600">Lic. Elia Del Carmen Rojas Villalas / Lic. Abril Núñez Madrid</p>
+          </div>
+          <div>
+            <p class="font-semibold text-gray-800">Diseño y Desarrollo Tecnológico</p>
+            <p class="text-gray-600">Ing. Mario Arturo Serrano Flores </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 text-sm text-gray-500">
+        &copy; {{ anio }} IMSS Bienestar - Baja California
+      </div>
+    </div>
+
+
+    <button (click)="acercaDeVisible = false"
+      class="absolute top-2 right-2 text-gray-500 text-lg font-bold cursor-pointer hover:text-gray-700">×</button>
+  </div>
+
+</div>
+
+<app-survey-nudge></app-survey-nudge>
+<app-survey-modal></app-survey-modal>

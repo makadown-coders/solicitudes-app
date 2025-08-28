@@ -16,6 +16,7 @@ import { Inventario, InventarioDisponibles } from '../../models/Inventario';
 import { StorageSolicitudService } from '../../services/storage-solicitud.service';
 import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
 import { CPMS } from '../../models/CPMS';
+import { SurveyService } from '../../services/survey.service';
 
 
 @Component({
@@ -30,7 +31,7 @@ import { CPMS } from '../../models/CPMS';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
-
+  datosClues = {} as DatosClues;
   mostrarModal = false;
   modalVisible = false;
   modalTitulo = '';
@@ -69,6 +70,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   generarPrecarga: boolean = true;
 
   mensajeImportacion: string | null = null;
+  // dentro de la clase:
+  private survey = inject(SurveyService);
 
   private cdRef = inject(ChangeDetectorRef);
   private router = inject(Router);
@@ -106,7 +109,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         .pipe(takeUntil(this.onDestroy$))
         .subscribe(cpmsDeCluesActual => {
           this.cpmsDeCluesActual = cpmsDeCluesActual;
-          // console.log('cpmsDeCluesActual', this.cpmsDeCluesActual[0]);
         });
     }
 
@@ -115,7 +117,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       const articulosGuardados: ArticuloSolicitud[] = JSON.parse(guardados);
       // Normalizar claves
       this.articulosSolicitados = articulosGuardados.map(art => {
-        const claveNormalizada = this.inventarioService.normalizarClave(art.clave);      
+        const claveNormalizada = this.inventarioService.normalizarClave(art.clave);
         return {
           ...art,
           clave: claveNormalizada
@@ -409,6 +411,15 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       this.modalCallback();
     }
     this.cerrarModal();
+    this.mostrarSurveySiEsNecesario();
+  }
+
+  private mostrarSurveySiEsNecesario() {
+    const cluesimb = this.datosClues?.hospital?.cluesimb   // ajusta al nombre real en tu formulario
+      ?? 'UNKNOWN';
+
+    const APP_VERSION = (globalThis as any).process?.env?.NG_APP_VERSION ?? 'dev';
+    this.survey.maybeShow('export_success', { cluesimb, appVersion: APP_VERSION });
   }
 
   confirmarLimpiezaModal() {
@@ -436,12 +447,10 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.generarPrecarga) {
       await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 1 segundo
       let nombreArchivPrecarga = 'Precarga';
-      const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
-      if (cluesStr && !this.modoStandalone) {
-        const datosClues = JSON.parse(cluesStr) as DatosClues;
-        nombreArchivPrecarga += '-' + this.iniciales(datosClues.nombreHospital);
-        nombreArchivPrecarga += '-' + datosClues.tipoInsumo.split('-');
-        nombreArchivPrecarga += '-' + datosClues.tipoPedido;
+      if (!this.modoStandalone) {
+        nombreArchivPrecarga += '-' + this.iniciales(this.datosClues.nombreHospital);
+        nombreArchivPrecarga += '-' + this.datosClues.tipoInsumo.split('-');
+        nombreArchivPrecarga += '-' + this.datosClues.tipoPedido;
       }
       nombreArchivPrecarga += '_' + new Date().toISOString().slice(0, 7);
       this.exportarExcelPrecarga(nombreArchivPrecarga);
@@ -453,12 +462,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
     let nombreArchivoCompleto = this.nombreArchivo;
     if (cluesStr && !this.modoStandalone) {
-      const datosClues = JSON.parse(cluesStr) as DatosClues;
+      this.datosClues = JSON.parse(cluesStr) as DatosClues;
 
-      nombreArchivoCompleto = this.iniciales(datosClues.nombreHospital);
-      nombreArchivoCompleto += '-' + datosClues.tipoInsumo.split('-');
-      nombreArchivoCompleto += '-' + datosClues.tipoPedido;
-      nombreArchivoCompleto += '_' + datosClues.periodo.replace(/\s+/g, '-');
+      nombreArchivoCompleto = this.iniciales(this.datosClues.nombreHospital);
+      nombreArchivoCompleto += '-' + this.datosClues.tipoInsumo.split('-');
+      nombreArchivoCompleto += '-' + this.datosClues.tipoPedido;
+      nombreArchivoCompleto += '_' + this.datosClues.periodo.replace(/\s+/g, '-');
       this.nombreArchivo = nombreArchivoCompleto;
     }
     this.modalPedirNombreArchivo = true;
@@ -566,11 +575,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     // importar claves que no sean las de primer nivel (las de articulos-primernivel.json)
     let mensajeErrorPrimerNivel = '';
     let contadorErrorPrimerNivel = 0;
+    let usandoTemplate = false;
 
     if (!archivo) return;
 
     try {
-      const datos = await this.excelService.leerArchivoPrecarga(archivo); // ⚠️ este método lo definiremos en el servicio
+      let datos = await this.excelService.leerArchivoPrecarga(archivo); // ⚠️ este método lo definiremos en el servicio
 
       if (!datos || datos.length === 0) {
         this.abrirModalInfo('Archivo vacío', 'El archivo está vacío o no contiene datos válidos.');
@@ -578,28 +588,70 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       }
 
       // Intentar identificar columnas por nombres flexibles
-      const headers = Object.keys(datos[0]).map(h => h.toLowerCase().trim());
-      // console.log('datos[0]', datos[0]);
-      // console.log('headers', headers);
-      const colClave = headers.find(h => h.includes('clave'));
-      const colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado'));
+      let headers = Object.keys(datos[0]).map(h => h.toLowerCase().trim());
+      let colClave = headers.find(h => h.includes('clave'));
+      let colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado'));
       if (!colClave) {
-        this.abrirModalInfo('Encabezado faltante',
-          'El archivo no contiene columna con clave CNIS o formato no es válido.');
-        return;
+        // a lo mejor el usuario subió el formato institucional, asi que busco encabezados
+        // en renglon 11 datos[7] en lugar del primero
+        if (datos.length < 8) {
+          this.abrirModalInfo('Encabezado faltante',
+            'El archivo no contiene encabezado o formato no es válido.');
+          return;
+        }
+        // iterar por datos[7] y buscar valores 'clave' y 'cantidad'
+        // datos [7] esta conformado por la siguiente informacion:
+        /* { 
+              "" : "NO. ",
+              "SOLICITUD DE INSUMOS ": "DESCRIPCION",
+              __EMPTY: "VEN ",
+              __EMPTY_1: "CLAVE",
+              __EMPTY_2: "UNIDAD DE MEDIDA ",
+              __EMPTY_3: "CANTIDAD",
+              __EMPTY_4: "CPM",
+              __EMPTY_5: "AZM",
+              __EMPTY_6: "AZT",
+              __EMPTY_7: "AZE",
+              __EMPTY_8: "",
+              __EMPTY_9: "",
+              __EMPTY_10: "",
+              __EMPTY_11: "",
+              __EMPTY_12: ""
+          }
+        */
+        headers = Object.values(datos[7]).map((h: any) => (h + '').toLowerCase().trim());
+        colClave = headers.find(h => h.includes('clave'));
+        colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado'));
+        console.log('datos[7]', datos[7]);
+        if (!colClave) {
+          this.abrirModalInfo('Encabezado faltante',
+            'El archivo no contiene columna con clave CNIS o formato no es válido.');
+          return;
+        }
+        // mochar datos desde el renglon 8
+        datos = datos.slice(8);
+        usandoTemplate = true;
       }
 
       const nuevos: ArticuloSolicitud[] = [];
       const repetidas: Record<string, number> = {};
 
-      for (const fila of datos) {
-        let clave:string  = (fila[colClave] ?? '').toString().trim().toUpperCase();
-        if (!clave) continue;        
-        
-        // Siempre guardamos la versión de 10 dígitos si aplica
-        clave = this.inventarioService.normalizarClave(clave+'');
+      for (const renglon of datos) {
+        let fila = { ...renglon };
+        if (usandoTemplate) {
+          fila = Object.values(fila);
+        }
+        let clave: string = ((!usandoTemplate ? fila[colClave] : fila[2]) ?? '')
+          .toString().trim().toUpperCase();
+        console.log(fila);
+        if (!clave) {
+          continue;
+        }
 
-        const cantidad = colCantidad ? parseInt(fila[colCantidad]) || 0 : 0;
+        // Siempre guardamos la versión de 10 dígitos si aplica
+        clave = this.inventarioService.normalizarClave(clave + '');
+
+        const cantidad = colCantidad ? parseInt(!usandoTemplate ? fila[colCantidad] : fila[5]) || 0 : 0;
 
         const existente = nuevos.find(a => a.clave === clave + '');
         if (existente) {
@@ -614,7 +666,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
               contadorErrorPrimerNivel++;
               continue;
             }
-          }          
+          }
 
           nuevos.push({
             clave,
