@@ -415,6 +415,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private mostrarSurveySiEsNecesario() {
+    // si se limpio captura de articulos no mostrar survey
+    if (this.articulosSolicitados.length === 0) return;
+
     const cluesimb = this.datosClues?.hospital?.cluesimb   // ajusta al nombre real en tu formulario
       ?? 'UNKNOWN';
 
