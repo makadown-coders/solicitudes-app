@@ -1,3 +1,4 @@
+// src/app/shared/periodo-fechas.service.ts
 import { Injectable } from '@angular/core';
 
 @Injectable({
@@ -139,6 +140,28 @@ export class PeriodoFechasService {
     const diffTime = fecha1.getTime() - fecha2.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  }
+
+  toDateOnly(d: Date | null): Date | null {
+    if (!d) return null;
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  private today(allowToday: boolean): Date {
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    if (allowToday) return t;
+    // futuro estricto: a partir de mañana
+    return new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1);
+  }
+
+  /** true si alguna fecha del rango está en pasado; falso si es válido (hoy/futuro) */
+  rangeContainsPast(fi: Date | null, ff: Date | null, allowToday = true): boolean {
+    if (!fi || !ff) return true; // rango incompleto => inválido
+    const t = this.today(allowToday);
+    const s = this.toDateOnly(fi)!;
+    const e = this.toDateOnly(ff)!;
+    // inválido si cualquiera está antes de t
+    return s < t || e < t;
   }
 
 }
