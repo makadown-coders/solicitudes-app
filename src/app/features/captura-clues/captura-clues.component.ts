@@ -1,5 +1,5 @@
 // src/app/features/captura-clues/captura-clues.component.ts
-import { Component, EventEmitter, inject, Input, OnInit, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, inject, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { DatosClues } from '../../models/datos-clues';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +17,7 @@ import { PeriodoFechasService } from '../../shared/periodo-fechas.service';
   templateUrl: './captura-clues.component.html',
   styleUrl: './captura-clues.component.css'
 })
-export class CapturaCluesComponent implements OnInit {
+export class CapturaCluesComponent implements OnInit, AfterViewInit {
   readonly HospitalIcon = HospitalIcon;
   readonly StethoscopeIcon = StethoscopeIcon;
 
@@ -92,18 +92,32 @@ export class CapturaCluesComponent implements OnInit {
       }
       this.tipoPedido = datosClues?.tipoPedido ?? 'Ordinario';
       this.responsableCaptura = datosClues?.responsableCaptura ?? '';
-
-      // valida contra "no pasado" (aquí permitimos HOY; cambia a false si quieres futuro estricto)
-      const contienePasado = this.fechasSvc.rangeContainsPast(this.fechaInicio, this.fechaFin, /*allowToday*/ true);
-      this.periodoValido = !contienePasado;
-
-      if (!this.periodoValido) {
-        this.avisoPeriodo = 'El periodo guardado incluye fechas en el pasado. Por favor selecciona un nuevo periodo.';
-      }
+      this.validarContraPasado();
     }
     // TODO: TEMPORAL EN LO QUE RESUELVE CDMX
     if (this.estaEnModoCapturaPrimerNivel()) {
       this.tiposInsumoSeleccionados = ['Medicamento'];
+    }
+  }
+
+  /**
+   * Valida contra "no pasado" (aquí permitimos HOY; cambia a false si quieres futuro estricto)
+   */
+  private validarContraPasado() {
+    const contienePasado = this.fechasSvc.rangeContainsPast(this.fechaInicio, this.fechaFin, /*allowToday*/ true);
+    this.periodoValido = !contienePasado;
+
+    if (!this.periodoValido) {
+      this.avisoPeriodo = 'El periodo guardado incluye fechas en el pasado. Por favor selecciona un nuevo periodo.';
+    }
+  }
+
+  ngAfterViewInit() {
+    this.validarContraPasado();
+    // Si al cargar detectaste periodo inválido, puedes abrirlo automáticamente UNA vez
+    if (!this.periodoValido && !sessionStorage.getItem('PP_OPENED_ON_INVALID')) {
+      setTimeout(() => this.pickerRef?.openCalendario?.(), 0);      
+      sessionStorage.setItem('PP_OPENED_ON_INVALID', '1');
     }
   }
 
@@ -195,15 +209,6 @@ export class CapturaCluesComponent implements OnInit {
     this.fechaFin = fechaFin;
     this.periodoValido = valido !== false; // si el hijo no manda 'valido', asumimos true
     this.avisoPeriodo = this.periodoValido ? undefined : 'El periodo no puede incluir fechas en el pasado.';
-  }
-
-  abrirPicker() {
-    // 3 opciones según tu implementación del picker:
-    // A) si expones un método público:
-    // this.pickerRef?.toggleCalendario();
-    // B) si controlas con @Input() [mostrarCalendario]:
-    // this.mostrarCalendario = true;
-    // C) si el botón está junto al picker, con (click) local.
   }
 
   get esValido(): boolean {

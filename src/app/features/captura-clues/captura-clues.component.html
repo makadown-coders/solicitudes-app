@@ -106,7 +106,16 @@
         </div>
 
         <div>
-            <app-periodo-picker [fechaInicio]="fechaInicio" [fechaFin]="fechaFin" [disallowPastDates]="true"
+            <!-- Aviso si el periodo de localStorage caducó -->
+            <div *ngIf="avisoPeriodo"
+                class="mb-3 px-3 py-2 text-red-800 text-sm bg-red-50 border-red-200 rounded border">
+                ⚠️ {{ avisoPeriodo }}
+            </div>
+            <app-periodo-picker 
+                #pickerRef
+                [fechaInicio]="fechaInicio"
+                [fechaFin]="fechaFin"
+                [disallowPastDates]="true"
                 [allowToday]="true"
                 (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)" />
             <div *ngIf="periodoFormateado" class="mt-2 text-sm text-gray-600">

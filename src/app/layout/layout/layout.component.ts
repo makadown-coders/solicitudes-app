@@ -71,6 +71,10 @@ export class LayoutComponent implements OnInit, OnChanges {
 
     this.refrescarInventario();
     this.refrescarCPMS();
+    if (!this.storageSolicitudService.isPeriodoValidoAhora(true)) {
+      this.activeTab = 'clues';
+      if (this.datosClues) { this.datosClues.periodo = ''; }
+    }
   }
 
   /**
@@ -193,7 +197,7 @@ export class LayoutComponent implements OnInit, OnChanges {
   mostrarAcercaDe() {
     this.acercaDeVisible = true;
   }
-  
+
   anioActual() {
     return new Date().getFullYear();
   }
