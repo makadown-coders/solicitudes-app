@@ -41,6 +41,28 @@ Proyecto enfocado al departamento del abasto de IMSS Bienestar Baja California.
 
 ---
 
+## 🔰 Guía rápida para nuevos colaboradores
+
+### Estructura general
+La aplicación se organiza dentro de `src/app` en cuatro áreas principales:
+- `layout/` para el diseño base y las pestañas de navegación.
+- `features/` con módulos dedicados a captura de CLUES, solicitudes y dashboard.
+- `shared/` donde viven componentes reutilizables como modales y pipes.
+- `services/` que concentran la lógica de datos, citas y exportación a Excel.
+
+### Aspectos clave
+- Ruteo con carga diferida para mejorar el desempeño inicial.
+- Exportación avanzada a Excel, ya sea simple o usando la plantilla institucional.
+
+### ¿Qué aprender después?
+- Fundamentos de Angular: componentes standalone, ruteo e inyección de dependencias.
+- Programación reactiva con RxJS.
+- TailwindCSS para maquetar rápidamente.
+- ExcelJS/XLSX para generar y manipular archivos.
+- Interacción con APIs y gestión de `localStorage`.
+
+---
+
 ## 📁 Estructura del Proyecto
 
 ```bash
