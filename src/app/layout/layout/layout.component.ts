@@ -13,6 +13,7 @@ import { Title } from '@angular/platform-browser';
 import { concatAll, finalize, map, of } from 'rxjs';
 import { SurveyNudgeComponent } from '../../shared/survey/survey-nudge.component';
 import { SurveyModalComponent } from '../../shared/survey/survey-modal.component';
+import { NgFastToastComponent } from 'ng-fast-toast';
 
 @Component({
   selector: 'app-layout',
@@ -22,7 +23,8 @@ import { SurveyModalComponent } from '../../shared/survey/survey-modal.component
     SolicitudesComponent,
     LucideAngularModule,
     SurveyNudgeComponent,
-    SurveyModalComponent
+    SurveyModalComponent,
+    NgFastToastComponent
   ],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css',

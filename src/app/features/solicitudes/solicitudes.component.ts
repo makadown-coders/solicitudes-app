@@ -215,7 +215,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (data) => {
         this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
         this.totalResults = data.total || 0;
-        this.moreResults = this.totalResults > 12;
+        this.moreResults = this.totalResults > 24;
         this.selectedIndex = 0;
         this.cdRef.detectChanges();
         setTimeout(() => this.focusSelectedItem(), 0);
@@ -233,7 +233,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (data) => {
         this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
         this.totalResults = data.total || 0;
-        this.moreResults = this.totalResults > 12;
+        this.moreResults = this.totalResults > 24;
         this.selectedIndex = 0;
         this.cdRef.detectChanges();
         setTimeout(() => this.focusSelectedItem(), 0);
@@ -251,7 +251,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (data) => {
         this.autocompleteResults = data.resultados || [];
         this.totalResults = data.total || 0;
-        this.moreResults = this.totalResults > 12;
+        this.moreResults = this.totalResults > 24;
         this.selectedIndex = 0;
         this.cdRef.detectChanges();
         setTimeout(() => this.focusSelectedItem(), 0);

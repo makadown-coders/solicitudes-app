@@ -7,10 +7,12 @@ import {
     Validators,
     FormGroup,
     AbstractControl,
-    FormControl,
 } from '@angular/forms';
 import { SurveyService } from '../../services/survey.service';
 import { SurveyControls } from './SurveyControls';
+import { NgFastToastService } from "ng-fast-toast";
+import { SolicitudEncuestaPiloto } from './SolicitudEncuestaPiloto.model';
+import { environment } from '../../../environments/environment';
 
 @Component({
     selector: 'app-survey-modal',
@@ -21,6 +23,7 @@ import { SurveyControls } from './SurveyControls';
 })
 export class SurveyModalComponent implements OnInit {
     svc = inject(SurveyService);
+    toast = inject(NgFastToastService);
     private fb = inject(FormBuilder);
 
     scale = [1, 2, 3, 4, 5];
@@ -69,6 +72,10 @@ export class SurveyModalComponent implements OnInit {
             this.form.markAllAsTouched();
             return;
         }
+        this.toast.success({
+            title: '¡Gracias!',
+            content: '👏 Tu opinión hace la diferencia.', duration: 5
+        });
 
         const v = this.form.value;
         const meta = this.svc.meta();
@@ -86,7 +93,7 @@ export class SurveyModalComponent implements OnInit {
                 .replace(/\r\n/g, '\n')   // normaliza saltos de línea
                 .slice(0, 500),
             evento: meta?.event ?? 'export_success',
-        };
+        } as SolicitudEncuestaPiloto;
 
         console.log('payload', payload);
         // TODO opcional: POST real a tu backend
@@ -102,6 +109,11 @@ export class SurveyModalComponent implements OnInit {
 
         this.svc.markResponded();
         
-        // (Opcional) mostrar toast de “¡Gracias!”
+        // Enviar encuesta al backend (ajusta URL si es necesario)
+        await fetch(environment.apiUrl + '/historial/encuesta', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
     }
 }

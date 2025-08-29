@@ -104,6 +104,10 @@ export class CapturaCluesComponent implements OnInit, AfterViewInit {
    * Valida contra "no pasado" (aquí permitimos HOY; cambia a false si quieres futuro estricto)
    */
   private validarContraPasado() {
+    // primero validar que tanto fecha inicio y fecha fin tengan valor
+    if (!this.fechaInicio || !this.fechaFin) {
+      return;
+    } 
     const contienePasado = this.fechasSvc.rangeContainsPast(this.fechaInicio, this.fechaFin, /*allowToday*/ true);
     this.periodoValido = !contienePasado;
 
