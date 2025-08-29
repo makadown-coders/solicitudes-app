@@ -1,8 +1,8 @@
 <div class="mb-4">
-    <label class="block text-sm font-medium text-gray-700 mb-1">Periodo</label>
+    <label class="block mb-1 text-sm font-medium text-gray-700">Periodo</label>
 
     <button type="button" (click)="toggleCalendario()"
-        class="border rounded px-4 py-2 w-full text-left flex items-center justify-between hover:bg-green-50">
+        class="flex items-center justify-between px-4 py-2 w-full text-left border rounded hover:bg-green-50">
         <span>
             {{
             fechaInicio && fechaFin
@@ -13,24 +13,28 @@
         </span>
     </button>
 
-    <div *ngIf="mostrarCalendario" class="mt-2 border rounded p-4 bg-white shadow text-sm">
-        <p class="text-gray-700 mb-2">Haz clic en dos fechas para seleccionar el rango.</p>
+    <div *ngIf="mostrarCalendario" class="mt-2 p-4 text-sm bg-white border rounded shadow">
+        <p class="mb-2 text-gray-700">Haz clic en dos fechas para seleccionar el rango.</p>
         <div class="flex justify-center items-center gap-3 mb-3">
             <select [ngModel]="mesElegido" (ngModelChange)="onMesCambiado($event)"
-                class="border rounded px-2 py-1 text-sm bg-white text-gray-800">
-                <option *ngFor="let mes of meses; let i = index" [value]="i">{{ mes }}</option>
+                class="px-2 py-1 text-sm text-gray-800 bg-white border rounded">
+                <option *ngFor="let m of mesesVisibles; let i = index" [ngValue]="m.index">{{ m.label }}</option>
             </select>
 
             <select [ngModel]="anioElegido" (ngModelChange)="onAnioCambiado($event)"
-                class="border rounded px-2 py-1 text-sm bg-white text-gray-800">
-                <option *ngFor="let anio of anios" [value]="anio">{{ anio }}</option>
+                class="px-2 py-1 text-sm text-gray-800 bg-white border rounded">
+                <option *ngFor="let y of anios" [ngValue]="y">{{ y }}</option>
             </select>
         </div>
-        <p *ngIf="fechaInicio && !fechaFin" class="text-sm text-yellow-700 bg-yellow-100 px-3 py-2 rounded mb-3">
+        <p *ngIf="fechaInicio && !fechaFin" class="px-3 py-2 mb-3 text-sm text-yellow-700 bg-yellow-100 rounded">
             Selecciona una <strong>fecha final</strong> para completar el rango
         </p>
-        <p *ngIf="fechaInicio && fechaFin" class="text-sm text-green-700 bg-green-100 px-3 py-2 rounded mb-3">
+        <p *ngIf="fechaInicio && fechaFin" class="px-3 py-2 mb-3 text-sm text-green-700 bg-green-100 rounded">
             ✅ Rango seleccionado: {{ fechaInicio | date: 'dd/MM/yyyy' }} - {{ fechaFin | date: 'dd/MM/yyyy' }}
+        </p>
+        <p *ngIf="disallowPastDates && rangoInvalido" class="px-3 py-2 mb-3 text-sm text-red-700 bg-red-100 rounded">
+            ⚠️ El periodo no puede incluir fechas en el pasado.
+            Selecciona {{ allowToday ? 'desde hoy' : 'a partir de mañana' }}.
         </p>
         <div class="grid grid-cols-7 gap-1 text-center">
             <span class="font-bold text-gray-600" *ngFor="let dia of ['D', 'L', 'M', 'M', 'J', 'V', 'S']">{{ dia
@@ -44,7 +48,8 @@
                 @let hoverFin = dia && esHoverFin(dia);
                 @let esBetween = dia && isBetween(dia);
                 @let esHovered = dia && isHovered(dia);
-                <button *ngIf="dia !== null" type="button" class="rounded px-2 py-1 transition-all" [ngClass]="{
+                <button *ngIf="dia !== null" type="button" class="px-2 py-1 transition-all rounded" [ngClass]="{
+                     'opacity-40 cursor-not-allowed': disallowPastDates && isPast(crearFecha(dia)),
                     'bg-green-600 text-white font-bold': inicioOFin,
                     'bg-red-600 text-white font-bold': hoverFin,
                     'bg-green-300 text-green-900': esBetween,
@@ -56,7 +61,7 @@
                 <div *ngIf="dia === null"></div>
             </ng-container>
         </div>
-        <div *ngIf="fechaInicioAnterior && fechaFinAnterior" class="mt-4 flex justify-end">
+        <div *ngIf="fechaInicioAnterior && fechaFinAnterior" class="flex justify-end mt-4">
             <button (click)="cancelarEdicionRango()" class="text-sm text-gray-600 hover:underline hover:text-gray-800">
                 Cancelar edición y conservar rango
             </button>
