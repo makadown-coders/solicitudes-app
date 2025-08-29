@@ -79,7 +79,7 @@ export class StorageSolicitudService {
         } else {
             return localStorage.getItem(StorageVariables.SOLICITUD_ACTIVE_TAB_SEGUNDO_NIVEL);
         }
-    }    
+    }
 
     setActiveTabInLocalStorage(clues: string) {
         if (this.modoCapturaSolicitud === ModoCapturaSolicitud.PRIMER_NIVEL) {
@@ -128,10 +128,10 @@ export class StorageSolicitudService {
         return [];
     }
 
-    getClaveGruposFromLocalStorage() : ClaveGrupo[] { 
+    getClaveGruposFromLocalStorage(): ClaveGrupo[] {
         // obtener de StorageVariables.SOLICITUD_CLAVEGRUPOS (no esta comprimido)
         const raw = localStorage.getItem(StorageVariables.SOLICITUD_CLAVEGRUPOS);
-        return raw ? JSON.parse(raw) as ClaveGrupo[] : [];        
+        return raw ? JSON.parse(raw) as ClaveGrupo[] : [];
     }
 
     private emitirNombreUnidad() {
@@ -145,6 +145,20 @@ export class StorageSolicitudService {
             // nombreUnidad += '(' + datosClues.tipoInsumo + ')';
         }
         this.nombreUnidadSubject.next(nombreUnidad);
+    }
+
+    isPeriodoValidoAhora(allowToday = true): boolean {
+        const raw = this.getDatosCluesFromLocalStorage();
+        if (!raw) return false;
+        try {
+            const d = JSON.parse(raw);
+            if (!d.fechaInicio || !d.fechaFin) return false;
+            const fi = new Date(d.fechaInicio);
+            const ff = new Date(d.fechaFin);
+            const t = new Date(); t.setHours(0, 0, 0, 0);
+            // inválido si cualquiera < t (o <= t si no permites hoy)
+            return allowToday ? !(fi < t || ff < t) : !(fi <= t || ff <= t);
+        } catch { return false; }
     }
 
 }

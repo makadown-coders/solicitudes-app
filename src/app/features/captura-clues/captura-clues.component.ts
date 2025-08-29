@@ -1,5 +1,5 @@
 // src/app/features/captura-clues/captura-clues.component.ts
-import { Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, inject, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { DatosClues } from '../../models/datos-clues';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -9,6 +9,7 @@ import { PeriodoPickerComponent } from '../../shared/periodo-picker/periodo-pick
 import { Hospital, Unidad } from '../../models/articulo-solicitud';
 import { StorageSolicitudService } from '../../services/storage-solicitud.service';
 import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
+import { PeriodoFechasService } from '../../shared/periodo-fechas.service';
 
 @Component({
   selector: 'app-captura-clues',
@@ -16,7 +17,7 @@ import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
   templateUrl: './captura-clues.component.html',
   styleUrl: './captura-clues.component.css'
 })
-export class CapturaCluesComponent implements OnInit {
+export class CapturaCluesComponent implements OnInit, AfterViewInit {
   readonly HospitalIcon = HospitalIcon;
   readonly StethoscopeIcon = StethoscopeIcon;
 
@@ -48,6 +49,12 @@ export class CapturaCluesComponent implements OnInit {
   responsableCaptura = '';
 
   tiposInsumoSeleccionados: string[] = [];
+
+  periodoFormateado = '';
+  periodoValido = true;
+  avisoPeriodo?: string;
+  fechasSvc = inject(PeriodoFechasService);
+  @ViewChild('pickerRef') pickerRef?: any; // si quieres abrir el picker desde el padre
 
   toggleTipoInsumo(tipo: string, event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
@@ -85,10 +92,36 @@ export class CapturaCluesComponent implements OnInit {
       }
       this.tipoPedido = datosClues?.tipoPedido ?? 'Ordinario';
       this.responsableCaptura = datosClues?.responsableCaptura ?? '';
+      this.validarContraPasado();
     }
     // TODO: TEMPORAL EN LO QUE RESUELVE CDMX
-    if ( this.estaEnModoCapturaPrimerNivel() ) {
+    if (this.estaEnModoCapturaPrimerNivel()) {
       this.tiposInsumoSeleccionados = ['Medicamento'];
+    }
+  }
+
+  /**
+   * Valida contra "no pasado" (aquí permitimos HOY; cambia a false si quieres futuro estricto)
+   */
+  private validarContraPasado() {
+    // primero validar que tanto fecha inicio y fecha fin tengan valor
+    if (!this.fechaInicio || !this.fechaFin) {
+      return;
+    } 
+    const contienePasado = this.fechasSvc.rangeContainsPast(this.fechaInicio, this.fechaFin, /*allowToday*/ true);
+    this.periodoValido = !contienePasado;
+
+    if (!this.periodoValido) {
+      this.avisoPeriodo = 'El periodo guardado incluye fechas en el pasado. Por favor selecciona un nuevo periodo.';
+    }
+  }
+
+  ngAfterViewInit() {
+    this.validarContraPasado();
+    // Si al cargar detectaste periodo inválido, puedes abrirlo automáticamente UNA vez
+    if (!this.periodoValido && !sessionStorage.getItem('PP_OPENED_ON_INVALID')) {
+      setTimeout(() => this.pickerRef?.openCalendario?.(), 0);      
+      sessionStorage.setItem('PP_OPENED_ON_INVALID', '1');
     }
   }
 
@@ -138,8 +171,8 @@ export class CapturaCluesComponent implements OnInit {
     this.selectedHospital = hospital;
     this.nombreHospital = hospital.nombre;
     this.autocompleteHospitales = [];
-    
-    
+
+
     if (this.esValido) {
       // Envía los datos capturados si cambia de hospital con el formulario válido
       this.datosCapturados.emit({
@@ -174,19 +207,20 @@ export class CapturaCluesComponent implements OnInit {
     }
   }
 
-  periodoFormateado = '';
-
-  onPeriodoSeleccionado(texto: string, fechaInicio: Date, fechaFin: Date) {
+  onPeriodoSeleccionado(texto: string, fechaInicio: Date, fechaFin: Date, valido?: boolean) {
     this.periodoFormateado = texto;
     this.fechaInicio = fechaInicio;
     this.fechaFin = fechaFin;
+    this.periodoValido = valido !== false; // si el hijo no manda 'valido', asumimos true
+    this.avisoPeriodo = this.periodoValido ? undefined : 'El periodo no puede incluir fechas en el pasado.';
   }
 
   get esValido(): boolean {
     return !!(
       this.selectedHospital &&
       this.tiposInsumoSeleccionados.length > 0 &&
-      this.periodoFormateado
+      this.periodoFormateado &&
+      this.periodoValido
     );
   }
 

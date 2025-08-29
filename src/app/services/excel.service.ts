@@ -146,21 +146,21 @@ export class ExcelService {
             if (cpm > 0) {
                 if (cantidad > cpm) {
                     celdaCantidad.font = { color: { argb: 'FFFF0000' } }; // texto rojo
-                    celdaCantidad.border = {
+                    /*celdaCantidad.border = {
                         top: { style: 'thin', color: { argb: 'FFFF0000' } },
                         bottom: { style: 'thin', color: { argb: 'FFFF0000' } },
                         left: { style: 'thin', color: { argb: 'FFFF0000' } },
                         right: { style: 'thin', color: { argb: 'FFFF0000' } },
-                    };
+                    };*/
                 } else if (cantidad < cpm) {
                     // en texto azul
                     celdaCantidad.font = { color: { argb: '3933ff' } };
-                    celdaCantidad.border = {
+                    /*celdaCantidad.border = {
                         top: { style: 'thin', color: { argb: '3933ff' } },
                         bottom: { style: 'thin', color: { argb: '3933ff' } },
                         left: { style: 'thin', color: { argb: '3933ff' } },
                         right: { style: 'thin', color: { argb: '3933ff' } },
-                    };
+                    };*/
                 }
             }
 
@@ -180,20 +180,26 @@ export class ExcelService {
         // 1. Convertir el buffer a base64
         const base64 = await this.convertirBufferABase64(buffer);
 
-        // 2. Enviar al backend (ajusta URL si es necesario)
-        await fetch(environment.apiUrl + '/historial', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                nombreArchivo,
-                contenidoBase64: base64,
-                nombre: datosClues?.responsableCaptura ?? 'Desconocido',
-                unidad: datosClues?.nombreHospital ?? '',
-                clues: datosClues?.hospital?.cluesimb ?? '',
-                periodo: datosClues?.periodo ?? '',
-                tipoMime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            })
-        });
+        // crear una variable que detecte si estoy en desarrollo o en produccion para nomas si
+        // estoy en produccion, enviar la informacion al backend
+        const enProduccion = environment.production;
+
+        if (enProduccion) {
+            // 2. Enviar al backend (ajusta URL si es necesario)        
+            await fetch(environment.apiUrl + '/historial', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombreArchivo,
+                    contenidoBase64: base64,
+                    nombre: datosClues?.responsableCaptura ?? 'Desconocido',
+                    unidad: datosClues?.nombreHospital ?? '',
+                    clues: datosClues?.hospital?.cluesimb ?? '',
+                    periodo: datosClues?.periodo ?? '',
+                    tipoMime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                })
+            });
+        }
 
         this.descargarArchivo(buffer, nombreArchivo);
     }
@@ -543,11 +549,11 @@ export class ExcelService {
                 const estatusCompleto = c.estatus.toLocaleLowerCase() === 'completo';
 
                 // si se recibio recientemente o si fecha_recepcion_almacen es null
-               /* const recibidoRecientementeONoSeHaRecibido = c.fecha_recepcion_almacen
-                    ? new Date(c.fecha_recepcion_almacen) >= hace40dias
-                    : true;*/
+                /* const recibidoRecientementeONoSeHaRecibido = c.fecha_recepcion_almacen
+                     ? new Date(c.fecha_recepcion_almacen) >= hace40dias
+                     : true;*/
 
-                return esClave &&  fechaValida && estatusCompleto /*&& recibidoRecientementeONoSeHaRecibido*/;
+                return esClave && fechaValida && estatusCompleto /*&& recibidoRecientementeONoSeHaRecibido*/;
             });
 
             row.getCell(14).value = citasHalladasPorClave.length;

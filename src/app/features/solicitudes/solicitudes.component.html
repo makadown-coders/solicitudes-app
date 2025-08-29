@@ -16,7 +16,7 @@
                 <li *ngFor="let item of autocompleteResults; let i = index" #resultItem
                     [class.bg-gray-200]="i === selectedIndex" (click)="selectArticulo(item)"
                     class="p-2 cursor-pointer hover:bg-gray-200">
-                    {{item.clave}} - {{item.descripcion}} ({{item.presentacion}})
+                    {{item.clave}} - {{ (item.descripcion | slice : 0 : 130)  + (item.descripcion.length > 130 ? ' [...]' : '') }} ({{item.presentacion}})
                 </li>
                 <li *ngIf="moreResults && autocompleteResults.length < totalResults" class="p-2 text-sm text-gray-500">
                     Mostrando {{ autocompleteResults.length }} de {{totalResults}} resultados...

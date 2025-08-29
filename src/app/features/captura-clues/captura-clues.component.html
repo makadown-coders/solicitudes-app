@@ -1,6 +1,6 @@
 <!-- src/app/features/captura-clues/captura-clues.component.html -->
 <div class="mt-2 p-4 mx-auto w-full max-w-xl text-sm border rounded shadow"
-[ngClass]="{ 'bg-gray-100': estaEnModoCapturaPrimerNivel(), 'bg-white': !estaEnModoCapturaPrimerNivel() }">
+    [ngClass]="{ 'bg-gray-100': estaEnModoCapturaPrimerNivel(), 'bg-white': !estaEnModoCapturaPrimerNivel() }">
     <h2 class="mb-4 text-xl font-bold text-green-800">Datos de la CLUES ({{ labelNivel }})</h2>
     <div class="space-y-4">
         <div class="relative mb-6">
@@ -17,7 +17,8 @@
                     class="z-10 overflow-auto absolute mt-1 w-full max-h-60 bg-white border rounded shadow">
                     <li *ngFor="let h of autocompleteHospitales; let i = index" (click)="selectHospital(h)"
                         [class.bg-gray-200]="i === selectedIndex" class="p-2 cursor-pointer hover:bg-gray-200">
-                        {{ h.cluesssa }} | {{ h.cluesimb }} - {{ h.nombre }} {{ estaEnModoCapturaPrimerNivel() ? '(' + h.municipio + ')' : '' }}
+                        {{ h.cluesssa }} | {{ h.cluesimb }} - {{ h.nombre }} {{ estaEnModoCapturaPrimerNivel() ? '(' +
+                        h.municipio + ')' : '' }}
                     </li>
                 </ul>
             </ng-container>
@@ -27,7 +28,8 @@
                 <div
                     class="flex items-center justify-between px-3 py-2 text-sm text-green-900 bg-green-50 border-green-700 border rounded">
                     <div class="flex items-center">
-                        <lucide-angular [img]="estaEnModoCapturaPrimerNivel() ? StethoscopeIcon : HospitalIcon" class="mr-2 w-5 h-5" />
+                        <lucide-angular [img]="estaEnModoCapturaPrimerNivel() ? StethoscopeIcon : HospitalIcon"
+                            class="mr-2 w-5 h-5" />
                         <span class="font-semibold">
                             {{ selectedHospital!.nombre }}
                             {{ estaEnModoCapturaPrimerNivel() ? '(' + selectedHospital!.municipio + ')' : '' }}
@@ -104,7 +106,17 @@
         </div>
 
         <div>
-            <app-periodo-picker [fechaInicio]="fechaInicio" [fechaFin]="fechaFin"
+            <!-- Aviso si el periodo de localStorage caducó -->
+            <div *ngIf="avisoPeriodo"
+                class="mb-3 px-3 py-2 text-red-800 text-sm bg-red-50 border-red-200 rounded border">
+                ⚠️ {{ avisoPeriodo }}
+            </div>
+            <app-periodo-picker 
+                #pickerRef
+                [fechaInicio]="fechaInicio"
+                [fechaFin]="fechaFin"
+                [disallowPastDates]="true"
+                [allowToday]="true"
                 (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)" />
             <div *ngIf="periodoFormateado" class="mt-2 text-sm text-gray-600">
                 Periodo seleccionado: <span class="font-semibold">{{ periodoFormateado }}</span>

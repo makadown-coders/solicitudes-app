@@ -4,13 +4,16 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnChange
 import { CapturaCluesComponent } from '../../features/captura-clues/captura-clues.component';
 import { SolicitudesComponent } from '../../features/solicitudes/solicitudes.component';
 import { DatosClues } from '../../models/datos-clues';
-import { LucideAngularModule, CircleHelp, RefreshCcwDotIcon, LoaderIcon } from 'lucide-angular';
+import { LucideAngularModule, CircleHelp, RefreshCcwDotIcon, LoaderIcon, InfoIcon } from 'lucide-angular';
 import { InventarioService } from '../../services/inventario.service';
 import { StorageSolicitudService } from '../../services/storage-solicitud.service';
 import { Router } from '@angular/router';
 import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
 import { Title } from '@angular/platform-browser';
 import { concatAll, finalize, map, of } from 'rxjs';
+import { SurveyNudgeComponent } from '../../shared/survey/survey-nudge.component';
+import { SurveyModalComponent } from '../../shared/survey/survey-modal.component';
+import { NgFastToastComponent } from 'ng-fast-toast';
 
 @Component({
   selector: 'app-layout',
@@ -18,7 +21,10 @@ import { concatAll, finalize, map, of } from 'rxjs';
     CommonModule,
     CapturaCluesComponent,
     SolicitudesComponent,
-    LucideAngularModule
+    LucideAngularModule,
+    SurveyNudgeComponent,
+    SurveyModalComponent,
+    NgFastToastComponent
   ],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css',
@@ -26,8 +32,10 @@ import { concatAll, finalize, map, of } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LayoutComponent implements OnInit, OnChanges {
+  acercaDeVisible = false;
   title: Title = inject(Title);
   readonly CircleHelp = CircleHelp;
+  readonly InfoIcon = InfoIcon;
   readonly RefreshCCWDotIcon = RefreshCcwDotIcon;
   readonly LoaderIcon = LoaderIcon;
   activeTab: 'clues' | 'solicitud' = 'clues';
@@ -65,6 +73,10 @@ export class LayoutComponent implements OnInit, OnChanges {
 
     this.refrescarInventario();
     this.refrescarCPMS();
+    if (!this.storageSolicitudService.isPeriodoValidoAhora(true)) {
+      this.activeTab = 'clues';
+      if (this.datosClues) { this.datosClues.periodo = ''; }
+    }
   }
 
   /**
@@ -182,5 +194,13 @@ export class LayoutComponent implements OnInit, OnChanges {
 
   mostrarGuia() {
     this.guiaVisible = true;
+  }
+
+  mostrarAcercaDe() {
+    this.acercaDeVisible = true;
+  }
+
+  anioActual() {
+    return new Date().getFullYear();
   }
 }

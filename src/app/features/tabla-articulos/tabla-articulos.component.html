@@ -70,7 +70,7 @@
                 [attr.title]="clasificacion(articulo.clave)">{{ clasificacion(articulo.clave) }}</td>
             <td class="overflow-hidden hidden p-2 max-w-[250px] text-ellipsis whitespace-pre-wrap break-words sm:whitespace-normal lg:table-cell"
                 [attr.title]="articulo.descripcion">
-{{ ( articulo.descripcion | slice : 0:495 ) + (articulo.descripcion.length > 495 ? ' [...]' : '') }}
+{{ ( articulo.descripcion | slice : 0:195 ) + (articulo.descripcion.length > 195 ? ' [...]' : '') }}
             </td>
             <td class="overflow-hidden hidden p-2 max-w-[150px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell"
                 [attr.title]="articulo.unidadMedida">{{

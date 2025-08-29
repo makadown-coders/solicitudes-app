@@ -8,6 +8,7 @@ import { TraspasoDTO } from '../../models/cargaMasiva/traspaso.dto';
 import * as XLSX from 'xlsx';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { InventarioService } from '../../services/inventario.service';
 
 
 interface InventarioInicialDTO {
@@ -48,7 +49,7 @@ export class CargaMasivaComponent {
     BATCH_SIZE_MOVS = 1000; // antes 500
 
     constructor(
-        private excelService: ExcelService,
+        private inventarioService: InventarioService,
         private cargaMasivaService: CargaMasivaService
     ) { }
 
@@ -92,7 +93,7 @@ export class CargaMasivaComponent {
         if (tipo === 'entradas') {
             return dataRows.map(r => ({
                 unidad_destino_texto: r[0] ?? null,   // A
-                clave_cnis: r[1] ?? '',               // B
+                clave_cnis: this.inventarioService.normalizarClave( r[1] ?? ''),               // B
                 descripcion: r[2] ?? '',              // C
                 num_factura: r[3] ?? null,            // D
                 folio: r[4] ?? null,                  // E
@@ -116,7 +117,7 @@ export class CargaMasivaComponent {
                 fecha_recepcion: this.formatFecha(r[0]), // A
                 folio: r[1] ?? null,                    // B
                 unidad_origen_texto: r[2] ?? null,      // C
-                clave_cnis: r[3] ?? '',                 // D
+                clave_cnis: this.inventarioService.normalizarClave( r[3] ?? ''),                 // D
                 descripcion: r[4] ?? '',                // E
                 cantidad: Number(r[6]) || 0,            // G
                 total: Number(r[7]) || null,            // H
@@ -132,7 +133,7 @@ export class CargaMasivaComponent {
                 unidad_origen_texto: r[0] ?? null,     // A
                 unidad_destino_texto: r[1] ?? null,    // B
                 folio: r[2] ?? null,                   // C
-                clave_cnis: r[3] ?? '',                // D
+                clave_cnis: this.inventarioService.normalizarClave( r[3] ?? ''),                // D
                 cantidad: Number(r[4]) || 0,           // E
                 total: Number(r[5]) || null,           // F
                 programa: r[6] ?? null,                // G
@@ -147,7 +148,7 @@ export class CargaMasivaComponent {
             }));
         }
 
-        if (tipo === 'inventario') {
+        if (tipo === 'inventario') { // inventario inicial
 
             // A: unidad, B: partida, C: articulo, D: lote, E: fecha caducidad,
             // F: tipo, G: cantidades, H: costo
@@ -157,7 +158,7 @@ export class CargaMasivaComponent {
                 return {
                     unidad: r[0] ?? null,
                     partida: r[1] ?? null,
-                    articulo: clave_cnis,
+                    articulo: this.inventarioService.normalizarClave( clave_cnis ),
                     descripcion: this.truncate(descParts.join(' '), 255),
                     lote: r[3] ?? null,
                     fecha_caducidad: this.formatFecha(r[4]),
