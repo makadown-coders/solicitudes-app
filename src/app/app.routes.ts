@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { CargaMasivaComponent } from './features/carga-masiva/carga-masiva.component';
+import { SolicitudesConfigComponent } from './features/solicitudes-config/solicitudes-config.component';
 
 export const routes: Routes = [
   {
@@ -36,6 +37,7 @@ export const routes: Routes = [
     loadComponent: () => import('./features/carga-masiva/carga-masiva.component')
         .then(m => m.CargaMasivaComponent)
    },
+  { path: 'solicitudes-config', component: SolicitudesConfigComponent },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: '**', redirectTo: '/home' }
 ];

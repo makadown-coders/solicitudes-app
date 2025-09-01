@@ -17,6 +17,8 @@ import { StorageSolicitudService } from '../../services/storage-solicitud.servic
 import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
 import { CPMS } from '../../models/CPMS';
 import { SurveyService } from '../../services/survey.service';
+import { FeatureFlagsService } from '../../services/feature-flags.service';
+import { Nivel } from '../../models/feature-flags.model';
 
 
 @Component({
@@ -79,6 +81,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // behaviorSubject para desuscribirme de todos los observables
   private onDestroy$ = new Subject<void>();
+  private flags = inject(FeatureFlagsService);
+  // cachecito opcional para no pedir siempre
+  private surveyFlagCache = new Map<string, boolean>();
 
   constructor() {
   }
@@ -411,12 +416,19 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       this.modalCallback();
     }
     this.cerrarModal();
-    this.mostrarSurveySiEsNecesario();
+    void this.mostrarSurveySiEsNecesario();
   }
 
-  private mostrarSurveySiEsNecesario() {
-    const cluesimb = this.datosClues?.hospital?.cluesimb   // ajusta al nombre real en tu formulario
-      ?? 'UNKNOWN';
+  private async mostrarSurveySiEsNecesario() {
+    // si se limpio captura de articulos no mostrar survey
+    if (this.articulosSolicitados.length === 0) return;
+
+    const cluesimb = this.datosClues?.hospital?.cluesimb ?? '';
+    if (!cluesimb) return;
+
+    // 👇 aquí se valida el flag efectivo
+    const puede = await this.shouldAskSurvey(cluesimb);
+    if (!puede) return;
 
     const APP_VERSION = (globalThis as any).process?.env?.NG_APP_VERSION ?? 'dev';
     this.survey.maybeShow('export_success', { cluesimb, appVersion: APP_VERSION });
@@ -751,4 +763,25 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     });
   }
+
+  private async shouldAskSurvey(cluesimb: string): Promise<boolean> {
+    if (!cluesimb) return false;
+
+    const nivel: Nivel = this.estaCapturandoPrimerNivel() ? 'PRIMER_NIVEL' : 'SEGUNDO_NIVEL';
+    const cacheKey = `${cluesimb}|${nivel}`;
+    if (this.surveyFlagCache.has(cacheKey)) {
+      return this.surveyFlagCache.get(cacheKey)!;
+    }
+
+    try {
+      const flags = await this.flags.getEffective({ cluesimb, nivel });
+      const allowed = !!flags['APLICAR_ENCUESTAS'];
+      this.surveyFlagCache.set(cacheKey, allowed);
+      return allowed;
+    } catch (err) {
+      console.warn('No se pudo consultar flags; se omite encuesta.', err);
+      return false; // fail-closed: sin flags -> no encuesta
+    }
+  }
+
 }
