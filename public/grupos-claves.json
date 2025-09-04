@@ -1,5 +1,40 @@
 [
     {
+        "GrupoInsumo": "",
+        "Clave": "010.000.5385.02",
+        "Categoria": "Categoria VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.5385.00",
+        "Categoria": "Categoria VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.5384.00",
+        "Categoria": "Categoria VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.3835.00",
+        "Categoria": "Categoria VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "Grupo 04: Dermatología",
+        "Clave": "010.000.7063.00",
+        "Categoria": "Categoria I. Medicamentos"
+    },
+    {
+        "GrupoInsumo": "Grupo 05: Endocrinología y Metabolismo",
+        "Clave": "010.000.7103.00",
+        "Categoria": "Categoria I. Medicamentos"
+    },
+    {
+        "GrupoInsumo": "Grupo 23: Cuidados Paliativos",
+        "Clave": "010.000.7065.00",
+        "Categoria": "Categoria I. Medicamentos"
+    },
+    {
         "GrupoInsumo": "Grupo 01: Analgesia",
         "Clave": "010.000.0101.00",
         "Categoria": "Categoria I. Medicamentos"
@@ -12500,7 +12535,7 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.0401",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -12980,7 +13015,7 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CUíAS",
+        "GrupoInsumo": "CUÑAS",
         "Clave": "060.276.0050",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -13210,27 +13245,27 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "AGUJAS HIPODíRMICAS",
+        "GrupoInsumo": "AGUJAS HIPODÉRMICAS",
         "Clave": "060.040.3711",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "AGUJAS HIPODíRMICAS",
+        "GrupoInsumo": "AGUJAS HIPODÉRMICAS",
         "Clave": "060.040.3729",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "AGUJAS HIPODíRMICAS",
+        "GrupoInsumo": "AGUJAS HIPODÉRMICAS",
         "Clave": "060.040.3745",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "AGUJAS HIPODíRMICAS",
+        "GrupoInsumo": "AGUJAS HIPODÉRMICAS",
         "Clave": "060.040.3786",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "AGUJAS HIPODíRMICAS",
+        "GrupoInsumo": "AGUJAS HIPODÉRMICAS",
         "Clave": "060.040.3760",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -13245,77 +13280,77 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1144",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1151",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1169",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1276",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1177",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1284",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1185",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1292",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1193",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1300",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1201",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1359",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1367",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1375",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICO",
+        "GrupoInsumo": "ANTISÉPTICO",
         "Clave": "060.066.1318",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -13335,47 +13370,47 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0017",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0025",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0934",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0942",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0959",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0967",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0058",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0108",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0504",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -13520,62 +13555,62 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6603",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6843",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6629",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6851",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6645",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6859",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6660",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6867",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6686",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6875",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.0103",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6883",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -14465,12 +14500,12 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CONDíN FEMENINO",
+        "GrupoInsumo": "CONDÓN FEMENINO",
         "Clave": "060.308.0227",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CONDíN MASCULINO",
+        "GrupoInsumo": "CONDÓN MASCULINO",
         "Clave": "060.308.0177",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -14585,12 +14620,12 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2884",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2836",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -14965,7 +15000,7 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER PARA INSEMINACIíN INTRAUTERINA DE POLIPROPILENO",
+        "GrupoInsumo": "CATÉTER PARA INSEMINACIíN INTRAUTERINA DE POLIPROPILENO",
         "Clave": "060.166.4873",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -14985,267 +15020,267 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2786",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2794",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.4906",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.4898",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.5051",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7628",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1432",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.5275",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1457",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1465",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8097",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7610",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7669",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1473",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1481",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1507",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9608",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9616",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9624",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1341",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9632",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9657",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7511",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7529",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7545",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7552",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7560",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7578",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9814",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.4914",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6448",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6455",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.0366",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.4194",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.7262",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.7270",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.4609",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.4575",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8006",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9681",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9699",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9707",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9715",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9723",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1358",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6554",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8022",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8030",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER PARA MAPEO CARDIACO\n(DE ALTA DENSIDAD)",
+        "GrupoInsumo": "CATÉTER PARA MAPEO CARDIACO\n(DE ALTA DENSIDAD)",
         "Clave": "060.172.0068",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.172.0014",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.172.0022",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.172.0030",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.172.0048",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -15420,247 +15455,247 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.6943",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.6950",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0848",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1697",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1705",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1713",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1721",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1739",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1747",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1754",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1762",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1770",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1788",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1796",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1804",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1812",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1820",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1838",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0830",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7677",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7990",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1779",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1787",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1910",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1977",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9905",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9913",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.0465",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.0374",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2660",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2777",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2801",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2850",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2900",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2934",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2967",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2181",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2223",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3981",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2124",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9921",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7958",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7966",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7875",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7883",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9590",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2802",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2810",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2828",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -15995,347 +16030,347 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1100",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2752",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2760",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9442",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9475",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9483",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9491",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6737",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6760",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6745",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6778",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6752",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7107",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2703",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2711",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2729",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2737",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2745",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6877",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7149",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7230",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7248",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7255",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6901",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2778",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7172",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7685",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7693",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7701",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7719",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7727",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8055",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6794",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6802",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7214",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7222",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.1257",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.4633",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1852",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1886",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.3246",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6827",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6835",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.0267",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.7338",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.7346",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.7353",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.7361",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.7379",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7198",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7206",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7263",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7354",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7362",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.3287",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.0424",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6793",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6801",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.6819",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6695",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6729",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6703",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1498",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.4831",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6422",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9665",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.9673",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2710",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.0127",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -16535,527 +16570,527 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.2950",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.5978",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.8741",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1598",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1580",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1606",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1614",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1622",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1630",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1648",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1655",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1663",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1671",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1689",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3726",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1010",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0855",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0863",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0871",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0889",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0897",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0905",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0913",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0921",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0939",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0947",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0954",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0962",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0970",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0988",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0996",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1002",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1036",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1028",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.6570",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.6588",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3742",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3759",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3767",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3775",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3783",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3791",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3809",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3817",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3825",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3833",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3841",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3858",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3866",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1069",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.5986",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3874",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3882",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3890",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3908",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3916",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3924",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3932",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1051",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1044",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.5820",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.5838",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.5846",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.5853",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.5861",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.5879",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.5887",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0653",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1218",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1200",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1226",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1135",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1143",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1150",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1168",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1176",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1184",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1192",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1077",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1085",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1093",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1101",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1119",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.1127",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3940",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3007",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3015",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3023",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0856",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.960.0012",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0864",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0872",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3387",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3403",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.4419",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3429",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3437",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.4625",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7330",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0765",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0773",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0781",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0799",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0807",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.4880",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -17125,327 +17160,327 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.6489",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.7941",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.6497",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.6463",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.6471",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.6893",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0013",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0021",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0039",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0047",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0054",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0104",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0112",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0120",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0138",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0146",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0153",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0161",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0179",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0187",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0195",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0203",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0211",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0229",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0237",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0245",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0252",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0260",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0278",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0286",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0294",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0302",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0443",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0450",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0468",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0476",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0484",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0492",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0500",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0518",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0369",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0377",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0385",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0393",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0401",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0419",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0427",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0435",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0922",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0930",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0542",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0559",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0567",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0575",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0583",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0591",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0609",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0617",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0625",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0633",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0641",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0658",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0666",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0674",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8063",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -18410,42 +18445,42 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7982",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2017",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2033",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2058",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2603",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2678",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2702",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2769",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -18485,47 +18520,47 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.3396",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0558",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0566",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0574",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0582",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0590",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0608",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0616",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0624",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -18765,127 +18800,127 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ALMOHADILLAS IMPREGNADA CON SOLUCIíN ANTISíPTICA",
+        "GrupoInsumo": "ALMOHADILLAS IMPREGNADA CON SOLUCIíN ANTISÉPTICA",
         "Clave": "060.088.0975",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ALMOHADILLAS IMPREGNADA CON SOLUCIíN ANTISíPTICA",
+        "GrupoInsumo": "ALMOHADILLAS IMPREGNADA CON SOLUCIíN ANTISÉPTICA",
         "Clave": "060.088.0983",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.034.0103",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.0039",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.0773",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.0906",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.0658",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.0666",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.0898",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.0914",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.1052",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.1060",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.1068",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.1076",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.0997",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.1011",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.0922",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.1094",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.1102",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.1110",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.1128",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.1136",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.066.1383",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS",
+        "GrupoInsumo": "ANTISÉPTICOS",
         "Clave": "060.960.0015",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ANTISíPTICOS Y GERMICIDAS",
+        "GrupoInsumo": "ANTISÉPTICOS Y GERMICIDAS",
         "Clave": "060.066.0989",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -18895,412 +18930,412 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITO DE COBERTURA QUIRíRGICA CON PLATA",
+        "GrupoInsumo": "APíSITO DE COBERTURA QUIRÚRGICA CON PLATA",
         "Clave": "060.088.1168",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITO DE COBERTURA QUIRíRGICA CON PLATA",
+        "GrupoInsumo": "APíSITO DE COBERTURA QUIRÚRGICA CON PLATA",
         "Clave": "060.088.1169",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITO DE COBERTURA QUIRíRGICA CON PLATA",
+        "GrupoInsumo": "APíSITO DE COBERTURA QUIRÚRGICA CON PLATA",
         "Clave": "060.088.1170",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITO DE COBERTURA QUIRíRGICA CON PLATA",
+        "GrupoInsumo": "APíSITO DE COBERTURA QUIRÚRGICA CON PLATA",
         "Clave": "060.088.1171",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1172",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1173",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1174",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0686",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0694",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0827",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0835",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0785",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0793",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0702",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0843",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0082",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0850",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0090",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0868",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0098",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0876",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0033",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0884",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0041",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0892",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0900",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0652",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0049",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0660",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0066",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0678",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0074",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0736",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0744",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0751",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0769",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0918",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0926",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1182",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1190",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1198",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1206",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.960.0032",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.960.0033",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.960.0034",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.960.0028",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.960.0029",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.960.0030",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0777",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0991",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1007",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1015",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1023",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0710",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0728",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1031",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0819",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1049",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1056",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1064",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1072",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.0801",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1254",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1262",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1270",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1278",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1286",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1294",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1302",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1310",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1318",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1326",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1334",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1342",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1350",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1358",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1366",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1374",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1382",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1390",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1398",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "APíSITOS",
+        "GrupoInsumo": "APÓSITOS",
         "Clave": "060.088.1406",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -19330,22 +19365,22 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "BATAS QUIRíRGICAS",
+        "GrupoInsumo": "BATAS QUIRÚRGICAS",
         "Clave": "060.231.0674",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "BATAS QUIRíRGICAS",
+        "GrupoInsumo": "BATAS QUIRÚRGICAS",
         "Clave": "060.231.0666",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "BATAS QUIRíRGICAS",
+        "GrupoInsumo": "BATAS QUIRÚRGICAS",
         "Clave": "060.231.0641",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "BATAS QUIRíRGICAS",
+        "GrupoInsumo": "BATAS QUIRÚRGICAS",
         "Clave": "060.231.0658",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -19440,287 +19475,287 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3304",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0458",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3312",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0466",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3320",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0482",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.3346",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0680",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER BALíN DE SILICONA",
+        "GrupoInsumo": "CATÉTER BALíN DE SILICONA",
         "Clave": "060.166.5288",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER BALíN DE SILICONA",
+        "GrupoInsumo": "CATÉTER BALíN DE SILICONA",
         "Clave": "060.166.5296",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER ENDOVASCULAR",
+        "GrupoInsumo": "CATÉTER ENDOVASCULAR",
         "Clave": "060.166.5224",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER ENDOVASCULAR",
+        "GrupoInsumo": "CATÉTER ENDOVASCULAR",
         "Clave": "060.166.5232",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER ENDOVASCULAR",
+        "GrupoInsumo": "CATÉTER ENDOVASCULAR",
         "Clave": "060.166.5240",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER ENDOVASCULAR",
+        "GrupoInsumo": "CATÉTER ENDOVASCULAR",
         "Clave": "060.166.5248",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER ENDOVASCULAR",
+        "GrupoInsumo": "CATÉTER ENDOVASCULAR",
         "Clave": "060.166.5256",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER ENDOVASCULAR",
+        "GrupoInsumo": "CATÉTER ENDOVASCULAR",
         "Clave": "060.166.5264",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER ENDOVASCULAR",
+        "GrupoInsumo": "CATÉTER ENDOVASCULAR",
         "Clave": "060.166.5272",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER ENDOVASCULAR",
+        "GrupoInsumo": "CATÉTER ENDOVASCULAR",
         "Clave": "060.166.5280",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.5204",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4212",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4220",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4238",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4246",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4253",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4261",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4279",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4287",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.3360",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.2453",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0789",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.0440",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.0515",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6885",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6653",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6669",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6661",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6711",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTER CENTRAL DE INSERCIíN PERIFíRICA",
+        "GrupoInsumo": "CATÉTER CENTRAL DE INSERCIíN PERIFíRICA",
         "Clave": "060.166.1888",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1887",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.5010",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0815",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0823",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0831",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0849",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7974",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6638",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6646",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6679",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8782",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0740",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.0757",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4949",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4956",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4964",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4972",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1903",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1911",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -19820,7 +19855,7 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CUBREBOCAS QUIRíRGICO",
+        "GrupoInsumo": "CUBREBOCAS QUIRÚRGICO",
         "Clave": "060.621.0656",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -20580,37 +20615,37 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "SíBANA REPELENTE Y DESECHABLE PARA PACIENTE",
+        "GrupoInsumo": "SÁBANA REPELENTE Y DESECHABLE PARA PACIENTE",
         "Clave": "060.799.0025",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "SISTEMA DE SUCCIíN",
+        "GrupoInsumo": "SISTEMA DE SUCCIÓN",
         "Clave": "060.345.3119",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "SISTEMA DE SUCCIíN",
+        "GrupoInsumo": "SISTEMA DE SUCCIÓN",
         "Clave": "060.345.3127",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "SISTEMA DE SUCCIíN",
+        "GrupoInsumo": "SISTEMA DE SUCCIÓN",
         "Clave": "060.345.3135",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "SISTEMA DE SUCCIíN",
+        "GrupoInsumo": "SISTEMA DE SUCCIÓN",
         "Clave": "060.345.3143",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "SISTEMA DE SUCCIíN",
+        "GrupoInsumo": "SISTEMA DE SUCCIÓN",
         "Clave": "060.345.3168",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "SISTEMA DE SUCCIíN",
+        "GrupoInsumo": "SISTEMA DE SUCCIÓN",
         "Clave": "060.345.3176",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -21185,67 +21220,67 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.423.0268",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.4864",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.4872",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.229.0025",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.233.0243",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.4286",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.4294",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.4302",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.4310",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.4344",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.4369",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0673",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0665",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -21395,102 +21430,102 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.3394",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.4186",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4832",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.9375",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.9367",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7032",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7024",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2083",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2091",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2158",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2141",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2109",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2117",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2125",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.2133",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.0533",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.0541",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7891",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7909",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.165.1359",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -21615,132 +21650,132 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1846",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.463.2083",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.463.2091",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.463.2109",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.463.2117",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.463.2125",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.463.2133",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.463.2141",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.463.2158",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3404",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3412",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3420",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3438",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3446",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3453",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3461",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3479",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3487",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3495",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3503",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3511",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3529",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3537",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3545",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3552",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1515",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -22730,187 +22765,187 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CAMPOS QUIRíRGICOS",
+        "GrupoInsumo": "CAMPOS QUIRÚRGICOS",
         "Clave": "060.155.0312",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.155.0320",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.155.0338",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.155.0155",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.155.0304",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.155.0015",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.165.0690",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.165.0708",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.165.0716",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.6430",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0706",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0722",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0748",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0763",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0805",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0821",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0847",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0862",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0888",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0904",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.165.0914",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.168.8211",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.168.8237",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.168.8245",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.168.0945",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.168.8138",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.168.8146",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.168.8161",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.0301",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.6935",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0920",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0946",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.8725",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.167.0979",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.2943",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.3008",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.3016",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -22920,22 +22955,22 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA",
         "Clave": "060.960.0017",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA",
         "Clave": "060.960.0018",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA",
         "Clave": "060.960.0019",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA",
         "Clave": "060.345.1279",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -22945,62 +22980,62 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA",
         "Clave": "060.345.1295",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA",
         "Clave": "060.345.1311",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA",
         "Clave": "060.960.0020",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA",
         "Clave": "060.960.0021",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS PARA DRENAJE POR ASPIRACIíN PARA USO POSTQUIRíRGICO",
+        "GrupoInsumo": "EQUIPOS PARA DRENAJE POR ASPIRACIÓN PARA USO POSTQUIRÚRGICO",
         "Clave": "060.345.1865",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS PARA DRENAJE POR ASPIRACIíN PARA USO POSTQUIRíRGICO",
+        "GrupoInsumo": "EQUIPOS PARA DRENAJE POR ASPIRACIÓN PARA USO POSTQUIRÚRGICO",
         "Clave": "060.345.1873",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA PERCUTÁNEA",
         "Clave": "060.960.0025",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA PERCUTÁNEA",
         "Clave": "060.345.3739",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA PERCUTÁNEA",
         "Clave": "060.345.3747",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA PERCUTÁNEA",
         "Clave": "060.345.3754",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA PERCUTÁNEA",
         "Clave": "060.345.3762",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE GASTROTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS DE GASTROTOMÍA PERCUTÁNEA",
         "Clave": "060.345.3770",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -23080,37 +23115,37 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ROPA QUIRíRGICA",
+        "GrupoInsumo": "ROPA QUIRÚRGICA",
         "Clave": "060.231.0575",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ROPA QUIRíRGICA",
+        "GrupoInsumo": "ROPA QUIRÚRGICA",
         "Clave": "060.231.0583",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ROPA QUIRíRGICA",
+        "GrupoInsumo": "ROPA QUIRÚRGICA",
         "Clave": "060.231.0591",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ROPA QUIRíRGICA",
+        "GrupoInsumo": "ROPA QUIRÚRGICA",
         "Clave": "060.231.0609",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ROPA QUIRíRGICA",
+        "GrupoInsumo": "ROPA QUIRÚRGICA",
         "Clave": "060.231.0617",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ROPA QUIRíRGICA",
+        "GrupoInsumo": "ROPA QUIRÚRGICA",
         "Clave": "060.231.0625",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "ROPA QUIRíRGICA",
+        "GrupoInsumo": "ROPA QUIRÚRGICA",
         "Clave": "060.231.0633",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -24095,462 +24130,462 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CíNULAS",
+        "GrupoInsumo": "CÁNULAS",
         "Clave": "060.166.3370",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3966",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3974",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3982",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3990",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4006",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4014",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4022",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4030",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4048",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4055",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3578",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3586",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3594",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3602",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3610",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3628",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3636",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3644",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3651",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3669",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3677",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3685",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3693",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3701",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3719",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3727",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3735",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3743",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3750",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3768",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3776",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3784",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3792",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3800",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3818",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3826",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3834",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3842",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3859",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3867",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3875",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3883",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3891",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3909",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3917",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3925",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3933",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3941",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.3958",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4170",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4188",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4196",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.0418",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.0426",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.0434",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.0442",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.0459",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.0483",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.0491",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.0467",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.0475",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1084",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1126",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1142",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1233",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1308",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1258",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1274",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1357",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1373",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1407",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.6844",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1423",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1449",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.0218",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2405",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2413",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2439",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2447",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2462",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1464",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1480",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1522",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1530",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1563",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1571",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1567",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1605",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1621",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.1647",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.4559",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -24635,127 +24670,127 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO INTRODUCTOR DE CATéTER ARTERIAL Y VENOSO",
+        "GrupoInsumo": "EQUIPO INTRODUCTOR DE CATÉTER ARTERIAL Y VENOSO",
         "Clave": "060.345.3457",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO INTRODUCTOR DE CATéTER ARTERIAL Y VENOSO",
+        "GrupoInsumo": "EQUIPO INTRODUCTOR DE CATÉTER ARTERIAL Y VENOSO",
         "Clave": "060.345.3465",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO INTRODUCTOR DE CATéTER ARTERIAL Y VENOSO",
+        "GrupoInsumo": "EQUIPO INTRODUCTOR DE CATÉTER ARTERIAL Y VENOSO",
         "Clave": "060.345.3473",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO INTRODUCTOR DE CATéTER ARTERIAL Y VENOSO",
+        "GrupoInsumo": "EQUIPO INTRODUCTOR DE CATÉTER ARTERIAL Y VENOSO",
         "Clave": "060.345.3481",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO INTRODUCTOR DE CATéTER ARTERIAL Y VENOSO",
+        "GrupoInsumo": "EQUIPO INTRODUCTOR DE CATÉTER ARTERIAL Y VENOSO",
         "Clave": "060.345.3499",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO INTRODUCTOR DE CATéTER ARTERIAL Y VENOSO",
+        "GrupoInsumo": "EQUIPO INTRODUCTOR DE CATÉTER ARTERIAL Y VENOSO",
         "Clave": "060.345.3507",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA DRENAJE BILIAR POR TíCNICA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPO PARA DRENAJE BILIAR POR TÉCNICA PERCUTÁNEA",
         "Clave": "060.345.3515",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA DRENAJE BILIAR POR TíCNICA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPO PARA DRENAJE BILIAR POR TÉCNICA PERCUTÁNEA",
         "Clave": "060.345.3523",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA DRENAJE BILIAR POR TíCNICA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPO PARA DRENAJE BILIAR POR TÉCNICA PERCUTÁNEA",
         "Clave": "060.345.3531",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA DRENAJE BILIAR POR TíCNICA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPO PARA DRENAJE BILIAR POR TÉCNICA PERCUTÁNEA",
         "Clave": "060.345.3549",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA DRENAJE BILIAR POR TíCNICA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPO PARA DRENAJE BILIAR POR TÉCNICA PERCUTÁNEA",
         "Clave": "060.345.3556",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA MICROPUNCIíN DE ARTERIAS Y VENAS",
+        "GrupoInsumo": "EQUIPO PARA MICROPUNCIÓN DE ARTERIAS Y VENAS",
         "Clave": "060.345.3564",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA MICROPUNCIíN DE ARTERIAS Y VENAS",
+        "GrupoInsumo": "EQUIPO PARA MICROPUNCIÓN DE ARTERIAS Y VENAS",
         "Clave": "060.345.3572",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA MICROPUNCIíN DE ARTERIAS Y VENAS",
+        "GrupoInsumo": "EQUIPO PARA MICROPUNCIÓN DE ARTERIAS Y VENAS",
         "Clave": "060.345.3580",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA MICROPUNCIíN DE ARTERIAS Y VENAS",
+        "GrupoInsumo": "EQUIPO PARA MICROPUNCIÓN DE ARTERIAS Y VENAS",
         "Clave": "060.345.3598",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA MICROPUNCIíN DE ARTERIAS Y VENAS",
+        "GrupoInsumo": "EQUIPO PARA MICROPUNCIÓN DE ARTERIAS Y VENAS",
         "Clave": "060.345.3606",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA MICROPUNCIíN DE ARTERIAS Y VENAS",
+        "GrupoInsumo": "EQUIPO PARA MICROPUNCIÓN DE ARTERIAS Y VENAS",
         "Clave": "060.345.3614",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA MICROPUNCIíN DE ARTERIAS Y VENAS",
+        "GrupoInsumo": "EQUIPO PARA MICROPUNCIÓN DE ARTERIAS Y VENAS",
         "Clave": "060.345.3622",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA MICROPUNCIíN DE ARTERIAS Y VENAS",
+        "GrupoInsumo": "EQUIPO PARA MICROPUNCIÓN DE ARTERIAS Y VENAS",
         "Clave": "060.345.3630",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPO PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.4240",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPO PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.3648",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPO PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.3655",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPO PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.3663",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPO PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.3671",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPO PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.3689",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -25205,407 +25240,407 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.161.0256",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.161.0272",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.161.0280",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.161.0223",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.161.0264",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.161.0306",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.161.0314",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.161.0322",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1325",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1333",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.345.0313",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.345.1931",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.345.1949",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.345.1956",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7867",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8485",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8493",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8501",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8519",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8527",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8535",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8543",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8550",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.8568",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.0024",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7859",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0599",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0631",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0672",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0714",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0755",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0797",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.2263",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.2800",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.3196",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.3568",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0011",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0045",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.2289",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0243",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0276",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0300",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0334",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0367",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.168.2271",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0086",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0128",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0169",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0185",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.0219",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2827",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2835",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2868",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.2918",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3049",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3056",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4915",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3064",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4923",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3072",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4931",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3080",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3098",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3106",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3114",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3361",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3965",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.3973",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7842",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.345.1709",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7834",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7800",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7818",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.167.7826",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4899",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1523",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.4907",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1531",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1549",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1564",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "CATéTERES",
+        "GrupoInsumo": "CATÉTERES",
         "Clave": "060.166.1572",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -25685,17 +25720,17 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS De CATéTERes ureterales radio paco doble íJí",
+        "GrupoInsumo": "EQUIPOS DE CATÉTERES URETERALES RADIO URERETRALES RADIO PACO DOBLE 'J'",
         "Clave": "060.345.0347",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS CATéTER URETERAL DOBLE íJí DE MAZER",
+        "GrupoInsumo": "EQUIPOS CATÉTER URETERAL DOBLE 'J' DE MAZER",
         "Clave": "060.345.1642",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS CATéTER URETERAL DOBLE íJí DE MAZER",
+        "GrupoInsumo": "EQUIPOS CATÉTER URETERAL DOBLE 'J' DE MAZER",
         "Clave": "060.345.1659",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -25705,12 +25740,12 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE DILATADORES URETRALES SEMIRRíGIDOS",
+        "GrupoInsumo": "EQUIPOS DE DILATADORES URETRALES SEMIRRÍGIDOS",
         "Clave": "060.345.1741",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS DE TUNELIZACIíN CON DILATADOR URETERAL",
+        "GrupoInsumo": "EQUIPOS DE TUNELIZACIÓN CON DILATADOR URETERAL",
         "Clave": "060.345.1725",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -25720,147 +25755,147 @@
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.0198",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.0214",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.0222",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.0230",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.0271",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.0289",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMíA PERCUTáNEA",
+        "GrupoInsumo": "EQUIPOS PARA NEFROSTOMÍA PERCUTÁNEA",
         "Clave": "060.345.0297",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4075",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4083",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4091",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4109",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4117",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4125",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4133",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4141",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4158",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4166",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4174",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4182",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4190",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4208",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.0586",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.0594",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4216",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4224",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.0743",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.4232",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.0982",
         "Categoria": "Categoría II. Material de Curación"
     },
     {
-        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLóGICOS",
+        "GrupoInsumo": "EQUIPO PARA PROCEDIMIENTOS UROLÓGICOS",
         "Clave": "060.345.0990",
         "Categoria": "Categoría II. Material de Curación"
     },
@@ -25973,5 +26008,270 @@
         "GrupoInsumo": "PARAFINAS",
         "Clave": "060.693.0014",
         "Categoria": "Categoría II. Material de Curación"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "030.000.5235.00",
+        "Categoria": "Categoria VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "030.000.0011.00",
+        "Categoria": "Categoria VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "030.000.0014.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "030.000.0021.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "030.000.0013.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "030.000.6505.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "030.000.5248.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "030.000.0003.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "030.000.0012.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.574.0164",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.574.0032",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.574.0016",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.681.1618",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.889.2533",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.889.0099",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.574.0222",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.889.2376",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.431.0159",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.560.0145",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.560.0152",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.560.0137",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.626.0329",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.365.0340",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.365.0332",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "080.829.0530",
+        "Categoria": "Categoría III. Auxiliares de Diagnóstico"
+    },
+    {
+        "GrupoInsumo": "HOJAS PARA BISTURÍ",
+        "Clave": "060.483.0091",
+        "Categoria": "Categoría II. Material de Curación"
+    },
+    {
+        "GrupoInsumo": "HOJAS PARA BISTURÍ",
+        "Clave": "060.483.0125",
+        "Categoria": "Categoría II. Material de Curación"
+    },
+    {
+        "GrupoInsumo": "HOJAS PARA BISTURÍ",
+        "Clave": "060.483.0141",
+        "Categoria": "Categoría II. Material de Curación"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.2736.01",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.5381.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.5395.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.2707.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.1711.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.1706.00",
+         "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.2512.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.5393.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.2168.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.0022.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.2714.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.2739.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.5392.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.5391.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.8000.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.8002.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.5397.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.8001.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.2740.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.2731.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.6507.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.2730.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.3835.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.4376.00",
+        "Categoria": "Categoría VI. Nutriología"
+    },
+    {
+        "GrupoInsumo": "",
+        "Clave": "010.000.1098.00",
+        "Categoria": "Categoría VI. Nutriología"
     }
 ]

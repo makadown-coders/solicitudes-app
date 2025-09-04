@@ -50,7 +50,7 @@
             <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">CPM HGM</th>
             <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">CPM HMIM</th>
             <th class="px-2 py-2 w-24 text-left font-semibold text-gray-700 border-b">CPM UNEME</th>
-            <th class="px-2 py-2 w-16 text-left font-semibold text-gray-700 border-b">CPM SF</th>
+            <th class="px-2 py-2 w-16 text-left font-semibold text-gray-700 border-b">CPM HCSF</th>
             <th class="px-2 py-2 w-28 text-left font-semibold text-gray-700 border-b">TOTAL CPM MEXICALI</th>
 
             <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">CPM HGE</th>
@@ -82,7 +82,7 @@
             <td class="px-2 py-2 text-right border-b">{{ r.HGM }}</td>
             <td class="px-2 py-2 text-right border-b">{{ r.HMIM }}</td>
             <td class="px-2 py-2 text-right border-b">{{ r.UNEME }}</td>
-            <td class="px-2 py-2 text-right border-b">{{ r.SF }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.HGSF }}</td>
             <td class="px-2 py-2 text-right border-b">{{ r.HGE }}</td>
             <td class="px-2 py-2 text-right font-semibold border-b">{{ r.totalHospitales }}</td>
 
@@ -96,7 +96,7 @@
             <td class="px-2 py-2 text-right border-b">{{ r.CPM_HGM }}</td>
             <td class="px-2 py-2 text-right border-b">{{ r.CPM_HMIM }}</td>
             <td class="px-2 py-2 text-right border-b">{{ r.CPM_UNEME }}</td>
-            <td class="px-2 py-2 text-right border-b">{{ r.CPM_SF }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.CPM_HGSF }}</td>
             <td class="px-2 py-2 text-right font-bold border-b">{{ r.TOTAL_CPM_MEXICALI }}</td>
 
             <td class="px-2 py-2 text-right border-b">{{ r.CPM_HGE }}</td>
@@ -112,6 +112,12 @@
     <div class="flex justify-between items-center mt-2 text-sm text-gray-600">
       <div>Total: {{ totalItems() | number }}</div>
       <!-- (botones export si quieres aquí) -->
+      <div class="flex items-center gap-2">
+        <button class="px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg hover:bg-green-500 transition"
+          (click)="exportarExcelRdlS(true)">
+          Exportar Excel
+        </button>
+      </div>
     </div>
   </div>
 
@@ -156,7 +162,6 @@
   </div>
 
   <div class="text-xs text-gray-500">
-    PIEZAS = 1 (por ahora) · AZM/AZE/AZT pendientes (no vienen en Excel) · Descripciones y grupos se llenan si existen
-    <code>/articulos.json</code> y <code>/grupos-claves.json</code> en <em>public/</em>.
+    PIEZAS = 1 (por ahora) · existencias HGSF pendiente ·.
   </div>
 </div>

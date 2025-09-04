@@ -112,13 +112,13 @@ export class UnidadesService {
   /** Devuelve CLUES IMB por nombre (o por clues embebido en inventario si ya viene) */
   getCluesimbFor(invNombre?: string, fallbackClues?: string): string | null {
     if (fallbackClues) return fallbackClues;
-    const u = this.findByNombre(invNombre || '');
+    const u = this.findByNombre(invNombre || '') || this.byAliasSasNorm.get(invNombre!);
     return u?.cluesimb ?? null;
   }
 
   getCluesSSAFor(invNombre?: string, fallbackClues?: string): string | null {
     if (fallbackClues) return fallbackClues;
-    const u = this.findByNombre(invNombre || '');
+    const u = this.findByNombre(invNombre || '') || this.byAliasSasNorm.get(invNombre!);
     return u?.cluesssa ?? null;
   }
 }
