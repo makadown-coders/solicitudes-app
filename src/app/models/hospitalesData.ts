@@ -7,6 +7,21 @@ import { UnidadExistente } from "./articulo-solicitud";
  */
 export const hospitalesData: UnidadExistente[] = [
   {
+    key: "HGSF",
+    cluesssa: "BCSSA000761",
+    cluesimb: "BCIMB000623",
+    nombre: "HOSPITAL COMUNITARIO SAN FELIPE",
+    municipio: "SAN FELIPE",
+    localidad: "SAN FELIPE",
+    jurisdiccion: "MEXICALI",
+    direccion: "AV. MAR BERMEJO 173, AMPLIACION ZONA CENTRO",
+    latitud: "31.0232256",
+    longitud: "-114.839587",
+    estratoUnidad: "URBANO",
+    nivelAtencion: "SEGUNDO NIVEL",
+    tipoUnidad: "HOSPITALES"
+  },
+  {
     key: "HGENS",
     cluesssa: "BCSSA000015",
     cluesimb: "BCIMB000010",

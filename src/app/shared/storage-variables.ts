@@ -72,7 +72,8 @@ export const enum StorageVariables {
     EXISTENCIA_HGPR = 'HGPR',
     EXISTENCIA_HMIMXL = 'HMIMXL',
     EXISTENCIA_UOMXL = 'UOMXL',
-    EXISTENCIA_HGTZE = 'HGTZE'
+    EXISTENCIA_HGTZE = 'HGTZE',
+    EXISTENCIA_HGSF = 'HGSF'
 }
 
 // crear enum para las existencias de inventario
@@ -85,5 +86,6 @@ export enum Existencias {
     HGPR = 'HGPR',
     HMIMXL = 'HMIMXL',
     UOMXL = 'UOMXL',
-    HGTZE = 'HGTZE'
+    HGTZE = 'HGTZE',
+    HGSF = 'HGSF'
 }

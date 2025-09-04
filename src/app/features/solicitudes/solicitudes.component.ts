@@ -634,7 +634,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         headers = Object.values(datos[7]).map((h: any) => (h + '').toLowerCase().trim());
         colClave = headers.find(h => h.includes('clave'));
         colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado'));
-        console.log('datos[7]', datos[7]);
+        // console.log('datos[7]', datos[7]);
         if (!colClave) {
           this.abrirModalInfo('Encabezado faltante',
             'El archivo no contiene columna con clave CNIS o formato no es válido.');
@@ -655,7 +655,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         }
         let clave: string = ((!usandoTemplate ? fila[colClave] : fila[2]) ?? '')
           .toString().trim().toUpperCase();
-        console.log(fila);
+        console.log('procesando clave', clave);
         if (!clave) {
           continue;
         }
@@ -670,7 +670,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
           existente.cantidad += cantidad;
           repetidas[clave] = (repetidas[clave] || existente.cantidad);
         } else {
-
           // si modo captura es primer nivel, revisar primero que la clave sea de primer nivel
           if (this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL) {
             const esPrimerNivel = this.articulosService.esPrimerNivel(clave);

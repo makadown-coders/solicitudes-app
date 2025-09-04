@@ -1,47 +1,167 @@
-<div class="p-6 space-y-6">
-    <h2 class="text-2xl font-semibold tracking-tight">RdlS</h2>
-
-    <!-- 🗓️ Selector de periodo -->
-    <div class="flex justify-end gap-4">
-      <div class="min-w-[270px]">
-        <app-periodo-picker-dashboard
-          [fechaInicio]="fechaInicio()"
-          [fechaFin]="fechaFin()"
-          [titulo]="'Fecha de Envío'"
-          (rangoCambiado)="onPeriodoSeleccionado($event.fechaInicio, $event.fechaFin)">
-        </app-periodo-picker-dashboard>
-      </div>
+<!-- src/app/features/dashboard-abasto/rdls/rdls.component.html -->
+<div class="p-4 space-y-4 md:p-6">
+  <div class="flex items-center gap-3">
+    <h2 class="text-2xl font-semibold text-green-800">RdlS · Análisis Plan de Distribución (2º Nivel)</h2>
+    <span class="px-2 py-1 text-xs text-amber-800 bg-amber-100 rounded-lg">Catálogo basal &lt; 30 camas</span>
+    <div class="ml-auto">
+      <input
+        class="px-3 py-2 w-64 rounded-xl border-gray-300 border focus:outline-none focus:ring-2 focus:ring-green-500"
+        placeholder="Buscar por clave/descripcion..." [ngModel]="term()" (ngModelChange)="term.set($event)" />
     </div>
+  </div>
+  <!-- CONTENEDOR -->
+  <div class="relative rounded-xl border">
 
-    <!-- 📈 Tabla -->
-    <div class="overflow-x-auto mt-6 bg-white rounded-lg shadow">
-      <table class="min-w-full text-sm">
-        <thead class="bg-gray-100">
-          <tr class="renglon-info">
-            <th class="p-2 border">Fecha Envio</th>
-            <th class="p-2 border">Clues Origen</th>
-            <th class="p-2 border">Nombre Almacén Origen</th>
-            <th class="p-2 border">Nombre Unidad Médica Final</th>
-            <th class="p-2 border">Clave</th>
-            <th class="p-2 border">Descripcion</th>
-            <th class="p-2 border">Piezas x Envío</th>
-            <th class="p-2 border">Pickeado</th>
-            <th class="p-2 border">Fecha Entrega unidad final</th>
+    <div #gridScroll class="overflow-auto max-h-[60vh]">
+      <table #dataTable class="min-w-[1400px] w-full text-sm">
+        <thead #theadEl class="z-40 sticky top-0 text-white bg-green-700 shadow">
+          <tr>
+            <th class="px-2 py-2 w-12 text-left font-semibold text-gray-700 border-b">NO.</th>
+            <th class="px-2 py-2 w-28 text-left font-semibold text-gray-700 border-b">CLAVE</th>
+            <th class="px-2 py-2 min-w-72 text-left font-semibold text-gray-700 border-b">DESCRIPCIÓN</th>
+            <th class="px-2 py-2 w-40 text-left font-semibold text-gray-700 border-b">TIPO</th>
+            <th class="px-2 py-2 w-40 text-left font-semibold text-gray-700 border-b">GRUPO TERAPEUTICO</th>
+            <th class="px-2 py-2 w-16 text-left font-semibold text-gray-700 border-b">PIEZAS</th>
+
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">AZM</th>
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">AZE</th>
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">AZT</th>
+            <th class="px-2 py-2 w-24 text-left font-semibold text-gray-700 border-b">TOTAL ALMACENES</th>
+
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">HGTK</th>
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">HMIT</th>
+            <th class="px-2 py-2 w-24 text-left font-semibold text-gray-700 border-b">HGTZOE</th>
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">HGT</th>
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">HGPR</th>
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">HGM</th>
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">HMIM</th>
+            <th class="px-2 py-2 w-24 text-left font-semibold text-gray-700 border-b">UNEME</th>
+            <th class="px-2 py-2 w-16 text-left font-semibold text-gray-700 border-b">SF</th>
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">HGE</th>
+            <th class="px-2 py-2 w-24 text-left font-semibold text-gray-700 border-b">TOTAL HOSPITALES</th>
+
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">CPM HGTK</th>
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">CPM HMIT</th>
+            <th class="px-2 py-2 w-24 text-left font-semibold text-gray-700 border-b">CPM HGTZOE</th>
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">CPM HGT</th>
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">CPM HGPR</th>
+            <th class="px-2 py-2 w-28 text-left font-semibold text-gray-700 border-b">TOTAL CPM TIJUANA</th>
+
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">CPM HGM</th>
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">CPM HMIM</th>
+            <th class="px-2 py-2 w-24 text-left font-semibold text-gray-700 border-b">CPM UNEME</th>
+            <th class="px-2 py-2 w-16 text-left font-semibold text-gray-700 border-b">CPM HCSF</th>
+            <th class="px-2 py-2 w-28 text-left font-semibold text-gray-700 border-b">TOTAL CPM MEXICALI</th>
+
+            <th class="px-2 py-2 w-20 text-left font-semibold text-gray-700 border-b">CPM HGE</th>
+            <th class="px-2 py-2 w-28 text-left font-semibold text-gray-700 border-b">TOTAL CPM ENSENADA</th>
           </tr>
         </thead>
         <tbody>
-          <tr class="renglon-info">
-            <td class="p-2 text-gray-500 border">en construccion</td>
-            <td class="p-2 text-gray-500 border">en construccion</td>
-            <td class="p-2 text-gray-500 border">en construccion</td>
-            <td class="p-2 text-gray-500 border">en construccion</td>
-            <td class="p-2 text-gray-500 border">en construccion</td>
-            <td class="p-2 text-gray-500 border">en construccion</td>
-            <td class="p-2 text-gray-500 border">en construccion</td>
-            <td class="p-2 text-gray-500 border">en construccion</td>
-            <td class="p-2 text-gray-500 border">en construccion</td>
+          <tr *ngFor="let r of pageSlice(); trackBy: trackClave" class="hover:bg-gray-50">
+            <td class="px-2 py-2 text-right border-b">{{ r.no }}</td>
+            <td class="px-2 py-2 font-mono border-b">{{ r.clave }}</td>
+            <td class="p-2 py-2 font-mono border-b" [attr.title]="r.descripcion || '—'">
+              {{ r.descripcion ? ((r.descripcion.length > 50) ? (r.descripcion | slice: 0:30) + ' [...]' : r.descripcion
+              ) : '—' }}
+            </td>
+            <td class="px-2 py-2 border-b">{{ r.tipo || '—' }}</td>
+            <td class="px-2 py-2 border-b">{{ r.grupo_terapeutico }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.piezas }}</td>
+
+            <td class="px-2 py-2 text-right border-b">{{ r.AZM }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.AZE }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.AZT }}</td>
+            <td class="px-2 py-2 text-right font-semibold border-b">{{ r.totalAlmacenes }}</td>
+
+            <td class="px-2 py-2 text-right border-b">{{ r.HGTK }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.HMIT }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.HGTZOE }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.HGT }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.HGPR }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.HGM }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.HMIM }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.UNEME }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.HGSF }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.HGE }}</td>
+            <td class="px-2 py-2 text-right font-semibold border-b">{{ r.totalHospitales }}</td>
+
+            <td class="px-2 py-2 text-right border-b">{{ r.CPM_HGTK }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.CPM_HMIT }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.CPM_HGTZOE }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.CPM_HGT }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.CPM_HGPR }}</td>
+            <td class="px-2 py-2 text-right font-bold border-b">{{ r.TOTAL_CPM_TIJUANA }}</td>
+
+            <td class="px-2 py-2 text-right border-b">{{ r.CPM_HGM }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.CPM_HMIM }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.CPM_UNEME }}</td>
+            <td class="px-2 py-2 text-right border-b">{{ r.CPM_HGSF }}</td>
+            <td class="px-2 py-2 text-right font-bold border-b">{{ r.TOTAL_CPM_MEXICALI }}</td>
+
+            <td class="px-2 py-2 text-right border-b">{{ r.CPM_HGE }}</td>
+            <td class="px-2 py-2 text-right font-bold border-b">{{ r.TOTAL_CPM_ENSENADA }}</td>
+          </tr>
+          <tr *ngIf="pageSlice().length===0">
+            <td class="p-6 text-center text-gray-500" colspan="999">Sin resultados</td>
           </tr>
         </tbody>
       </table>
     </div>
+    <!-- Footer / totales -->
+    <div class="flex justify-between items-center mt-2 text-sm text-gray-600">
+      <div>Total: {{ totalItems() | number }}</div>
+      <!-- (botones export si quieres aquí) -->
+      <div class="flex items-center gap-2">
+        <button class="px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg hover:bg-green-500 transition"
+          (click)="exportarExcelRdlS(true)">
+          Exportar Excel
+        </button>
+      </div>
+    </div>
   </div>
+
+  <!-- 🔽 Paginación (calcada del inventario-tab, adaptada a signals) -->
+  <div class="flex items-center justify-end gap-3">
+    <label class="text-sm">Filas por página</label>
+    <select [ngModel]="pageSize()" (ngModelChange)="pageSize.set($event); goTo(1)" class="px-2 py-1 border rounded">
+      <option [ngValue]="25">25</option>
+      <option [ngValue]="50">50</option>
+      <option [ngValue]="100">100</option>
+      <option [ngValue]="200">200</option>
+    </select>
+
+    <button
+      class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      (click)="goTo(1)" [disabled]="page()===1">«
+      Primera</button>
+
+    <button
+      class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      (click)="jump(-10)" [disabled]="page()===1">‹‹
+      -10</button>
+
+    <button
+      class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      (click)="prevPage()" [disabled]="page()===1">‹
+      Anterior</button>
+
+    <div class="text-sm">Página {{ page() }} de {{ totalPages() }}</div>
+
+    <button
+      class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      (click)="nextPage()" [disabled]="page()>=totalPages()">Siguiente ›</button>
+
+    <button
+      class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      (click)="jump(10)" [disabled]="page()>=totalPages()">+10 ››</button>
+
+    <button
+      class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      (click)="goTo(totalPages())" [disabled]="page()>=totalPages()">Última »</button>
+  </div>
+
+  <div class="text-xs text-gray-500">
+    PIEZAS = 1 (por ahora) · existencias HGSF pendiente ·.
+  </div>
+</div>
