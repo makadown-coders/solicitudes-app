@@ -3,41 +3,17 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, map, Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { Unidad, Unidadv2 } from '../models/articulo-solicitud';
+import { Unidad, Unidadv2, UnidadFromApi } from '../models/articulo-solicitud';
 
-// Backend model de referencia:
-// interface UnidadMedica {
-//   id?: number; cluessa: string | null; cluesimb: string | null; nombre: string;
-//   direccion: string | null; latitud: number | null; longitud: number | null;
-//   estrato_unidad: string | null; nivel_atencion: string | null;
-//   tipo_unidad_id: number; localidad_id: number;
-//   // y el getAll() incluye: tipo_unidad.nombre_tipo AS tipo_unidad, localidad.nombre_localidad, municipio.nombre_municipio
-// }
-
-type UnidadFromApi = {
-  id?: number;
-  cluessa: string | null;
-  cluesimb: string | null;
-  nombre: string;
-  alias_sas: string | null;
-  direccion: string | null;
-  latitud: number | null;
-  longitud: number | null;
-  estrato_unidad: string | null;
-  nivel_atencion: string | null;
-  tipo_unidad: string | null;
-  nombre_localidad?: string | null;
-  nombre_municipio?: string | null;
-};
 
 @Injectable({ providedIn: 'root' })
 export class UnidadesService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/unidades`;
 
-  // cache reactivo
-  private unidadesSubject = new BehaviorSubject<Unidad[]>([]);
-  public unidades$: Observable<Unidad[]> = this.unidadesSubject.asObservable();
+  // ⬇️ corrige el tipo del cache: era Unidad[], pero realmente cargas Unidadv2[]
+  private unidadesSubject = new BehaviorSubject<Unidadv2[]>([]);
+  public unidades$: Observable<Unidadv2[]> = this.unidadesSubject.asObservable();
 
   // índices para búsquedas rápidas
   private byCluesimb = new Map<string, Unidad>();
@@ -57,21 +33,28 @@ export class UnidadesService {
   load(): Observable<Unidadv2[]> {
     return this.http.get<UnidadFromApi[]>(this.apiUrl).pipe(
       map(rows => (rows ?? []).map(r => {
+        // nombre puede venir como 'nombre_de_unidad' (vista) o 'nombre' (tabla antigua)
+        const nombre = (r as any).nombre_de_unidad ?? r.nombre ?? '';
+
         const u: Unidadv2 = {
           // tu interfaz usa 'cluesssa' (con 3 's'); lo llenamos desde 'cluessa'
           cluesssa: (r.cluessa ?? '') || '',
           cluesimb: (r.cluesimb ?? '') || '',
-          nombre: r.nombre || '',
+          nombre,
           aliasSas: (r.alias_sas ?? '') || '',
           municipio: (r as any).nombre_municipio ?? '',
           localidad: (r as any).nombre_localidad ?? '',
-          jurisdiccion: '', // no viene en el SELECT actual
+          jurisdiccion: '', // no viene (por ahora) en la vista
           direccion: r.direccion ?? '',
           latitud: r.latitud != null ? String(r.latitud) : '',
           longitud: r.longitud != null ? String(r.longitud) : '',
           estratoUnidad: r.estrato_unidad ?? '',
           nivelAtencion: r.nivel_atencion ?? '',
           tipoUnidad: r.tipo_unidad ?? '',
+
+          // nuevos opcionales (si vienen de la vista)
+          nombreTipologia: (r as any).nombre_tipologia ?? undefined,
+          esSegundoNivel: r.es_segundo_nivel ?? undefined,
         };
         return u;
       })),
@@ -80,6 +63,7 @@ export class UnidadesService {
         this.byCluesimb.clear();
         this.byNombreNorm.clear();
         this.byAliasSasNorm.clear();
+
         for (const u of unidades) {
           if (u.cluesimb) this.byCluesimb.set(u.cluesimb.trim().toUpperCase(), u);
           const norm = this.normalizeName(u.nombre);

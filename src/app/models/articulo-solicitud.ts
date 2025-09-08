@@ -1,11 +1,12 @@
+// /src/app/models/articulo-solicitud.ts
 export interface ArticuloSolicitud {
-    clave: string;
-    descripcion: string;
-    unidadMedida: string;
-    cantidad: number;
-    cpm: number;
-  }
-  
+  clave: string;
+  descripcion: string;
+  unidadMedida: string;
+  cantidad: number;
+  cpm: number;
+}
+
 export interface Articulo {
   clave: string;
   clavea: any;
@@ -58,6 +59,9 @@ export interface Unidadv2 {
   estratoUnidad: string;
   nivelAtencion: string;
   tipoUnidad: string;
+  // ⬇️ nuevos (opcionales, para la vista)
+  nombreTipologia?: string;
+  esSegundoNivel?: boolean;
 }
 
 /**
@@ -90,3 +94,72 @@ export interface ServicioEvaluado {
   inicialesContrata: 'IB' | 'CE' | 'SSA' | ''; // Vacío si no aplica
   evaluacionCalidad: 'Bueno' | 'Regular' | 'Malo' | 'No aplica';
 }
+
+// Respuesta cruda del backend: soporta tabla vieja (nombre) y vista nueva (nombre_de_unidad)
+export type UnidadFromApi = {
+  id?: number;
+  cluessa: string | null;
+  cluesimb: string | null;
+
+  // backend antiguo
+  nombre?: string | null;
+
+  // backend con la vista v_unidad_medica_detalle
+  nombre_de_unidad?: string | null;
+  nombre_tipologia?: string | null;
+  es_segundo_nivel?: boolean | null;
+
+  alias_sas: string | null;
+  direccion: string | null;
+  latitud: number | string | null;
+  longitud: number | string | null;
+  estrato_unidad: string | null;
+  nivel_atencion: string | null;
+  tipo_unidad: string | null;
+  nombre_localidad?: string | null;
+  nombre_municipio?: string | null;
+};
+
+/**
+ * Estructura que devuelve el backend desde public.v_unidad_medica_detalle
+ * (nombres en snake_case; la usamos solo para tipar la respuesta cruda).
+ */
+export type UnidadDetalleBackend = {
+  id: number;
+  cluessa: string | null;
+  cluesimb: string | null;
+  nombre_municipio: string | null;
+  nombre_localidad: string | null;
+  nombre_tipologia: string | null;
+  es_segundo_nivel: boolean;
+  nombre_de_unidad: string;
+  tipo_unidad: string | null;
+  alias_sas: string | null;
+  direccion: string | null;
+  latitud: number | null;   // en la vista vienen numéricos
+  longitud: number | null;
+  estrato_unidad: string | null;
+  nivel_atencion: string | null;
+};
+
+/**
+ * Proyección amigable para el UI (camelCase).
+ * OJO: lat/long como number|null (si prefieres string, cambia el tipo aquí).
+ */
+export type UnidadDetalle = {
+  id: number;
+  cluessa: string | null;
+  cluesimb: string | null;
+  nombreMunicipio: string | null;
+  nombreLocalidad: string | null;
+  nombreTipologia: string | null;
+  esSegundoNivel: boolean;
+  nombreDeUnidad: string;
+  tipoUnidad: string | null;
+  aliasSas: string | null;
+  direccion: string | null;
+  latitud: number | null;
+  longitud: number | null;
+  estratoUnidad: string | null;
+  nivelAtencion: string | null;
+};

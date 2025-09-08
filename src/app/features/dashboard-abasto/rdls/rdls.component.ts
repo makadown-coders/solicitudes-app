@@ -72,7 +72,6 @@ export class RdlSComponent implements OnInit, OnDestroy {
         idx[this.norm.normClave(k)] = v as any;
       }
       this.articulosMapa.set(idx);
-      //this.applyTipoYGrupo();
     });
 
     // 2) Grupos → índice normalizado
@@ -82,7 +81,6 @@ export class RdlSComponent implements OnInit, OnDestroy {
         flat.set(this.norm.normClave(k), { categoria: v.categoria, grupoInsumo: v.grupoInsumo });
       }
       this.gruposMapa.set(flat);
-      //this.applyTipoYGrupo();
     });
     // cuando cambia filtro, vuelve a pág 1 (si ya lo traías)
     effect(() => {
