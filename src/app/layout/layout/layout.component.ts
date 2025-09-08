@@ -14,6 +14,7 @@ import { concatAll, finalize, map, of } from 'rxjs';
 import { SurveyNudgeComponent } from '../../shared/survey/survey-nudge.component';
 import { SurveyModalComponent } from '../../shared/survey/survey-modal.component';
 import { NgFastToastComponent } from 'ng-fast-toast';
+import { CpmService } from '../../services/cpm.service';
 
 @Component({
   selector: 'app-layout',
@@ -43,6 +44,8 @@ export class LayoutComponent implements OnInit, OnChanges {
   guiaVisible = false;
   inventarioService = inject(InventarioService);
   solicitudService = inject(StorageSolicitudService);
+  private cpmService = inject(CpmService);
+
   private cdRef = inject(ChangeDetectorRef);
   private router = inject(Router);
   public storageSolicitudService = inject(StorageSolicitudService);
@@ -72,7 +75,10 @@ export class LayoutComponent implements OnInit, OnChanges {
     }
 
     this.refrescarInventario();
-    this.refrescarCPMS();
+    // ⬇️ NUEVO: si ya había unidad, asegura CPM para esa CLUES
+    if (this.datosClues?.hospital?.cluesimb) {
+      this.refrescarCPMSPorClues(this.datosClues.hospital.cluesimb);
+    }
     if (!this.storageSolicitudService.isPeriodoValidoAhora(true)) {
       this.activeTab = 'clues';
       if (this.datosClues) { this.datosClues.periodo = ''; }
@@ -100,80 +106,48 @@ export class LayoutComponent implements OnInit, OnChanges {
     }
   }
 
+  /** Sólo inventario; CPM pasa a CpmService (legacy mientras tanto) */
   refrescarExistenciasYCPMS(): void {
     this.inventarioService.refrescarDatosInventario();
-    this.inventarioService.refrescarDatosCPMS();
+    // CPM: preferimos cargarlo on-demand por clues con el nuevo servicio
+    if (this.datosClues?.hospital?.cluesimb) {
+      this.refrescarCPMSPorClues(this.datosClues.hospital.cluesimb, /*force*/ true);
+    }
   }
 
-  refrescarCPMS(): void {
-    // TODO: PRUEBA PILOTO
-    // 1. Establece el signal a true para mostrar el indicador de carga.
+  /**
+   * Refresca CPMS para una unidad por cluesimb
+   * @param cluesimb Clues de la unidad
+   * @param force Si se debe refrescar fuerza la carga
+   * @private
+   */
+  private refrescarCPMSPorClues(cluesimb: string, force = false): void {
+    if (!cluesimb) return;
     this.refrescandoCPMSdesdeLayout.set(true);
-    // console.log('refrescando CPMS (inicio)', this.refrescandoCPMSdesdeLayout());
-    let banderaRefrescado = false;
-
-    // Verificar si la fecha de refrescado es la misma que la actual para evitar refrescados innecesarios
-    const timestampFallback = localStorage.getItem('ultimaVezRefrescadoCPMS');
-    const ahora = Date.now();
-    // verificar si hay valor en timestampFallback
-    if (timestampFallback) {
-      // si la fecha (NO EL NUMERO) de refrescado corresponde a la fecha actual, establecer la bandera a true
-      if (new Date(timestampFallback).getDate() === new Date().getDate()) {
-        banderaRefrescado = true;
-      }
-    }
-
-    // 2. Suscríbete al Observable que obtiene los CPMS del localStorage.
-    this.storageSolicitudService.getCPMSFromLocalStorage$().pipe(
-      // Este `map` se ejecuta una vez que los CPMS del localStorage han sido obtenidos.
-      // Aquí decides qué operación asíncrona debe seguir.
-      map(cpms => {
-        //console.log('CPMS obtenidos de localStorage:', cpms); // Para depuración
-        // Si la cantidad de CPMS es 0 o si hoy es primero o 15 de mes, refrescar datos del servicio.
-        if (cpms.length === 0 ||
-          ((new Date().getDate() === 1 || new Date().getDate() === 15) && banderaRefrescado === true)) {
-          // Asume que inventarioService.refrescarDatosCPMS() también devuelve un Observable.
-          // Por ejemplo, para una llamada HTTP.
-          this.inventarioService.refrescarDatosCPMS();
-          // crear una bandera para que no refresque mas de una vez en el mismo dia
-          localStorage.setItem('ultimaVezRefrescadoCPMS', Date.now().toString());
-        } else {
-          // Si no necesita refrescar, simplemente emite los CPMS existentes.
-          // Asume que inventarioService.emitirCPMS() es síncrono o devuelve un Observable
-          // que se completa inmediatamente (ej. `of(null)`).
-          this.inventarioService.emitirCPMS(cpms);
-        }
-        return of(null); // Retorna un Observable que se completa inmediatamente.
-      }),
-      // El operador `concatAll` (o `mergeAll` si el orden no importa) "aplanará"
-      // el Observable interno devuelto por el `map` (`of(null)`).
-      // Esto asegura que esperamos a que esa operación interna también finalice.
-      concatAll(),
-      // El operador `finalize` se ejecuta cuando el Observable se completa o emite un error.
-      finalize(() => {
-        // 3. Establece el signal a false cuando todas las operaciones asíncronas han terminado.
-        this.refrescandoCPMSdesdeLayout.set(false);
-        // console.log('finalizacion de refresco de CPMS', this.refrescandoCPMSdesdeLayout());
-      })
-    ).subscribe(
-      () => {
-        // Esto se ejecuta cuando todas las operaciones del pipe se completan con éxito.
-        // console.log('Flujo de refresco de CPMS completado con éxito.');
-      }
-    );
+    this.cpmService
+      .ensureForCluesimb(cluesimb, { force })
+      .pipe(finalize(() => this.refrescandoCPMSdesdeLayout.set(false)))
+      .subscribe({
+        next: () => {/* cpms$ ya quedó con data */ },
+        error: (e) => console.error('Error al cargar CPMs', e),
+      });
   }
 
   onDatosCluesCapturados(datos: DatosClues) {
     this.datosClues = datos;
     this.title.setTitle(this.datosClues?.nombreHospital + '(' + this.datosClues.tipoInsumo + ')');
     this.solicitudService.setDatosCluesInLocalStorage(JSON.stringify(datos));
-    this.refrescarCPMS();
+    const cluesimb = datos?.hospital?.cluesimb || '';
+    if (cluesimb) this.refrescarCPMSPorClues(cluesimb);
     this.cdRef.detectChanges();
   }
 
 
   irASolicitud() {
     this.setTabActivo('solicitud');
+    // al pasar a la pestaña 2, asegura valores de CPM de la unidad actual
+    const cluesimb = this.datosClues?.hospital?.cluesimb || '';
+    if (cluesimb) this.refrescarCPMSPorClues(cluesimb);
     this.cdRef.detectChanges();
   }
 

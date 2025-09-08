@@ -30,6 +30,9 @@ export interface Hospital {
   nombre: string;
 }
 
+/**
+ * En vias de deprecacion
+ */
 export interface Unidad {
   cluesssa: string;
   cluesimb: string;

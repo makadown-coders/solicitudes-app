@@ -12,6 +12,7 @@ import { CPMS } from '../../models/CPMS';
 import { InventarioService } from '../../services/inventario.service';
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
 import { AlertCircleIcon, InfoIcon, LucideAngularModule, TriangleAlertIcon } from 'lucide-angular';
+import { CpmService } from '../../services/cpm.service';
 
 @Component({
   selector: 'app-tabla-articulos',
@@ -42,15 +43,22 @@ export class TablaArticulosComponent implements OnChanges, OnInit {
 
   sanitizer = inject(DomSanitizer);
   storageSolicitudService = inject(StorageSolicitudService);
-  inventarioService = inject(InventarioService);
+  inv = inject(InventarioService);
+  private cpm = inject(CpmService);
 
   constructor() {
     // console.log('constructor de TablaArticulosComponent');
 
   }
 
+   /** true si la clave pertenece al KIT de la unidad actual */
+  enKit(clave: string | null | undefined): boolean {
+    if (!clave) return false;
+    return this.cpm.isClaveInKit(this.inv.normalizarClave(clave));
+  }
+
   ngOnInit(): void {
-    this.inventarioService.cpms$.subscribe(cpms => {
+    this.inv.cpms$.subscribe(cpms => {
       if (!cpms || cpms.length === 0) return;
 
       const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
@@ -59,7 +67,7 @@ export class TablaArticulosComponent implements OnChanges, OnInit {
         this.cluesActual = datosClues.hospital?.cluesimb ?? '';
         // console.log('constructor - Buscando cpm por clues', this.cluesActual);
         this.cpmsPorClues = cpms.filter(cpms => cpms.cluesimb === this.cluesActual);
-        this.inventarioService.emitirCPMSCluesActual(this.cpmsPorClues);
+        this.inv.emitirCPMSCluesActual(this.cpmsPorClues);
         // console.log('constructor - CPMSCluesActual ha sido emitido');
       }
     });
@@ -78,7 +86,7 @@ export class TablaArticulosComponent implements OnChanges, OnInit {
         const cpms = this.storageSolicitudService.getCPMSFromLocalStorage();
         // console.log('ngOnChanges - cpms totales', cpms.length);
         this.cpmsPorClues = cpms.filter(cpms => cpms.cluesimb === this.cluesActual);
-        this.inventarioService.emitirCPMSCluesActual(this.cpmsPorClues);
+        this.inv.emitirCPMSCluesActual(this.cpmsPorClues);
         // console.log('ngOnChanges - cpms actualizados en articulosSolicitados', this.articulosSolicitados);
       }
     }

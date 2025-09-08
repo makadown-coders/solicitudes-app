@@ -16,9 +16,9 @@ export class UnidadesService {
   public unidades$: Observable<Unidadv2[]> = this.unidadesSubject.asObservable();
 
   // índices para búsquedas rápidas
-  private byCluesimb = new Map<string, Unidad>();
-  private byNombreNorm = new Map<string, Unidad>();
-  private byAliasSasNorm = new Map<string, Unidad>();
+  private byCluesimb = new Map<string, Unidadv2>();
+  private byNombreNorm = new Map<string, Unidadv2>();
+  private byAliasSasNorm = new Map<string, Unidadv2>();
 
   // utilidad de normalización de nombre (quita acentos, mayúsculas y espacios extra)
   private normalizeName(s: string) {
@@ -77,6 +77,43 @@ export class UnidadesService {
         return unidades;
       })
     );
+  }
+
+  /** Síncrono sobre el caché (útil para autocomplete) */
+  searchLocal(term: string, opts: { primerNivel: boolean; limit?: number } = { primerNivel: true }): Unidadv2[] {
+    const q = this.normalizeName(term);
+    if (!q) return [];
+    const list = this.unidadesSubject.value || [];
+    const lim = Math.max(1, Math.min(opts.limit ?? 12, 100));
+
+    const esPrimerNivel = (u: Unidadv2) => {
+      // preferimos el flag de la vista; si no viene, inferimos
+      if (typeof u.esSegundoNivel === 'boolean') return !u.esSegundoNivel;
+      return (u.nivelAtencion || '').toUpperCase() === 'PRIMER NIVEL';
+    };
+    const esSegundoNivel = (u: Unidadv2) => !esPrimerNivel(u);
+
+    const pasaNivel = (u: Unidadv2) => opts.primerNivel ? esPrimerNivel(u) : esSegundoNivel(u);
+
+    const contiene = (u: Unidadv2) => {
+      const nombreNorm = this.normalizeName(u.nombre);
+      const muni = (u.municipio || '').toLowerCase();
+      return (u.cluesssa || '').toLowerCase().includes(q)
+        || (u.cluesimb || '').toLowerCase().includes(q)
+        || nombreNorm.includes(q)
+        || muni.includes(q)
+        || (u.aliasSas || '').toLowerCase().includes(q);
+    };
+
+    const result: Unidadv2[] = [];
+    for (const u of list) {
+      if (!pasaNivel(u)) continue;
+      if (contiene(u)) {
+        result.push(u);
+        if (result.length >= lim) break;
+      }
+    }
+    return result;
   }
 
   /** Devuelve el objeto Unidad por CLUES IMB (case-insensitive) */

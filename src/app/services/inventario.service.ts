@@ -26,6 +26,7 @@ export class InventarioService {
   private claveGruposSubject = new BehaviorSubject<ClaveGrupo[]>([]);
   public claveGrupos$: Observable<ClaveGrupo[]> = this.claveGruposSubject.asObservable();
 
+  // TODO: Desacoplar esto de Dashboard para meterlo en CPMService
   private cpmsCluesActualSubject = new BehaviorSubject<CPMS[]>([]);
   public cpmsCluesActual$: Observable<CPMS[]> = this.cpmsCluesActualSubject.asObservable();
 
@@ -51,6 +52,10 @@ export class InventarioService {
     }
   }
 
+  /**
+   * Metodo para refrescar los datos de CPMS (mediante power automate)
+   * En vias de deprecacion para usar backend.
+   */
   refrescarDatosCPMS() {
     //    console.info('🔄 InventarioService.refrescarDatosCPMS() - Actualizando CPMS...');
     this.cargandoCPMSBehaviorSubject.next(true);

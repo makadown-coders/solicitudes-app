@@ -14,6 +14,7 @@ import { StorageSolicitudService } from './storage-solicitud.service';
 import { ClaveGrupo, CPMS } from '../models/CPMS';
 import { environment } from '../../environments/environment';
 import { ResumenXGrupo } from '../models/resumen-x-grupo.model';
+import { ModoCapturaSolicitud } from '../shared/modo-captura-solicitud';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
@@ -71,7 +72,8 @@ export class ExcelService {
         articulosSolicitados: ArticuloSolicitud[],
         standalone: boolean,
         existencias: InventarioDisponibles[],
-        cpmsDeCluesActual: CPMS[]
+        cpmsDeCluesActual: CPMS[],
+        kitHas?: (clave: string) => boolean
     ) {
         // primero ordenar articulos solicitados por clave en orden ascendente
         articulosSolicitados.sort((a, b) => a.clave.localeCompare(b.clave));
@@ -91,6 +93,15 @@ export class ExcelService {
             F5 = datosClues.periodo;
             F7 = datosClues?.tipoPedido ?? 'Ordinario';
             F8 = datosClues?.responsableCaptura ?? '';
+        }
+
+        // 👇 Solo en Primer Nivel, agrega (Municipio) a B4 si lo tenemos
+        const esPrimerNivel =
+            this.solicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL;
+
+        const municipio = datosClues?.hospital?.municipio?.trim();
+        if (!standalone && esPrimerNivel && municipio) {
+            B4 = `${B4} (${municipio})`;
         }
 
         const workbook = new ExcelJS.Workbook();
@@ -175,6 +186,18 @@ export class ExcelService {
             worksheet!.getCell(`I${renglon}`).value = existenciaAZM;
             worksheet!.getCell(`J${renglon}`).value = existenciaAZT;
             worksheet!.getCell(`K${renglon}`).value = existenciaAZE;
+            // 👇 NUEVO: Columna L = Observaciones (en KIT)
+            const enKit = kitHas?.(articulosSolicitados[i].clave) === true;
+            const celdaObs = worksheet!.getCell(`L${renglon}`);
+            celdaObs.value = enKit ? 'En KIT de Rutas de la Salud' : '';
+
+            // (Opcional) un estilito cuando sí está en KIT
+            if (enKit) {
+                celdaObs.font = { italic: true, color: { argb: '22543D' } }; // verde oscuro
+                celdaObs.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D1FAE5' } }; // verdoso claro
+                worksheet.getColumn('L').width = 42;               // ancho “grande” (en caracteres)
+                worksheet.getCell('L11').value = 'OBSERVACIONES';  // opcional: encabezado
+            }
         }
         const buffer = await workbook.xlsx.writeBuffer();
         // 1. Convertir el buffer a base64
