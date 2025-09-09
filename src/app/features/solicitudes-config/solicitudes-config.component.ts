@@ -89,6 +89,8 @@ export class SolicitudesConfigComponent implements OnInit {
                     BUSCAR_EXISTENCIA_EN_CLUES: !!flags['BUSCAR_EXISTENCIA_EN_CLUES'],
                     APLICAR_ENCUESTAS: !!flags['APLICAR_ENCUESTAS'],
                     APLICAR_EQUIVALENCIAS: !!flags['APLICAR_EQUIVALENCIAS'],
+                    CLUES_EXISTENCIAS_ALLOWLIST: flags['CLUES_EXISTENCIAS_ALLOWLIST'],
+                    IMPORT_LIMIT_TO_KIT: !!flags['IMPORT_LIMIT_TO_KIT'],
                 });
             } catch (e) {
                 console.error(e);
@@ -129,7 +131,7 @@ export class SolicitudesConfigComponent implements OnInit {
     pendingChanges = computed(() => {
         const loaded = this.loadedFlags();
         const draft = this.draftFlags();
-        const keys: FlagKey[] = ['SOLO_CPMS', 'BUSCAR_EXISTENCIA_EN_CLUES', 'APLICAR_ENCUESTAS', 'APLICAR_EQUIVALENCIAS'];
+        const keys: FlagKey[] = ['SOLO_CPMS', 'BUSCAR_EXISTENCIA_EN_CLUES', 'APLICAR_ENCUESTAS', 'APLICAR_EQUIVALENCIAS', 'IMPORT_LIMIT_TO_KIT'];
         return keys.filter(k => (!!draft[k]) !== (!!loaded[k]));
     });
 
@@ -140,6 +142,7 @@ export class SolicitudesConfigComponent implements OnInit {
             BUSCAR_EXISTENCIA_EN_CLUES: !!f['BUSCAR_EXISTENCIA_EN_CLUES'],
             APLICAR_ENCUESTAS: !!f['APLICAR_ENCUESTAS'],
             APLICAR_EQUIVALENCIAS: !!f['APLICAR_EQUIVALENCIAS'],
+            IMPORT_LIMIT_TO_KIT: !!f['IMPORT_LIMIT_TO_KIT']
         });
         this.saveMsg.set(null);
     }

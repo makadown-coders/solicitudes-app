@@ -4,7 +4,8 @@ export type FlagKey =
   | 'BUSCAR_EXISTENCIA_EN_CLUES'
   | 'APLICAR_ENCUESTAS'
   | 'APLICAR_EQUIVALENCIAS'
-  | 'CLUES_EXISTENCIAS_ALLOWLIST'; // (no la editamos aún, solo lectura)
+  | 'CLUES_EXISTENCIAS_ALLOWLIST'
+  | 'IMPORT_LIMIT_TO_KIT'; 
 
 export type FlagScope = 'global' | 'nivel' | 'clues';
 export type Nivel = 'PRIMER_NIVEL' | 'SEGUNDO_NIVEL';

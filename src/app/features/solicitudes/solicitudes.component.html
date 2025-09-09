@@ -1,8 +1,15 @@
 <!-- app/features/solicitudes/solicitudes.component.html -->
 <div class="container mx-auto my-4 p-4">
-    <h1 class="text-2xl text-green-800 font-bold">
-        Solicitud de artículos {{ modoStandalone ? '' : ('para ' + (tituloUnidad$ | async)) }}
-    </h1>
+    <div class="flex flex-col items-center justify-between gap-2 mt-4 sm:flex-row">
+        <h1 class="text-2xl text-green-800 font-bold">
+            Solicitud de artículos {{ modoStandalone ? '' : ('para ' + (tituloUnidad$ | async)) }}
+        </h1>
+
+        <button class="self-start px-3 py-2 text-white text-sm bg-emerald-600 rounded hover:bg-emerald-700 sm:self-auto"
+            (click)="abrirKitModal()">
+            Ver claves del KIT para esta unidad
+        </button>
+    </div>
 
     <div class="relative mt-4 space-y-2">
 
@@ -88,6 +95,7 @@
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'" class="p-2 mt-2 w-full rounded">
             Agregar +
         </button>
+
         <button *ngIf="articulosSolicitados.length > 0" (click)="confirmarLimpiezaModal()"
             class="p-2 mt-4 ml-2 text-green-900 bg-yellow-400 rounded hover:bg-yellow-500"
             [disabled]="modoEdicionIndex !== null"
@@ -149,3 +157,85 @@
 <br />
 <br />
 <br />
+<!-- Modal: Claves del KIT (con existencias) -->
+<div *ngIf="kitModalVisible" class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+  <div class="relative p-4 w-full max-w-4xl bg-white rounded-lg shadow-lg">
+    <h3 class="text-lg font-semibold text-emerald-700">Claves del KIT de la unidad</h3>
+
+    <div class="flex flex-wrap items-end gap-3 mt-3">
+      <div>
+        <label class="block text-xs text-gray-600">Buscar clave</label>
+        <input type="text"
+               [(ngModel)]="kitFiltro"
+               class="px-2 py-1 w-56 text-sm border rounded"
+               placeholder="Ej. 010.000.1234"/>
+      </div>
+
+      <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+        <input type="checkbox" [(ngModel)]="kitSoloSinCpm" />
+        Solo sin CPM
+      </label>
+
+      <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+        <input type="checkbox" [(ngModel)]="kitSoloSinExistencia" />
+        Solo sin existencias
+      </label>
+
+      <div class="flex gap-2 ml-auto">
+        <button class="px-3 py-1.5 text-sm cursor-pointer rounded border"  title="Copiar solo claves del KIT a portapapeles" (click)="copiarKitAlPortapapeles()">Copiar claves</button>  
+        <button class="px-3 py-1.5 text-sm cursor-pointer rounded border" title="Copiar información del KIT a portapapeles" (click)="copiarTablaKitAlPortapapeles()">Copiar tabla</button>
+        <button class="px-3 py-1.5 text-sm cursor-pointer rounded border" (click)="exportarKitCsv()">Exportar CSV</button>
+      </div>
+    </div>
+
+    <div class="mt-2 text-xs text-gray-600">
+      Total claves: <strong>{{ kitStats.total }}</strong> ·
+      Con CPM: <strong>{{ kitStats.conCpm }}</strong> ·
+      Sin CPM: <strong>{{ kitStats.sinCpm }}</strong> ·
+      Con existencias: <strong>{{ kitStats.conExist }}</strong> ·
+      Sin existencias: <strong>{{ kitStats.sinExist }}</strong> ·
+      Existencias totales: <strong>{{ kitStats.existTotal | number }}</strong>
+    </div>
+
+    <div class="overflow-auto mt-3 max-h-[65vh] border rounded">
+      <table class="w-full text-sm">
+        <thead class="sticky top-0 bg-gray-50">
+          <tr class="text-left">
+            <th class="px-2 py-1 w-[10rem] border-b">Clave</th>
+            <th class="px-2 py-1 w-[5rem] border-b">CPM</th>
+            <th class="px-2 py-1 w-[5rem] text-right border-b" title="Almacén Zona Mexicali">AZM</th>
+            <th class="px-2 py-1 w-[5rem] text-right border-b" title="Almacén Zona Ensenada">AZE</th>
+            <th class="px-2 py-1 w-[5rem] text-right border-b" title="Almacén Zona Tijuana">AZT</th>
+            <th class="px-2 py-1 w-[6rem] text-right border-b">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of kitRowsFiltrados">
+            <td class="px-2 py-1 font-mono border-b">{{ r.clave }}</td>
+            <td class="px-2 py-1 border-b">
+              <span [class]="r.cpm>0 ? 'text-emerald-700 font-semibold' : 'text-gray-500'">{{ r.cpm || 0 }}</span>
+            </td>
+            <td class="px-2 py-1 text-right border-b">{{ r.azm | number }}</td>
+            <td class="px-2 py-1 text-right border-b">{{ r.aze | number }}</td>
+            <td class="px-2 py-1 text-right border-b">{{ r.azt | number }}</td>
+            <td class="px-2 py-1 text-right border-b">
+              <span [class]="r.total>0 ? 'text-emerald-700 font-semibold' : 'text-gray-500'">
+                {{ r.total | number }}
+              </span>
+            </td>
+          </tr>
+          <tr *ngIf="kitRowsFiltrados.length === 0">
+            <td colspan="6" class="px-2 py-4 text-center text-gray-500">Sin resultados</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="mt-2 text-xs text-gray-500">
+      ⚙️ Las existencias de los almacenes AZM/AZE/AZT mostradas son de apoyo referencial y pueden cambiar durante el día.
+    </p>
+
+    <button (click)="cerrarKitModal()"
+            class="absolute top-2 right-2 text-gray-500 text-lg font-bold hover:text-gray-700">×</button>
+  </div>
+</div>

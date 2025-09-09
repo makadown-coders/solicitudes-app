@@ -1,3 +1,4 @@
+// src/app/models/CpmExpectedRow.ts
 
 export type CpmExpectedRow = {
     unidad_medica_id: number;

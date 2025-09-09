@@ -22,6 +22,8 @@ import { Nivel } from '../../models/feature-flags.model';
 import { CpmService } from '../../services/cpm.service';
 import { CpmRowLite } from '../../models/CpmExpectedRow';
 import { EnrichedProps } from '../../models/EnrichedProps';
+import { NgFastToastService } from 'ng-fast-toast';
+import { CpmUnionRow } from '../../models/CpmUnionRow';
 // import { CpmExpectedRow } from '../../models/CpmExpectedRow';
 
 
@@ -68,6 +70,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   private searchSubject = new Subject<string>();
   articulosService = inject(ArticulosService);
   excelService = inject(ExcelService);
+  toast = inject(NgFastToastService);
 
   @ViewChildren('resultItem') resultItems!: QueryList<ElementRef>;
   @ViewChild('inputClave') inputClaveRef!: ElementRef<HTMLInputElement>;
@@ -134,7 +137,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     } else {
       this.modoStandalone = false;
       // ✅ AHORA: escuchar CPM desde CpmService y adaptar a CPMS[]
-      this.cpmService.cpms$
+      this.cpmService.cpmsForImport$ // cpms$
         .pipe(takeUntil(this.onDestroy$))
         .subscribe((rows: CpmRowLite[]) => {        // ⬅️ aquí el tipo flexible
           const clues = this.datosClues?.hospital?.cluesimb || '';
@@ -298,8 +301,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (data) => {
         // this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
         const base = (data.resultados || []).sort((a, b) => a.clave.localeCompare(b.clave));
-        this.autocompleteResults = this.enrichWithExistencias(base);  // ⬅️ aquí
-        // console.log('this.autocompleteResults', this.autocompleteResults);
+        this.autocompleteResults = this.enrichWithExistencias(base);
         this.totalResults = data.total || 0;
         this.moreResults = this.totalResults > 24;
         this.selectedIndex = 0;
@@ -354,7 +356,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
    }*/
 
 
-  selectArticulo(item: any) {
+  async selectArticulo(item: any) {
     this.claveInput = item.clave;
     this.descripcionInput = item.descripcion ?? '';
     this.unidadInput = item.unidadMedida ?? (item.presentacion ?? '');
@@ -400,8 +402,19 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  agregarArticulo() {
+  async agregarArticulo() {
     const clave = this.claveInput.trim().toUpperCase();
+    try {
+      await this.cpmService.ensureAllowedOrThrow(clave);
+      // proceder con la captura…
+    } catch {
+      this.toast.warn({
+        title: 'Clave fuera de KIT',
+        content: 'La clave no pertenece al KIT de la unidad (flag activa).',
+        duration: 5
+      });
+      return;
+    }
     const cpm = this.cpmIndex.get(this.normClave(clave)) ?? 0;
 
     if (!clave || !this.descripcionInput || !this.unidadInput || this.cantidadInput <= 0) {
@@ -530,13 +543,24 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     );
   }
 
-  exportarExcelPrecarga(nombreArchivo: string) {
-    this.excelService.exportarExcelPrecarga(nombreArchivo, this.articulosSolicitados);
-  }
-
   async exportarExcelConTemplate(nombreArchivo: string) {
-    this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo,
-      this.articulosSolicitados, this.modoStandalone, this.inventarioDisponible,
+    const restrict = await this.isImportRestricted();
+
+    let items = this.articulosSolicitados;
+    let fueraDeKit: string[] = [];
+
+    if (restrict) {
+      const enKit = items.filter(a => this.cpmService.isClaveInKit(this.normClave(a.clave)));
+      fueraDeKit = items.filter(a => !this.cpmService.isClaveInKit(this.normClave(a.clave))).map(a => a.clave);
+      items = enKit;
+    }
+
+    this.excelService.exportarExcelConTemplate(
+      'template.xlsx',
+      nombreArchivo,
+      items, // ya filtrados si aplica la bandera
+      this.modoStandalone,
+      this.inventarioDisponible,
       this.cpmsDeCluesActual,
       // ⬇️ predicado para saber si la clave está en el KIT
       (clave) => this.cpmService.isClaveInKit(this.normClave(clave))
@@ -545,16 +569,25 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       this.generarPrecarga ? 'Archivos generados' : 'Archivo generado',
       'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
     );
+
+    if (restrict && fueraDeKit.length) {
+      this.toast.warn({
+        title: 'Exportación filtrada',
+        content: `Se excluyeron ${fueraDeKit.length} claves fuera de KIT (flag activa).`,
+        duration: 5
+      });
+    }
+
     if (this.generarPrecarga) {
       await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 1 segundo
       let nombreArchivPrecarga = 'Precarga';
       if (!this.modoStandalone) {
-        nombreArchivPrecarga += '-' + this.iniciales(this.datosClues.nombreHospital);
+        nombreArchivPrecarga += '-' + this.datosClues.hospital?.cluesimb!;
         nombreArchivPrecarga += '-' + this.datosClues.tipoInsumo.split('-');
         nombreArchivPrecarga += '-' + this.datosClues.tipoPedido;
       }
       nombreArchivPrecarga += '_' + new Date().toISOString().slice(0, 7);
-      this.exportarExcelPrecarga(nombreArchivPrecarga);
+      this.excelService.exportarExcelPrecarga(nombreArchivo, items);
     }
   }
 
@@ -565,7 +598,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     if (cluesStr && !this.modoStandalone) {
       this.datosClues = JSON.parse(cluesStr) as DatosClues;
 
-      nombreArchivoCompleto =  this.datosClues.hospital?.cluesimb!; // this.iniciales(this.datosClues.nombreHospital);
+      nombreArchivoCompleto = this.datosClues.hospital?.cluesimb!; // this.iniciales(this.datosClues.nombreHospital);
       nombreArchivoCompleto += '-' + this.datosClues.tipoInsumo.split('-');
       nombreArchivoCompleto += '-' + this.datosClues.tipoPedido;
       nombreArchivoCompleto += '_' + this.datosClues.periodo.replace(/\s+/g, '-');
@@ -677,10 +710,14 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     let usandoTemplate = false;
 
     try {
+      const datosCluesStorage = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}') as DatosClues;
+      // a veces se pierde el this.datosClues y se queda en un clues elegido anteriormente
+      if (datosCluesStorage && this.datosClues?.hospital?.cluesimb !== datosCluesStorage?.hospital?.cluesimb) {
+        // tiene prioridad el localstorage, asi que actualizo el this.datosClues
+        this.datosClues = datosCluesStorage;
+      }
       // 1) Asegura KIT en memoria (silencioso si falla)
-      const cluesimbActual =
-        this.datosClues?.hospital?.cluesimb ||
-        (JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}')?.hospital?.cluesimb ?? '');
+      const cluesimbActual = this.datosClues?.hospital?.cluesimb;
 
       if (cluesimbActual) {
         try { await firstValueFrom(this.cpmService.ensureForCluesimb(cluesimbActual)); } catch { }
@@ -738,8 +775,20 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
 
-      // 5) IMPORTAR TODO (sin filtrar por KIT), pero reportar stats
-      this.articulosSolicitados = nuevos;
+      // 5) Filtrar por flag (si está ON, sólo claves del KIT)
+      const restrict = await this.isImportRestricted();
+      let bloqueadas: string[] = [];
+
+      if (restrict) {
+        const permitidas: ArticuloSolicitud[] = [];
+        for (const a of nuevos) {
+          const ok = this.cpmService.isClaveInKit(this.normClave(a.clave));
+          if (ok) permitidas.push(a); else bloqueadas.push(a.clave);
+        }
+        this.articulosSolicitados = permitidas;
+      } else {
+        this.articulosSolicitados = nuevos;
+      }
       this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
         JSON.stringify(this.articulosSolicitados)
       );
@@ -766,7 +815,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       // 9) ÚNICO modal de resumen
       const lineas: string[] = [];
       lineas.push(`✔ Importadas (distintas): ${this.articulosSolicitados.length}`);
-      lineas.push(`✔ En KIT: ${enKit}/${kitTotal || '¿?'} • Fuera de KIT: ${fueraKit}`);
+      lineas.push(`✔ En KIT: ${enKit}/${kitTotal || '¿?'}`);
+      if (bloqueadas.length) {
+        lineas.push(`⛔ Bloqueadas por bandera: ${bloqueadas.length}`);
+      } else {
+        lineas.push(`• Fuera de KIT: ${fueraKit}`);
+      }
       if (dupKeys.length > 0) lineas.push(`ℹ Duplicadas combinadas (${dupKeys.length}): ${dupPreview}`);
 
       this.abrirModalInfo('Importación completada', lineas.join('\n'));
@@ -859,4 +913,174 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  private async isImportRestricted(): Promise<boolean> {
+    const cluesimb =
+      this.datosClues?.hospital?.cluesimb ||
+      (JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}')?.hospital?.cluesimb ?? '');
+
+    // const nivel: Nivel = this.estaCapturandoPrimerNivel() ? 'PRIMER_NIVEL' : 'SEGUNDO_NIVEL';
+
+    try {
+      // const eff = await this.flags.getEffective({ cluesimb, nivel });
+      const eff = await this.flags.getEffective({ cluesimb });
+      return !!eff['IMPORT_LIMIT_TO_KIT'];
+    } catch {
+      // si no se pudo consultar el flag, no bloquees (comportamiento actual)
+      return false;
+    }
+  }
+
+  /*************************************************************************************/
+  /*************************************************************************************/
+  /*************************************************************************************/
+  /** PARA MODAL DE CLAVES DE KIT */
+  kitModalVisible = false;
+  kitFiltro = '';
+  kitSoloSinCpm = false;
+  kitSoloSinExistencia = false;
+
+  kitRows: Array<{ clave: string; cpm: number; azm: number; aze: number; azt: number; total: number }> = [];
+  kitStats = { total: 0, conCpm: 0, sinCpm: 0, conExist: 0, sinExist: 0, existTotal: 0 };
+
+  // ====== ABRIR/CERRAR ======
+  async abrirKitModal() {
+    try {
+      // 1) Toma unión y filtra SOLO KIT
+      const rows = await firstValueFrom(this.cpmService.cpms$ as any);
+      const kit = (rows as any[])
+        .filter(r => r.en_kit)
+        .map(r => {
+          const clave = String(r.clave_cnis || '').toUpperCase();
+          const cpm = Number(r.cpm || 0);
+
+          // 2) Trae existencias desde tu índice local (invIndex)
+          const inv = this.invIndex.get(clave);
+          const azm = inv?.existenciasAZM ?? 0;
+          const aze = inv?.existenciasAZE ?? 0;
+          const azt = inv?.existenciasAZT ?? 0;
+          const total = azm + aze + azt;
+
+          return { clave, cpm, azm, aze, azt, total };
+        })
+        .sort((a, b) => a.clave.localeCompare(b.clave));
+
+      // 3) Stats
+      const conCpm = kit.filter(r => r.cpm > 0).length;
+      const conExist = kit.filter(r => r.total > 0).length;
+      const existTotal = kit.reduce((acc, r) => acc + r.total, 0);
+
+      this.kitRows = kit;
+      this.kitStats = {
+        total: kit.length,
+        conCpm,
+        sinCpm: kit.length - conCpm,
+        conExist,
+        sinExist: kit.length - conExist,
+        existTotal
+      };
+
+      // 4) Reset filtros y muestra
+      this.kitFiltro = '';
+      this.kitSoloSinCpm = false;
+      this.kitSoloSinExistencia = false;
+      this.kitModalVisible = true;
+      this.cdRef.detectChanges();
+    } catch (e) {
+      this.toast.warn({ title: 'Sin datos', content: 'No fue posible cargar el KIT de la unidad.', duration: 5 });
+    }
+  }
+
+  cerrarKitModal() {
+    this.kitModalVisible = false;
+  }
+
+  // ====== FILTRO EN VIVO ======
+  get kitRowsFiltrados() {
+    const f = this.kitFiltro.trim().toUpperCase();
+    return this.kitRows.filter(r =>
+      (!this.kitSoloSinCpm || r.cpm <= 0) &&
+      (!this.kitSoloSinExistencia || r.total <= 0) &&
+      (!f || r.clave.includes(f))
+    );
+  }
+
+  // ====== ACCIONES ======
+  copiarKitAlPortapapeles() {
+    const texto = this.kitRowsFiltrados.map(r => r.clave).join('\n');
+    navigator.clipboard.writeText(texto)
+      .then(() => this.toast.success({ title: 'Copiado', content: 'Claves del KIT copiadas.', duration: 5 }))
+      .catch(() => this.toast.error({ title: 'Error', content: 'No se pudieron copiar las claves.', duration: 5 }));
+  }
+
+  exportarKitCsv() {
+    const rows = this.kitRowsFiltrados;
+    const csv = [
+      'clave,cpm,azm,aze,azt,total',
+      ...rows.map(r => `${r.clave},${r.cpm},${r.azm},${r.aze},${r.azt},${r.total}`)
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const clues = this.datosClues?.hospital?.cluesimb || 'UNIDAD';
+    a.href = url;
+    a.download = `KIT-${clues}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // helper genérico para copiar texto (con fallback)
+  private async copyText(text: string): Promise<void> {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+    } catch { /* fallback abajo */ }
+
+    // Fallback para contextos inseguros / navegadores viejos
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
+
+  // ya tienes copiarKitAlPortapapeles(); mantenla para “solo claves”
+
+  // NUEVO: copiar TODA la tabla (filtrada) como TSV para Excel/Sheets
+  async copiarTablaKitAlPortapapeles() {
+    const rows = this.kitRowsFiltrados; // respeta filtros (buscar, sin CPM, sin existencias)
+    const headers = ['clave', 'cpm', 'azm', 'aze', 'azt', 'total'];
+    const lines = rows.map(r => [
+      r.clave,
+      (r.cpm ?? 0),
+      (r.azm ?? 0),
+      (r.aze ?? 0),
+      (r.azt ?? 0),
+      (r.total ?? 0),
+    ].join('\t'));
+    const tsv = [headers.join('\t'), ...lines].join('\n');
+
+    try {
+      await this.copyText(tsv);
+      this.toast.success({ title: 'Copiado', content: `Se copiaron ${rows.length} renglones (tabla completa).`, duration: 5 });
+    } catch {
+      this.toast.error({ title: 'Error', content: 'No se pudo copiar la tabla al portapapeles.', duration: 5 });
+    }
+  }
+
+
+  /*************************************************************************************/
+  /*************************************************************************************/
+  /*************************************************************************************/
 }

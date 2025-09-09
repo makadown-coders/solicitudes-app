@@ -126,6 +126,22 @@
             </label>
         </div>
 
+        <div class="flex items-center justify-between py-2 border-t">
+            <div>
+                <div class="font-medium">IMPORT_LIMIT_TO_KIT</div>
+                <div class="text-xs text-gray-500">Restringir importación a claves del KIT de la unidad.</div>
+            </div>
+            <label class="inline-flex items-center" role="switch" [attr.aria-checked]="flagValue('IMPORT_LIMIT_TO_KIT')"
+                [attr.aria-disabled]="togglesDisabled()">
+                <span class="switch" [class.switch--disabled]="togglesDisabled()">
+                    <input type="checkbox" class="switch__input" [disabled]="togglesDisabled()"
+                        [checked]="flagValue('IMPORT_LIMIT_TO_KIT')" (change)="onToggle('IMPORT_LIMIT_TO_KIT', $event)">
+                    <span class="switch__track" aria-hidden="true"></span>
+                    <span class="switch__thumb" aria-hidden="true"></span>
+                </span>
+            </label>
+        </div>
+
         <!-- Aviso -->
         <div *ngIf="saveMsg()" class="mt-4 text-sm" [ngClass]="{'text-green-700': saveOk(), 'text-red-700': !saveOk()}">
             {{ saveMsg() }}
@@ -134,13 +150,15 @@
         <div class="flex gap-2 mt-4">
             <!-- Guardar (ya lo tienes parecido) -->
             <button type="button" (click)="save()"
-                [disabled]="saving() || togglesDisabled() || pendingChanges().length===0" class="px-4 py-2 text-white bg-green-700 rounded hover:bg-green-800 disabled:bg-gray-300 disabled:text-white disabled:cursor-not-allowed">
+                [disabled]="saving() || togglesDisabled() || pendingChanges().length===0"
+                class="px-4 py-2 text-white bg-green-700 rounded hover:bg-green-800 disabled:bg-gray-300 disabled:text-white disabled:cursor-not-allowed">
                 {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
             </button>
 
             <!-- Deshacer (mejorado) -->
             <button type="button" (click)="resetToLoaded()"
-                [disabled]="togglesDisabled() || pendingChanges().length===0" class="px-4 py-2 text-gray-800 border-gray-300 rounded border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400">
+                [disabled]="togglesDisabled() || pendingChanges().length===0"
+                class="px-4 py-2 text-gray-800 border-gray-300 rounded border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400">
                 Deshacer
             </button>
         </div>

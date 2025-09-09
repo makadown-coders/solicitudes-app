@@ -56,95 +56,107 @@
       <!-- Sección de CLUES -->
       <div *ngSwitchCase="'clues'" class="text-sm text-gray-700 space-y-2">
         <hr class="my-2 border-t border-gray-300">
-        <h3 class="font-semibold text-green-700">✏️ Captura de datos CLUES</h3>
+        <h3 class="font-semibold text-green-700">✏️ Captura de datos de la unidad</h3>
         <hr class="my-2 border-t border-gray-300">
 
         <ng-container
           *ngIf="storageSolicitudService.getModoCapturaSolicitud() === 'PRIMER_NIVEL'; else segundoNivelGuia">
-          <p><strong>Nombre de la unidad:</strong> Escribe parte del nombre, CLUES SSA, CLUES IMB o municipio para
-            buscar unidades médicas de Primer Nivel.</p>
-          <p><strong>Tipo de pedido:</strong> Elige si la solicitud es Ordinaria o Extraordinaria.</p>
-          <p><strong>Responsable:</strong> Ingresa tu nombre completo para registro interno.</p>
-          <p><strong>Periodo:</strong> Define un rango válido de fechas que abarque la solicitud.</p>
-          <hr class="my-2 border-t border-gray-300">
-          <p class="mt-2 text-xs text-gray-500">
-            ℹ️ En modo Primer Nivel, el sistema filtra exclusivamente unidades no hospitalarias.
-          </p>
-          <p class="mt-2 text-xs text-gray-500">
-            💡 Todos los campos son obligatorios para habilitar el tab de solicitud.
-          </p>
+          <p><strong>Unidad:</strong> Escribe parte del nombre, CLUES SSA, CLUES IMB o municipio para buscar <u>unidades
+              de Primer Nivel</u>.</p>
+          <p><strong>Tipo de pedido:</strong> Elige <em>Ordinaria</em> o <em>Extraordinaria</em>.</p>
+          <p><strong>Responsable:</strong> Ingresa tu nombre completo.</p>
+          <p><strong>Periodo:</strong> Selecciona el rango de fechas que abarca la solicitud.</p>
+
+          <p class="mt-2 text-xs text-gray-600">ℹ️ En Primer Nivel solo verás unidades no hospitalarias.</p>
+          <p class="mt-1 text-xs text-gray-600">💡 Completa todos los campos para habilitar la pestaña
+            <em>Solicitud</em>.</p>
         </ng-container>
 
         <ng-template #segundoNivelGuia>
-          <p><strong>Nombre del hospital:</strong> Escribe parte del nombre, CLUES SSA o CLUES IMB para buscar
-            hospitales de Segundo Nivel.</p>
-          <p><strong>Tipo de insumo:</strong> Selecciona uno o más tipos aplicables a tu solicitud.</p>
-          <p><strong>Tipo de pedido:</strong> Elige si la solicitud es Ordinaria o Extraordinaria.</p>
-          <p><strong>Responsable:</strong> Ingresa tu nombre completo para registro interno.</p>
-          <p><strong>Periodo:</strong> Define un rango válido de fechas que abarque la solicitud.</p>
-          <hr class="my-2 border-t border-gray-300">
-          <p class="mt-2 text-xs text-gray-500">
-            ℹ️ En modo Segundo Nivel, el sistema filtra exclusivamente hospitales.
-          </p>
-          <p class="mt-2 text-xs text-gray-500">
-            💡 Todos los campos son obligatorios para habilitar el tab de solicitud.
-          </p>
+          <p><strong>Hospital:</strong> Escribe parte del nombre, CLUES SSA o CLUES IMB para buscar <u>hospitales
+              (Segundo Nivel)</u>.</p>
+          <p><strong>Tipo de insumo:</strong> Selecciona uno o más tipos aplicables.</p>
+          <p><strong>Tipo de pedido:</strong> Elige <em>Ordinaria</em> o <em>Extraordinaria</em>.</p>
+          <p><strong>Responsable:</strong> Ingresa tu nombre completo.</p>
+          <p><strong>Periodo:</strong> Selecciona el rango de fechas que abarca la solicitud.</p>
+
+          <p class="mt-2 text-xs text-gray-600">ℹ️ En Segundo Nivel solo verás hospitales.</p>
+          <p class="mt-1 text-xs text-gray-600">💡 Completa todos los campos para habilitar la pestaña
+            <em>Solicitud</em>.</p>
         </ng-template>
 
         <hr class="my-2 border-t border-gray-300">
+        <p class="text-xs text-gray-600">
+          👀 Tip: Al cambiar de unidad, los conteos y listas se reinician para evitar arrastres de información.
+        </p>
       </div>
-
 
       <!-- Sección de SOLICITUD -->
       <div *ngSwitchCase="'solicitud'" class="text-sm text-gray-700 space-y-2">
         <hr class="my-2 border-t border-gray-300">
-        <h3 class="font-semibold text-green-700">📦 Captura de artículos</h3>
+        <h3 class="font-semibold text-green-700">📦 Captura e importación de artículos</h3>
         <hr class="my-2 border-t border-gray-300">
 
         <ul class="pl-5 list-disc space-y-1">
-          <li><strong>Clave:</strong> Escribe al menos 3 caracteres para activar el autocompletado.</li>
-          <li><strong>Descripción y unidad:</strong> Se llenan automáticamente, pero puedes editarlas.</li>
-          <li><strong>Cantidad:</strong> Solo se permiten valores mayores a 0 y menores a 99999.</li>
-          <li><strong>Edición:</strong> Puedes modificar cantidades o eliminar renglones antes de exportar.</li>
-          <li><strong>Exportación:</strong> Al finalizar, nombra el archivo y se descargará en Excel.
-            Opcionalmente, puedes generar también un archivo de <em>precarga</em> para reutilizarlo en futuras capturas
-            o compartirlo con otros usuarios.
+          <li><strong>Clave:</strong> Escribe al menos 3 caracteres para activar el autocompletado. Usa
+            <kbd>↑</kbd>/<kbd>↓</kbd> y <kbd>Enter</kbd> para elegir.</li>
+          <li><strong>Descripción / Unidad:</strong> Se llenan automático; puedes ajustarlas si hace falta.</li>
+          <li><strong>Cantidad:</strong> Debe ser mayor a 0 y menor a 99,999.</li>
+          <li><strong>Edición rápida:</strong> Antes de exportar puedes corregir cantidades o eliminar renglones.</li>
+        </ul>
+
+        <hr class="my-2 border-t border-gray-300">
+
+        <h4 class="font-semibold text-green-700">🧩 Reglas de KIT y CPM</h4>
+        <ul class="pl-5 list-disc space-y-1">
+          <li>
+            <strong>Claves del KIT:</strong>
+            Cuando la opción “<em>Limitar a KIT</em>” esté activa, <u>solo</u> podrás capturar, importar y exportar
+            claves que formen parte del KIT de la unidad. Las que no pertenezcan al KIT serán bloqueadas y verás un
+            aviso.
+          </li>
+          <li>
+            <strong>CPM:</strong> Los números de CPM y existencias se actualizan automáticamente cada 24 h.
+            Puedes refrescarlos manualmente con el botón de recarga.
           </li>
         </ul>
 
         <hr class="my-2 border-t border-gray-300">
 
-        <ng-container *ngIf="storageSolicitudService.getModoCapturaSolicitud() === 'PRIMER_NIVEL'; else segundoNivel">
-          <p class="mt-2 text-xs text-gray-500">
-            ⚠️ En Primer Nivel solo es posible capturar claves autorizadas específicas para unidades médicas de este
-            nivel,
-            principalmente medicamentos básicos definidos por Abasto. Si tienes dudas, consulta el listado oficial.
-          </p>
-        </ng-container>
+        <h4 class="font-semibold text-green-700">📥 Importar desde Excel</h4>
+        <ul class="pl-5 list-disc space-y-1">
+          <li>Selecciona el archivo. El sistema combina duplicados automáticamente.</li>
+          <li>Si la opción “<em>Limitar a KIT</em>” está activa, las claves fuera del KIT se <u>excluirán</u> para esta unidad.</li>
+          <li>Si tu archivo usa plantilla oficial, el sistema reconoce encabezados y posiciones típicas.</li>
+        </ul>
 
-        <ng-template #segundoNivel>
-          <p class="mt-2 text-xs text-gray-500">
-            ℹ️ Las claves que comienzan con 060, 070 o 080 se muestran conforme al Compendio Nacional de Insumos,
-            sin sufijos locales como “.00”. Esto es completamente normal y no afecta su validez.
-            Existen algunas excepciones específicas donde claves con sufijos diferentes se incluyen deliberadamente
-            (por ejemplo, para distinguir calibres u otras variantes relevantes).
-          </p>
-        </ng-template>
-
-        <p class="mt-1 text-xs text-gray-500">
-          ⚙️ Los datos de CPM y existencias se refrescan automáticamente cada 24 horas, o manualmente usando el botón de
-          recarga.
-        </p>
         <hr class="my-2 border-t border-gray-300">
+
+        <h4 class="font-semibold text-green-700">📤 Exportar</h4>
+        <ul class="pl-5 list-disc space-y-1">
+          <li>Al finalizar, nombra el archivo y descarga en Excel.</li>
+          <li>Opcionalmente, puedes generar una <em>precarga</em> para reutilizarla o compartirla.</li>
+          <li>Con “<em>Limitar a KIT</em>” activo, el Excel solo incluirá las claves permitidas.</li>
+        </ul>
+
+        <p class="mt-1 text-xs text-gray-600">
+          ℹ️ Las claves del Compendio pueden mostrarse sin sufijos locales (p. ej. “.00”). Esto es normal y no afecta su
+          validez.
+          En casos puntuales se incluyen variantes específicas (p. ej. calibres).
+        </p>
+
+        <hr class="my-2 border-t border-gray-300">
+        <p class="text-xs text-gray-600">
+          🛟 Si ves “Clave fuera de KIT”, revisa el listado de tu unidad o consulta con Abasto para confirmar.
+        </p>
       </div>
-
     </ng-container>
-
 
     <button (click)="guiaVisible = false"
       class="absolute top-2 right-2 text-gray-500 text-lg font-bold hover:text-gray-700">×</button>
   </div>
 </div>
+
 
 <!-- Modal flotante para avisar que se están cargando los CPMS o existencias -->
 <div
@@ -213,4 +225,3 @@
 
 <app-survey-nudge></app-survey-nudge>
 <app-survey-modal></app-survey-modal>
-<ng-fast-toast></ng-fast-toast>

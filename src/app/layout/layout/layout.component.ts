@@ -15,6 +15,7 @@ import { SurveyNudgeComponent } from '../../shared/survey/survey-nudge.component
 import { SurveyModalComponent } from '../../shared/survey/survey-modal.component';
 import { NgFastToastComponent } from 'ng-fast-toast';
 import { CpmService } from '../../services/cpm.service';
+import { Unidadv2 } from '../../models';
 
 @Component({
   selector: 'app-layout',
@@ -25,7 +26,6 @@ import { CpmService } from '../../services/cpm.service';
     LucideAngularModule,
     SurveyNudgeComponent,
     SurveyModalComponent,
-    NgFastToastComponent
   ],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css',
@@ -135,10 +135,12 @@ export class LayoutComponent implements OnInit, OnChanges {
 
   onDatosCluesCapturados(datos: DatosClues) {
     this.datosClues = datos;
+    this.datosClues.hospital = {...datos.hospital} as Unidadv2;
     this.title.setTitle(this.datosClues?.nombreHospital + '(' + this.datosClues.tipoInsumo + ')');
     this.solicitudService.setDatosCluesInLocalStorage(JSON.stringify(datos));
     const cluesimb = datos?.hospital?.cluesimb || '';
-    if (cluesimb) this.refrescarCPMSPorClues(cluesimb);
+    console.log('layout component > onDatosCluesCapturados > invocando this.cpmService.ensureForCluesimb ', cluesimb);
+    if (cluesimb) this.cpmService.ensureForCluesimb(cluesimb, { force: true }).subscribe();
     this.cdRef.detectChanges();
   }
 
@@ -147,7 +149,8 @@ export class LayoutComponent implements OnInit, OnChanges {
     this.setTabActivo('solicitud');
     // al pasar a la pestaña 2, asegura valores de CPM de la unidad actual
     const cluesimb = this.datosClues?.hospital?.cluesimb || '';
-    if (cluesimb) this.refrescarCPMSPorClues(cluesimb);
+    console.log('layout component > irASolicitud > invocando this.cpmService.ensureForCluesimb ', cluesimb);
+    if (cluesimb) this.cpmService.ensureForCluesimb(cluesimb, { force: true }).subscribe();
     this.cdRef.detectChanges();
   }
 
