@@ -17,6 +17,7 @@ export class UnidadesService {
 
   // índices para búsquedas rápidas
   private byCluesimb = new Map<string, Unidadv2>();
+  private byCluessa = new Map<string, Unidadv2>();
   private byNombreNorm = new Map<string, Unidadv2>();
   private byAliasSasNorm = new Map<string, Unidadv2>();
 
@@ -63,6 +64,7 @@ export class UnidadesService {
         this.byCluesimb.clear();
         this.byNombreNorm.clear();
         this.byAliasSasNorm.clear();
+        this.byCluessa.clear();
 
         for (const u of unidades) {
           if (u.cluesimb) this.byCluesimb.set(u.cluesimb.trim().toUpperCase(), u);
@@ -72,6 +74,7 @@ export class UnidadesService {
             const aliasNorm = this.normalizeName(u.aliasSas);
             if (aliasNorm) this.byAliasSasNorm.set(aliasNorm, u);
           }
+          if (u.cluesssa) this.byCluessa.set(u.cluesssa.trim().toUpperCase(), u);
         }
         this.unidadesSubject.next(unidades);
         return unidades;
@@ -141,5 +144,15 @@ export class UnidadesService {
     if (fallbackClues) return fallbackClues;
     const u = this.findByNombre(invNombre || '') || this.byAliasSasNorm.get(invNombre!);
     return u?.cluesssa ?? null;
+  }
+
+  findByCluessa(cluessa?: string): Unidadv2 | undefined {
+    if (!cluessa) return undefined;
+    return this.byCluessa.get(cluessa.trim().toUpperCase());
+  }
+
+  getCluesimbByCluessa(cluessa?: string): string | null {
+    const u = this.findByCluessa(cluessa);
+    return u?.cluesimb ?? null;
   }
 }
