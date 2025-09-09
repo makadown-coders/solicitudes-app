@@ -139,7 +139,7 @@ export class LayoutComponent implements OnInit, OnChanges {
     this.title.setTitle(this.datosClues?.nombreHospital + '(' + this.datosClues.tipoInsumo + ')');
     this.solicitudService.setDatosCluesInLocalStorage(JSON.stringify(datos));
     const cluesimb = datos?.hospital?.cluesimb || '';
-    console.log('layout component > onDatosCluesCapturados > invocando this.cpmService.ensureForCluesimb ', cluesimb);
+
     if (cluesimb) this.cpmService.ensureForCluesimb(cluesimb, { force: true }).subscribe();
     this.cdRef.detectChanges();
   }
@@ -149,7 +149,7 @@ export class LayoutComponent implements OnInit, OnChanges {
     this.setTabActivo('solicitud');
     // al pasar a la pestaña 2, asegura valores de CPM de la unidad actual
     const cluesimb = this.datosClues?.hospital?.cluesimb || '';
-    console.log('layout component > irASolicitud > invocando this.cpmService.ensureForCluesimb ', cluesimb);
+
     if (cluesimb) this.cpmService.ensureForCluesimb(cluesimb, { force: true }).subscribe();
     this.cdRef.detectChanges();
   }

@@ -733,7 +733,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       // 3) Detecta columnas
       let headers = Object.keys(datos[0]).map(h => h.toLowerCase().trim());
       let colClave = headers.find(h => h.includes('clave'));
-      let colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado'));
+      let colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado') || h.includes('total'));
 
       if (!colClave) {
         if (datos.length < 8) {
@@ -742,7 +742,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         }
         headers = Object.values(datos[7]).map((h: any) => (h + '').toLowerCase().trim());
         colClave = headers.find(h => h.includes('clave'));
-        colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado'));
+        colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado') || h.includes('total'));
         if (!colClave) {
           this.abrirModalInfo('Encabezado faltante', 'El archivo no contiene columna con clave CNIS o formato no es válido.');
           return;
@@ -944,6 +944,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ====== ABRIR/CERRAR ======
   async abrirKitModal() {
+    this.selectedSet.clear();
+    this.defaultQtyNoCpm = 1;
     try {
       // 1) Toma unión y filtra SOLO KIT
       const rows = await firstValueFrom(this.cpmService.cpms$ as any);
@@ -1079,6 +1081,112 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+
+  // ====== SELECCIÓN EN MODAL KIT ======
+  selectedSet = new Set<string>();           // claves seleccionadas (normalizadas)
+  defaultQtyNoCpm = 1;                       // cantidad por defecto si no hay CPM
+
+  get selectionCount(): number { return this.selectedSet.size; }
+
+  toggleRowSelection(clave: string) {
+    const k = this.normClave(clave);
+    if (this.selectedSet.has(k)) this.selectedSet.delete(k);
+    else this.selectedSet.add(k);
+  }
+
+  isRowSelected(clave: string): boolean {
+    return this.selectedSet.has(this.normClave(clave));
+  }
+
+  selectOnlyWithCpm() {
+    this.selectedSet.clear();
+    for (const r of this.kitRowsFiltrados) {
+      if ((r.cpm ?? 0) > 0) this.selectedSet.add(this.normClave(r.clave));
+    }
+  }
+
+  selectAllFiltered() {
+    for (const r of this.kitRowsFiltrados) this.selectedSet.add(this.normClave(r.clave));
+  }
+
+  clearSelection() {
+    this.selectedSet.clear();
+  }
+
+  // ====== AGREGAR A LA SOLICITUD DESDE EL MODAL ======
+  async agregarSeleccionAKit() {
+    if (this.selectedSet.size === 0) {
+      this.toast.warn({ title: 'Sin selección', content: 'Elige al menos una clave.', duration: 5 });
+      return;
+    }
+
+    // Construir renglones nuevos (evitando duplicados)
+    const existentes = new Set(this.articulosSolicitados.map(a => this.normClave(a.clave)));
+    const nuevos: ArticuloSolicitud[] = [];
+
+    for (const r of this.kitRows) {
+      const clave = this.normClave(r.clave);
+      if (!this.selectedSet.has(clave)) continue;
+      if (existentes.has(clave)) continue;
+
+      const qty = (r.cpm && r.cpm > 0) ? r.cpm : Number(this.defaultQtyNoCpm || 0);
+      if (!qty || qty <= 0) continue; // seguridad: no agregues 0
+
+      nuevos.push({
+        clave,
+        descripcion: '',
+        unidadMedida: '',
+        cantidad: qty,
+        cpm: r.cpm ?? 0,
+      });
+    }
+
+    if (nuevos.length === 0) {
+      this.toast.warn({ title: 'Nada para agregar', content: 'Las claves seleccionadas ya se encuentra en la lista o la cantidad es 0.', duration: 5 });
+      return;
+    }
+
+    // Si la lista está vacía, simplemente agrega; si no, agregamos al final
+    this.articulosSolicitados.push(...nuevos);
+    this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(JSON.stringify(this.articulosSolicitados));
+
+    // Autocompletar descripción/unidad y cerrar modal
+    this.autocompletarDatos();
+    this.kitModalVisible = false;
+    this.toast.success({ title: 'Agregado', content: `Se añadieron ${nuevos.length} artículo(s) a la solicitud.`, duration: 5 });
+  }
+
+  // ¿Todos los visibles están seleccionados?
+  get allFilteredSelected(): boolean {
+    const list = this.kitRowsFiltrados; // usa tu getter existente
+    if (!list.length) return false;
+    return list.every(r => this.selectedSet.has(this.normClave(r.clave)));
+  }
+
+  // ¿Hay alguno seleccionado entre los visibles?
+  get anyFilteredSelected(): boolean {
+    const list = this.kitRowsFiltrados;
+    return list.some(r => this.selectedSet.has(this.normClave(r.clave)));
+  }
+
+  // Para mostrar estado indeterminado del master checkbox
+  get someFilteredSelected(): boolean {
+    return this.anyFilteredSelected && !this.allFilteredSelected;
+  }
+
+  // Cambia selección masiva según el checkbox master
+  toggleMasterSelection(checked: boolean) {
+    if (checked) this.selectAllFiltered();
+    else this.clearSelection();
+  }
+
+  // --- switches de UI (compacto por defecto) ---
+  verPorAlmacen = true;
+  mostrarMasOpciones = false;
+
+  // helpers sin cálculos en template
+  toggleVerPorAlmacen(v: boolean) { this.verPorAlmacen = v; }
+  toggleMasOpciones() { this.mostrarMasOpciones = !this.mostrarMasOpciones; }
 
   /*************************************************************************************/
   /*************************************************************************************/
