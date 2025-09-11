@@ -102,14 +102,13 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
 
   // Al actualizar articulosSolicitados refrescar CPMs
   ngOnChanges(changes: SimpleChanges) {
-    // console.log('ngOnChanges', changes);
     if (changes['articulosSolicitados'] || changes['cluesimbActual']) {
       // Actualizar CPMs por clave y clues
       const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
       if (cluesStr) {
         const datosClues = JSON.parse(cluesStr) as DatosClues;
         this.cluesimbActual = datosClues.hospital?.cluesimb ?? '';
-        // console.log('tablaArticulos - ngOnInit - Buscando cpm por clues', this.cluesimbActual);
+        
         this.cpmService.cpmsForImport(this.cluesimbActual)
           .pipe(takeUntil(this.onDestroy$))
           .subscribe((rows: CpmUnionRow[]) => {
@@ -119,15 +118,6 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
             for (const r of this.cpmsDeCluesActual) {
               this.cpmIndex.set(this.normClave(r.clave), Number(r.cantidad) || 0);
             }
-            // console.log('cpmsDeCluesActual', this.cpmsDeCluesActual);
-           /* console.log('articulosSolicitados', this.articulosSolicitados);
-            this.articulosSolicitados = this.articulosSolicitados.map(art => {
-              const claveNormalizada = this.inventarioService.normalizarClave(art.clave);
-              return {
-                ...art,
-                clave: claveNormalizada
-              };
-            });*/
             this.cdRef.detectChanges();
           });
       }

@@ -135,7 +135,7 @@ export class LayoutComponent implements OnInit, OnChanges {
 
   onDatosCluesCapturados(datos: DatosClues) {
     this.datosClues = datos;
-    this.datosClues.hospital = {...datos.hospital} as Unidadv2;
+    this.datosClues.hospital = { ...datos.hospital } as Unidadv2;
     this.title.setTitle(this.datosClues?.nombreHospital + '(' + this.datosClues.tipoInsumo + ')');
     this.solicitudService.setDatosCluesInLocalStorage(JSON.stringify(datos));
     const cluesimb = datos?.hospital?.cluesimb || '';
@@ -147,16 +147,16 @@ export class LayoutComponent implements OnInit, OnChanges {
 
   irASolicitud() {
     this.setTabActivo('solicitud');
-    // al pasar a la pestaña 2, asegura valores de CPM de la unidad actual
-    const cluesimb = this.datosClues?.hospital?.cluesimb || '';
-
-    if (cluesimb) this.cpmService.ensureForCluesimb(cluesimb, { force: true }).subscribe();
     this.cdRef.detectChanges();
   }
 
   setTabActivo(tab: 'clues' | 'solicitud') {
     this.activeTab = tab;
     this.storageSolicitudService.setActiveTabInLocalStorage(tab);
+
+    // al pasar a la pestaña 2, asegura valores de CPM de la unidad actual
+    const cluesimb = this.datosClues?.hospital?.cluesimb || '';
+    if (cluesimb) this.cpmService.ensureForCluesimb(cluesimb, { force: true }).subscribe();
     this.cdRef.detectChanges();
   }
 

@@ -42,7 +42,7 @@ import { CpmUnionRow } from '../../models/CpmUnionRow';
   templateUrl: './solicitudes.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SolicitudesComponent implements OnInit,  AfterViewInit, OnDestroy {
+export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   datosClues = {} as DatosClues;
   mostrarModal = false;
   modalVisible = false;
@@ -948,11 +948,9 @@ export class SolicitudesComponent implements OnInit,  AfterViewInit, OnDestroy {
 
   /** PARA MODAL DE CLAVES DE KIT */
   abrirKitModal() {
-    if (this.cluesimbActual === '') {
-      // recargar this.datosClues de localstorage
-      this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
-    }
-    this.kitModalVisible = true; // ya no arma filas aquí; el hijo se autoconstruye
+    // forzar recarga de this.datosClues de localstorageService porque este componente no lo recarga
+    this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
+    this.kitModalVisible = true;
   }
 
   // recibe lo que emite el modal y lo integra (respetando tu flujo actual)
@@ -967,7 +965,7 @@ export class SolicitudesComponent implements OnInit,  AfterViewInit, OnDestroy {
     this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
       JSON.stringify(this.articulosSolicitados)
     );
-   // this.autocompletarDatos();
+    // this.autocompletarDatos();
   }
 
   existingClavesList: string[] = [];
