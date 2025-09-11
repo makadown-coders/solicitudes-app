@@ -1,5 +1,5 @@
 // src/app/features/tabla-articulos/tabla-articulos.component.ts
-import { Component, Input, Output, EventEmitter, inject, ChangeDetectorRef, AfterContentChecked, AfterContentInit, OnChanges, SimpleChange, SimpleChanges, Sanitizer, SecurityContext, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, ChangeDetectorRef, AfterContentChecked, AfterContentInit, OnChanges, SimpleChange, SimpleChanges, Sanitizer, SecurityContext, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { clasificacionMedicamentosData } from '../../models/clasificacionMedicamentosData';
@@ -13,6 +13,9 @@ import { InventarioService } from '../../services/inventario.service';
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
 import { AlertCircleIcon, InfoIcon, LucideAngularModule, TriangleAlertIcon } from 'lucide-angular';
 import { CpmService } from '../../services/cpm.service';
+import { Subject, takeUntil } from 'rxjs';
+import { CpmUnionRow } from '../../models/CpmUnionRow';
+import { CpmRowLite } from '../../models/CpmExpectedRow';
 
 @Component({
   selector: 'app-tabla-articulos',
@@ -20,15 +23,16 @@ import { CpmService } from '../../services/cpm.service';
   imports: [CommonModule, FormsModule, LucideAngularModule],
   templateUrl: './tabla-articulos.component.html',
 })
-export class TablaArticulosComponent implements OnChanges, OnInit {
+export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
 
   @Input() articulosSolicitados: ArticuloSolicitud[] = [];
   @Input() modoEdicionIndex: number | null = null;
   @Input() cantidadTemporal: number = 0;
   @Input() inventario: InventarioDisponibles[] = [];
+  @Input() cluesimbActual: string = '';
 
-  cluesActual: string = '';
-  cpmsPorClues: CPMS[] = [];
+  cpmsDeCluesActual: CPMS[] = [];
+  private cpmIndex = new Map<string, number>();
   alertCircle = AlertCircleIcon;
   infoIcon = InfoIcon;
   triangleAlertIcon = TriangleAlertIcon;
@@ -43,51 +47,89 @@ export class TablaArticulosComponent implements OnChanges, OnInit {
 
   sanitizer = inject(DomSanitizer);
   storageSolicitudService = inject(StorageSolicitudService);
-  inv = inject(InventarioService);
-  private cpm = inject(CpmService);
+  inventarioService = inject(InventarioService);
+  private cpmService = inject(CpmService);
+  private onDestroy$ = new Subject<void>();
 
   constructor() {
     // console.log('constructor de TablaArticulosComponent');
-
   }
 
-   /** true si la clave pertenece al KIT de la unidad actual */
+  ngOnDestroy(): void {
+    this.onDestroy$.next();
+    this.onDestroy$.complete();
+  }
+
+  /** true si la clave pertenece al KIT de la unidad actual */
   enKit(clave: string | null | undefined): boolean {
     if (!clave) return false;
-    return this.cpm.isClaveInKit(this.inv.normalizarClave(clave));
+    return this.cpmService.isClaveInKit(this.inventarioService.normalizarClave(clave), this.cluesimbActual);
   }
 
   ngOnInit(): void {
-    this.inv.cpms$.subscribe(cpms => {
-      if (!cpms || cpms.length === 0) return;
 
-      const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
-      if (cluesStr) {
-        const datosClues = JSON.parse(cluesStr) as DatosClues;
-        this.cluesActual = datosClues.hospital?.cluesimb ?? '';
-        // console.log('constructor - Buscando cpm por clues', this.cluesActual);
-        this.cpmsPorClues = cpms.filter(cpms => cpms.cluesimb === this.cluesActual);
-        this.inv.emitirCPMSCluesActual(this.cpmsPorClues);
-        // console.log('constructor - CPMSCluesActual ha sido emitido');
+  }
+
+  private normClave(clave: string | undefined | null): string {
+    return this.inventarioService.normalizarClave((clave ?? '').toString().toUpperCase());
+  }
+
+  private mapCpmRowsToCPMS(rows: CpmRowLite[], cluesimbFallback?: string): CPMS[] {
+    // Consolidamos por clave (si una clave aparece varias veces por distintos kits, tomamos el mayor CPM)
+    const byClave = new Map<string, CPMS>();
+
+    for (const r of rows) {
+      const clave = (r.clave_cnis || '').toUpperCase();
+      if (!clave) continue;
+
+      const cpmVal = Number(r.cpm ?? 0);
+      if (cpmVal <= 0) continue; // solo nos interesan CPMS > 0
+
+      const cluesimb = (r.cluesimb || cluesimbFallback || '').toUpperCase();
+      const prev = byClave.get(clave);
+
+      if (!prev || cpmVal > prev.cantidad) {
+        byClave.set(clave, {
+          clave,
+          cluesimb,
+          cantidad: cpmVal,   // 👈 aquí ‘cantidad’ = CPM
+        });
       }
-    });
+    }
+
+    return Array.from(byClave.values());
   }
 
   // Al actualizar articulosSolicitados refrescar CPMs
   ngOnChanges(changes: SimpleChanges) {
     // console.log('ngOnChanges', changes);
-    if (changes['articulosSolicitados']) {
+    if (changes['articulosSolicitados'] || changes['cluesimbActual']) {
       // Actualizar CPMs por clave y clues
       const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
       if (cluesStr) {
         const datosClues = JSON.parse(cluesStr) as DatosClues;
-        this.cluesActual = datosClues.hospital?.cluesimb ?? '';
-        //  console.log('ngOnChanges - Buscando cpm por clues', this.cluesActual);
-        const cpms = this.storageSolicitudService.getCPMSFromLocalStorage();
-        // console.log('ngOnChanges - cpms totales', cpms.length);
-        this.cpmsPorClues = cpms.filter(cpms => cpms.cluesimb === this.cluesActual);
-        this.inv.emitirCPMSCluesActual(this.cpmsPorClues);
-        // console.log('ngOnChanges - cpms actualizados en articulosSolicitados', this.articulosSolicitados);
+        this.cluesimbActual = datosClues.hospital?.cluesimb ?? '';
+        // console.log('tablaArticulos - ngOnInit - Buscando cpm por clues', this.cluesimbActual);
+        this.cpmService.cpmsForImport(this.cluesimbActual)
+          .pipe(takeUntil(this.onDestroy$))
+          .subscribe((rows: CpmUnionRow[]) => {
+            const clues = this.cluesimbActual;
+            this.cpmsDeCluesActual = this.mapCpmRowsToCPMS(rows as any, clues);
+            this.cpmIndex.clear();
+            for (const r of this.cpmsDeCluesActual) {
+              this.cpmIndex.set(this.normClave(r.clave), Number(r.cantidad) || 0);
+            }
+            // console.log('cpmsDeCluesActual', this.cpmsDeCluesActual);
+           /* console.log('articulosSolicitados', this.articulosSolicitados);
+            this.articulosSolicitados = this.articulosSolicitados.map(art => {
+              const claveNormalizada = this.inventarioService.normalizarClave(art.clave);
+              return {
+                ...art,
+                clave: claveNormalizada
+              };
+            });*/
+            this.cdRef.detectChanges();
+          });
       }
     }
   }
@@ -139,8 +181,7 @@ export class TablaArticulosComponent implements OnChanges, OnInit {
   }
 
   public buscarCPM(clave: string): number {
-    const clavesBuscar = this.normalizarClaveBusqueda(clave);
-    const cpm = this.cpmsPorClues.find(cpmItem => clavesBuscar.includes(cpmItem.clave));
+    const cpm = this.cpmsDeCluesActual.find(cpmItem => cpmItem.clave.trim()+'' === clave.trim()+'');    
     return cpm ? cpm.cantidad : 0;
   }
 

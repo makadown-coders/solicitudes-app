@@ -160,10 +160,10 @@
 
 <!-- Modal flotante para avisar que se están cargando los CPMS o existencias -->
 <div
-  *ngIf="(inventarioService.cargandoCPMS$| async) || refrescandoCPMSdesdeLayout() || (inventarioService.cargandoInventario$| async)"
+  *ngIf=" refrescandoCPMSdesdeLayout() || (inventarioService.cargandoInventario$| async)"
   class="z-50 fixed inset-0 flex items-center justify-center pointer-events-none">
 
-  @let mensaje = (inventarioService.cargandoCPMS$| async) || refrescandoCPMSdesdeLayout() ? 'CPMs' : '';
+  @let mensaje = refrescandoCPMSdesdeLayout() ? 'CPMs' : '';
 
   <div
     class="flex items-center gap-2 px-6 py-4 w-120 text-green-900 text-center text-base font-semibold bg-white/90 rounded-xl border-green-300 shadow-lg border sm:w-120">

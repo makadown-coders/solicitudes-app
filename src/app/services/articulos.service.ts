@@ -18,15 +18,15 @@ export class ArticulosService {
   private _articulosMapaCache: Record<string, { descripcion: string; presentacion?: string }> | null = null;
 
   constructor(private http: HttpClient) {
-    this.cargarArticulosPrimerNivel();
+   // this.cargarArticulosPrimerNivel();
   }
 
-  private cargarArticulosPrimerNivel() {
+  /*private cargarArticulosPrimerNivel() {
     this.http.get<Articulo[]>('/articulos-primernivel.json').subscribe(articulos => {
       this.medicamentosPrimerNivel = [...articulos];
       this.articulosPrimerNivelSubject.next(articulos);
     });
-  }
+  }*/
 
   esPrimerNivel(clave: string) {
     return this.medicamentosPrimerNivel.some(art => art.clave === clave);

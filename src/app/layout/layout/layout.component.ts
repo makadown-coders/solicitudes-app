@@ -128,7 +128,7 @@ export class LayoutComponent implements OnInit, OnChanges {
       .ensureForCluesimb(cluesimb, { force })
       .pipe(finalize(() => this.refrescandoCPMSdesdeLayout.set(false)))
       .subscribe({
-        next: () => {/* cpms$ ya quedó con data */ },
+        next: () => { this.refrescandoCPMSdesdeLayout.set(false); },
         error: (e) => console.error('Error al cargar CPMs', e),
       });
   }
