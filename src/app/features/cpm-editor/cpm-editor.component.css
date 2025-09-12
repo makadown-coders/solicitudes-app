@@ -1,0 +1,49 @@
+/* utilitario simple si no usas Tailwind en este componente */
+.disabled\:opacity-60:disabled { opacity: .6; }
+.bg-yellow-50 { background: #fffbeb; }
+.bg-red-50 { background: #fef2f2; }
+
+.chip { padding: 0.125rem 0.375rem; border-radius: 999px; border: 1px solid transparent; }
+.chip-manual { background: #fffbeb; border-color: #f59e0b33; color: #92400e; }     /* ámbar claro */
+.chip-historico { background: #eef2ff; border-color: #6366f133; color: #3730a3; }  /* índigo claro */
+.chip-import { background: #ecfdf5; border-color: #10b98133; color: #065f46; }     /* esmeralda claro */
+
+.toolbar { display: grid; grid-template-columns: 1fr auto; gap: .75rem; align-items: end; }
+.toolbar-actions { display: flex; gap: .5rem; align-items: center; }
+
+/* Tabla más legible */
+.sticky-head thead th { position: sticky; top: 0; background: #fff; z-index: 1; }
+.compact td, .compact th { padding-top: .4rem; padding-bottom: .4rem; }
+.zebra tbody tr:nth-child(odd) { background: #fafafa; }
+
+/* Chips (si aún no las tenías) */
+.chip { padding: 0.125rem 0.375rem; border-radius: 999px; border: 1px solid transparent; font-size: .75rem; }
+.chip-manual { background:#fffbeb; border-color:#f59e0b33; color:#92400e; }
+.chip-historico { background:#eef2ff; border-color:#6366f133; color:#3730a3; }
+.chip-import { background:#ecfdf5; border-color:#10b98133; color:#065f46; }
+
+/* Empty state */
+.empty { text-align:center; color:#6b7280; padding:1rem; }
+
+.progress{height:3px;background:#eee;border-radius:2px;overflow:hidden}
+.progress .bar{height:100%;background:#3b82f6}
+.progress.indeterminate .bar{width:40%;animation:indet 1.2s infinite}
+@keyframes indet{0%{margin-left:-40%}100%{margin-left:100%}}
+
+.skeleton{background:linear-gradient(90deg,#eee,#f5f5f5,#eee);background-size:200% 100%;animation:sheen 1.2s infinite}
+@keyframes sheen{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+
+.desc, .pres {
+  max-width: 56ch;            /* ajusta según layout */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pres {
+  color: #6b7280;             /* gris 500 */
+  font-size: .75rem;          /* text-xs */
+}
+@media (min-width: 1024px) {
+  .desc, .pres { max-width: 72ch; }
+}

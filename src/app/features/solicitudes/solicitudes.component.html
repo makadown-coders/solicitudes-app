@@ -42,6 +42,11 @@
                                 [ngClass]="(item._cpm ?? 0) > 0 ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-600'">
                                 CPM: {{ item._cpm ?? 0 }}
                             </span>
+                            <span *ngIf="hasUnidadExistencias"
+                                class="inline-block mt-1 ml-1 px-2 py-0.5 text-[10px] font-semibold rounded"
+                                [ngClass]="(item._existUnidad ?? 0) > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'">
+                                Exist. unidad: {{ item._existUnidad ?? 0 }}
+                            </span>
                             <!-- Badge sólo si forma parte del KIT -->
                             <span *ngIf="item._enKit"
                                 class="inline-block mt-1 ml-1 px-2 py-0.5 text-[10px] font-semibold text-fuchsia-800 bg-fuchsia-100 rounded">
@@ -67,7 +72,7 @@
 
                                 <span class="inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded"
                                     [ngClass]="(item._totalExistencias ?? 0) > 0 ? 'bg-emerald-200 text-emerald-900' : 'bg-gray-200 text-gray-700'">
-                                    Exist.: {{ item._totalExistencias ?? 0 }}
+                                    Exist. Almacenes: {{ item._totalExistencias ?? 0 }}
                                 </span>
                             </div>
                         </div>
@@ -118,15 +123,11 @@
         </button>
     </div>
     <div class="mt-4 p-2 border rounded" [hidden]="!articulosSolicitados || articulosSolicitados.length===0">
-        <app-tabla-articulos [articulosSolicitados]="articulosSolicitados"
-            [modoEdicionIndex]="modoEdicionIndex"
-            [cluesimbActual]="cluesimbActual"
-            [cantidadTemporal]="cantidadTemporal"
-            (cantidadTemporalChange)="cambiarCantidad($event)"
-            [inventario]="inventarioDisponible"
-            (confirmar)="confirmarEdicion($event)"
-            (cancelar)="cancelarEdicion()"
-            (editar)="activarEdicion($event)" (eliminar)="eliminarArticuloConConfirmacion($event)" />
+        <app-tabla-articulos [articulosSolicitados]="articulosSolicitados" [modoEdicionIndex]="modoEdicionIndex"
+            [cluesimbActual]="cluesimbActual" [cantidadTemporal]="cantidadTemporal"
+            (cantidadTemporalChange)="cambiarCantidad($event)" [inventario]="inventarioDisponible"
+            (confirmar)="confirmarEdicion($event)" (cancelar)="cancelarEdicion()" (editar)="activarEdicion($event)"
+            (eliminar)="eliminarArticuloConConfirmacion($event)" />
     </div>
 
     <button *ngIf="articulosSolicitados.length > 0 && todosMayorACero" (click)="mostrarModalExportar()"
@@ -164,14 +165,8 @@
 <br />
 
 
-<app-kit-modal
-  *ngIf="kitModalVisible"
-  [cluesimb]="cluesimbActual"
-  [tituloUnidad]="modoStandalone ? '' : (tituloUnidad$ | async) || ''"
-  [mostrarUnidadEnTitulo]="!modoStandalone"
-  [inventarioDisponible]="inventarioDisponible"
-  [existingClaves]="existingClavesList"
-  [defaultQtyNoCpm]="1"
-  (addToSolicitud)="onKitAdd($event)"
-  (close)="kitModalVisible = false">
+<app-kit-modal *ngIf="kitModalVisible" [cluesimb]="cluesimbActual"
+    [tituloUnidad]="modoStandalone ? '' : (tituloUnidad$ | async) || ''" [mostrarUnidadEnTitulo]="!modoStandalone"
+    [inventarioDisponible]="inventarioDisponible" [existingClaves]="existingClavesList" [defaultQtyNoCpm]="1"
+    (addToSolicitud)="onKitAdd($event)" (close)="kitModalVisible = false">
 </app-kit-modal>

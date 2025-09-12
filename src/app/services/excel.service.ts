@@ -147,8 +147,8 @@ export class ExcelService {
             const existenciaAZT = existencia ? existencia.existenciasAZT : 0;
             const existenciaAZE = existencia ? existencia.existenciasAZE : 0;
             const existenciaAZM = existencia ? existencia.existenciasAZM : 0;
-            const cpm = cpmsDeCluesActual
-                .find(cpm => cpm.clave === articulosSolicitados[i].clave)?.cantidad ?? 0;
+            const cpm = articulosSolicitados[i].cpm === 0  ? (  cpmsDeCluesActual
+                .find(cpm => cpm.clave === articulosSolicitados[i].clave)?.cantidad ?? 0) : articulosSolicitados[i].cpm;
             const cantidad = articulosSolicitados[i].cantidad;
 
             const celdaCantidad = worksheet!.getCell(`G${renglon}`);

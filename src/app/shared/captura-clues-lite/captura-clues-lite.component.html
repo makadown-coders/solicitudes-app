@@ -1,0 +1,60 @@
+<div class="space-y-2">
+  <label class="block text-sm font-medium text-gray-700">
+    Unidad (CLUES IMB / SSA ) {{primerNivel ? '1er Nivel' : '2do Nivel'}}
+  </label>
+
+  <ng-container *ngIf="!selected; else resumen">
+    <div class="flex items-end gap-3">
+      <input type="text"
+             class="p-2 w-full border rounded"
+             [ngModel]="texto"
+             (ngModelChange)="onInputChange($event)"
+             (keydown)="onKeyDown($event)"
+             placeholder="Buscar por nombre, CLUES IMB o CLUES SSA" />
+
+      <!-- Toggle nivel (opcional) -->
+      <label class="inline-flex items-center gap-2 text-xs text-gray-600">
+        <input type="checkbox"
+               [ngModel]="primerNivel"
+               (ngModelChange)="onToggleNivel($event)" />
+        1er nivel
+      </label>
+    </div>
+
+    <ul *ngIf="results().length"
+        class="z-10 overflow-auto mt-1 w-full max-h-60 bg-white border rounded shadow">
+      <li *ngFor="let h of results(); trackBy: trackByCluesimb"
+          (click)="pick(h)"
+          class="p-2 cursor-pointer hover:bg-gray-100">
+        {{ h.cluesssa || '—' }} | {{ h.cluesimb || '—' }} — {{ h.nombre }} ({{ h.municipio || '—' }})
+      </li>
+    </ul>
+  </ng-container>
+
+  <ng-template #resumen>
+    <div class="flex items-center justify-between px-3 py-2 text-sm text-green-900 bg-green-50 border-green-700 border rounded">
+      <div class="font-semibold">
+        {{ selected!.nombre }} ({{ selected!.municipio || '—' }})
+      </div>
+      <button type="button" class="text-green-800 text-xs cursor-pointer underline hover:text-green-900"
+              (click)="cambiar()">
+        Cambiar
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 mt-3 md:grid-cols-2">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">CLUES SSA</label>
+        <div class="mt-1 px-3 py-2 text-sm text-gray-800 bg-gray-50 border rounded">
+          {{ selected!.cluesssa || '—' }}
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">CLUES IMB</label>
+        <div class="mt-1 px-3 py-2 text-sm text-gray-800 bg-gray-50 border rounded">
+          {{ selected!.cluesimb || '—' }}
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</div>

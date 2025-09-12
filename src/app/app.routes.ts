@@ -43,6 +43,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/carga-masiva/carga-existencias.component')
       .then(m => m.CargaExistenciasComponent)
   },
+  {
+    path: 'cpm-config',
+    title: 'CPM por unidad (BC)',
+    loadComponent: () => import('./features/cpm-editor/cpm-editor.component').then(m => m.CpmEditorComponent)
+  },
   { path: 'solicitudes-config', component: SolicitudesConfigComponent },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: '**', redirectTo: '/home' }

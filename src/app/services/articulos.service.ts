@@ -10,8 +10,11 @@ import { Articulo, ArticuloSolicitud } from '../models/articulo-solicitud';
 export class ArticulosService {
   private apiUrl = `${environment.apiUrl}/articulos`;
 
+  /** Por deprecar ahora se jalaria por postgres */
   private articulosPrimerNivelSubject = new BehaviorSubject<Articulo[]>([]);
+  /** Por deprecar ahora se jalaria por postgres */
   public articulosPrimerNivel$: Observable<Articulo[]> = this.articulosPrimerNivelSubject.asObservable();
+  /** Por deprecar ahora se jalaria por postgres */
   private medicamentosPrimerNivel: Articulo[] = [];
 
   /** para Tab Inventario en Dashboard abasto */
@@ -28,6 +31,7 @@ export class ArticulosService {
     });
   }*/
 
+  /** Por deprecar ahora se jalaria por postgres */
   esPrimerNivel(clave: string) {
     return this.medicamentosPrimerNivel.some(art => art.clave === clave);
   }
@@ -68,7 +72,7 @@ export class ArticulosService {
       );
   }
 
-
+  /** Por deprecar ahora se jalaria por postgres */
   buscarArticulosPrimerNivel(termino: string): Observable<{ resultados: ArticuloSolicitud[]; total: number }> {
     const filtro = termino.toLowerCase();
     // cargo los datos del json local en /public para no tener que hacer peticiones a la api de koyeb
@@ -96,6 +100,7 @@ export class ArticulosService {
 
   /**
    * Para uso en Dashboard abasto > Inventario
+   * Para usarse en caso de emergencia.
    * @returns 
    */
   getArticulosMapaFromLocal() {

@@ -99,6 +99,11 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   // cachecito opcional para no pedir siempre
   private surveyFlagCache = new Map<string, boolean>();
 
+  private existTemp = inject(ExistenciasTempService);
+
+  existUnidadIndex = new Map<string, number>();
+  get hasUnidadExistencias(): boolean { return this.existUnidadIndex.size > 0; }
+
   // dentro de la clase SolicitudesComponent
   public tituloUnidad$ = this.storageSolicitudService.nombreUnidad$.pipe(
     map((nombre) => {
@@ -179,6 +184,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       if (cluesimb) {
         // no hace daño si Layout ya lo cargó: usa caché del CpmService
         this.cpmService.ensureForCluesimb(cluesimb).subscribe();
+        this.loadExistenciasUnidad(cluesimb);
       }
     }
 
@@ -308,6 +314,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         // this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
         const base = (data.resultados || []).sort((a, b) => a.clave.localeCompare(b.clave));
         this.autocompleteResults = this.enrichWithExistencias(base);
+        if (this.hasUnidadExistencias) {
+          this.autocompleteResults = this.autocompleteResults.map(it => ({
+            ...it,
+            _existUnidad: this.existUnidadIndex.get(it.clave) ?? 0
+          }));
+        }
         this.totalResults = data.total || 0;
         this.moreResults = this.totalResults > 24;
         this.selectedIndex = 0;
@@ -327,6 +339,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (data) => {
         const base = (data.resultados || []).sort((a, b) => a.clave.localeCompare(b.clave));
         this.autocompleteResults = this.enrichWithExistencias(base);
+        if (this.hasUnidadExistencias) {
+          this.autocompleteResults = this.autocompleteResults.map(it => ({
+            ...it,
+            _existUnidad: this.existUnidadIndex.get(it.clave) ?? 0
+          }));
+        }
         this.totalResults = data.total || 0;
         this.moreResults = this.totalResults > 24;
         this.selectedIndex = 0;
@@ -594,7 +612,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         nombreArchivPrecarga += '-' + this.datosClues.tipoPedido;
       }
       nombreArchivPrecarga += '_' + new Date().toISOString().slice(0, 7);
-      this.excelService.exportarExcelPrecarga(nombreArchivo, items);
+      this.excelService.exportarExcelPrecarga(nombreArchivPrecarga, items);
     }
   }
 
@@ -730,7 +748,10 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       const cluesimbActual = this.datosClues?.hospital?.cluesimb;
 
       if (cluesimbActual) {
-        try { await firstValueFrom(this.cpmService.ensureForCluesimb(cluesimbActual)); } catch { }
+        try { 
+          await firstValueFrom(this.cpmService.ensureForCluesimb(cluesimbActual)); 
+          this.loadExistenciasUnidad(cluesimbActual);
+        } catch { }
       }
 
       // 2) Lee archivo
@@ -939,6 +960,22 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       // si no se pudo consultar el flag, no bloquees (comportamiento actual)
       return false;
     }
+  }
+
+  private loadExistenciasUnidad(cluesimb: string) {
+    if (!cluesimb) { this.existUnidadIndex.clear(); return; }
+
+    this.existTemp.byUnidad(cluesimb).subscribe(rows => {
+      const idx = new Map<string, number>();
+      for (const r of rows) idx.set(r.clave_cnis, r.existencia_total ?? 0);
+      this.existUnidadIndex = idx;
+
+      // Enriquecer el autocomplete actual (si ya hay resultados en pantalla)
+      this.autocompleteResults = (this.autocompleteResults || []).map(it => ({
+        ...it,
+        _existUnidad: idx.get(it.clave) ?? 0
+      }));
+    });
   }
 
   /*************************************************************************************/

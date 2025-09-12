@@ -69,7 +69,8 @@
 
           <p class="mt-2 text-xs text-gray-600">ℹ️ En Primer Nivel solo verás unidades no hospitalarias.</p>
           <p class="mt-1 text-xs text-gray-600">💡 Completa todos los campos para habilitar la pestaña
-            <em>Solicitud</em>.</p>
+            <em>Solicitud</em>.
+          </p>
         </ng-container>
 
         <ng-template #segundoNivelGuia>
@@ -82,7 +83,8 @@
 
           <p class="mt-2 text-xs text-gray-600">ℹ️ En Segundo Nivel solo verás hospitales.</p>
           <p class="mt-1 text-xs text-gray-600">💡 Completa todos los campos para habilitar la pestaña
-            <em>Solicitud</em>.</p>
+            <em>Solicitud</em>.
+          </p>
         </ng-template>
 
         <hr class="my-2 border-t border-gray-300">
@@ -99,7 +101,8 @@
 
         <ul class="pl-5 list-disc space-y-1">
           <li><strong>Clave:</strong> Escribe al menos 3 caracteres para activar el autocompletado. Usa
-            <kbd>↑</kbd>/<kbd>↓</kbd> y <kbd>Enter</kbd> para elegir.</li>
+            <kbd>↑</kbd>/<kbd>↓</kbd> y <kbd>Enter</kbd> para elegir.
+          </li>
           <li><strong>Descripción / Unidad:</strong> Se llenan automático; puedes ajustarlas si hace falta.</li>
           <li><strong>Cantidad:</strong> Debe ser mayor a 0 y menor a 99,999.</li>
           <li><strong>Edición rápida:</strong> Antes de exportar puedes corregir cantidades o eliminar renglones.</li>
@@ -126,7 +129,8 @@
         <h4 class="font-semibold text-green-700">📥 Importar desde Excel</h4>
         <ul class="pl-5 list-disc space-y-1">
           <li>Selecciona el archivo. El sistema combina duplicados automáticamente.</li>
-          <li>Si la opción “<em>Limitar a KIT</em>” está activa, las claves fuera del KIT se <u>excluirán</u> para esta unidad.</li>
+          <li>Si la opción “<em>Limitar a KIT</em>” está activa, las claves fuera del KIT se <u>excluirán</u> para esta
+            unidad.</li>
           <li>Si tu archivo usa plantilla oficial, el sistema reconoce encabezados y posiciones típicas.</li>
         </ul>
 
@@ -159,8 +163,7 @@
 
 
 <!-- Modal flotante para avisar que se están cargando los CPMS o existencias -->
-<div
-  *ngIf=" refrescandoCPMSdesdeLayout() || (inventarioService.cargandoInventario$| async)"
+<div *ngIf=" refrescandoCPMSdesdeLayout() || (inventarioService.cargandoInventario$| async)"
   class="z-50 fixed inset-0 flex items-center justify-center pointer-events-none">
 
   @let mensaje = refrescandoCPMSdesdeLayout() ? 'CPMs' : '';
@@ -178,49 +181,76 @@
 </div>
 
 <!-- Modal de información general -->
-<div *ngIf="acercaDeVisible" class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-  <div class="relative p-12 max-w-fit w-full bg-white rounded-lg shadow-lg">
-    @let anio = anioActual();
-    <div class="mx-auto max-w-xl text-center">
-      <h2 class="mb-6 text-3xl font-bold text-green-800">📋 Acerca de esta aplicación </h2>
-      <p class="text-sm text-gray-700">
-        Esta herramienta es un apoyo en piloto para capturar solicitudes de insumos médicos en IMSS-Bienestar Baja
-        California.
-      </p>
-      <p class="text-sm text-gray-700">
-        Facilita pedidos ordinarios y extraordinarios, con validaciones, precargas y exportación a Excel.
-      </p>
-      <p class="mb-6 text-sm text-gray-700">
-        No reemplaza sistemas oficiales.
-      </p>
-      <div class="p-6 text-left bg-green-50 border-green-200 rounded-lg shadow-sm border">
-        <div class="space-y-4">
-          <div>
-            <p class="font-semibold text-gray-800">Coordinador Institucional del Proyecto</p>
-            <p class="text-gray-600">Lic. Héctor Manuel Avelar Morales</p>
-          </div>
-          <div>
-            <p class="font-semibold text-gray-800">Referente Técnico-Operativo <span
-                class="text-sm text-gray-500">(Lineamientos de Abasto)</span></p>
-            <p class="text-gray-600">Lic. Elia Del Carmen Rojas Villalas / Lic. Abril Núñez Madrid</p>
-          </div>
-          <div>
-            <p class="font-semibold text-gray-800">Diseño y Desarrollo Tecnológico</p>
-            <p class="text-gray-600">Ing. Mario Arturo Serrano Flores </p>
-          </div>
-        </div>
+<div *ngIf="acercaDeVisible" class="z-[100] fixed inset-0 grid place-items-center bg-black/50 backdrop-blur-sm">
+  @let anio = anioActual();
+  <div role="dialog" aria-modal="true" aria-labelledby="about-title"
+    class="relative w-[min(92vw,760px)] bg-white rounded-2xl border-gray-200 shadow-xl border">
+
+    <!-- Cerrar -->
+    <button (click)="acercaDeVisible = false" aria-label="Cerrar"
+      class="absolute top-3 right-3 grid place-items-center h-8 w-8 text-gray-500 rounded-full hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500">×</button>
+
+    <div class="px-6 pt-8 pb-6 sm:px-8">
+      <!-- Encabezado -->
+      <div class="flex items-center justify-center gap-3 mb-4">
+        <div class="grid place-items-center h-10 w-10 text-green-700 text-xl bg-green-100 rounded-full">📋</div>
+        <h2 id="about-title" class="text-3xl font-bold text-green-800">
+          Acerca de esta aplicación
+        </h2>
       </div>
 
-      <div class="mt-6 text-sm text-gray-500">
+      <!-- Intro / disclaimers -->
+      <div class="text-center text-sm text-gray-700 space-y-2">
+        <p>Esta herramienta es de apoyo operativo en fase piloto para la captura de solicitudes en IMSS-Bienestar Baja
+          California.</p>
+        <p class="font-medium text-gray-800">
+          No sustituye ni reemplaza sistemas institucionales oficiales.
+          Las decisiones y validaciones deben sustentarse en la información emitida por los sistemas y áreas
+          responsables.
+        </p>
+      </div>
+
+      <!-- Alcance de datos (llamado visual) -->
+      <div class="mt-4 p-4 text-amber-900 bg-amber-50 rounded-lg border-amber-200 border sm:p-5">
+        <p class="mb-1 font-semibold">Alcance de datos</p>
+        <p class="text-sm">
+          Las <em>existencias</em> y los <em>CPM</em> mostrados son <em>cortes informativos</em> (“snapshot”)
+          con actualización periódica; pueden presentar desfases respecto al inventario/consumo real.
+          No constituyen información en tiempo real ni evidencia oficial.
+        </p>
+        <p class="mt-2 text-xs opacity-90">
+          En caso de discrepancias, prevalece la información de los sistemas institucionales y los registros
+          patrimoniales de almacén.
+        </p>
+      </div>
+
+      <!-- Créditos -->
+      <div class="mt-6 p-5 bg-green-50/60 rounded-xl border-green-200 border">
+        <dl class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <dt class="font-semibold text-gray-800">Coordinador Institucional del Proyecto</dt>
+            <dd class="text-gray-700">Lic. Héctor Manuel Avelar Morales</dd>
+          </div>
+          <div>
+            <dt class="font-semibold text-gray-800">Diseño y Desarrollo Tecnológico</dt>
+            <dd class="text-gray-700">Ing. Mario Arturo Serrano Flores</dd>
+          </div>
+          <div class="sm:col-span-2">
+            <dt class="font-semibold text-gray-800">
+              Referente Técnico-Operativo <span class="text-xs text-gray-500">(Lineamientos de Abasto)</span>
+            </dt>
+            <dd class="text-gray-700">Lic. Elia Del Carmen Rojas Villalas / Lic. Abril Núñez Madrid</dd>
+
+          </div>
+        </dl>
+      </div>
+
+      <!-- Pie -->
+      <div class="mt-6 text-center text-xs text-gray-500">
         &copy; {{ anio }} IMSS Bienestar - Baja California
       </div>
     </div>
-
-
-    <button (click)="acercaDeVisible = false"
-      class="absolute top-2 right-2 text-gray-500 text-lg font-bold cursor-pointer hover:text-gray-700">×</button>
   </div>
-
 </div>
 
 <app-survey-nudge></app-survey-nudge>
