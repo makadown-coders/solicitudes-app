@@ -291,13 +291,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   buscarArticulosConFallback(texto: string) {
-    /*
-    if (this.estaCapturandoPrimerNivel()) {
-      this.buscarArticulosPrimerNivel(texto);
-      return;
-    }
-    */
-
     const timestampFallback = localStorage.getItem('usarFallbackLocal');
     const ahora = Date.now();
     const unDiaMs = 24 * 60 * 60 * 1000;
@@ -308,12 +301,18 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    // forzar recarga de this.datosClues de localstorageService porque este componente no lo recarga
+    this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
+    // forzo recarga
+    this.loadExistenciasUnidad(this.cluesimbActual);
+
     // 🔌 Intenta con backend koyeb
     this.articulosService.buscarArticulos(texto).subscribe({
       next: (data) => {
         // this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
         const base = (data.resultados || []).sort((a, b) => a.clave.localeCompare(b.clave));
         this.autocompleteResults = this.enrichWithExistencias(base);
+
         if (this.hasUnidadExistencias) {
           this.autocompleteResults = this.autocompleteResults.map(it => ({
             ...it,
@@ -865,7 +864,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   autocompletarDatos() {
-    console.log('entrando a autocompletarDatos()');
     this.articulosService.buscarArticulosv2('').subscribe({
       next: (data) => {
         const catalogo = data.resultados;
