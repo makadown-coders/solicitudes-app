@@ -78,6 +78,10 @@ export class KitModalComponent implements OnInit {
     private descIndex = new Map<string, string>();
     // índice de unidad medida (presentacion de insumo) para tooltip
     private unidadMedidaIndex = new Map<string, string>();
+    // estado
+    loading = true;   // ← muestra skeleton al abrir
+    busy = false;     // ← barrita cuando haces recálculos o fetch parciales
+    skeletonRows = Array.from({ length: 8 }); // 8 renglones fake
 
     // ===== Ciclo de vida =====
     async ngOnInit() {
@@ -152,6 +156,7 @@ export class KitModalComponent implements OnInit {
             this.cdRef.markForCheck();
             return;
         }
+        this.loading = true;
         console.log('loadExistenciasForUnit', clues);
         this.existSvc.byUnidad(clues).subscribe({
             next: (rows: ExistUnidadRow[]) => {
@@ -162,11 +167,13 @@ export class KitModalComponent implements OnInit {
                 }
                 this.hasUnidadExistencias = this.existUnidadIndex.size > 0;
                 this.mergeExistenciasIntoKit();
+                this.loading = false;
             },
             error: () => {
                 this.existUnidadIndex.clear();
                 this.hasUnidadExistencias = false;
                 for (const r of this.kitRows) { delete r.existUnidad; delete r.reordenSug; }
+                this.loading = false;
                 this.cdRef.markForCheck();
             }
         });
@@ -393,7 +400,12 @@ export class KitModalComponent implements OnInit {
         return this.invSvc.normalizarClave((v ?? '').toString().toUpperCase());
     }
     toggleMasOpciones() { this.mostrarMasOpciones = !this.mostrarMasOpciones; this.cdRef.markForCheck(); }
-    setShowUnidadExist(v: boolean) { this.showUnidadExist = v; this.cdRef.markForCheck(); }
+    setShowUnidadExist(v: boolean) {
+        this.showUnidadExist = v;
+        this.busy = true;
+        this.cdRef.markForCheck();
+        this.busy = false;
+    }
     setMesesCobertura(n: number) {
         this.mesesCobertura = Math.max(1, Math.floor(n || 1));
         if (this.hasUnidadExistencias) this.mergeExistenciasIntoKit();

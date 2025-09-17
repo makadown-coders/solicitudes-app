@@ -1,6 +1,6 @@
 {
   "name": "solicitudes-app",
-  "version": "0.0.0",
+  "version": "v5.0.1",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

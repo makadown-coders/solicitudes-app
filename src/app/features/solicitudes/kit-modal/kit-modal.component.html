@@ -1,14 +1,62 @@
-<!-- Modal: Claves del KIT (con existencias) -->
-<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+<!-- Loader inicial (skeleton) -->
+<div *ngIf="loading" class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
     <div class="relative p-4 w-full max-w-4xl bg-white rounded-lg shadow-lg">
         <h3 class="text-lg font-semibold text-emerald-700">
-            Claves del KIT {{ mostrarUnidadEnTitulo && tituloUnidad ? ('para ' + tituloUnidad) : '' }}
+            Cargando... Espere un momento...
         </h3>
 
-        <!-- Encabezado: filtros y acciones -->
-        <div class="flex flex-col items-end justify-between gap-2 mt-3 sm:flex-row">
-            <!-- Izquierda: búsqueda -->
-            <!--
+
+
+        <div class="overflow-auto mt-2 max-h-[65vh] border rounded">
+            <table class="w-full text-sm">
+                <thead class="sticky top-0 bg-gray-50">
+                    <tr>
+                        <th class="px-2 py-1 border-b">Clave</th>
+                        <th class="px-2 py-1 border-b">CPM</th>
+                        <th class="px-2 py-1 border-b">Exist.</th>
+                        <th class="px-2 py-1 border-b">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let _ of skeletonRows" class="odd:bg-white even:bg-gray-50">
+                        <td class="px-2 py-2 border-b">
+                            <div class="h-4 w-32 skeleton"></div>
+                        </td>
+                        <td class="px-2 py-2 border-b">
+                            <div class="h-4 w-12 skeleton"></div>
+                        </td>
+                        <td class="px-2 py-2 border-b">
+                            <div class="h-4 w-14 skeleton"></div>
+                        </td>
+                        <td class="px-2 py-2 border-b">
+                            <div class="h-4 w-16 skeleton"></div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Contenido real (se muestra al terminar la carga) -->
+<ng-container *ngIf="!loading">
+    <!-- Modal: Claves del KIT (con existencias) -->
+    <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="relative p-4 w-full max-w-4xl bg-white rounded-lg shadow-lg">
+
+            <!-- Top progress para tareas breves -->
+            <div *ngIf="busy" class="progress indeterminate">
+                <div class="bar"></div>
+            </div>
+
+            <h3 class="text-lg font-semibold text-emerald-700">
+                Claves del KIT {{ mostrarUnidadEnTitulo && tituloUnidad ? ('para ' + tituloUnidad) : '' }}
+            </h3>
+
+            <!-- Encabezado: filtros y acciones -->
+            <div class="flex flex-col items-end justify-between gap-2 mt-3 sm:flex-row">
+                <!-- Izquierda: búsqueda -->
+                <!--
       <div>
         <label class="block text-xs text-gray-600">Buscar clave</label>
         <input type="text" [(ngModel)]="kitFiltro" class="px-2 py-1 w-56 text-sm border rounded"
@@ -16,10 +64,10 @@
       </div>
       -->
 
-            <!-- Derecha: acciones -->
-            <div class="flex flex-wrap items-center gap-2">
-                <!-- Filtros básicos -->
-                <!--
+                <!-- Derecha: acciones -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Filtros básicos -->
+                    <!--
         <label class="inline-flex items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" [(ngModel)]="kitSoloSinCpm" />
           Solo sin CPM
@@ -31,173 +79,179 @@
         </label>
         -->
 
-                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                    <input type="checkbox" [ngModel]="verPorAlmacen" (ngModelChange)="verPorAlmacen = $event" />
-                    Ver existencias en AZM/AZE/AZT
-                </label>
-
-                <!-- Existencias por unidad (si hay staging en tmp_existencias) -->
-                <div *ngIf="hasUnidadExistencias" class="flex items-center gap-3">
                     <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" [ngModel]="showUnidadExist"
-                            (ngModelChange)="setShowUnidadExist($event)" />
-                        Ver existencias de la unidad
+                        <input type="checkbox" [ngModel]="verPorAlmacen" (ngModelChange)="verPorAlmacen = $event" />
+                        Ver existencias en AZM/AZE/AZT
                     </label>
 
-                    <div *ngIf="showUnidadExist" class="flex items-center gap-2">
-                        <label class="block text-xs text-gray-600">Meses de cobertura</label>
-                        <input type="number" min="1" step="1" [ngModel]="mesesCobertura"
-                            (ngModelChange)="setMesesCobertura($event)" class="px-2 py-1 w-15 text-sm border rounded" />
+                    <!-- Existencias por unidad (si hay staging en tmp_existencias) -->
+                    <div *ngIf="hasUnidadExistencias" class="flex items-center gap-3">
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" [ngModel]="showUnidadExist"
+                                (ngModelChange)="setShowUnidadExist($event)" />
+                            Ver existencias de la unidad
+                        </label>
+
+                        <div *ngIf="showUnidadExist" class="flex items-center gap-2">
+                            <label class="block text-xs text-gray-600">Meses de cobertura</label>
+                            <input type="number" min="1" step="1" [ngModel]="mesesCobertura"
+                                (ngModelChange)="setMesesCobertura($event)"
+                                class="px-2 py-1 w-15 text-sm border rounded" />
+                        </div>
                     </div>
+
+                    <button
+                        class="px-3 py-1.5 text-white text-sm bg-emerald-600 rounded hover:bg-emerald-700 disabled:opacity-60"
+                        [disabled]="selectionCount === 0" (click)="agregarSeleccionAKit()">
+                        Agregar a solicitud ({{ selectionCount }})
+                    </button>
+
+                    <button class="px-3 py-1.5 text-sm rounded border" (click)="toggleMasOpciones()">
+                        {{ mostrarMasOpciones ? 'Ocultar opciones' : 'Más opciones' }}
+                    </button>
                 </div>
-
-                <button
-                    class="px-3 py-1.5 text-white text-sm bg-emerald-600 rounded hover:bg-emerald-700 disabled:opacity-60"
-                    [disabled]="selectionCount === 0" (click)="agregarSeleccionAKit()">
-                    Agregar a solicitud ({{ selectionCount }})
-                </button>
-
-                <button class="px-3 py-1.5 text-sm rounded border" (click)="toggleMasOpciones()">
-                    {{ mostrarMasOpciones ? 'Ocultar opciones' : 'Más opciones' }}
-                </button>
             </div>
-        </div>
 
-        <!-- Opciones avanzadas -->
-        <div *ngIf="mostrarMasOpciones" class="mt-2 p-2 bg-gray-50 rounded border">
-            <div class="flex flex-wrap items-end gap-2">
-                <div class="flex items-center gap-2">
-                    <label class="block text-xs text-gray-600">Cant. si CPM = 0</label>
-                    <input type="number" min="1" step="1" [(ngModel)]="defaultQtyNoCpm"
-                        class="px-2 py-1 w-20 text-sm border rounded" />
+            <!-- Opciones avanzadas -->
+            <div *ngIf="mostrarMasOpciones" class="mt-2 p-2 bg-gray-50 rounded border">
+                <div class="flex flex-wrap items-end gap-2">
+                    <div class="flex items-center gap-2">
+                        <label class="block text-xs text-gray-600">Cant. si CPM = 0</label>
+                        <input type="number" min="1" step="1" [(ngModel)]="defaultQtyNoCpm"
+                            class="px-2 py-1 w-20 text-sm border rounded" />
+                    </div>
+
+                    <button class="px-3 py-1.5 text-sm rounded border" (click)="selectByContext()">
+                        {{ selectionButtonLabel }}
+                    </button>
+                    <button class="px-3 py-1.5 text-sm rounded border" (click)="clearSelection()">Limpiar</button>
+
+                    <span class="mx-1 text-gray-300">|</span>
+
+                    <button class="px-3 py-1.5 text-sm cursor-pointer rounded border"
+                        title="Copiar solo claves del KIT a portapapeles" (click)="copiarKitAlPortapapeles()">Copiar
+                        claves</button>
+                    <button class="px-3 py-1.5 text-sm cursor-pointer rounded border"
+                        title="Copiar información del KIT a portapapapeles"
+                        (click)="copiarTablaKitAlPortapapeles()">Copiar
+                        tabla</button>
+                    <button class="px-3 py-1.5 text-sm cursor-pointer rounded border"
+                        (click)="exportarKitCsv()">Exportar
+                        CSV</button>
                 </div>
-
-                <button class="px-3 py-1.5 text-sm rounded border" (click)="selectByContext()">
-                    {{ selectionButtonLabel }}
-                </button>
-                <button class="px-3 py-1.5 text-sm rounded border" (click)="clearSelection()">Limpiar</button>
-
-                <span class="mx-1 text-gray-300">|</span>
-
-                <button class="px-3 py-1.5 text-sm cursor-pointer rounded border"
-                    title="Copiar solo claves del KIT a portapapeles" (click)="copiarKitAlPortapapeles()">Copiar
-                    claves</button>
-                <button class="px-3 py-1.5 text-sm cursor-pointer rounded border"
-                    title="Copiar información del KIT a portapapapeles" (click)="copiarTablaKitAlPortapapeles()">Copiar
-                    tabla</button>
-                <button class="px-3 py-1.5 text-sm cursor-pointer rounded border" (click)="exportarKitCsv()">Exportar
-                    CSV</button>
             </div>
+
+            <!-- Resumen -->
+            <div class="mt-2 text-xs text-gray-600">
+                Total claves: <strong>{{ kitStats.total }}</strong> ·
+                Con CPM: <strong>{{ kitStats.conCpm }}</strong> ·
+                Sin CPM: <strong>{{ kitStats.sinCpm }}</strong> ·
+                Con existencias: <strong>{{ kitStats.conExist }}</strong> ·
+                Sin existencias: <strong>{{ kitStats.sinExist }}</strong> ·
+                Existencias totales: <strong>{{ kitStats.existTotal | number }}</strong>
+            </div>
+
+            <!-- Tabla -->
+            <div class="overflow-auto mt-3 max-h-[65vh] border rounded">
+                <table class="w-full text-sm">
+                    <thead class="sticky top-0 bg-gray-50">
+                        <tr class="text-left">
+                            <th class="px-2 py-1 w-8 border-b">
+                                <input type="checkbox" #master [checked]="allFilteredSelected"
+                                    [indeterminate]="someFilteredSelected"
+                                    (change)="toggleMasterSelection(master.checked)" />
+                            </th>
+
+                            <th class="px-2 py-1 w-[10rem] border-b">Clave</th>
+
+                            <th *ngIf="showUnidadExist && hasUnidadExistencias"
+                                class="px-2 py-1 w-[7rem] text-left border-b">Exist.</th>
+
+                            <th class="px-2 py-1 w-[5rem] text-left border-b">CPM</th>
+
+                            <!-- AZM/AZE/AZT -->
+                            <th *ngIf="verPorAlmacen" class="px-2 py-1 w-[5rem] text-right border-b"
+                                title="Almacén Zona Mexicali">AZM</th>
+                            <th *ngIf="verPorAlmacen" class="px-2 py-1 w-[5rem] text-right border-b"
+                                title="Almacén Zona Ensenada">AZE</th>
+                            <th *ngIf="verPorAlmacen" class="px-2 py-1 w-[5rem] text-right border-b"
+                                title="Almacén Zona Tijuana">AZT</th>
+
+                            <th class="px-2 py-1 w-[6rem] text-right border-b">Total</th>
+
+                            <!-- Existencias por unidad + reorden -->
+                            <th *ngIf="showUnidadExist && hasUnidadExistencias"
+                                class="px-2 py-1 w-[7rem] text-right border-b">Cant. sugerida a solicitar</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr *ngFor="let r of kitRows" class="odd:bg-white even:bg-gray-50">
+                            <td class="px-2 py-1 border-b">
+                                <input type="checkbox" [checked]="isRowSelected(r.clave)"
+                                    (change)="toggleRowSelection(r.clave)" />
+                            </td>
+                            <td class="px-2 py-1 font-mono border-b">
+                                <span class="cursor-help hover:underline decoration-dotted"
+                                    [attr.title]="getDescFor(r.clave)">{{ r.clave }}</span>
+                            </td>
+
+                            <td *ngIf="showUnidadExist && hasUnidadExistencias" class="px-2 py-1 text-left border-b">
+                                <span [class]="(r.existUnidad || 0) > 0 ? 'text-slate-800' : 'text-gray-400'">
+                                    {{ (r.existUnidad || 0) | number }}
+                                </span>
+                            </td>
+
+                            <td class="px-2 py-1 text-left border-b">
+                                <span
+                                    [class]="r.cpm>0 ? 'text-emerald-700 font-semibold text-left ' : 'text-left text-gray-500'">
+                                    {{ r.cpm || 0 }}
+                                </span>
+                            </td>
+
+                            <!-- AZM/AZE/AZT -->
+                            <td *ngIf="verPorAlmacen" class="px-2 py-1 text-right border-b">{{ r.azm | number }}</td>
+                            <td *ngIf="verPorAlmacen" class="px-2 py-1 text-right border-b">{{ r.aze | number }}</td>
+                            <td *ngIf="verPorAlmacen" class="px-2 py-1 text-right border-b">{{ r.azt | number }}</td>
+
+                            <td class="px-2 py-1 text-right border-b">
+                                <span [class]="r.total>0 ? 'text-emerald-700 font-semibold' : 'text-gray-500'">
+                                    {{ r.total | number }}
+                                </span>
+                            </td>
+
+                            <!-- Existencias por unidad + reorden -->
+                            <td *ngIf="showUnidadExist && hasUnidadExistencias" class="px-2 py-1 text-right border-b">
+                                <span
+                                    [class]="(r.reordenSug || 0) > 0 ? 'text-amber-700 font-semibold' : 'text-gray-500'">
+                                    {{ (r.reordenSug || 0) | number }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr *ngIf="!kitRows.length">
+                            <td [attr.colspan]="4 + (verPorAlmacen ? 3 : 0) + ((showUnidadExist && hasUnidadExistencias) ? 2 : 0)"
+                                class="px-2 py-4 text-center text-gray-500">
+                                Sin resultados
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Leyendas -->
+            <p class="mt-2 text-xs text-gray-500">
+                ⚙️ Las existencias de los almacenes AZM/AZE/AZT mostradas son de apoyo referencial y pueden cambiar
+                durante
+                el día.
+            </p>
+            <p *ngIf="hasUnidadExistencias" class="mt-1 text-xs text-gray-500">
+                🏥 Las existencias por <em>unidad</em> (y el reorden sugerido) se calculan con base en datos temporales
+                cargados recientemente.
+            </p>
+
+            <button (click)="cerrar()"
+                class="absolute top-2 right-2 text-gray-500 text-lg font-bold cursor-pointer hover:text-gray-700">×</button>
         </div>
-
-        <!-- Resumen -->
-        <div class="mt-2 text-xs text-gray-600">
-            Total claves: <strong>{{ kitStats.total }}</strong> ·
-            Con CPM: <strong>{{ kitStats.conCpm }}</strong> ·
-            Sin CPM: <strong>{{ kitStats.sinCpm }}</strong> ·
-            Con existencias: <strong>{{ kitStats.conExist }}</strong> ·
-            Sin existencias: <strong>{{ kitStats.sinExist }}</strong> ·
-            Existencias totales: <strong>{{ kitStats.existTotal | number }}</strong>
-        </div>
-
-        <!-- Tabla -->
-        <div class="overflow-auto mt-3 max-h-[65vh] border rounded">
-            <table class="w-full text-sm">
-                <thead class="sticky top-0 bg-gray-50">
-                    <tr class="text-left">
-                        <th class="px-2 py-1 w-8 border-b">
-                            <input type="checkbox" #master [checked]="allFilteredSelected"
-                                [indeterminate]="someFilteredSelected"
-                                (change)="toggleMasterSelection(master.checked)" />
-                        </th>
-
-                        <th class="px-2 py-1 w-[10rem] border-b">Clave</th>
-
-                        <th *ngIf="showUnidadExist && hasUnidadExistencias"
-                            class="px-2 py-1 w-[7rem] text-left border-b">Exist.</th>
-
-                        <th class="px-2 py-1 w-[5rem] text-left border-b">CPM</th>
-
-                        <!-- AZM/AZE/AZT -->
-                        <th *ngIf="verPorAlmacen" class="px-2 py-1 w-[5rem] text-right border-b"
-                            title="Almacén Zona Mexicali">AZM</th>
-                        <th *ngIf="verPorAlmacen" class="px-2 py-1 w-[5rem] text-right border-b"
-                            title="Almacén Zona Ensenada">AZE</th>
-                        <th *ngIf="verPorAlmacen" class="px-2 py-1 w-[5rem] text-right border-b"
-                            title="Almacén Zona Tijuana">AZT</th>
-
-                        <th class="px-2 py-1 w-[6rem] text-right border-b">Total</th>
-
-                        <!-- Existencias por unidad + reorden -->
-                        <th *ngIf="showUnidadExist && hasUnidadExistencias"
-                            class="px-2 py-1 w-[7rem] text-right border-b">Cant. sugerida a solicitar</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    <tr *ngFor="let r of kitRows" class="odd:bg-white even:bg-gray-50">
-                        <td class="px-2 py-1 border-b">
-                            <input type="checkbox" [checked]="isRowSelected(r.clave)"
-                                (change)="toggleRowSelection(r.clave)" />
-                        </td>
-                        <td class="px-2 py-1 font-mono border-b">
-                            <span class="cursor-help hover:underline decoration-dotted"
-                                [attr.title]="getDescFor(r.clave)">{{ r.clave }}</span>
-                        </td>
-
-                        <td *ngIf="showUnidadExist && hasUnidadExistencias" class="px-2 py-1 text-left border-b">
-                            <span [class]="(r.existUnidad || 0) > 0 ? 'text-slate-800' : 'text-gray-400'">
-                                {{ (r.existUnidad || 0) | number }}
-                            </span>
-                        </td>
-
-                        <td class="px-2 py-1 text-left border-b">
-                            <span
-                                [class]="r.cpm>0 ? 'text-emerald-700 font-semibold text-left ' : 'text-left text-gray-500'">
-                                {{ r.cpm || 0 }}
-                            </span>
-                        </td>
-
-                        <!-- AZM/AZE/AZT -->
-                        <td *ngIf="verPorAlmacen" class="px-2 py-1 text-right border-b">{{ r.azm | number }}</td>
-                        <td *ngIf="verPorAlmacen" class="px-2 py-1 text-right border-b">{{ r.aze | number }}</td>
-                        <td *ngIf="verPorAlmacen" class="px-2 py-1 text-right border-b">{{ r.azt | number }}</td>
-
-                        <td class="px-2 py-1 text-right border-b">
-                            <span [class]="r.total>0 ? 'text-emerald-700 font-semibold' : 'text-gray-500'">
-                                {{ r.total | number }}
-                            </span>
-                        </td>
-
-                        <!-- Existencias por unidad + reorden -->
-                        <td *ngIf="showUnidadExist && hasUnidadExistencias" class="px-2 py-1 text-right border-b">
-                            <span [class]="(r.reordenSug || 0) > 0 ? 'text-amber-700 font-semibold' : 'text-gray-500'">
-                                {{ (r.reordenSug || 0) | number }}
-                            </span>
-                        </td>
-                    </tr>
-
-                    <tr *ngIf="!kitRows.length">
-                        <td [attr.colspan]="4 + (verPorAlmacen ? 3 : 0) + ((showUnidadExist && hasUnidadExistencias) ? 2 : 0)"
-                            class="px-2 py-4 text-center text-gray-500">
-                            Sin resultados
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Leyendas -->
-        <p class="mt-2 text-xs text-gray-500">
-            ⚙️ Las existencias de los almacenes AZM/AZE/AZT mostradas son de apoyo referencial y pueden cambiar durante
-            el día.
-        </p>
-        <p *ngIf="hasUnidadExistencias" class="mt-1 text-xs text-gray-500">
-            🏥 Las existencias por <em>unidad</em> (y el reorden sugerido) se calculan con base en datos temporales
-            cargados recientemente.
-        </p>
-
-        <button (click)="cerrar()"
-            class="absolute top-2 right-2 text-gray-500 text-lg font-bold cursor-pointer hover:text-gray-700">×</button>
     </div>
-</div>
+</ng-container>
