@@ -229,11 +229,23 @@ export class KitModalComponent implements OnInit {
     // ===== Acciones =====
     cerrar() { this.close.emit(); }
 
+    /** 
+ * Si TRUE: r.reordenSug YA VIENE como total para X meses (no se vuelve a multiplicar).
+ * Si FALSE: r.reordenSug es mensual y SÍ se multiplica por mesesCobertura.
+ */
+    reordenEsTotal = false;
+
     async agregarSeleccionAKit() {
         if (this.selectedSet.size === 0) {
             this.toast.warn({ title: 'Sin selección', content: 'Elige al menos una clave.', duration: 5 });
             return;
         }
+
+        const mesesCobertura =
+            (this.showUnidadExist && this.hasUnidadExistencias) ?
+                Math.max(1, Math.floor(this.mesesCobertura || 1))
+                :
+                1;
 
         const existentes = new Set((this.existingClaves || []).map(c => this.normClave(c)));
         const nuevos: ArticuloSolicitud[] = [];
@@ -247,7 +259,9 @@ export class KitModalComponent implements OnInit {
             let qty: number | null = null;
 
             // 1) Si hay CPM > 0, usarlo
-            if ((r.cpm ?? 0) > 0) qty = Number(r.cpm);
+            if ((r.cpm ?? 0) > 0) {
+                qty = mesesCobertura > 1 ? Number(r.reordenSug) : Number(r.cpm);
+            }
             // 2) Si no, usar reordenSug si existe
             if (qty == null || qty <= 0) {
                 const reo = Number(r.reordenSug ?? 0);
@@ -255,7 +269,7 @@ export class KitModalComponent implements OnInit {
             }
             // 3) Si sigue 0, usar defaultQtyNoCpm
             if (qty == null || qty <= 0) {
-                qty = Number(this.defaultQtyNoCpm || 0);
+                qty = (Number(this.defaultQtyNoCpm || 0)) * mesesCobertura;
             }
             // 4) Nunca dejar 0
             qty = Math.max(1, Number(qty) || 0);
