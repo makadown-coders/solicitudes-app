@@ -53,6 +53,15 @@ export class InventarioCriticoComponent implements OnInit {
     calcularInventarioCritico() {
         // const articulos = this.inventarioCriticoService.detectarCriticos(this.citas);
         // this.articulosCriticos = articulos;
+        if (!this.citas || this.citas.length === 0) {
+            this.articulosCriticos = [];
+            this.articulosFiltrados = [];
+            return;
+        }
+
+        // hacer console log de un arreglo con las primeras 5 citas
+        // console.log('🔍 InventarioCriticoComponent - Analizando ' + this.citas.length + ' citas...');
+        // bueno, la primer cita nomas para ver sus datos
 
         const citasFiltradas = this.citas.filter(c => c.estatus.toLocaleUpperCase() !== 'NO RECIBIR');
         this.citasFiltradas = [...citasFiltradas]; // copia de citasFiltradas;

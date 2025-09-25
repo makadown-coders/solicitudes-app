@@ -28,10 +28,12 @@ export class CargaExistenciasComponent {
     // buffers ya parseados
     sasRows: TempRow[] = [];
     salusRows: TempRow[] = [];
+    salusIRows: TempRow[] = [];
 
     // UI
     fileNameSAS = '';
     fileNameSALUS = '';
+    fileNameSALUSI = '';
     resetTable = true;            // ⇠ “limpiar antes de subir”
     BATCH_SIZE = 2000;
     unidadesService = inject(UnidadesService);
@@ -43,7 +45,7 @@ export class CargaExistenciasComponent {
     ) { }
 
     get canUpload() {
-        return (this.sasRows.length + this.salusRows.length) > 0;
+        return (this.sasRows.length + this.salusRows.length + this.salusIRows.length) > 0;
     }
 
     private async ensureUnidadesLoaded() {
@@ -84,6 +86,19 @@ export class CargaExistenciasComponent {
         const rows = buffers.map(b => this.parseSALUS(b)).flat();
         this.salusRows = rows;
         this.fileNameSALUS = `${files.length} archivo(s)`;
+    }
+
+    async onFilesSALUSI(ev: Event) {
+        const input = ev.target as HTMLInputElement;
+        if (!input.files?.length) return;
+
+        await this.ensureUnidadesLoaded();
+
+        const files = Array.from(input.files);
+        const buffers = await Promise.all(files.map(f => f.arrayBuffer()));
+        const rows = buffers.map(b => this.parseSALUSI(b)).flat();
+        this.salusIRows = rows;
+        this.fileNameSALUSI = `${files.length} archivo(s)`;
     }
 
     // ---------- parsers (por índice de columna) ----------
@@ -160,6 +175,50 @@ export class CargaExistenciasComponent {
         return out;
     }
 
+    // SALUS INDICADORES
+    //   Unidades : [C] CLUES SSA (2), [E] clave (4), [F] cantidad (5)
+    // Hospitales : [B] CLUES SSA (1), [E] clave (3), [F] cantidad (4)
+    // ... no hay lote ni caducidad
+    private parseSALUSI(buf: ArrayBuffer): TempRow[] {
+        const wb = XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false }) as any[][];
+        const out: TempRow[] = [];
+
+        for (const r of rows) {
+            let claveRaw = r[4];            
+            if (this.isHeaderish(claveRaw)) continue;
+            let colClues = 2;
+            let colCant = 5;
+            // si claveRaw es un numero, cambiar los numeros de columnas
+            if (!isNaN(claveRaw)) {
+                colClues = 1;
+                colCant = 4;
+                claveRaw = r[3];
+            }
+            const clave = this.inv.normalizarClave((claveRaw ?? '').toString().toUpperCase());
+            if (!clave) continue;
+
+            const lote = null;
+            const fCad = null;
+            const cant = this.toNum(r[colCant]);
+            const cluessa = (r[colClues] ?? '').toString().trim().toUpperCase() || null;
+
+            const cluesimb = cluessa ? (this.unidadesService.getCluesimbByCluessa(cluessa) || null) : null;
+
+            out.push({
+                fuente: 'SALUS', //'SALUS_INDICADORES',
+                cluessa,
+                cluesimb,
+                clave_cnis: clave,
+                lote,
+                fecha_caducidad: fCad,
+                existencia: cant
+            });
+        }
+        return out;
+    }
+
     // ---------- subir ----------
     async subir() {
         if (!this.canUpload) return;
@@ -172,7 +231,7 @@ export class CargaExistenciasComponent {
             await firstValueFrom(this.svc.init(this.resetTable));
 
             // 2) lotes SAS y SALUS (mezclamos para una sola barra)
-            const total = this.sasRows.length + this.salusRows.length;
+            const total = this.sasRows.length + this.salusRows.length + this.salusIRows.length;
             let done = 0;
             const bump = (n: number) => {
                 done += n; this.progress = Math.min(100, Math.round(done * 100 / total));
@@ -188,6 +247,7 @@ export class CargaExistenciasComponent {
 
             await uploadBatches(this.sasRows);
             await uploadBatches(this.salusRows);
+            await uploadBatches(this.salusIRows);
 
             alert(`✅ Existencias cargadas. Registros: ${total}`);
         } catch (e) {

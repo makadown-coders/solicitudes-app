@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { map, Observable, of, tap } from 'rxjs';
 
-export type Fuente = 'SAS' | 'SALUS';
+export type Fuente = 'SAS' | 'SALUS' | 'SALUS_INDICADORES';
 export type TempRow = {
   fuente: Fuente;
   alias_sas?: string | null;

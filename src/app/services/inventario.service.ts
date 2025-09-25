@@ -251,6 +251,7 @@ export class InventarioService {
       },
       error: (err) => {
         console.error('❌ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
+        this.existenciasSubject.get(existencia)!.next([]);
         // this.cargandoInventarioBehaviorSubject.next(false);
       }
     });
@@ -321,8 +322,8 @@ export class InventarioService {
       //  console.info(`✅ Inventario cargado desde Power Automate. Total: ${inventarioRetorno.length} registros.`);
 
     } catch (err: any) {
-      console.error('❌ Error al obtener de power automate:', err);
-      console.error('🔁 Procesando fila:', fila);
+      console.error('❌ InventarioService.obtenerInventarioDeBase64() - Error al obtener de power automate:', err);
+      console.error('🔁 InventarioService.obtenerInventarioDeBase64() - Error procesando fila:', fila);
     }
 
     return inventarioRetorno;

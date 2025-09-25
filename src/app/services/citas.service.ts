@@ -54,19 +54,24 @@ export class CitasService {
 
   obtenerCitasDeBase64(base64: string): Cita[] {
 
-    console.info('🔁 Obteniendo info con Power Automate');
-    let citasRetorno: Cita[] = [];
+    // console.info('🔁 Obteniendo info con Power Automate');
+    let citasRetorno: Cita[] = [];    
     let fila: any = null;
+    let citaProcesando: any = null;
+    let corriendoCiclo = false;
+    let corriendoCicloCitas = false;
+
     try {
 
       // 1. Convertir Base64 a ArrayBuffer
       const arrayBuffer = this.excelService.base64ToArrayBuffer(base64);
 
       const rows: CitaRow[] = this.excelService.obtenerCitasDeExcel(arrayBuffer);
-     // console.info('🔁 Procesando', rows.length, 'filas.');
+      // console.info('🔁 Procesando', rows.length, 'filas.');
 
       let headerLeido = false;
       let renglon = 0;
+      corriendoCiclo = true;
       for (const popo of rows) {
         renglon++;
         fila = popo;
@@ -76,7 +81,7 @@ export class CitasService {
         }
         const ejercicio = fila[0];
         if (!ejercicio || (ejercicio + '').trim().length === 0) {
-          console.info('🔁 fin de archivo detectado en renglón '+ renglon + '. Finalizando obtención de datos', fila);
+          console.info('🔁 fin de archivo detectado en renglón ' + renglon + '. Finalizando obtención de datos', fila);
           break;
         }
         const ordenSuministro = fila[1];
@@ -142,11 +147,11 @@ export class CitasService {
         nuevoRegistro.institucion = institucion;
         nuevoRegistro.contrato = contrato;
         nuevoRegistro.procedimiento = procedimiento;
-        nuevoRegistro.tipo_de_entrega = tipoEntrega;        
+        nuevoRegistro.tipo_de_entrega = tipoEntrega;
         nuevoRegistro.clues_destino = cluesDestino;
         nuevoRegistro.unidad = unidad;
         nuevoRegistro.fte_fmto = fuenteFinanciamiento;
-        nuevoRegistro.proveedor = (proveedor+'').trim().toLocaleUpperCase();
+        nuevoRegistro.proveedor = (proveedor + '').trim().toLocaleUpperCase();
         nuevoRegistro.clave_cnis = claveCNIS;
         nuevoRegistro.descripcion = descripcion;
         nuevoRegistro.compra = compra;
@@ -175,12 +180,16 @@ export class CitasService {
         citasRetorno.push(nuevoRegistro);
       }
 
-      console.info(`✅ Datos cargados desde Power Automate. Total: ${citasRetorno.length} registros.`);
+      corriendoCiclo = false;
 
+      // console.info(`✅ Datos cargados desde Power Automate. Total: ${citasRetorno.length} registros.`);
+
+      corriendoCicloCitas = true;
       // creando rapidamente un map para relacion entre clues_destino y unidad
       // donde unidad no tenga valor vacío
       this.mapCluesUnidad = new Map<string, string>();
       citasRetorno.forEach((cita: Cita) => {
+        citaProcesando = cita;
         if (cita.clues_destino && cita.unidad && cita.unidad.trim().length > 0) {
           this.mapCluesUnidad.set(cita.clues_destino, cita.unidad);
         }
@@ -189,25 +198,29 @@ export class CitasService {
       // Corrigiendo inconsistencias:
       // En tipo_de_entrega reemplacemos la palabra "operador logísitico" por "operador lógistico"
       citasRetorno.forEach((cita: Cita) => {
-        if (cita.tipo_de_entrega.trim().toLowerCase() === 'operador logísitico' ||
-          cita.tipo_de_entrega.trim().toLowerCase() === 'operador logistico' ||
-          cita.tipo_de_entrega.trim().toLowerCase() === 'operador logístico') {
+        citaProcesando = cita;
+        if (cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logísitico' ||
+          cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logistico' ||
+          cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logístico') {
           cita.tipo_de_entrega = 'Operador Logístico';
         }
-        if (cita.unidad.trim().length == 0) {
+        if (cita.unidad?.trim().length == 0) {
           cita.unidad = this.mapCluesUnidad.get(cita.clues_destino) ?? '';
         }
-        if (cita.unidad.trim() == 'Almacén Zona Ensenada') {
+        if (cita.unidad?.trim() == 'Almacén Zona Ensenada') {
           cita.unidad = cita.unidad.toLocaleUpperCase();
-        }
-       // cita.proveedor = cita.proveedor.trim().toUpperCase();
+        }        
       });
+      corriendoCicloCitas = false;
 
     } catch (err: any) {
-      console.error('❌ Error al obtener de power automate:', err);
-      console.error('🔁 Procesando fila:', fila);
+      console.error('❌ CitasService.obtenerCitasDePowerAutomate() - Error al obtener de power automate:', err);
+      if (corriendoCiclo) {
+        console.error('🔁 CitasService.obtenerCitasDePowerAutomate() - Error Procesando fila:', fila);
+      } else if (corriendoCicloCitas) {
+        console.error('🔁 CitasService.obtenerCitasDePowerAutomate() - Error Procesando cita:', citaProcesando);
+      }
     }
-
     return citasRetorno;
   }
 }

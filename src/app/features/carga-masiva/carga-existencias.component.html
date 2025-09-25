@@ -9,6 +9,7 @@
     <!-- SAS -->
     <div class="p-5 bg-white rounded-lg shadow border">
         <h2 class="text-lg font-semibold">🏥 SAS (usa <code>alias_sas</code>)</h2>
+        <hr class="my-2" />
         <input type="file" multiple accept=".xls,.xlsx" id="fileSAS" class="hidden" (change)="onFilesSAS($event)" />
         <label for="fileSAS" class="px-4 py-2 text-white bg-emerald-600 cursor-pointer rounded hover:bg-emerald-700">
             Seleccionar archivo(s)
@@ -20,10 +21,22 @@
     <div class="p-5 bg-white rounded-lg shadow border">
         <h2 class="text-lg font-semibold">🏥 SALUS (usa <code>cluessa</code>)</h2>
         <input type="file" multiple accept=".xls,.xlsx" id="fileSALUS" class="hidden" (change)="onFilesSALUS($event)" />
+        <hr class="my-2" />
         <label for="fileSALUS" class="px-4 py-2 text-white bg-blue-600 cursor-pointer rounded hover:bg-blue-700">
             Seleccionar archivo(s)
         </label>
         <p class="mt-2 text-xs italic" *ngIf="fileNameSALUS">{{ fileNameSALUS }} seleccionado(s)</p>
+    </div>
+
+    <!-- SALUS (Indicadores) -->
+    <div class="p-5 bg-white rounded-lg shadow border">
+        <h2 class="text-lg font-semibold">🏥 SALUS INDICADORES (usa <code>cluessa</code>)</h2>
+        <input type="file" multiple accept=".csv" id="fileSALUSI" class="hidden" (change)="onFilesSALUSI($event)" />
+        <hr class="my-2" />
+        <label for="fileSALUSI" class="px-4 py-2 text-white bg-gray-600 cursor-pointer rounded hover:bg-gray-700">
+            Seleccionar archivo(s)
+        </label>
+        <p class="mt-2 text-xs italic" *ngIf="fileNameSALUSI">{{ fileNameSALUSI }} seleccionado(s)</p>
     </div>
 
     <div class="flex justify-end">
