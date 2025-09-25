@@ -72,7 +72,6 @@ export class RdlSComponent implements OnInit, OnDestroy {
         idx[this.norm.normClave(k)] = v as any;
       }
       this.articulosMapa.set(idx);
-      //this.applyTipoYGrupo();
     });
 
     // 2) Grupos → índice normalizado
@@ -82,7 +81,6 @@ export class RdlSComponent implements OnInit, OnDestroy {
         flat.set(this.norm.normClave(k), { categoria: v.categoria, grupoInsumo: v.grupoInsumo });
       }
       this.gruposMapa.set(flat);
-      //this.applyTipoYGrupo();
     });
     // cuando cambia filtro, vuelve a pág 1 (si ya lo traías)
     effect(() => {
@@ -200,7 +198,7 @@ export class RdlSComponent implements OnInit, OnDestroy {
           const keyNorm = this.inventario.normalizarClave(r.clave);
           const val = idx.get(keyNorm) ?? 0;
           assign(r, val);
-          r.totalHospitales = r.HGTK + r.HMIT + r.HGTZOE + r.HGT + r.HGPR + r.HGM + r.HMIM + r.UNEME + r.HGSF + r.HGE;
+          r.totalHospitales = r.HGTK + r.HMIT + r.HGTZOE + r.HGT + r.HGPR + r.HGM + r.HMIM + r.UNEME + r.HGSF + r.HGE + r.HGSF;
         }
         this.rows.set(rows);
       });
@@ -216,8 +214,7 @@ export class RdlSComponent implements OnInit, OnDestroy {
     applyForHospital(Existencias.HMIMXL, (r, v) => r.HMIM = v);
     applyForHospital(Existencias.UOMXL, (r, v) => r.UNEME = v);
     applyForHospital(Existencias.HGENS, (r, v) => r.HGE = v);
-    // TODO:
-    // applyForHospital(Existencias.HGSF, (r, v) => r.HGSF = v);
+    applyForHospital(Existencias.HGSF, (r, v) => r.HGSF = v);
 
     this.applyTipoYGrupo();
     this.almSrv.existenciasAlmacenesByClave$.subscribe(map => {

@@ -2,7 +2,7 @@
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
 import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { debounceTime, Subject, takeUntil } from 'rxjs';
+import { debounceTime, firstValueFrom, map, Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { NombrarArchivoModalComponent } from '../../shared/nombrar-archivo-modal/nombrar-archivo-modal.component';
 import { ConfirmacionModalComponent } from '../../shared/confirmacion-modal/confirmacion-modal.component';
@@ -19,6 +19,14 @@ import { CPMS } from '../../models/CPMS';
 import { SurveyService } from '../../services/survey.service';
 import { FeatureFlagsService } from '../../services/feature-flags.service';
 import { Nivel } from '../../models/feature-flags.model';
+import { CpmService } from '../../services/cpm.service';
+import { CpmRowLite } from '../../models/CpmExpectedRow';
+import { EnrichedProps } from '../../models/EnrichedProps';
+import { NgFastToastService } from 'ng-fast-toast';
+import { ExistenciasTempService } from '../../services/existencias-temp.service';
+import { ColKey } from '../../models/ColKey';
+import { KitModalComponent } from './kit-modal/kit-modal.component';
+import { CpmUnionRow } from '../../models/CpmUnionRow';
 
 
 @Component({
@@ -28,7 +36,9 @@ import { Nivel } from '../../models/feature-flags.model';
     NombrarArchivoModalComponent,
     ConfirmacionModalComponent,
     TablaArticulosComponent,
-    RouterModule],
+    RouterModule,
+    KitModalComponent
+  ],
   templateUrl: './solicitudes.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -43,6 +53,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   modalCallback?: () => void;
   modalSoloInfo = false;
   articulosSolicitados: ArticuloSolicitud[] = [];
+  private invIndex = new Map<string, InventarioDisponibles>();
+  private cpmIndex = new Map<string, number>();
 
   claveInput = '';
   descripcionInput = '';
@@ -62,6 +74,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   private searchSubject = new Subject<string>();
   articulosService = inject(ArticulosService);
   excelService = inject(ExcelService);
+  toast = inject(NgFastToastService);
 
   @ViewChildren('resultItem') resultItems!: QueryList<ElementRef>;
   @ViewChild('inputClave') inputClaveRef!: ElementRef<HTMLInputElement>;
@@ -71,19 +84,44 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   generarPrecarga: boolean = true;
 
-  mensajeImportacion: string | null = null;
+  //mensajeImportacion: string | null = null;
   // dentro de la clase:
   private survey = inject(SurveyService);
 
   private cdRef = inject(ChangeDetectorRef);
   private router = inject(Router);
   public storageSolicitudService = inject(StorageSolicitudService);
+  private cpmService = inject(CpmService);
 
   // behaviorSubject para desuscribirme de todos los observables
   private onDestroy$ = new Subject<void>();
   private flags = inject(FeatureFlagsService);
   // cachecito opcional para no pedir siempre
   private surveyFlagCache = new Map<string, boolean>();
+
+  private existTemp = inject(ExistenciasTempService);
+
+  existUnidadIndex = new Map<string, number>();
+  get hasUnidadExistencias(): boolean { return this.existUnidadIndex.size > 0; }
+
+  // dentro de la clase SolicitudesComponent
+  public tituloUnidad$ = this.storageSolicitudService.nombreUnidad$.pipe(
+    map((nombre) => {
+      const raw = this.storageSolicitudService.getDatosCluesFromLocalStorage();
+      let municipio = '';
+      try {
+        municipio = (JSON.parse(raw || '{}')?.hospital?.municipio) ?? '';
+      } catch { /* noop */ }
+      const temp = [...this.articulosSolicitados];
+      this.articulosSolicitados = [];
+      this.articulosSolicitados = temp;
+
+      const esPrimerNivel =
+        this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL;
+
+      return esPrimerNivel && municipio ? `${nombre} (${municipio})` : nombre;
+    })
+  );
 
   constructor() {
   }
@@ -110,10 +148,16 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       this.modoStandalone = true;
     } else {
       this.modoStandalone = false;
-      this.inventarioService.cpmsCluesActual$
+      this.cpmService.cpmsForImport(this.cluesimbActual)
         .pipe(takeUntil(this.onDestroy$))
-        .subscribe(cpmsDeCluesActual => {
-          this.cpmsDeCluesActual = cpmsDeCluesActual;
+        .subscribe((rows: CpmUnionRow[]) => {
+          const clues = this.cluesimbActual;
+          this.cpmsDeCluesActual = this.mapCpmRowsToCPMS(rows as any, clues);
+          this.cpmIndex.clear();
+          for (const r of this.cpmsDeCluesActual) {
+            this.cpmIndex.set(this.normClave(r.clave), Number(r.cantidad) || 0);
+          }
+          this.cdRef.detectChanges();
         });
     }
 
@@ -128,6 +172,20 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
           clave: claveNormalizada
         };
       });
+      this.rebuildExistingClaves();
+    }
+
+    // ⬇️ (Robustez) si el usuario llega directo a esta ruta,
+    // levanta CPM de la unidad guardada en localStorage.
+    const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
+    if (cluesStr) {
+      this.datosClues = JSON.parse(cluesStr) as DatosClues;
+      const cluesimb = this.datosClues?.hospital?.cluesimb || '';
+      if (cluesimb) {
+        // no hace daño si Layout ya lo cargó: usa caché del CpmService
+        this.cpmService.ensureForCluesimb(cluesimb).subscribe();
+        this.loadExistenciasUnidad(cluesimb);
+      }
     }
 
     this.searchSubject.pipe(debounceTime(1000), takeUntil(this.onDestroy$))
@@ -157,8 +215,39 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
+  // ⬇️ Adaptador de filas del endpoint a tu tipo CPMS (lo que use tu ExcelService)
+  // Asumo CPMS = { clave: string; cpm: number }.
+  // Si tu interfaz CPMS tiene más campos, ajústalos aquí.
+  private mapCpmRowsToCPMS(rows: CpmRowLite[], cluesimbFallback?: string): CPMS[] {
+    // Consolidamos por clave (si una clave aparece varias veces por distintos kits, tomamos el mayor CPM)
+    const byClave = new Map<string, CPMS>();
+
+    for (const r of rows) {
+      const clave = (r.clave_cnis || '').toUpperCase();
+      if (!clave) continue;
+
+      const cpmVal = Number(r.cpm ?? 0);
+      if (cpmVal <= 0) continue; // solo nos interesan CPMS > 0
+
+      const cluesimb = (r.cluesimb || cluesimbFallback || '').toUpperCase();
+      const prev = byClave.get(clave);
+
+      if (!prev || cpmVal > prev.cantidad) {
+        byClave.set(clave, {
+          clave,
+          cluesimb,
+          cantidad: cpmVal,   // 👈 aquí ‘cantidad’ = CPM
+        });
+      }
+    }
+
+    return Array.from(byClave.values());
+  }
+
   calcularInventarioDisponible() {
     this.inventarioDisponible = [];
+    this.invIndex.clear(); // ⬅️ importante
+
     const arregloClavesInventario = this.inventario.map(item => item.clave);
     arregloClavesInventario.forEach(clave => {
       const existencia: InventarioDisponibles = {
@@ -180,6 +269,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       });
 
       this.inventarioDisponible.push(existencia);
+      // ⬇️ llenar índice para consultas rápidas
+      this.invIndex.set(clave, existencia);
     });
   }
 
@@ -200,11 +291,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   buscarArticulosConFallback(texto: string) {
-    if (this.estaCapturandoPrimerNivel()) {
-      this.buscarArticulosPrimerNivel(texto);
-      return;
-    }
-
     const timestampFallback = localStorage.getItem('usarFallbackLocal');
     const ahora = Date.now();
     const unDiaMs = 24 * 60 * 60 * 1000;
@@ -215,10 +301,24 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    // forzar recarga de this.datosClues de localstorageService porque este componente no lo recarga
+    this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
+    // forzo recarga
+    this.loadExistenciasUnidad(this.cluesimbActual);
+
     // 🔌 Intenta con backend koyeb
     this.articulosService.buscarArticulos(texto).subscribe({
       next: (data) => {
-        this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
+        // this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
+        const base = (data.resultados || []).sort((a, b) => a.clave.localeCompare(b.clave));
+        this.autocompleteResults = this.enrichWithExistencias(base);
+
+        if (this.hasUnidadExistencias) {
+          this.autocompleteResults = this.autocompleteResults.map(it => ({
+            ...it,
+            _existUnidad: this.existUnidadIndex.get(it.clave) ?? 0
+          }));
+        }
         this.totalResults = data.total || 0;
         this.moreResults = this.totalResults > 24;
         this.selectedIndex = 0;
@@ -236,7 +336,14 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   usarBusquedaLocal(texto: string) {
     this.articulosService.buscarArticulosv2(texto).subscribe({
       next: (data) => {
-        this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
+        const base = (data.resultados || []).sort((a, b) => a.clave.localeCompare(b.clave));
+        this.autocompleteResults = this.enrichWithExistencias(base);
+        if (this.hasUnidadExistencias) {
+          this.autocompleteResults = this.autocompleteResults.map(it => ({
+            ...it,
+            _existUnidad: this.existUnidadIndex.get(it.clave) ?? 0
+          }));
+        }
         this.totalResults = data.total || 0;
         this.moreResults = this.totalResults > 24;
         this.selectedIndex = 0;
@@ -251,26 +358,28 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  buscarArticulosPrimerNivel(texto: string) {
-    this.articulosService.buscarArticulosPrimerNivel(texto).subscribe({
-      next: (data) => {
-        this.autocompleteResults = data.resultados || [];
-        this.totalResults = data.total || 0;
-        this.moreResults = this.totalResults > 24;
-        this.selectedIndex = 0;
-        this.cdRef.detectChanges();
-        setTimeout(() => this.focusSelectedItem(), 0);
-      },
-      error: (fallbackError) => {
-        console.error('Error en búsqueda local:', fallbackError);
-        this.autocompleteResults = [];
-        this.totalResults = 0;
-      }
-    });
-  }
+  // TODO: Eliminar hasta que sea oficial. Pero si es seguro que esto se eliminaria o modificaria en caso de requerirlo
+  /* buscarArticulosPrimerNivel(texto: string) {
+     this.articulosService.buscarArticulosPrimerNivel(texto).subscribe({
+       next: (data) => {
+         const base = data.resultados || [];
+         this.autocompleteResults = this.enrichWithExistencias(base);
+         this.totalResults = data.total || 0;
+         this.moreResults = this.totalResults > 24;
+         this.selectedIndex = 0;
+         this.cdRef.detectChanges();
+         setTimeout(() => this.focusSelectedItem(), 0);
+       },
+       error: (fallbackError) => {
+         console.error('Error en búsqueda local:', fallbackError);
+         this.autocompleteResults = [];
+         this.totalResults = 0;
+       }
+     });
+   }*/
 
 
-  selectArticulo(item: any) {
+  async selectArticulo(item: any) {
     this.claveInput = item.clave;
     this.descripcionInput = item.descripcion ?? '';
     this.unidadInput = item.unidadMedida ?? (item.presentacion ?? '');
@@ -316,8 +425,20 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  agregarArticulo() {
+  async agregarArticulo() {
     const clave = this.claveInput.trim().toUpperCase();
+    try {
+      await this.cpmService.ensureAllowedOrThrow(clave);
+      // proceder con la captura…
+    } catch {
+      this.toast.warn({
+        title: 'Clave fuera de KIT',
+        content: 'La clave no pertenece al KIT de la unidad (flag activa).',
+        duration: 5
+      });
+      return;
+    }
+    const cpm = this.cpmIndex.get(this.normClave(clave)) ?? 0;
 
     if (!clave || !this.descripcionInput || !this.unidadInput || this.cantidadInput <= 0) {
       return; // Validación básica
@@ -334,7 +455,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     // Validar que si estoy capturando en modo primer nivel solo admita artículos de primer nivel
-    if (this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL) {
+    // Parte por eliminar hasta que sea oficial
+    /*if (this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL) {
       const esPrimerNivel = this.articulosService.esPrimerNivel(clave);
       if (!esPrimerNivel) {
         this.abrirModalInfo(
@@ -342,7 +464,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
           `El artículos con la clave "${clave}" no se captura en modo primer nivel.`);
         return;
       }
-    }
+    }*/
 
 
     this.articulosSolicitados.push({
@@ -350,7 +472,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       descripcion: this.descripcionInput.trim(),
       unidadMedida: this.unidadInput.trim(),
       cantidad: this.cantidadInput,
-      cpm: 0
+      cpm
     });
 
     this.storageSolicitudService
@@ -378,6 +500,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   confirmarLimpieza() {
     this.articulosSolicitados = [];
     this.storageSolicitudService.limpiarArticulosSolicitadosInLocalStorage();
+    this.existingClavesList = [];
     this.cerrarModal();
   }
 
@@ -444,28 +567,51 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     );
   }
 
-  exportarExcelPrecarga(nombreArchivo: string) {
-    this.excelService.exportarExcelPrecarga(nombreArchivo, this.articulosSolicitados);
-  }
-
   async exportarExcelConTemplate(nombreArchivo: string) {
-    this.excelService.exportarExcelConTemplate('template.xlsx', nombreArchivo,
-      this.articulosSolicitados, this.modoStandalone, this.inventarioDisponible,
-      this.cpmsDeCluesActual);
+    const restrict = await this.isImportRestricted();
+
+    let items = this.articulosSolicitados;
+    let fueraDeKit: string[] = [];
+
+    if (restrict) {
+      const enKit = items.filter(a => this.cpmService.isClaveInKit(this.normClave(a.clave), this.cluesimbActual));
+      fueraDeKit = items.filter(a => !this.cpmService.isClaveInKit(this.normClave(a.clave), this.cluesimbActual)).map(a => a.clave);
+      items = enKit;
+    }
+
+    this.excelService.exportarExcelConTemplate(
+      'template.xlsx',
+      nombreArchivo,
+      items, // ya filtrados si aplica la bandera
+      this.modoStandalone,
+      this.inventarioDisponible,
+      this.cpmsDeCluesActual,
+      // ⬇️ predicado para saber si la clave está en el KIT
+      (clave) => this.cpmService.isClaveInKit(this.normClave(clave), this.cluesimbActual)
+    );
     this.abrirModalInfo(
       this.generarPrecarga ? 'Archivos generados' : 'Archivo generado',
       'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
     );
+
+    if (restrict && fueraDeKit.length) {
+      this.toast.warn({
+        title: 'Exportación filtrada',
+        content: `Se excluyeron ${fueraDeKit.length} claves fuera de KIT (flag activa).`,
+        duration: 5
+      });
+    }
+
     if (this.generarPrecarga) {
       await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 1 segundo
       let nombreArchivPrecarga = 'Precarga';
       if (!this.modoStandalone) {
-        nombreArchivPrecarga += '-' + this.iniciales(this.datosClues.nombreHospital);
+        nombreArchivPrecarga += '-' + this.datosClues.hospital?.cluesimb!;
         nombreArchivPrecarga += '-' + this.datosClues.tipoInsumo.split('-');
         nombreArchivPrecarga += '-' + this.datosClues.tipoPedido;
       }
       nombreArchivPrecarga += '_' + new Date().toISOString().slice(0, 7);
-      this.exportarExcelPrecarga(nombreArchivPrecarga);
+      this.excelService.exportarExcelPrecarga(nombreArchivPrecarga, items);
     }
   }
 
@@ -476,7 +622,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     if (cluesStr && !this.modoStandalone) {
       this.datosClues = JSON.parse(cluesStr) as DatosClues;
 
-      nombreArchivoCompleto = this.iniciales(this.datosClues.nombreHospital);
+      nombreArchivoCompleto = this.datosClues.hospital?.cluesimb!; // this.iniciales(this.datosClues.nombreHospital);
       nombreArchivoCompleto += '-' + this.datosClues.tipoInsumo.split('-');
       nombreArchivoCompleto += '-' + this.datosClues.tipoPedido;
       nombreArchivoCompleto += '_' + this.datosClues.periodo.replace(/\s+/g, '-');
@@ -583,159 +729,137 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   async manejarArchivoPrecarga(event: Event) {
     const input = event.target as HTMLInputElement;
     const archivo = (event.target as HTMLInputElement).files?.[0];
-    // este acumularía mensaje en caso de captura de primer nivel que se pretenda
-    // importar claves que no sean las de primer nivel (las de articulos-primernivel.json)
-    let mensajeErrorPrimerNivel = '';
-    let contadorErrorPrimerNivel = 0;
-    let usandoTemplate = false;
-
     if (!archivo) return;
 
-    try {
-      let datos = await this.excelService.leerArchivoPrecarga(archivo); // ⚠️ este método lo definiremos en el servicio
+    let usandoTemplate = false;
 
+    try {
+      // limpio lista de articulos capturados 
+      this.articulosSolicitados = [];
+      this.existingClavesList = [];
+      const datosCluesStorage = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}') as DatosClues;
+      // a veces se pierde el this.datosClues y se queda en un clues elegido anteriormente
+      if (datosCluesStorage && this.datosClues?.hospital?.cluesimb !== datosCluesStorage?.hospital?.cluesimb) {
+        // tiene prioridad el localstorage, asi que actualizo el this.datosClues
+        this.datosClues = datosCluesStorage;
+      }
+      // 1) Asegura KIT en memoria (silencioso si falla)
+      const cluesimbActual = this.datosClues?.hospital?.cluesimb;
+
+      if (cluesimbActual) {
+        try { 
+          await firstValueFrom(this.cpmService.ensureForCluesimb(cluesimbActual)); 
+          this.loadExistenciasUnidad(cluesimbActual);
+        } catch { }
+      }
+
+      // 2) Lee archivo
+      let datos = await this.excelService.leerArchivoPrecarga(archivo);
       if (!datos || datos.length === 0) {
         this.abrirModalInfo('Archivo vacío', 'El archivo está vacío o no contiene datos válidos.');
         return;
       }
 
-      // Intentar identificar columnas por nombres flexibles
+      // 3) Detecta columnas
       let headers = Object.keys(datos[0]).map(h => h.toLowerCase().trim());
       let colClave = headers.find(h => h.includes('clave'));
-      let colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado'));
+      let colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado') || h.includes('total'));
+
       if (!colClave) {
-        // a lo mejor el usuario subió el formato institucional, asi que busco encabezados
-        // en renglon 11 datos[7] en lugar del primero
         if (datos.length < 8) {
-          this.abrirModalInfo('Encabezado faltante',
-            'El archivo no contiene encabezado o formato no es válido.');
+          this.abrirModalInfo('Encabezado faltante', 'El archivo no contiene encabezado o formato no es válido.');
           return;
         }
-        // iterar por datos[7] y buscar valores 'clave' y 'cantidad'
-        // datos [7] esta conformado por la siguiente informacion:
-        /* { 
-              "" : "NO. ",
-              "SOLICITUD DE INSUMOS ": "DESCRIPCION",
-              __EMPTY: "VEN ",
-              __EMPTY_1: "CLAVE",
-              __EMPTY_2: "UNIDAD DE MEDIDA ",
-              __EMPTY_3: "CANTIDAD",
-              __EMPTY_4: "CPM",
-              __EMPTY_5: "AZM",
-              __EMPTY_6: "AZT",
-              __EMPTY_7: "AZE",
-              __EMPTY_8: "",
-              __EMPTY_9: "",
-              __EMPTY_10: "",
-              __EMPTY_11: "",
-              __EMPTY_12: ""
-          }
-        */
         headers = Object.values(datos[7]).map((h: any) => (h + '').toLowerCase().trim());
         colClave = headers.find(h => h.includes('clave'));
-        colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado'));
-        // console.log('datos[7]', datos[7]);
+        colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado') || h.includes('total'));
         if (!colClave) {
-          this.abrirModalInfo('Encabezado faltante',
-            'El archivo no contiene columna con clave CNIS o formato no es válido.');
+          this.abrirModalInfo('Encabezado faltante', 'El archivo no contiene columna con clave CNIS o formato no es válido.');
           return;
         }
-        // mochar datos desde el renglon 8
         datos = datos.slice(8);
         usandoTemplate = true;
       }
 
+      // 4) Parseo + acumulación de duplicadas
       const nuevos: ArticuloSolicitud[] = [];
       const repetidas: Record<string, number> = {};
 
       for (const renglon of datos) {
-        let fila = { ...renglon };
-        if (usandoTemplate) {
-          fila = Object.values(fila);
-        }
-        let clave: string = ((!usandoTemplate ? fila[colClave] : fila[2]) ?? '')
+        let fila: any = { ...renglon };
+        if (usandoTemplate) fila = Object.values(fila);
+
+        let clave: string = ((!usandoTemplate ? fila[colClave!] : fila[2]) ?? '')
           .toString().trim().toUpperCase();
-        console.log('procesando clave', clave);
-        if (!clave) {
-          continue;
-        }
+        if (!clave) continue;
 
-        // Siempre guardamos la versión de 10 dígitos si aplica
-        clave = this.inventarioService.normalizarClave(clave + '');
+        clave = this.inventarioService.normalizarClave(clave);
+        const cantidad = colCantidad ? parseInt(!usandoTemplate ? fila[colCantidad!] : fila[5]) || 0 : 0;
 
-        const cantidad = colCantidad ? parseInt(!usandoTemplate ? fila[colCantidad] : fila[5]) || 0 : 0;
-
-        const existente = nuevos.find(a => a.clave === clave + '');
+        const existente = nuevos.find(a => a.clave === clave);
         if (existente) {
           existente.cantidad += cantidad;
-          repetidas[clave] = (repetidas[clave] || existente.cantidad);
+          repetidas[clave] = (repetidas[clave] || 0) + cantidad;
         } else {
-          // si modo captura es primer nivel, revisar primero que la clave sea de primer nivel
-          if (this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL) {
-            const esPrimerNivel = this.articulosService.esPrimerNivel(clave);
-            if (!esPrimerNivel) {
-              contadorErrorPrimerNivel++;
-              continue;
-            }
-          }
-
-          nuevos.push({
-            clave,
-            descripcion: '',
-            unidadMedida: '',
-            cantidad,
-            cpm: 0
-          });
-
+          nuevos.push({ clave, descripcion: '', unidadMedida: '', cantidad, cpm: 0 });
         }
       }
 
-      // TODO: Esperar a que CDMX corrobore para ver si quitamos esta validación
-      if (contadorErrorPrimerNivel > 0) {
-        mensajeErrorPrimerNivel =
-          `Se importaron ${nuevos.length} artículos correctamente. 
-           Se encontraron ${contadorErrorPrimerNivel} claves que no pueden ser solicitadas en primer nivel.`;
-        if (Object.keys(repetidas).length > 0) {
-          mensajeErrorPrimerNivel += `Se acumularon cantidades para varias claves duplicadas.`
+      // 5) Filtrar por flag (si está ON, sólo claves del KIT)
+      const restrict = await this.isImportRestricted();
+      let bloqueadas: string[] = [];
+
+      if (restrict) {
+        const permitidas: ArticuloSolicitud[] = [];
+        for (const a of nuevos) {
+          const ok = this.cpmService.isClaveInKit(this.normClave(a.clave), this.cluesimbActual);
+          if (ok) permitidas.push(a); else bloqueadas.push(a.clave);
         }
-        this.abrirModalInfo(nuevos.length === 0 ? 'Archivo inválido' :
-          'Claves no permitidas detectadas',
-          mensajeErrorPrimerNivel);
+        this.articulosSolicitados = permitidas;
+      } else {
+        this.articulosSolicitados = nuevos;
       }
+      this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados)
+      );
 
-      if (nuevos.length === 0 && contadorErrorPrimerNivel === 0) {
-        this.abrirModalInfo('Archivo inválido', 'No se encontraron claves válidas para importar.');
-        return;
+      // 6) Completar desc/unidad + poner CPM
+      this.autocompletarDatos();
+
+      // 7) Métricas del KIT
+      const kitTotal = this.cpmService.getKitCountFor(this.cluesimbActual);
+      const clavesNorm = this.articulosSolicitados.map(a => this.normClave(a.clave));
+      const enKit = clavesNorm.filter(c => this.cpmService.isClaveInKit(c, this.cluesimbActual)).length;
+      const fueraKit = this.articulosSolicitados.length - enKit;
+
+      // 8) Duplicadas (preview bonito)
+      const dupKeys = Object.keys(repetidas);
+      const dupPreview = dupKeys.length > 0
+        ? (() => {
+          const top = dupKeys.slice(0, 10).join(', ');
+          const extra = dupKeys.length > 10 ? ` y ${dupKeys.length - 10} más…` : '';
+          return `${top}${extra}`;
+        })()
+        : '';
+
+      // 9) ÚNICO modal de resumen
+      const lineas: string[] = [];
+      lineas.push(`✔ Importadas (distintas): ${this.articulosSolicitados.length}`);
+      lineas.push(`✔ En KIT: ${enKit}/${kitTotal || '¿?'}`);
+      if (bloqueadas.length) {
+        lineas.push(`⛔ Bloqueadas por bandera: ${bloqueadas.length}`);
+      } else {
+        lineas.push(`• Fuera de KIT: ${fueraKit}`);
       }
+      if (dupKeys.length > 0) lineas.push(`ℹ Duplicadas combinadas (${dupKeys.length}): ${dupPreview}`);
 
-      this.articulosSolicitados = nuevos;
-      this.storageSolicitudService
-        .setArticulosSolicitadosInLocalStorage(
-          JSON.stringify(this.articulosSolicitados));
-
-      const clavesRepetidas = Object.keys(repetidas).length;
-      // ⚠️ Opcional: aquí podrías invocar this.autocompletarDatos() si quieres precargar descripción/unidad
-      if (clavesRepetidas > 0 && contadorErrorPrimerNivel === 0) {
-        const claves = Object.keys(repetidas).join(', ');
-        this.abrirModalInfo('Claves repetidas detectadas',
-          `Se importaron ${this.articulosSolicitados.length} artículos correctamente.
-           Se acumularon cantidades para las siguientes claves duplicadas:\n${claves}`);
-      }
-      this.autocompletarDatos(); // 👈 Aquí se llena lo demás
-
-      if (clavesRepetidas === 0 && contadorErrorPrimerNivel === 0) {
-        this.mensajeImportacion = `Se importaron ${this.articulosSolicitados.length} artículos correctamente.`;
-        setTimeout(() => {
-          this.mensajeImportacion = null;
-          this.cdRef.detectChanges(); // Forzar actualización si es necesario
-        }, 4000);
-      }
+      this.abrirModalInfo('Importación completada', lineas.join('\n'));
 
     } catch (error) {
       console.error('Error al leer archivo:', error);
       this.abrirModalInfo('Error al importar', 'Hubo un problema al procesar el archivo.');
     } finally {
-      input.value = ''; // 👈 resetear input para permitir cargar el mismo archivo otra vez
+      input.value = '';
     }
   }
 
@@ -748,6 +872,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
           if (encontrado) {
             art.descripcion = encontrado.descripcion;
             art.unidadMedida = encontrado.unidadMedida;
+            const cpm = this.cpmIndex.get(this.normClave(art.clave)) ?? 0;
+            art.cpm = cpm;
           }
         }
 
@@ -783,4 +909,115 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /** Normaliza CNIS para usar como llave en inventario */
+  private normClave(clave: string | undefined | null): string {
+    return this.inventarioService.normalizarClave((clave ?? '').toString().toUpperCase());
+  }
+
+  /** Enriquecer items del autocomplete con existencias AZM/AZE/AZT (si hay inventario) */
+  private enrichWithExistencias<T extends Record<string, any>>(items: T[]): Array<T & EnrichedProps> {
+    if (!items?.length) return items as Array<T & EnrichedProps>;
+
+    return items.map((it) => {
+      const base = it as Record<string, any>;     // ← asegura que es "object" para el spread
+      const clave = this.normClave(base['clave']);
+
+      const inv = this.invIndex.get(clave);
+      const azm = inv?.existenciasAZM ?? 0;
+      const aze = inv?.existenciasAZE ?? 0;
+      const azt = inv?.existenciasAZT ?? 0;
+      const total = azm + aze + azt;
+
+      const cpm = this.cpmIndex.get(clave) ?? this.cpmService.getCpmForClave(clave, this.cluesimbActual) ?? 0;
+      const enKit = this.cpmService.isClaveInKit(clave, this.cluesimbActual);
+
+      return {
+        ...base,               // ✅ ya es un object
+        _azm: azm,
+        _aze: aze,
+        _azt: azt,
+        _totalExistencias: total,
+        _cpm: cpm,
+        _enKit: enKit,
+      } as T & EnrichedProps;
+    });
+  }
+
+  private async isImportRestricted(): Promise<boolean> {
+    const cluesimb =
+      this.datosClues?.hospital?.cluesimb ||
+      (JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}')?.hospital?.cluesimb ?? '');
+
+    // const nivel: Nivel = this.estaCapturandoPrimerNivel() ? 'PRIMER_NIVEL' : 'SEGUNDO_NIVEL';
+
+    try {
+      // const eff = await this.flags.getEffective({ cluesimb, nivel });
+      const eff = await this.flags.getEffective({ cluesimb });
+      return !!eff['IMPORT_LIMIT_TO_KIT'];
+    } catch {
+      // si no se pudo consultar el flag, no bloquees (comportamiento actual)
+      return false;
+    }
+  }
+
+  private loadExistenciasUnidad(cluesimb: string) {
+    if (!cluesimb) { this.existUnidadIndex.clear(); return; }
+
+    this.existTemp.byUnidad(cluesimb).subscribe(rows => {
+      const idx = new Map<string, number>();
+      for (const r of rows) idx.set(r.clave_cnis, r.existencia_total ?? 0);
+      this.existUnidadIndex = idx;
+
+      // Enriquecer el autocomplete actual (si ya hay resultados en pantalla)
+      this.autocompleteResults = (this.autocompleteResults || []).map(it => ({
+        ...it,
+        _existUnidad: idx.get(it.clave) ?? 0
+      }));
+    });
+  }
+
+  /*************************************************************************************/
+  /*************************************************************************************/
+  /*************************************************************************************/
+  kitModalVisible = false;
+
+  /** PARA MODAL DE CLAVES DE KIT */
+  abrirKitModal() {
+    // forzar recarga de this.datosClues de localstorageService porque este componente no lo recarga
+    this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
+    this.kitModalVisible = true;
+  }
+
+  // recibe lo que emite el modal y lo integra (respetando tu flujo actual)
+  onKitAdd(items: ArticuloSolicitud[]) {
+    if (!items?.length) return;
+    const ya = new Set(this.existingClavesList);
+    const nuevos = items.filter(i => !ya.has(this.normClave(i.clave)));
+    if (!nuevos.length) return;
+
+    this.articulosSolicitados = [...this.articulosSolicitados, ...nuevos];
+    this.rebuildExistingClaves();
+    this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+      JSON.stringify(this.articulosSolicitados)
+    );
+    // this.autocompletarDatos();
+  }
+
+  existingClavesList: string[] = [];
+  private rebuildExistingClaves() {
+    this.existingClavesList = this.articulosSolicitados.map(a => this.normClave(a.clave));
+  }
+
+  get cluesimbActual(): string {
+    // si datosClues es null regresa ''
+    if (!this.datosClues) return '';
+    // si el hospital es null regresa ''
+    if (!this.datosClues.hospital) return '';
+    // si el cluesimb es null regresa ''
+    if (!this.datosClues.hospital.cluesimb) return '';
+    return this.datosClues.hospital.cluesimb;
+  }
+  /*************************************************************************************/
+  /*************************************************************************************/
+  /*************************************************************************************/
 }

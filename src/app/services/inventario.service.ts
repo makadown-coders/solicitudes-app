@@ -10,6 +10,7 @@ import { Existencias, StorageVariables } from '../shared/storage-variables';
 import { CPMSFull, InventarioFull } from '../models/ElementosBase64';
 import { ClaveGrupo, CPMS } from '../models/CPMS';
 import { StorageSolicitudService } from './storage-solicitud.service';
+import { TemporalExistenciaRow } from '../models/temporal-existencia-row.model';
 
 @Injectable({
   providedIn: 'root'
@@ -26,6 +27,7 @@ export class InventarioService {
   private claveGruposSubject = new BehaviorSubject<ClaveGrupo[]>([]);
   public claveGrupos$: Observable<ClaveGrupo[]> = this.claveGruposSubject.asObservable();
 
+  // TODO: Desacoplar esto de Dashboard para meterlo en CPMService
   private cpmsCluesActualSubject = new BehaviorSubject<CPMS[]>([]);
   public cpmsCluesActual$: Observable<CPMS[]> = this.cpmsCluesActualSubject.asObservable();
 
@@ -51,6 +53,10 @@ export class InventarioService {
     }
   }
 
+  /**
+   * Metodo para refrescar los datos de CPMS (mediante power automate)
+   * En vias de deprecacion para usar backend.
+   */
   refrescarDatosCPMS() {
     //    console.info('🔄 InventarioService.refrescarDatosCPMS() - Actualizando CPMS...');
     this.cargandoCPMSBehaviorSubject.next(true);
@@ -60,7 +66,7 @@ export class InventarioService {
     this.http.get<CPMSFull>(url).subscribe({
       next: (response: CPMSFull) => {
         const arrayBuffer = this.excelService.base64ToArrayBuffer(response.cpms);
-        let cpms: CPMS[]  = []; 
+        let cpms: CPMS[] = [];
         let claveGrupos: ClaveGrupo[] = [];
         [cpms, claveGrupos] = this.excelService.procesarArchivoCPMS(arrayBuffer);
 
@@ -162,6 +168,11 @@ export class InventarioService {
     this.cpmsSubject.next(new StorageSolicitudService().getCPMSFromLocalStorage());
   }
 
+  /**
+   * Metodo para refrescar los datos de inventario (mediante power automate)
+   * En vias de deprecacion para usar backend.
+   * Obtiene existencias de los 3 almacenes AZM, AZT y AZE
+   */
   refrescarDatosInventario(): void {
     //    console.info('🔄 InventarioService.refrescarDatosInventario() - Actualizando datos de inventario temporal...');
     this.cargandoInventarioBehaviorSubject.next(true);
@@ -217,40 +228,96 @@ export class InventarioService {
     this.existenciasSubject.get(existencia)!.next(inventario as Inventario[]);
   }
 
+  /**
+   * Refresca datos de existencias de una unidad (aplica solo segundo nivel)
+   * @param existencia 
+   */
   refrescarDatosExistencias(existencia: Existencias = Existencias.HGENS): void {
-    //    console.info('🔄 InventarioService.refrescarDatosExistencias() - Actualizando existencias de ' + existencia + '...');
-    // this.cargandoInventarioBehaviorSubject.next(true);
+    // console.info('🔄 InventarioService.refrescarDatosExistencias() - Actualizando existencias de ' + existencia + '...');
     // purgar todo el localStorage
     this.limpiarExistencias(existencia);
-    const url = this.apiUrl + '/' + existencia;
-    this.http.get<InventarioFull>(url).subscribe({
-      next: (response: InventarioFull) => {
+    // TODO: temporalmente usar cluesimb fija BCIMB000623 de san felipe para pruebas
+    const url = existencia === Existencias.HGSF ?
+      environment.apiUrl + '/existencias-temp/by-unidad-full?cluesimb=BCIMB000623'
+      :
+      this.apiUrl + '/' + existencia;
 
-        const inventario = this.obtenerInventarioDeBase64(response.inventario);
-        const inventarioNormalizado = this.normalizarClavesInventario(inventario);
+    if (existencia !== Existencias.HGSF) {
+      this.http.get<InventarioFull>(url).subscribe({
+        next: (response: InventarioFull) => {
 
-        // 1) Serializar y comprimir
-        const raw = JSON.stringify(inventarioNormalizado);
-        const compressed = LZString.compress(raw);
-        try {
-          localStorage.setItem(existencia, compressed);
-        } catch {
-          console.warn('😱 InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
+          const inventario = this.obtenerInventarioDeBase64(response.inventario);
+          const inventarioNormalizado = this.normalizarClavesInventario(inventario);
+          this.serializarYComprimir(inventarioNormalizado, existencia);
+        },
+        error: (err) => {
+          console.error('❌ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
+          this.existenciasSubject.get(existencia)!.next([]);
+          // this.cargandoInventarioBehaviorSubject.next(false);
         }
-        // 2) Emitir
-        //console.info('✅ InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
+      });
+    } else {
+      // caso especial de San Felipe, que usa otro endpoint y otro modelo
+      this.http.get<{ rows: TemporalExistenciaRow[]}>(url).subscribe({
+        next: (res) => {
+          const response = res.rows;
+          if (!response || response.length === 0) {
+            this.existenciasSubject.get(existencia)!.next([]);
+            return;
+          }
+          const inventario: Inventario[] = response.map(item => {
+            const nuevoRegistro: Inventario = new Inventario();
+            nuevoRegistro.clave = item.clave_cnis;
+            nuevoRegistro.partida = item.lote || '';
+            nuevoRegistro.descripcion = '';
+            nuevoRegistro.disponible = item.existencia;
+            nuevoRegistro.almacen = 'HOSPITAL COMUNITARIO SAN FELIPE';
+            nuevoRegistro.fuente = '';
+            nuevoRegistro.comprometidos = 0;
+            nuevoRegistro.lote = item.lote || '';
+            nuevoRegistro.caducidad = item.fecha_caducidad as string;
+            nuevoRegistro.fecha_entrada = null;
+            nuevoRegistro.disponible = item.existencia;
+            return nuevoRegistro;
+          });
+          const inventarioNormalizado = this.normalizarClavesInventario(inventario);
 
-        this.existenciasSubject.get(existencia)!.next(inventarioNormalizado as Inventario[]);
-        // this.cargandoInventarioBehaviorSubject.next(false);
-        //console.info('✅ InventarioService.refrescarDatosExistencias() - ' + existencia + ' FINALIZADO');
-      },
-      error: (err) => {
-        console.error('❌ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
-        // this.cargandoInventarioBehaviorSubject.next(false);
-      }
-    });
+          // console.log('🔁 InventarioService.refrescarDatosExistencias() HGSF - Serializando y comprimiendo ' + inventarioNormalizado.length + ' registros.' );
+          // 1) Serializar y comprimir
+          this.serializarYComprimir(inventarioNormalizado, existencia);
+        },
+        error: (err) => {
+          console.error('❌ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
+          this.existenciasSubject.get(existencia)!.next([]);
+        }
+      });
+    }
   }
 
+
+  /*************  ✨ Windsurf Command ⭐  *************/
+  /**
+   * Serializa y comprime el inventario normalizado para guardarlo en localStorage.
+   * En caso de que localStorage esté lleno, se omite la guardado.
+   * Se emite el inventario normalizado como observador.
+   * @param inventarioNormalizado Inventario normalizado a serializar
+   * @param existencia Existencias a la que se refiere el inventario
+   */
+  /*******  62ae1001-464f-463f-be07-273cb8c330fa  *******/
+  private serializarYComprimir(inventarioNormalizado: Inventario[], existencia: Existencias) {
+    const raw = JSON.stringify(inventarioNormalizado);
+    const compressed = LZString.compress(raw);
+    try {
+      localStorage.setItem(existencia, compressed);
+    } catch {
+      console.warn('😱 InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
+    }
+    // 2) Emitir
+    //console.info('✅ InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
+    this.existenciasSubject.get(existencia)!.next(inventarioNormalizado as Inventario[]);
+    // this.cargandoInventarioBehaviorSubject.next(false);
+    //console.info('✅ InventarioService.refrescarDatosExistencias() - ' + existencia + ' FINALIZADO');
+  }
 
   private obtenerInventarioDeBase64(base64: string): Inventario[] {
 
@@ -316,8 +383,8 @@ export class InventarioService {
       //  console.info(`✅ Inventario cargado desde Power Automate. Total: ${inventarioRetorno.length} registros.`);
 
     } catch (err: any) {
-      console.error('❌ Error al obtener de power automate:', err);
-      console.error('🔁 Procesando fila:', fila);
+      console.error('❌ InventarioService.obtenerInventarioDeBase64() - Error al obtener de power automate:', err);
+      console.error('🔁 InventarioService.obtenerInventarioDeBase64() - Error procesando fila:', fila);
     }
 
     return inventarioRetorno;

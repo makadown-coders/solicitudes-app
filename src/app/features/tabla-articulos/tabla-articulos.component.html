@@ -6,6 +6,7 @@
         <tr>
             <th class="p-2">#</th>
             <th class="p-2">Clave</th>
+            <th class="hidden md:table-cell">KIT</th>
             <th class="hidden p-2 xl:table-cell">Clasificacion</th>
             <th class="hidden p-2 lg:table-cell">Descripción</th>
             <th class="hidden p-2 xl:table-cell">Unidad</th>
@@ -40,11 +41,10 @@
             <td class="p-2" [attr.title]="articulo.descripcion">
                 <div class="flex items-center justify-left gap-1">
                     <span class="font-semibold">{{ articulo.clave }}</span>
-
                     <!-- Icono de advertencia cuando cantidad > CPM -->
                     <ng-container *ngIf="existenciaCPM > 0 && articulo.cantidad > existenciaCPM">
                         <span class="relative flex"
-                         [attr.title]="'Cantidad solicitada excede el CPM estimado (' + existenciaCPM + ')'">
+                            [attr.title]="'Cantidad solicitada excede el CPM estimado (' + existenciaCPM + ')'">
                             <span
                                 class="absolute inline-flex h-full w-full bg-red-400 rounded-full opacity-75 animate-ping"></span>
                             <lucide-angular [img]="triangleAlertIcon" class="w-4 h-4 text-red-800"></lucide-angular>
@@ -66,11 +66,17 @@
                     </ng-container>
                 </div>
             </td>
+            <td class="hidden p-2 text-center md:table-cell">
+                <span *ngIf="enKit(articulo.clave)"
+                    class="inline-block px-2 py-0.5 text-xs text-emerald-800 bg-emerald-100 rounded">
+                    ✓
+                </span>
+            </td>
             <td class="overflow-hidden hidden p-2 max-w-[100px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell"
                 [attr.title]="clasificacion(articulo.clave)">{{ clasificacion(articulo.clave) }}</td>
             <td class="overflow-hidden hidden p-2 max-w-[250px] text-ellipsis whitespace-pre-wrap break-words sm:whitespace-normal lg:table-cell"
                 [attr.title]="articulo.descripcion">
-{{ ( articulo.descripcion | slice : 0:195 ) + (articulo.descripcion.length > 195 ? ' [...]' : '') }}
+                {{ ( articulo.descripcion | slice : 0:195 ) + (articulo.descripcion.length > 195 ? ' [...]' : '') }}
             </td>
             <td class="overflow-hidden hidden p-2 max-w-[150px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell"
                 [attr.title]="articulo.unidadMedida">{{

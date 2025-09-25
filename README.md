@@ -1,180 +1,235 @@
-# 📦 Solicitudes App – Frontend Angular
+# Solicitudes / Abasto — Frontend (Angular) 🧭
 
-Aplicación desarrollada con Angular 17 + TailwindCSS para capturar, visualizar y exportar solicitudes de insumos hospitalarios y de unidades médicas en IMSS-Bienestar.
+Aplicación **Angular (standalone + signals, zoneless, OnPush)** para capturar y administrar **solicitudes de insumos** con soporte de **KIT**, **CPMs por unidad**, **existencias temporales** y **autocomplete enriquecido**. UI simple y funcional con **TailwindCSS**.
 
-Incluye autocompletado, validaciones, persistencia local, dashboard analítico, exportación avanzada a Excel y generación opcional de archivos de precarga para futuras solicitudes.
-
-Proyecto enfocado al departamento del abasto de IMSS Bienestar Baja California.
-
-
-![alt text](image.png)
-![MIT License](https://img.shields.io/badge/license-MIT-green)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/535335da-fd93-4921-a7b8-ec283ab42fda/deploy-status)](https://app.netlify.com/projects/imssb-bc/deploys)
-
-
+> Nota: Este frontend consume el backend descrito en el README del servidor (endpoints `/api`).
 
 ---
 
-## ✨ Características Principales
+## ✨ Características clave
 
-* 🏥 Captura guiada para hospitales (Segundo Nivel) y unidades médicas (Primer Nivel)
-* 🔎 Autocompletado inteligente de CLUES SSA / IMB, nombre o municipio
-* 💾 Guardado automático en `localStorage` persistente tras recargas
-* 📊 Dashboard ejecutivo de citas: KPIs, filtros, gráficas y análisis por proveedor
-* 🧾 Exportación profesional a Excel (respetando plantilla institucional)
-* 📥 Generación opcional de archivos de precarga reutilizables
-* 🧠 Ayuda contextual adaptativa según el nivel de captura
-* ⚙️ Normalización automática de claves conforme al Compendio Nacional de Insumos
-* 🚀 Animación de carga con icono rotativo para refresco de datos
-* 🔐 Validaciones progresivas para evitar errores de captura
-
----
-
-## ⚙️ Tecnologías utilizadas
-
-* ✅ Angular 17 (Standalone Components + Signals)
-* 🎨 TailwindCSS v3.4
-* 📦 ExcelJS para manipulación avanzada de `.xlsx`
-* 📊 ng2-charts (Chart.js) para gráficas dinámicas
-* 💬 Lucide Icons con animaciones (`animate-spin`)
-* 🧠 RxJS + almacenamiento local (`localStorage`)
-
----
-
-## 🔰 Guía rápida para nuevos colaboradores
-
-### Estructura general
-La aplicación se organiza dentro de `src/app` en cuatro áreas principales:
-- `layout/` para el diseño base y las pestañas de navegación.
-- `features/` con módulos dedicados a captura de CLUES, solicitudes y dashboard.
-- `shared/` donde viven componentes reutilizables como modales y pipes.
-- `services/` que concentran la lógica de datos, citas y exportación a Excel.
-
-### Aspectos clave
-- Ruteo con carga diferida para mejorar el desempeño inicial.
-- Exportación avanzada a Excel, ya sea simple o usando la plantilla institucional.
-
-### ¿Qué aprender después?
-- Fundamentos de Angular: componentes standalone, ruteo e inyección de dependencias.
-- Programación reactiva con RxJS.
-- TailwindCSS para maquetar rápidamente.
-- ExcelJS/XLSX para generar y manipular archivos.
-- Interacción con APIs y gestión de `localStorage`.
+- **Arquitectura moderna**: Angular 19+, **standalone components**, **signals**, **ChangeDetectionStrategy.OnPush**, **zoneless**.
+- **Solicitudes**:
+  - Captura tipo todo-list.
+  - **Autocomplete enriquecido** (muestra existencias por unidad y banderas `_enKit`, `_cpm`).
+- **KIT modal (`app-kit-modal`)**:
+  - Inputs: `cluesimb`, `tituloUnidad`, `mostrarUnidadEnTitulo`, `inventarioDisponible`, `existingClaves`, `defaultQtyNoCpm`.
+  - Outputs: `addToSolicitud(ArticuloSolicitud[])`, `close()`.
+  - **Columnas dinámicas** por toggles: **AZM/AZE/AZT**, **Exist. unidad**, **Cant. sugerida**.
+  - **Copiar/CSV** exportan **exactamente lo visible** (mismas columnas/orden).
+  - Tooltip de **descripción (130 chars)** en la clave.
+  - Botón **“Seleccionar…”** cambia a **“Selec. cant. sug. > 0”** cuando está visible “Existencias de la unidad”.
+  - **Reglas de cantidad** al agregar: usa **CPM > 0**, si no **`reordenSug`**, si no **`defaultQtyNoCpm`** (y **nunca 0**).
+- **Servicios**:
+  - `ExistenciasTempService`: `GET /existencias-temp/by-unidad?cluesimb=...`, **cache diario en memoria** hasta medianoche local.
+  - `CpmService`: estado **por unidad**; métodos:  
+    `ensureForCluesimb(cluesimb)`, `cpmsFor(cluesimb)`, `cpmsForImport(cluesimb)`,  
+    `getCpmForClave(clave, cluesimb?)`, `isClaveInKit(clave, cluesimb?)`, `getKitCountFor(cluesimb)`;  
+    mantiene API **legacy** (`cpms$`) para compatibilidad.
+- **Robustez**:
+  - Getter `cluesimbActual` **defensivo** para evitar warnings de Angular.
+  - **Bugs resueltos**:
+    - Cantidades 0 al usar existencias por unidad → ahora respeta `defaultQtyNoCpm` y fuerza `≥ 1`.
+    - Estado compartido entre rutas → **aislado por `cluesimb`**.
 
 ---
 
-## 📁 Estructura del Proyecto
+## 🧩 Estructura (extracto)
 
-```bash
-/src 
-├── app/
-│   ├── layout/                  # Layout principal con tabs y ayuda contextual
-│   ├── features/
-│   │   ├── captura-clues/       # Tab 1 – Captura de CLUES hospital / unidad
-│   │   ├── solicitudes/         # Tab 2 – Captura de artículos
-│   │   ├── dashboard/           # Dashboard ejecutivo (KPIs, proveedores, cumplimiento, pendientes)
-│   ├── shared/
-│   │   ├── periodo-picker/      # Selector de rangos de fechas
-│   │   ├── confirmacion-modal/  # Modal de confirmación reutilizable
-│   │   ├── nombrar-archivo-modal/ # Modal para nombrar archivo al exportar
-│   │   ├── nombre-mes.pipe.ts
-│   │   ├── truncate-decimal.pipe.ts
-│   │   └── periodo-fechas.service.ts
-│   ├── services/
-│   │   ├── articulos.service.ts
-│   │   ├── citas.service.ts
-│   │   └── excel.service.ts
+```
+src/
+  app/
+    features/
+      solicitudes/
+        solicitudes.component.ts
+        solicitudes.component.html
+      ... (otros módulos/tabs si aplica)
+    services/
+      existencias-temp.service.ts
+      cpm.service.ts
+    models/
+      ArticuloSolicitud.ts
+      CpmUnionRow.ts
+      CpmExpectedRow.ts
+    shared/
+      app-kit-modal/
+        app-kit-modal.component.ts
+        app-kit-modal.component.html
+        app-kit-modal.component.css
+  environments/
+    environment.ts        # usa NG_APP_API_URL (ver .env)
+styles.css                # Tailwind, utilidades y estilos globales
 ```
 
 ---
 
-## 📤 Exportación a Excel y precarga
+## 🔌 Integraciones de backend usadas
 
-Exporta usando plantilla institucional (`/public/template.xlsx`) con estructura:
+- **Artículos (SQLite)**: `GET /api/articulos?q=...`
+- **CPMs por unidad**: `GET /api/cpms/by-unidad?cluesimb=...`
+- **Existencias temporales**: `GET /api/existencias-temp/by-unidad?cluesimb=...`
+- (Opcional en UI) **Trazabilidad**: `GET /api/trazabilidad?clave=...&cluesimb=...`
+- (Opcional) **Feature flags**: `GET /api/solicitudes-config/effective?cluesimb=...&nivel=...`
 
-| Celda Excel | Contenido exportado                                                        |
-| ----------- | -------------------------------------------------------------------------- |
-| `B4`        | Nombre del hospital o unidad médica                                        |
-| `E4`        | Tipos de insumo seleccionados (ej. Medicamento, Material de Curación)      |
-| `F5`        | Periodo de solicitud formateado (ej. 01-30 ABRIL 2025)                     |
-| `F7`        | Tipo de pedido (Ordinario / Extraordinario)                                |
-| `F8`        | Responsable de la captura                                                  |
-| `B12+`      | Número de renglón                                                          |
-| `C12+`      | Clasificación VEN                                                          |
-| `D12+`      | Clave CNIS normalizada                                                     |
-| `E12+`      | Descripción                                                                |
-| `F12+`      | Unidad de medida                                                           |
-| `G12+`      | Cantidad solicitada. Se pinta **rojo** si supera CPM, **azul** si es menor |
-| `H12+`      | CPM disponible. Se pinta **amarillo** si es cero                           |
-| `I12+`      | Existencias AZM                                                            |
-| `J12+`      | Existencias AZT                                                            |
-| `K12+`      | Existencias AZE                                                            |
-
-✅ Ordena automáticamente por clave antes de exportar
-✅ Muestra clasificación VEN (Vital, Esencial, No esencial) según catálogo
-✅ Incluye imagen institucional (`imssb-logo.png`) al encabezado
-✅ Envia el archivo como base64 al backend para registrar historial (no solo descarga local)
-
-Además:
-
-* **Precarga:** Permite generar un archivo `.xlsx` sencillo con columnas clave, ven, descripción, unidad y cantidad, para ser reutilizado o compartido.
-* **Importación de precarga:** Al importar, acumula cantidades de claves repetidas y valida restricciones (por ejemplo, si es captura en Primer Nivel, filtra claves no autorizadas).
+> **`environment.apiUrl`** debe apuntar al host del backend (ver sección de entorno).
 
 ---
 
-### 🖌️ Ejemplo visual de colores en celdas
+## ⚙️ Variables de entorno (frontend)
 
-| Escenario      | Color aplicado |
-| -------------- | -------------- |
-| Cantidad > CPM | Texto rojo     |
-| Cantidad < CPM | Texto azul     |
-| CPM = 0        | Fondo amarillo |
+El proyecto usa **@ngx-env/builder** para cargar variables desde `.env` en tiempo de build.  
+Decláralas con el prefijo **`NG_APP_`**.
+
+Ejemplo `.env`:
+```ini
+# URL base del backend
+NG_APP_API_URL=http://localhost:3000/api
+
+# (Opcional) Telemetría o toggles de UI
+NG_APP_APP_NAME=Solicitudes IMSS-B
+NG_APP_ENABLE_KIT_MODAL=true
+```
+
+Asegúrate de tener el archivo de tipos (p. ej. `src/.env.d.ts`) si ya está configurado:
+```ts
+declare namespace NodeJS {
+  interface ProcessEnv {
+    NG_APP_API_URL: string;
+    NG_APP_APP_NAME?: string;
+    NG_APP_ENABLE_KIT_MODAL?: string;
+  }
+}
+```
+
+En `environment.ts` se expone como:
+```ts
+export const environment = {
+  apiUrl: process.env.NG_APP_API_URL
+};
+```
 
 ---
 
-### 🔧 Funciones auxiliares clave
+## 🛠️ Requisitos previos
 
-* **`descripcionVEN()`** → Busca clasificación VEN según clave
-* **`convertirBufferABase64()`** → Convierte ExcelJS buffer a string base64
-* **`descargarArchivo()`** → Descarga archivo en el navegador
-* **`leerArchivoPrecarga()`** → Lee Excel/CSV para precarga de insumos
-* **`procesarArchivoCPMS()`** → Procesa archivo oficial de CPM por unidad
+- Node.js 18+ (recomendado 20+)
+- pnpm o npm (usa el que tengas configurado en el repo)
+- Backend corriendo y accesible (ver `NG_APP_API_URL`)
 
 ---
 
-## 🧪 Cómo ejecutar localmente
+## ▶️ Ejecución local
 
 ```bash
-git clone https://github.com/makadown-coders/solicitudes-app.git
-cd solicitudes-app
+# instalar deps
 npm install
-npm run dev  # o ng serve
+# o pnpm install
+
+# levantar en desarrollo
+npm start
+# o: ng serve --open
 ```
----
 
-## 💬 Notas clave
-
-* Las claves con prefijo `060`, `080`, `070` son mostradas conforme al Compendio Nacional, omitiendo sufijos locales como `.00`. Algunas excepciones se mantienen cuando representan variantes relevantes (p. ej., calibres).
-* En Primer Nivel, solo es posible solicitar insumos del listado autorizado (ver `articulos-primernivel.json`).
-* El sistema adapta automáticamente la interfaz y validaciones según el modo de captura.
+La app quedará disponible en `http://localhost:4200/` (por defecto).  
+Verifica conectividad al backend (en `NG_APP_API_URL`).
 
 ---
 
-## 📈 Justificación técnica: Netlify como plataforma de despliegue
+## 🏗️ Build de producción
 
-| Criterio                        | Evaluación                              |
-| ------------------------------- | --------------------------------------- |
-| Frecuencia de uso               | 1 vez al mes por 15 unidades/hospitales |
-| Peso de archivos `.xlsx`        | < 200 KB                                |
-| Ancho de banda mensual estimado | ≈ 6 MB                                  |
-| Seguridad                       | HTTPS automático                        |
-| Costo                           | \$0 pesos                               |
-| Deploy automático desde GitHub  | ✅                                       |
+```bash
+npm run build
+# genera dist/ con assets estáticos
+```
+
+### Despliegue en Netlify (estático)
+
+1. Construye el proyecto (o deja que Netlify lo haga con `npm run build`).
+2. Directorio de publicación: `dist/<nombre-app>`.
+3. Redirecciones SPA (archivo `netlify.toml`):
+   ```toml
+   [[redirects]]
+     from = "/*"
+     to = "/index.html"
+     status = 200
+   ```
+4. Configura variable `NG_APP_API_URL` en Netlify para apuntar al backend.
+
+---
+
+## 🧠 Uso en la UI (flujo básico)
+
+1. **Selecciona la unidad** (`cluesimb`). El componente llama:
+   - `cpmService.ensureForCluesimb(cluesimbActual)`
+   - (opcional) `existenciasTempService.byUnidad(cluesimbActual)` para enriquecer autocomplete/KIT.
+2. **Autocomplete** muestra:
+   - Existencia de la unidad (si está disponible).
+   - `_enKit` y `_cpm` para priorizar coincidencias útiles.
+3. **Abrir KIT modal**:
+   - Usa toggles para mostrar/ocultar **AZM/AZE/AZT**, **Exist. unidad**, **Cant. sugerida**.
+   - Botón **“Seleccionar…”** se convierte en **“Selec. cant. sug. > 0”** si está visible “Exist. unidad”.
+   - **Copiar** o **CSV** → exportan **exactamente lo que ves**: mismas columnas y orden.
+4. **Agregar al carrito/tabla**:
+   - La cantidad se calcula con la regla: **CPM > reordenSug > defaultQtyNoCpm** (y se fuerza **≥ 1**).
+
+---
+
+## 🧱 Decisiones técnicas
+
+- **Cache diario** hasta medianoche local para **existencias** (reduce latencia y carga del backend).
+- **Estado por unidad (`cluesimb`)** en `CpmService` para aislar tabs/rutas y evitar “estado compartido fantasma”.
+- **Compatibilidad**: se mantiene `cpms$` (legacy) para evitar refactors bruscos en componentes no migrados.
+
+---
+
+## ✅ Lista de verificación (QA)
+
+- [ ] `cluesimbActual` definido antes de hacer llamadas (getter defensivo).
+- [ ] Autocomplete muestra `_enKit` y `_cpm` correctamente.
+- [ ] KIT modal:
+  - [ ] Títulos y toggles renderizan columnas esperadas.
+  - [ ] **Copiar/CSV** respetan columnas visibles.
+  - [ ] Botón cambia a **“Selec. cant. sug. > 0”** si corresponde.
+- [ ] Reglas de cantidad aplicadas (CPM > reordenSug > default; **≥ 1**).
+- [ ] No aparecen cantidades 0 al agregar desde existencias por unidad.
+- [ ] Cambiar de unidad **no** arrastra estado previo (aislado por `cluesimb`).
+
+---
+
+## 🧭 Roadmap corto
+
+- Mejora de accesibilidad (foco y navegación con teclado en modal).
+- Persistencia opcional de toggles del modal (localStorage).
+- Filtros por AZM/AZE/AZT en dataset del modal.
+- Vista de **trazabilidad** integrada (si el backend está disponible).
+
+---
+
+## 📌 Aviso
+
+Esta aplicación es un **apoyo operativo** para captura y análisis local.  
+**No sustituye** plataformas oficiales ni maneja datos personales sensibles.  
+Úsese para **transparencia y eficiencia** mientras se consolidan procesos oficiales.
+
+---
+
+## 📋 Acerca de esta aplicación
+
+Esta herramienta es un apoyo en piloto para capturar solicitudes de insumos médicos en **IMSS-Bienestar Baja California**.  
+Facilita pedidos ordinarios y extraordinarios, con validaciones, precargas y exportación a Excel.  
+**No reemplaza sistemas oficiales.**
+
+| Rol | Nombre |
+| --- | --- |
+| **Coordinador Institucional del Proyecto** | Lic. Héctor Manuel Avelar Morales |
+| **Referente Técnico-Operativo** *(Lineamientos de Abasto)* | Lic. Elia Del Carmen Rojas Villalas / Lic. Abril Núñez Madrid |
+| **Diseño y Desarrollo Tecnológico** | Ing. Mario Arturo Serrano Flores |
+
+<p align="center">© 2025 IMSS Bienestar – Baja California</p>
+
 
 ---
 
 ## 📄 Licencia
 
-MIT © 2025 Mario Arturo Serrano Flores
-Consulta el archivo LICENSE para más información.
-
+MIT

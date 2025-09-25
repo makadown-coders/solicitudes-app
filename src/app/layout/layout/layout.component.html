@@ -56,102 +56,117 @@
       <!-- Sección de CLUES -->
       <div *ngSwitchCase="'clues'" class="text-sm text-gray-700 space-y-2">
         <hr class="my-2 border-t border-gray-300">
-        <h3 class="font-semibold text-green-700">✏️ Captura de datos CLUES</h3>
+        <h3 class="font-semibold text-green-700">✏️ Captura de datos de la unidad</h3>
         <hr class="my-2 border-t border-gray-300">
 
         <ng-container
           *ngIf="storageSolicitudService.getModoCapturaSolicitud() === 'PRIMER_NIVEL'; else segundoNivelGuia">
-          <p><strong>Nombre de la unidad:</strong> Escribe parte del nombre, CLUES SSA, CLUES IMB o municipio para
-            buscar unidades médicas de Primer Nivel.</p>
-          <p><strong>Tipo de pedido:</strong> Elige si la solicitud es Ordinaria o Extraordinaria.</p>
-          <p><strong>Responsable:</strong> Ingresa tu nombre completo para registro interno.</p>
-          <p><strong>Periodo:</strong> Define un rango válido de fechas que abarque la solicitud.</p>
-          <hr class="my-2 border-t border-gray-300">
-          <p class="mt-2 text-xs text-gray-500">
-            ℹ️ En modo Primer Nivel, el sistema filtra exclusivamente unidades no hospitalarias.
-          </p>
-          <p class="mt-2 text-xs text-gray-500">
-            💡 Todos los campos son obligatorios para habilitar el tab de solicitud.
+          <p><strong>Unidad:</strong> Escribe parte del nombre, CLUES SSA, CLUES IMB o municipio para buscar <u>unidades
+              de Primer Nivel</u>.</p>
+          <p><strong>Tipo de pedido:</strong> Elige <em>Ordinaria</em> o <em>Extraordinaria</em>.</p>
+          <p><strong>Responsable:</strong> Ingresa tu nombre completo.</p>
+          <p><strong>Periodo:</strong> Selecciona el rango de fechas que abarca la solicitud.</p>
+
+          <p class="mt-2 text-xs text-gray-600">ℹ️ En Primer Nivel solo verás unidades no hospitalarias.</p>
+          <p class="mt-1 text-xs text-gray-600">💡 Completa todos los campos para habilitar la pestaña
+            <em>Solicitud</em>.
           </p>
         </ng-container>
 
         <ng-template #segundoNivelGuia>
-          <p><strong>Nombre del hospital:</strong> Escribe parte del nombre, CLUES SSA o CLUES IMB para buscar
-            hospitales de Segundo Nivel.</p>
-          <p><strong>Tipo de insumo:</strong> Selecciona uno o más tipos aplicables a tu solicitud.</p>
-          <p><strong>Tipo de pedido:</strong> Elige si la solicitud es Ordinaria o Extraordinaria.</p>
-          <p><strong>Responsable:</strong> Ingresa tu nombre completo para registro interno.</p>
-          <p><strong>Periodo:</strong> Define un rango válido de fechas que abarque la solicitud.</p>
-          <hr class="my-2 border-t border-gray-300">
-          <p class="mt-2 text-xs text-gray-500">
-            ℹ️ En modo Segundo Nivel, el sistema filtra exclusivamente hospitales.
-          </p>
-          <p class="mt-2 text-xs text-gray-500">
-            💡 Todos los campos son obligatorios para habilitar el tab de solicitud.
+          <p><strong>Hospital:</strong> Escribe parte del nombre, CLUES SSA o CLUES IMB para buscar <u>hospitales
+              (Segundo Nivel)</u>.</p>
+          <p><strong>Tipo de insumo:</strong> Selecciona uno o más tipos aplicables.</p>
+          <p><strong>Tipo de pedido:</strong> Elige <em>Ordinaria</em> o <em>Extraordinaria</em>.</p>
+          <p><strong>Responsable:</strong> Ingresa tu nombre completo.</p>
+          <p><strong>Periodo:</strong> Selecciona el rango de fechas que abarca la solicitud.</p>
+
+          <p class="mt-2 text-xs text-gray-600">ℹ️ En Segundo Nivel solo verás hospitales.</p>
+          <p class="mt-1 text-xs text-gray-600">💡 Completa todos los campos para habilitar la pestaña
+            <em>Solicitud</em>.
           </p>
         </ng-template>
 
         <hr class="my-2 border-t border-gray-300">
+        <p class="text-xs text-gray-600">
+          👀 Tip: Al cambiar de unidad, los conteos y listas se reinician para evitar arrastres de información.
+        </p>
       </div>
-
 
       <!-- Sección de SOLICITUD -->
       <div *ngSwitchCase="'solicitud'" class="text-sm text-gray-700 space-y-2">
         <hr class="my-2 border-t border-gray-300">
-        <h3 class="font-semibold text-green-700">📦 Captura de artículos</h3>
+        <h3 class="font-semibold text-green-700">📦 Captura e importación de artículos</h3>
         <hr class="my-2 border-t border-gray-300">
 
         <ul class="pl-5 list-disc space-y-1">
-          <li><strong>Clave:</strong> Escribe al menos 3 caracteres para activar el autocompletado.</li>
-          <li><strong>Descripción y unidad:</strong> Se llenan automáticamente, pero puedes editarlas.</li>
-          <li><strong>Cantidad:</strong> Solo se permiten valores mayores a 0 y menores a 99999.</li>
-          <li><strong>Edición:</strong> Puedes modificar cantidades o eliminar renglones antes de exportar.</li>
-          <li><strong>Exportación:</strong> Al finalizar, nombra el archivo y se descargará en Excel.
-            Opcionalmente, puedes generar también un archivo de <em>precarga</em> para reutilizarlo en futuras capturas
-            o compartirlo con otros usuarios.
+          <li><strong>Clave:</strong> Escribe al menos 3 caracteres para activar el autocompletado. Usa
+            <kbd>↑</kbd>/<kbd>↓</kbd> y <kbd>Enter</kbd> para elegir.
+          </li>
+          <li><strong>Descripción / Unidad:</strong> Se llenan automático; puedes ajustarlas si hace falta.</li>
+          <li><strong>Cantidad:</strong> Debe ser mayor a 0 y menor a 99,999.</li>
+          <li><strong>Edición rápida:</strong> Antes de exportar puedes corregir cantidades o eliminar renglones.</li>
+        </ul>
+
+        <hr class="my-2 border-t border-gray-300">
+
+        <h4 class="font-semibold text-green-700">🧩 Reglas de KIT y CPM</h4>
+        <ul class="pl-5 list-disc space-y-1">
+          <li>
+            <strong>Claves del KIT:</strong>
+            Cuando la opción “<em>Limitar a KIT</em>” esté activa, <u>solo</u> podrás capturar, importar y exportar
+            claves que formen parte del KIT de la unidad. Las que no pertenezcan al KIT serán bloqueadas y verás un
+            aviso.
+          </li>
+          <li>
+            <strong>CPM:</strong> Los números de CPM y existencias se actualizan automáticamente cada 24 h.
+            Puedes refrescarlos manualmente con el botón de recarga.
           </li>
         </ul>
 
         <hr class="my-2 border-t border-gray-300">
 
-        <ng-container *ngIf="storageSolicitudService.getModoCapturaSolicitud() === 'PRIMER_NIVEL'; else segundoNivel">
-          <p class="mt-2 text-xs text-gray-500">
-            ⚠️ En Primer Nivel solo es posible capturar claves autorizadas específicas para unidades médicas de este
-            nivel,
-            principalmente medicamentos básicos definidos por Abasto. Si tienes dudas, consulta el listado oficial.
-          </p>
-        </ng-container>
+        <h4 class="font-semibold text-green-700">📥 Importar desde Excel</h4>
+        <ul class="pl-5 list-disc space-y-1">
+          <li>Selecciona el archivo. El sistema combina duplicados automáticamente.</li>
+          <li>Si la opción “<em>Limitar a KIT</em>” está activa, las claves fuera del KIT se <u>excluirán</u> para esta
+            unidad.</li>
+          <li>Si tu archivo usa plantilla oficial, el sistema reconoce encabezados y posiciones típicas.</li>
+        </ul>
 
-        <ng-template #segundoNivel>
-          <p class="mt-2 text-xs text-gray-500">
-            ℹ️ Las claves que comienzan con 060, 070 o 080 se muestran conforme al Compendio Nacional de Insumos,
-            sin sufijos locales como “.00”. Esto es completamente normal y no afecta su validez.
-            Existen algunas excepciones específicas donde claves con sufijos diferentes se incluyen deliberadamente
-            (por ejemplo, para distinguir calibres u otras variantes relevantes).
-          </p>
-        </ng-template>
-
-        <p class="mt-1 text-xs text-gray-500">
-          ⚙️ Los datos de CPM y existencias se refrescan automáticamente cada 24 horas, o manualmente usando el botón de
-          recarga.
-        </p>
         <hr class="my-2 border-t border-gray-300">
+
+        <h4 class="font-semibold text-green-700">📤 Exportar</h4>
+        <ul class="pl-5 list-disc space-y-1">
+          <li>Al finalizar, nombra el archivo y descarga en Excel.</li>
+          <li>Opcionalmente, puedes generar una <em>precarga</em> para reutilizarla o compartirla.</li>
+          <li>Con “<em>Limitar a KIT</em>” activo, el Excel solo incluirá las claves permitidas.</li>
+        </ul>
+
+        <p class="mt-1 text-xs text-gray-600">
+          ℹ️ Las claves del Compendio pueden mostrarse sin sufijos locales (p. ej. “.00”). Esto es normal y no afecta su
+          validez.
+          En casos puntuales se incluyen variantes específicas (p. ej. calibres).
+        </p>
+
+        <hr class="my-2 border-t border-gray-300">
+        <p class="text-xs text-gray-600">
+          🛟 Si ves “Clave fuera de KIT”, revisa el listado de tu unidad o consulta con Abasto para confirmar.
+        </p>
       </div>
-
     </ng-container>
-
 
     <button (click)="guiaVisible = false"
       class="absolute top-2 right-2 text-gray-500 text-lg font-bold hover:text-gray-700">×</button>
   </div>
 </div>
 
+
 <!-- Modal flotante para avisar que se están cargando los CPMS o existencias -->
-<div
-  *ngIf="(inventarioService.cargandoCPMS$| async) || refrescandoCPMSdesdeLayout() || (inventarioService.cargandoInventario$| async)"
+<div *ngIf=" refrescandoCPMSdesdeLayout() || (inventarioService.cargandoInventario$| async)"
   class="z-50 fixed inset-0 flex items-center justify-center pointer-events-none">
 
-  @let mensaje = (inventarioService.cargandoCPMS$| async) || refrescandoCPMSdesdeLayout() ? 'CPMs' : '';
+  @let mensaje = refrescandoCPMSdesdeLayout() ? 'CPMs' : '';
 
   <div
     class="flex items-center gap-2 px-6 py-4 w-120 text-green-900 text-center text-base font-semibold bg-white/90 rounded-xl border-green-300 shadow-lg border sm:w-120">
@@ -166,51 +181,77 @@
 </div>
 
 <!-- Modal de información general -->
-<div *ngIf="acercaDeVisible" class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-  <div class="relative p-12 max-w-fit w-full bg-white rounded-lg shadow-lg">
-    @let anio = anioActual();
-    <div class="mx-auto max-w-xl text-center">
-      <h2 class="mb-6 text-3xl font-bold text-green-800">📋 Acerca de esta aplicación </h2>
-      <p class="text-sm text-gray-700">
-        Esta herramienta es un apoyo en piloto para capturar solicitudes de insumos médicos en IMSS-Bienestar Baja
-        California.
-      </p>
-      <p class="text-sm text-gray-700">
-        Facilita pedidos ordinarios y extraordinarios, con validaciones, precargas y exportación a Excel.
-      </p>
-      <p class="mb-6 text-sm text-gray-700">
-        No reemplaza sistemas oficiales.
-      </p>
-      <div class="p-6 text-left bg-green-50 border-green-200 rounded-lg shadow-sm border">
-        <div class="space-y-4">
-          <div>
-            <p class="font-semibold text-gray-800">Coordinador Institucional del Proyecto</p>
-            <p class="text-gray-600">Lic. Héctor Manuel Avelar Morales</p>
-          </div>
-          <div>
-            <p class="font-semibold text-gray-800">Referente Técnico-Operativo <span
-                class="text-sm text-gray-500">(Lineamientos de Abasto)</span></p>
-            <p class="text-gray-600">Lic. Elia Del Carmen Rojas Villalas / Lic. Abril Núñez Madrid</p>
-          </div>
-          <div>
-            <p class="font-semibold text-gray-800">Diseño y Desarrollo Tecnológico</p>
-            <p class="text-gray-600">Ing. Mario Arturo Serrano Flores </p>
-          </div>
-        </div>
+<div *ngIf="acercaDeVisible" class="z-[100] fixed inset-0 grid place-items-center bg-black/50 backdrop-blur-sm">
+  @let anio = anioActual();
+  <div role="dialog" aria-modal="true" aria-labelledby="about-title"
+    class="relative w-[min(92vw,760px)] bg-white rounded-2xl border-gray-200 shadow-xl border">
+
+    <!-- Cerrar -->
+    <button (click)="acercaDeVisible = false" aria-label="Cerrar"
+      class="absolute top-3 right-3 grid place-items-center h-8 w-8 text-gray-500 rounded-full hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500">×</button>
+
+    <div class="px-6 pt-8 pb-6 sm:px-8">
+      <!-- Encabezado -->
+      <div class="flex items-center justify-center gap-3 mb-4">
+        <div class="grid place-items-center h-10 w-10 text-green-700 text-xl bg-green-100 rounded-full">📋</div>
+        <h2 id="about-title" class="text-3xl font-bold text-green-800">
+          Acerca de esta aplicación
+        </h2>
       </div>
 
-      <div class="mt-6 text-sm text-gray-500">
-        &copy; {{ anio }} IMSS Bienestar - Baja California
+      <!-- Intro / disclaimers -->
+      <div class="text-center text-sm text-gray-700 space-y-2">
+        <p>Esta herramienta es de apoyo operativo en fase piloto para la captura de solicitudes en IMSS-Bienestar Baja
+          California.</p>
+        <p class="font-medium text-gray-800">
+          No sustituye ni reemplaza sistemas institucionales oficiales.
+          Las decisiones y validaciones deben sustentarse en la información emitida por los sistemas y áreas
+          responsables.
+        </p>
+      </div>
+
+      <!-- Alcance de datos (llamado visual) -->
+      <div class="mt-4 p-4 text-amber-900 bg-amber-50 rounded-lg border-amber-200 border sm:p-5">
+        <p class="mb-1 font-semibold">Alcance de datos</p>
+        <p class="text-sm">
+          Las <em>existencias</em> y los <em>CPM</em> mostrados son <em>cortes informativos</em> (“snapshot”)
+          con actualización periódica; pueden presentar desfases respecto al inventario/consumo real.
+          No constituyen información en tiempo real ni evidencia oficial.
+        </p>
+        <p class="mt-2 text-xs opacity-90">
+          En caso de discrepancias, prevalece la información de los sistemas institucionales y los registros
+          patrimoniales de almacén.
+        </p>
+      </div>
+
+      <!-- Créditos -->
+      <div class="mt-6 p-5 bg-green-50/60 rounded-xl border-green-200 border">
+        <dl class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <dt class="font-semibold text-gray-800">Coordinador Institucional del Proyecto</dt>
+            <dd class="text-gray-700">Lic. Héctor Manuel Avelar Morales</dd>
+          </div>
+          <div>
+            <dt class="font-semibold text-gray-800">Diseño y Desarrollo Tecnológico</dt>
+            <dd class="text-gray-700">Ing. Mario Arturo Serrano Flores</dd>
+          </div>
+          <div class="sm:col-span-2">
+            <dt class="font-semibold text-gray-800">
+              Referente Técnico-Operativo <span class="text-xs text-gray-500">(Lineamientos de Abasto)</span>
+            </dt>
+            <dd class="text-gray-700">Lic. Elia Del Carmen Rojas Villalas / Lic. Abril Núñez Madrid</dd>
+
+          </div>
+        </dl>
+      </div>
+
+      <!-- Pie -->
+      <div class="mt-6 text-center text-xs text-gray-500">
+        &copy; {{ anio }} IMSS Bienestar - Baja California - Version 5.0.1
       </div>
     </div>
-
-
-    <button (click)="acercaDeVisible = false"
-      class="absolute top-2 right-2 text-gray-500 text-lg font-bold cursor-pointer hover:text-gray-700">×</button>
   </div>
-
 </div>
 
 <app-survey-nudge></app-survey-nudge>
 <app-survey-modal></app-survey-modal>
-<ng-fast-toast></ng-fast-toast>

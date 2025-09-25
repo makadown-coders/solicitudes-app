@@ -1,0 +1,9 @@
+/* Elevar toasts por encima de cualquier overlay */
+ng-fast-toast, 
+ng-fast-toast .ngft-container {
+  z-index: 99999 !important;
+}
+
+/* opcional: evita que el contenedor bloquee clics fuera del propio toast */
+ng-fast-toast .ngft-container { pointer-events: none; }
+ng-fast-toast .ngft-toast { pointer-events: auto; }

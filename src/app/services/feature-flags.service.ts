@@ -23,7 +23,8 @@ export class FeatureFlagsService {
             BUSCAR_EXISTENCIA_EN_CLUES: undefined,
             APLICAR_ENCUESTAS: undefined,
             APLICAR_EQUIVALENCIAS: undefined,
-            CLUES_EXISTENCIAS_ALLOWLIST: undefined
+            CLUES_EXISTENCIAS_ALLOWLIST: undefined,
+            IMPORT_LIMIT_TO_KIT: undefined
         };
     }
 
