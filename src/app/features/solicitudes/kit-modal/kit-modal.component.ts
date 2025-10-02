@@ -100,9 +100,9 @@ export class KitModalComponent implements OnInit {
             try { await firstValueFrom(this.cpmService.ensureForCluesimb(clues)); } catch { /* noop */ }
         }
 
-        await this.ensureDescripcionIndex();
+        await this.ensureDescripcionIndex();        
         await this.loadKit();             // construye filas CPM + AZM/AZE/AZT
-        this.loadExistenciasForUnit();    // mezcla existencias por unidad + reorden
+        this.loadExistenciasForUnit();    // mezcla existencias por unidad + reorden        
     }
 
     // ===== Construcción de filas del KIT =====
@@ -126,17 +126,18 @@ export class KitModalComponent implements OnInit {
                 })
                 .sort((a, b) => a.clave.localeCompare(b.clave));
 
-            const conCpm = kit.filter(r => r.cpm > 0).length;
-            const conExist = kit.filter(r => r.total > 0).length;
-            const existTotal = kit.reduce((acc, r) => acc + r.total, 0);
+            // Estadísticas preliminares (antes de existencias por unidad)
+            const conCpm = 0; //kit.filter(r => +r.cpm > 0).length;
+            const conExist = 0; //kit.filter(r => +r.total > 0).length;
+            const existTotal = 0; // kit.reduce((acc, r) => (+acc) + (+r.total), 0);
 
             this.kitRows = kit;
             this.kitStats = {
                 total: kit.length,
                 conCpm,
-                sinCpm: kit.length - conCpm,
+                sinCpm: 0, // kit.length - conCpm,
                 conExist,
-                sinExist: kit.length - conExist,
+                sinExist: 0, // kit.length - conExist,
                 existTotal
             };
             this.cdRef.markForCheck();
@@ -158,6 +159,11 @@ export class KitModalComponent implements OnInit {
         }
         this.loading = true;
         console.log('loadExistenciasForUnit', clues);
+        this.kitStats.conCpm = 0;
+        this.kitStats.sinCpm = 0;
+        this.kitStats.conExist = 0;
+        this.kitStats.sinExist = 0;
+        this.kitStats.existTotal = 0;
         this.existSvc.byUnidad(clues).subscribe({
             next: (rows: ExistUnidadRow[]) => {
                 this.existUnidadIndex.clear();
@@ -191,6 +197,12 @@ export class KitModalComponent implements OnInit {
             const exist = this.existUnidadIndex.get(clave) || 0;
             r.existUnidad = exist;
             r.reordenSug = this.computeReorden(Number(r.cpm || 0), exist);
+            // Estadísticas
+            if ((Number(r.cpm) || 0) > 0) this.kitStats.conCpm++;
+            else this.kitStats.sinCpm++;
+            this.kitStats.existTotal += Number(r.existUnidad) || 0;
+            if ((Number(r.existUnidad) || 0) > 0) this.kitStats.conExist++;
+            else this.kitStats.sinExist++;
         }
         this.cdRef.markForCheck();
     }
