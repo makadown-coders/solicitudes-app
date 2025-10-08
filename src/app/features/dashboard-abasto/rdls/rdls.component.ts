@@ -289,7 +289,7 @@ export class RdlSComponent implements OnInit, OnDestroy {
     this.rows.set(rows);
   }
 
-  exportarExcelRdlS(todo: boolean = true) {
+  async exportarExcelRdlS(todo: boolean = true) {
     // 1) filas a exportar (todo lo filtrado o solo la página)
     const rows = todo ? this.filteredRows() : this.pageSlice();
 
@@ -380,6 +380,33 @@ export class RdlSComponent implements OnInit, OnDestroy {
     // 6) libro y guardar
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'RdlS');
+
+    // 7) Crear ciclo para crear una hoja por cada hospital
+    for (const existencia of Object.values(Existencias)) {
+      const items = await firstValueFrom(this.inventario.existencias$.get(existencia)!);
+      if (!Array.isArray(items) || !items.length) continue;
+      // crear hoja con el nombre del enum (existencia)      
+      const hospitalData = hospitalesData.find(h => h.key === existencia);
+      const nombreHospital = hospitalData ? hospitalData.nombre : existencia;
+      // crear un arreglo con los items agregandole la columna de nombre del hospital
+      const itemsWithHospital = items.map(item => ({ 'nombre_hospital': nombreHospital,
+        'CLAVE': item.clave,
+        'CANTIDAD': item.disponible,
+        'LOTE': item.lote,
+        'F_CAD': item.caducidad,
+        'FTE': item.fuente
+        // ...item 
+        }));
+      // crear mis headers (columnas) con nombre_hospital al inicio + las columnas del inventario
+      // las columnas del inventario las obtengo de la primera fila (suponiendo que todas tienen las mismas columnas)
+      const inventarioHeaders = items.length ? Object.keys(items[0]) : [];
+      const item_headers = ['nombre_hospital', 'CLAVE', 'CANTIDAD', 'LOTE', 'F_CAD', 'FTE'];
+
+      const wsHosp = XLSX.utils.json_to_sheet(
+          itemsWithHospital,
+          { header: [ ...item_headers] as any });
+      XLSX.utils.book_append_sheet(wb, wsHosp, hospitalData?.cluesimb || existencia);
+    }
 
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');

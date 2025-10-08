@@ -268,7 +268,7 @@ export class InventarioService {
           const inventario: Inventario[] = response.map(item => {
             const nuevoRegistro: Inventario = new Inventario();
             nuevoRegistro.clave = item.clave_cnis;
-            nuevoRegistro.partida = item.lote || '';
+            nuevoRegistro.partida = ''; // item.lote || '';
             nuevoRegistro.descripcion = '';
             nuevoRegistro.disponible = item.existencia;
             nuevoRegistro.almacen = 'HOSPITAL COMUNITARIO SAN FELIPE';
