@@ -5,10 +5,18 @@
             Solicitud de artículos {{ modoStandalone ? '' : ('para ' + (tituloUnidad$ | async)) }}
         </h1>
 
-        <button class="self-start px-3 py-2 text-white text-sm bg-emerald-600 rounded hover:bg-emerald-700 sm:self-auto"
-            (click)="abrirKitModal()">
-            Ver claves del KIT para esta unidad
-        </button>
+        <div class="justify-items-end">
+            <button
+                class="self-start px-3 py-2 text-white text-sm bg-emerald-700 cursor-pointer rounded hover:bg-emerald-500 sm:self-auto"
+                (click)="abrirCpmModal()">
+                Agregar por CPM
+            </button>
+            <button
+                class="self-start px-3 py-2 text-white text-sm bg-emerald-600 cursor-pointer rounded hover:bg-emerald-800 sm:self-auto"
+                (click)="abrirKitModal()">
+                Agregar por KIT
+            </button>
+        </div>
     </div>
 
     <div class="relative mt-4 space-y-2">
@@ -170,3 +178,9 @@
     [inventarioDisponible]="inventarioDisponible" [existingClaves]="existingClavesList" [defaultQtyNoCpm]="1"
     (addToSolicitud)="onKitAdd($event)" (close)="kitModalVisible = false">
 </app-kit-modal>
+
+<app-cpm-modal *ngIf="cpmModalVisible" [cluesimb]="cluesimbActual" [inventarioDisponible]="inventarioDisponible"
+    [tituloUnidad]="modoStandalone ? '' : (tituloUnidad$ | async) || ''" [mostrarUnidadEnTitulo]="!modoStandalone"
+    [existingClaves]="existingClavesList" (addToSolicitud)="onKitAdd($event)"
+    (close)="cpmModalVisible=false">
+</app-cpm-modal>
