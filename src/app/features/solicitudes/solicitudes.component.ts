@@ -24,9 +24,9 @@ import { CpmRowLite } from '../../models/CpmExpectedRow';
 import { EnrichedProps } from '../../models/EnrichedProps';
 import { NgFastToastService } from 'ng-fast-toast';
 import { ExistenciasTempService } from '../../services/existencias-temp.service';
-import { ColKey } from '../../models/ColKey';
 import { KitModalComponent } from './kit-modal/kit-modal.component';
 import { CpmUnionRow } from '../../models/CpmUnionRow';
+import { CpmModalComponent } from './cpm-modal/cpm-modal.component';
 
 
 @Component({
@@ -37,7 +37,8 @@ import { CpmUnionRow } from '../../models/CpmUnionRow';
     ConfirmacionModalComponent,
     TablaArticulosComponent,
     RouterModule,
-    KitModalComponent
+    KitModalComponent,
+    CpmModalComponent
   ],
   templateUrl: './solicitudes.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -980,6 +981,14 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   /*************************************************************************************/
   /*************************************************************************************/
   kitModalVisible = false;
+  cpmModalVisible = false;  
+
+  /** PARA MODAL DE CLAVES POR CPM */
+  abrirCpmModal(){
+    // forzar recarga de this.datosClues de localstorageService porque este componente no lo recarga
+    this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
+    this.cpmModalVisible = true;
+  }
 
   /** PARA MODAL DE CLAVES DE KIT */
   abrirKitModal() {
@@ -988,7 +997,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.kitModalVisible = true;
   }
 
-  // recibe lo que emite el modal y lo integra (respetando tu flujo actual)
+  /** Recibe lo que emite el modal (por CPM o por kit) y 
+   * lo integra (respetando tu flujo actual)
+   */
   onKitAdd(items: ArticuloSolicitud[]) {
     if (!items?.length) return;
     const ya = new Set(this.existingClavesList);

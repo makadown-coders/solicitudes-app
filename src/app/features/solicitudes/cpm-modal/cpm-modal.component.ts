@@ -1,0 +1,390 @@
+import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ArticulosService } from '../../../services/articulos.service';
+import { ExistenciasTempService } from '../../../services/existencias-temp.service';
+import { CpmEditorService } from '../../../services/cpm-editor.service'; // usa tu servicio actual de CPM
+import { ArticuloSolicitud } from '../../../models/articulo-solicitud';
+import { firstValueFrom } from 'rxjs';
+import { InventarioDisponibles } from '../../../models';
+import { InventarioService } from '../../../services/inventario.service';
+import { NgFastToastService } from 'ng-fast-toast';
+
+type Row = {
+  clave: string;
+  cpm: number;
+  exist?: number;
+  descripcion?: string;
+  presentacion?: string;
+  azm?: number;
+  aze?: number;
+  azt?: number;
+  // UI
+  _sel?: boolean;
+};
+
+@Component({
+  selector: 'app-cpm-modal',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './cpm-modal.component.html',
+  styleUrls: ['./cpm-modal.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class CpmModalComponent {
+  // ---------- Inputs/Outputs iguales al kit en lo posible ----------
+  @Input({ required: true }) cluesimb!: string;
+  @Input() tituloUnidad: string = '';
+  @Input() mostrarUnidadEnTitulo = true;
+  @Input() existingClaves: string[] = [];
+  /** Inventario estatal por almacén (AZM/AZE/AZT) para enriquecer filas */
+  @Input() inventarioDisponible: InventarioDisponibles[] = [];
+
+  @Output() addToSolicitud = new EventEmitter<ArticuloSolicitud[]>();
+  @Output() close = new EventEmitter<void>();
+
+  // ---------- DI ----------
+  private arts = inject(ArticulosService);
+  private existApi = inject(ExistenciasTempService);
+  private cpmApi = inject(CpmEditorService);
+  private invSvc = inject(InventarioService);
+  private toast = inject(NgFastToastService);
+
+  // ---------- UI state ----------
+  loading = signal(true);
+  busy = signal(false);
+  filterText = signal('');
+  mesesCobertura = signal(1);
+
+  // TODO: QUITAR showExistUnidad
+  showExistUnidad = signal(true);
+
+  hasUnidadExist = signal(false);
+  totalClaves = computed(() => this.rows().length);
+  conExistencias = computed(() => this.rows().filter(r => (r.exist ?? 0) > 0).length);
+  sinExistencias = computed(() => Math.max(0, this.totalClaves() - this.conExistencias()));
+  existenciasTotales = computed(() => this.rows().reduce((acc, r) => acc + (Number(r.exist ?? 0) || 0), 0));
+
+  // helper formato
+  fmt(n: number) { return (n ?? 0).toLocaleString('es-MX'); }
+
+  // Si el reorden ya viene como TOTAL X meses, no multiplicamos otra vez.
+  private reordenEsTotal = false;
+
+  rows = signal<Row[]>([]);
+  skeletonRows = Array.from({ length: 8 });
+  selectedSet = new Set<string>();
+
+  // Mensajes amigables post-import
+  importMsg = signal<string>('');
+  importDetail = signal<string>('');
+  importIsError = signal<boolean>(false);
+
+  ngOnInit() { this.cargar(); }
+
+  private async cargar() {
+    this.loading.set(true);
+    try {
+      // 1) Trae CPMs de la unidad (tal como haces en el editor de CPM)
+      const cpmsResp = await firstValueFrom(this.cpmApi.getByUnidadAll(this.cluesimb));
+      const rowsBase: Row[] = (cpmsResp?.rows ?? [])
+        .filter(r => (r.cpm ?? 0) > 0)
+        .map(r => ({ clave: r.clave_cnis, cpm: Number(r.cpm ?? 0) }));
+
+      // 2) Enriquecer con mapa de artículos local
+      const mapa = await firstValueFrom(this.arts.getArticulosMapaFromLocal());
+      const enriched = rowsBase.map(r => {
+        const meta = mapa?.[r.clave];
+        return { ...r, descripcion: meta?.descripcion ?? '', presentacion: meta?.presentacion ?? '' };
+      });
+
+      // 🔽 intenta cargar existencias de la unidad; si no hay, no mostramos columna
+      let idx = new Map<string, number>();
+      try {
+        const ex = await firstValueFrom(this.existApi.byUnidad(this.cluesimb));
+        idx = new Map<string, number>(ex!.map(x => [x.clave_cnis, x.existencia_total ?? 0]));
+      } catch { /* sin existencias es válido */ }
+
+      const withExist = enriched.map(r => ({ ...r, exist: idx.get(r.clave) ?? 0 }));
+      const withStores = withExist.map(r => {
+        const { azm, aze, azt } = this.getAlmacenesFor(r.clave);
+        return { ...r, azm, aze, azt };
+      });
+      this.rows.set(withStores);
+      this.hasUnidadExist.set([...idx.values()].some(v => (v ?? 0) > 0));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  /** Intenta obtener AZM/AZE/AZT para una clave sin asumir estructura exacta. */
+  private getAlmacenesFor(clave: string): { azm: number; aze: number; azt: number } {
+    const K = this.invSvc.normalizarClave(clave);
+    let src: InventarioDisponibles[] = this.inventarioDisponible.filter(d => d.clave === K || d.clave === clave) ?? [];
+    if (!src) return { azm: 0, aze: 0, azt: 0 };
+
+    // establecer src como un array de valores unicos (por si acaso) de clave+existenciaAZM+existenciaAZE+existenciaAZT
+    const seen = new Set<string>();
+    src = src.filter(d => {
+      const key = `${d.clave}|${d.existenciasAZM}|${d.existenciasAZE}|${d.existenciasAZT}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+
+    // 3) Array<{ clave|clave_cnis, almacen|bodega|origen, existencia }>
+    console.log('getAlmacenesFor', clave, src);
+
+    let azm = 0, aze = 0, azt = 0;
+    for (const r of src) {
+      azm += r.existenciasAZM ?? 0;
+      aze += r.existenciasAZE ?? 0;
+      azt += r.existenciasAZT ?? 0;
+    }
+    return { azm, aze, azt };
+  }
+
+  async onToggleExistUnidad(v: boolean) {
+    this.showExistUnidad.set(v);
+    if (!v) {
+      this.rows.update(list => list.map(r => ({ ...r, exist: undefined })));
+      return;
+    }
+    this.busy.set(true);
+    try {
+      const ex = await firstValueFrom(this.existApi.byUnidad(this.cluesimb));
+      const idx = ex ?
+        new Map<string, number>(ex!.map(r => [r.clave_cnis, r.existencia_total ?? 0]))
+        : new Map<string, number>();
+      this.rows.update(list => list.map(r => ({ ...r, exist: idx.get(r.clave) ?? 0 })));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  toggleSelTodo(checked: boolean) {
+    const next = new Set<string>(this.selectedSet);
+    const visibles = this.rowsFiltered();
+
+    if (checked) {
+      for (const r of visibles) {
+        if (this.sugerencia(r) > 0) next.add(r.clave);
+        else next.delete(r.clave);
+      }
+    } else {
+      for (const r of visibles) next.delete(r.clave);
+    }
+
+    this.selectedSet = next;
+    this.rows.update(list => list.map(r => ({ ...r, _sel: next.has(r.clave) })));
+  }
+
+  eligibleVisibleCount = computed(() =>
+    this.rowsFiltered().filter(r => this.sugerencia(r) > 0).length
+  );
+
+  toggleSelUno(clave: string, checked: boolean) {
+    if (checked) this.selectedSet.add(clave); else this.selectedSet.delete(clave);
+    this.rows.update(list => list.map(r => r.clave === clave ? ({ ...r, _sel: checked }) : r));
+  }
+
+  rowsFiltered = computed(() => {
+    const q = this.filterText().trim().toLowerCase();
+    if (!q) return this.rows();
+    return this.rows().filter(r =>
+      r.clave.toLowerCase().includes(q) ||
+      (r.descripcion ?? '').toLowerCase().includes(q) ||
+      (r.presentacion ?? '').toLowerCase().includes(q)
+    );
+  });
+
+  // ---------- Cantidad final (anti-doble cobertura) ----------
+  private factorPara(fuente: 'cpm' | 'reorden' | 'default') {
+    return (fuente === 'reorden' && this.reordenEsTotal) ? 1 : Math.max(1, Math.floor(this.mesesCobertura() || 1));
+  }
+
+  private qtyPara(r: Row): { qty: number; fuente: 'cpm' | 'reorden' | 'default' } {
+    const meses = Math.max(1, Math.floor(this.mesesCobertura() || 1));
+    let base = 0;
+    let fuente: 'cpm' | 'reorden' | 'default' = 'default';
+
+    // CPM SIEMPRE debe ser >0 aquí, porque filtramos arriba.
+    const cpm = Number(r.cpm ?? NaN);
+    base = cpm;
+    fuente = 'cpm';
+
+    // if (!Number.isNaN(cpm) && cpm > 0) { base = cpm; fuente = 'cpm'; }
+    //else { base = Number(this.defaultQtyNoCpm || 0); fuente = 'default'; }
+
+    let reordenEsTotalLocal = false;
+    // Si activaron existencias, calcula reorden = max(CPM*meses - exist, 0)
+    if (this.hasUnidadExist() && (r.exist ?? 0) >= 0) {
+
+      // const totalCobertura = (cpm > 0 ? cpm : this.defaultQtyNoCpm) * meses;
+      const totalCobertura = cpm * meses;
+      const reorden = Math.max(0, Math.round(totalCobertura - (r.exist ?? 0)));
+      if (reorden > 0) { base = reorden; fuente = 'reorden'; reordenEsTotalLocal = true; }
+      else { base = 0; fuente = 'reorden'; reordenEsTotalLocal = true; }
+    } else {
+      this.reordenEsTotal = false;
+    }
+
+    const factor = (fuente === 'reorden' && this.reordenEsTotal) ? 1 : meses;
+    const qty = Math.max(0, Math.round((Number(base) || 0) * factor));
+    return { qty, fuente };
+  }
+
+  agregarSeleccion() {
+    const visibles = this.rowsFiltered();
+    const seleccionadas = visibles.filter(r => this.selectedSet.has(r.clave));
+
+    if (seleccionadas.length === 0) {
+      this.importIsError.set(true);
+      this.importMsg.set('Sin selección');
+      this.importDetail.set('Elige al menos una clave con cantidad sugerida > 0.');
+      this.procesarToastDesdeAgregarSeleccion();
+      return;
+    }
+
+    const existentes = new Set((this.existingClaves || []).map(x => x.trim().toUpperCase()));
+
+    const nuevos: ArticuloSolicitud[] = [];
+    let omitidasPorDup = 0;
+    let omitidasPorQty = 0;
+
+    for (const r of seleccionadas) {
+      if (existentes.has(r.clave)) { omitidasPorDup++; continue; }
+      const qty = this.sugerencia(r); // ya anti-doble y con cobertura
+      if (!qty || qty <= 0) { omitidasPorQty++; continue; }
+
+      nuevos.push({
+        clave: r.clave,
+        descripcion: r.descripcion ?? '',
+        unidadMedida: r.presentacion ?? '',
+        cantidad: qty,
+        cpm: Number(r.cpm ?? 0),
+      });
+    }
+
+    if (!nuevos.length) {
+      this.importIsError.set(true);
+      this.importMsg.set('Nada para agregar');
+      const partes: string[] = [];
+      if (omitidasPorDup > 0) partes.push(`${omitidasPorDup} duplicada${omitidasPorDup > 1 ? 's' : ''}`);
+      if (omitidasPorQty > 0) partes.push(`${omitidasPorQty} sin cantidad`);
+      this.importDetail.set(partes.length ? `Omitidas: ${partes.join(' · ')}` : 'Verifica la selección.');
+      this.procesarToastDesdeAgregarSeleccion();
+      return;
+    }
+
+    // Mensaje de éxito al estilo kit-modal
+    const agregadas = nuevos.length;
+    const partes: string[] = [];
+    if (omitidasPorDup > 0) partes.push(`${omitidasPorDup} duplicada${omitidasPorDup > 1 ? 's' : ''}`);
+    if (omitidasPorQty > 0) partes.push(`${omitidasPorQty} sin cantidad`);
+    const detalle = partes.length ? `Omitidas: ${partes.join(' · ')}` : '';
+
+    this.importIsError.set(false);
+    this.importMsg.set(`Se agregaron ${agregadas} clave${agregadas > 1 ? 's' : ''}.`);
+    this.importDetail.set(detalle);
+    this.procesarToastDesdeAgregarSeleccion();
+
+    // Emitimos a la solicitud y cerramos tras un pequeño respiro para que alcancen a leer
+    this.addToSolicitud.emit(nuevos);    // setTimeout(() => this.close.emit(), 800);
+    this.close.emit();
+  }
+  procesarToastDesdeAgregarSeleccion() {
+    if (this.importMsg()) {
+      if (this.importIsError()) {
+        this.toast.warn({ title: this.importMsg(), content: this.importDetail(), duration: 7 });
+      } else {
+        this.toast.success({ title: this.importMsg(), content: this.importDetail(), duration: 7 });
+      }
+    }
+  }
+
+  setMesesCobertura($event: number) {
+    this.mesesCobertura.set(Math.max(1, Math.floor($event || 1)));
+    // desmarca las que dejaron de requerir resurtido
+    this.toggleSelTodo(true);
+  }
+
+  seleccionarTodoToggle($event: Event) {
+    const input = $event.target as HTMLInputElement;
+    this.toggleSelTodo(input.checked);
+  }
+
+  seleccionarUnoToggle(clave: string, $event: Event) {
+    const input = $event.target as HTMLInputElement;
+    this.toggleSelUno(clave, input.checked);
+  }
+
+  trackByClave(index: number, item: any): number {
+    return item.clave;
+  }
+
+  /**
+   * Sugerencia visible en la tabla: cantidad recomendada a agregar según CPM y existencias.
+   */
+  sugerencia(r: Row) { return this.qtyPara(r).qty; }
+
+  /************************************************************************************/
+  /*********************************** EXPORTACIONES A CSV ****************************/
+  /************************************************************************************/
+  private csvEscape(s: any) {
+    const v = (s ?? '').toString().replace(/"/g, '""');
+    return /[",\n]/.test(v) ? `"${v}"` : v;
+  }
+
+  private visibleHeaders(): string[] {
+    const cols = ['Clave', 'Descripción', 'Presentación', 'CPM'];
+    if (this.hasUnidadExist()) cols.push('Exist. unidad');
+    if (this.hasAlmacenExist()) cols.push('AZM', 'AZE', 'AZT'); // ← NUEVO
+    cols.push('Cant. sugerida');
+    return cols;
+  }
+
+  private visibleRow(r: Row): any[] {
+    const base = [r.clave, r.descripcion ?? '', r.presentacion ?? '', (r.cpm ?? 0)];
+    if (this.hasUnidadExist()) base.push(r.exist ?? '');
+    if (this.hasAlmacenExist()) base.push(r.azm ?? 0, r.aze ?? 0, r.azt ?? 0); // ← NUEVO
+    base.push(this.sugerencia(r));
+    return base;
+  }
+
+  copyVisible() {
+    const headers = this.visibleHeaders();
+    const lines = [headers.join('\t')];
+    for (const r of this.rowsFiltered()) lines.push(this.visibleRow(r).join('\t'));
+    const text = lines.join('\n');
+    navigator.clipboard?.writeText(text).then(() => {
+      // opcional: toast/alert
+    });
+  }
+
+  exportCsvVisible() {
+    const headers = this.visibleHeaders().map(h => this.csvEscape(h)).join(',');
+    const rows = this.rowsFiltered()
+      .map(r => this.visibleRow(r).map(v => this.csvEscape(v)).join(','))
+      .join('\n');
+    const csv = headers + '\n' + rows;
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fecha = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `cpm-${this.cluesimb}-${fecha}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  hasAlmacenExist = computed(() =>
+    this.rows().some(r => (r.azm || 0) + (r.aze || 0) + (r.azt || 0) > 0)
+  );
+
+  selectionCount = computed(() => this.rowsFiltered().filter(r => this.selectedSet.has(r.clave)).length);
+
+}
