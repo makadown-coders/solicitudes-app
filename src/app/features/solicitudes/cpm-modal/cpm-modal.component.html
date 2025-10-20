@@ -107,7 +107,13 @@
                 <table class="sticky-head w-full text-sm compact zebra">
                     <thead>
                         <tr>
-                            <th class="px-2 py-1 w-8 border-b"></th>
+                            <th class="px-2 py-1 w-8 border-b">
+
+                                <input type="checkbox" #master [checked]="allFilteredSelected()"
+                                    [indeterminate]="someFilteredSelected()" [disabled]="eligibleVisibleCount() === 0"
+                                    (change)="toggleMasterSelection(master.checked)" />
+
+                            </th>
                             <th class="px-2 py-1 text-left border-b">Clave / Descripción</th>
                             <th class="px-2 py-1 text-left border-b">Exist. unidad</th>
                             <th class="px-2 py-1 text-left border-b">CPM</th>
@@ -138,9 +144,9 @@
                                 @let sugerenciado = sugerencia(r);
                                 <td class="px-2 py-1 font-semibold border-b">
                                     <span
-                                    [class]="(sugerenciado || 0) > 0 ? 'text-amber-700 font-semibold' : 'text-gray-500'">
-                                    {{ (sugerenciado || 0) | number }}
-                                </span>
+                                        [class]="(sugerenciado || 0) > 0 ? 'text-amber-700 font-semibold' : 'text-gray-500'">
+                                        {{ (sugerenciado || 0) | number }}
+                                    </span>
                                 </td>
                             </tr>
                             <tr *ngIf="filteredRows.length === 0">
