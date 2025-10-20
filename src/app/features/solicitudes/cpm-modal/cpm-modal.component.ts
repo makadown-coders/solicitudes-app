@@ -255,7 +255,10 @@ export class CpmModalComponent {
     for (const r of seleccionadas) {
       if (existentes.has(r.clave)) { omitidasPorDup++; continue; }
       const qty = this.sugerencia(r); // ya anti-doble y con cobertura
-      if (!qty || qty <= 0) { omitidasPorQty++; continue; }
+      if (!qty || qty < 0) { 
+        // dejare pasar las sugeridas en cero
+        omitidasPorQty++; // continue;
+      }
 
       nuevos.push({
         clave: r.clave,
@@ -270,8 +273,9 @@ export class CpmModalComponent {
       this.importIsError.set(true);
       this.importMsg.set('Nada para agregar');
       const partes: string[] = [];
+      //const partes2: string[] = [];
       if (omitidasPorDup > 0) partes.push(`${omitidasPorDup} duplicada${omitidasPorDup > 1 ? 's' : ''}`);
-      if (omitidasPorQty > 0) partes.push(`${omitidasPorQty} sin cantidad`);
+     // if (omitidasPorQty > 0) partes2.push(`${omitidasPorQty} sin cantidad (ajustar haciendo click en icono de edición)`);
       this.importDetail.set(partes.length ? `Omitidas: ${partes.join(' · ')}` : 'Verifica la selección.');
       this.procesarToastDesdeAgregarSeleccion();
       return;
@@ -280,13 +284,18 @@ export class CpmModalComponent {
     // Mensaje de éxito al estilo kit-modal
     const agregadas = nuevos.length;
     const partes: string[] = [];
+    const partes2: string[] = [];
     if (omitidasPorDup > 0) partes.push(`${omitidasPorDup} duplicada${omitidasPorDup > 1 ? 's' : ''}`);
-    if (omitidasPorQty > 0) partes.push(`${omitidasPorQty} sin cantidad`);
-    const detalle = partes.length ? `Omitidas: ${partes.join(' · ')}` : '';
+    if (omitidasPorQty > 0) partes2.push(`${omitidasPorQty} sin cantidad (ajustar haciendo click en icono de edición)`);
+    const detalle = partes.length ? `Omitidas: ${partes.join(' · ')} / ` : '';
+    const detalle2 = partes2.length ? `Corregir: ${partes2.join(' · ')}` : '';
+    /*if (omitidasPorDup > 0) partes.push(`${omitidasPorDup} duplicada${omitidasPorDup > 1 ? 's' : ''}`);
+    if (omitidasPorQty > 0) partes.push(`${omitidasPorQty} sin cantidad (ajustar haciendo click en icono de edición)`);
+    const detalle = partes.length ? `Omitidas: ${partes.join(' · ')}` : '';*/
 
     this.importIsError.set(false);
     this.importMsg.set(`Se agregaron ${agregadas} clave${agregadas > 1 ? 's' : ''}.`);
-    this.importDetail.set(detalle);
+    this.importDetail.set(detalle + (detalle2 ? ' · ' + detalle2 : ''));
     this.procesarToastDesdeAgregarSeleccion();
 
     // Emitimos a la solicitud y cerramos tras un pequeño respiro para que alcancen a leer
@@ -306,7 +315,7 @@ export class CpmModalComponent {
   setMesesCobertura($event: number) {
     this.mesesCobertura.set(Math.max(1, Math.floor($event || 1)));
     // desmarca las que dejaron de requerir resurtido
-    this.toggleSelTodo(true);
+    this.toggleSelTodo(this.showExistUnidad());
   }
 
   seleccionarTodoToggle($event: Event) {
@@ -316,7 +325,8 @@ export class CpmModalComponent {
 
   seleccionarUnoToggle(clave: string, $event: Event) {
     const input = $event.target as HTMLInputElement;
-    this.toggleSelUno(clave, input.checked);
+    if (input.checked) this.selectedSet.add(clave); else this.selectedSet.delete(clave);
+    this.rows.update(list => list.map(r => r.clave === clave ? ({ ...r, _sel: input.checked }) : r));
   }
 
   trackByClave(index: number, item: any): number {
@@ -386,5 +396,37 @@ export class CpmModalComponent {
   );
 
   selectionCount = computed(() => this.rowsFiltered().filter(r => this.selectedSet.has(r.clave)).length);
+
+  // Todas las visibles elegibles están seleccionadas
+  allFilteredSelected = computed(() => {
+    const eligibles = this.rowsFiltered();//.filter(r => this.sugerencia(r) > 0);
+    if (eligibles.length === 0) return false;
+    return eligibles.every(r => this.selectedSet.has(r.clave));
+  });
+
+  // Algunas (pero no todas) visibles elegibles están seleccionadas
+  someFilteredSelected = computed(() => {
+    const eligibles = this.rowsFiltered();
+    // if (eligibles.length === 0) return false;
+    const selected = eligibles.filter(r => this.selectedSet.has(r.clave)).length;
+    return selected > 0 && selected < eligibles.length;
+  });
+
+  toggleMasterSelection(checked: boolean) {
+    const eligibles = this.rowsFiltered();
+    const next = new Set(this.selectedSet);
+
+    if (checked) {
+      for (const r of eligibles) next.add(r.clave);
+    } else {
+      for (const r of eligibles) next.delete(r.clave);
+    }
+
+    this.selectedSet = next;
+    // reflejar en _sel solo lo visible (más rápido y congruente con UI)
+    this.rows.update(list => list.map(r =>
+      eligibles.some(e => e.clave === r.clave) ? ({ ...r, _sel: next.has(r.clave) }) : r
+    ));
+  }
 
 }
