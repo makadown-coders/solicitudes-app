@@ -50,7 +50,7 @@
       <div [hidden]="activeTab !== 'Existencias (CPM)'">
         <app-existencias [citas]="citas"></app-existencias>
       </div>
-      <div [hidden]="activeTab !== 'Proveedores y entregas'">
+      <div [hidden]="activeTab !== 'Citas Completadas'">
         <app-proveedores [citas]="citas"></app-proveedores>
       </div>
       <div [hidden]="activeTab !== 'Citas pendientes'">
@@ -62,7 +62,7 @@
       <div [hidden]="activeTab !== 'Entregas pendientes'">
         <app-resumen-citas [citas]="citas"></app-resumen-citas>
       </div>
-      <div [hidden]="activeTab !== 'Inventario (beta)'">
+      <div [hidden]="activeTab !== 'Existencias (beta)'">
         <app-inventario-tab></app-inventario-tab>
       </div>
       <div [hidden]="activeTab !== 'RdlS'">

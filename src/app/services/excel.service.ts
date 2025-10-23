@@ -388,7 +388,7 @@ export class ExcelService {
                 fecha_de_cita: formatFecha(r.fecha_de_cita),
                 fecha_recepcion_almacen: r.fecha_recepcion_almacen ?? '',
                 fecha_limite_de_entrega: formatFecha(r.fecha_limite_de_entrega),
-                observacion: r.observacion,
+               // observacion: r.observacion,
                 estatus: r.estatus
             });
         });

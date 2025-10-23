@@ -31,7 +31,7 @@ export class Cita {
   evidencia: string;
   carga: string;
   fecha_de_cita: Date | null;
-  observacion: string;
+ // observacion: string;
 }
 
 
@@ -69,5 +69,5 @@ export interface CitaRow {
   28?: string; // evidencia
   29?: string; // carga
   30?: string | Date | null; // fechaCita
-  31?: string; // observacion
+ // 31?: string; // observacion
 }

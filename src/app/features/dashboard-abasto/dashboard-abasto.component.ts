@@ -49,11 +49,11 @@ export class DashboardAbastoComponent implements OnInit {
   // controla la pestaña activa
   tabs = ['Resumen',
     'Existencias (CPM)',
-    'Proveedores y entregas',
+    'Citas Completadas',
     'Citas pendientes',
     'Cumplimiento Claves',
     'Entregas pendientes',
-    'Inventario (beta)',
+    'Existencias (beta)',
     'RdlS',
     'Acerca de'];
   activeTab = 'Resumen';

@@ -25,7 +25,7 @@ export const enum StorageVariables {
     DASH_ABASTO_RESUMEN_ESTATUS = 'dash_abasto_resumen_estatus',
     DASH_ABASTO_RESUMEN_TIPOS_ENTREGA = 'dash_abasto_resumen_tipos_entrega',
     DASH_ABASTO_RESUMEN_COMPRAS = 'dash_abasto_resumen_compras',
-    // Dashboard Abasto tab Proveedores y entregas
+    // Dashboard Abasto tab Citas Completadas
     DASH_ABASTO_PROV_FILTRO_PROVEEDOR = 'dash_abasto_prov_filtro_proveedor',
     DASH_ABASTO_PROV_FILTRO_UNIDAD = 'dash_abasto_prov_filtro_unidad',
     DASH_ABASTO_PROV_FILTRO_COMPRA = 'dash_abasto_prov_filtro_compra',

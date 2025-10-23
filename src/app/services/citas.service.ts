@@ -23,39 +23,23 @@ export class CitasService {
     return this.mapCluesUnidad.get(unidad);
   }
 
-  obtenerCitas(
-    page = 1,
-    limit = 10,
-    filtros: Partial<Cita> = {},
-    search = '', sortBy = 'fecha_de_cita', sortOrder: 'ASC' | 'DESC' = 'DESC') {
-    let params = new HttpParams()
-      .set('page', page)
-      .set('limit', limit)
-      .set('sortBy', sortBy)
-      .set('sortOrder', sortOrder);
-
-    if (search.trim()) {
-      params = params.set('search', search.trim());
-    }
-
-    // Agregar todos los filtros como query params
-    Object.entries(filtros).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        params = params.set(key, value.toString());
-      }
-    });
-
-    return this.http.get<PaginacionCitas>(this.apiUrl, { params });
+  init(reset = true) {
+    return this.http.post<{ ok: true }>(`${this.apiUrl}/init?reset=${reset}`, {});
   }
 
-  buscarOrdenes(q: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/buscar-orden?q=${encodeURIComponent(q)}`);
+  batch(rows: Cita[]) {
+    return this.http.post<{ inserted: number }>(`${this.apiUrl}/batch`, { rows });
   }
 
+  /**
+   * En vias de deprecación!
+   * @param base64 
+   * @returns 
+   */
   obtenerCitasDeBase64(base64: string): Cita[] {
 
     // console.info('🔁 Obteniendo info con Power Automate');
-    let citasRetorno: Cita[] = [];    
+    let citasRetorno: Cita[] = [];
     let fila: any = null;
     let citaProcesando: any = null;
     let corriendoCiclo = false;
@@ -139,7 +123,7 @@ export class CitasService {
           fila[30] :
           (this.fechaService.excelDateToDatestring(fila[30] + '')))! as Date | null;
         // columnas 31 y 32 no se usan en el excel        
-        const observacion = fila[33];
+        // const observacion = fila[33];
 
         const nuevoRegistro: Cita = new Cita();
         nuevoRegistro.ejercicio = ejercicio;
@@ -175,7 +159,7 @@ export class CitasService {
         nuevoRegistro.evidencia = evidencia;
         nuevoRegistro.carga = carga ?? null;
         nuevoRegistro.fecha_de_cita = fechaCita;
-        nuevoRegistro.observacion = observacion;
+        //nuevoRegistro.observacion = observacion;
 
         citasRetorno.push(nuevoRegistro);
       }
@@ -209,7 +193,7 @@ export class CitasService {
         }
         if (cita.unidad?.trim() == 'Almacén Zona Ensenada') {
           cita.unidad = cita.unidad.toLocaleUpperCase();
-        }        
+        }
       });
       corriendoCicloCitas = false;
 
