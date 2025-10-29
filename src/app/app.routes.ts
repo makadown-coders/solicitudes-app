@@ -44,6 +44,11 @@ export const routes: Routes = [
       .then(m => m.CargaExistenciasComponent)
   },
   {
+    path: 'carga-masiva-citas',
+    loadComponent: () => import('./features/carga-masiva/carga-citas.component')
+      .then(m => m.CargaCitasComponent)
+  },
+  {
     path: 'cpm-config',
     title: 'CPM por unidad (BC)',
     loadComponent: () => import('./features/cpm-editor/cpm-editor.component').then(m => m.CpmEditorComponent)
