@@ -229,7 +229,7 @@ export class CpmModalComponent {
       this.reordenEsTotal = false;
     }
 
-    const factor = (fuente === 'reorden' && this.reordenEsTotal) ? 1 : meses;
+    const factor = 1; //(fuente === 'reorden' && this.reordenEsTotal) ? 1 : meses;
     const qty = Math.max(0, Math.round((Number(base) || 0) * factor));
     return { qty, fuente };
   }
