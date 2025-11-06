@@ -1,3 +1,4 @@
+<!-- src/app/features/dashboard-abasto/resumen/resumen.component.html -->
 <div class="p-6 space-y-6">
   <!-- Header: Título + Rango de Fechas -->
   <div class="flex flex-col justify-between items-center gap-4 mb-6 md:flex-row">
@@ -9,8 +10,9 @@
       <!-- Anio -->
       <div class="form-group">
         <label class="block mb-1 text-sm font-medium text-gray-700">Año</label>
-        <ng-select id="RESUMEN_anio" class="w-48" [items]="aniosDisponibles" [multiple]="true" bindLabel="Año" bindValue="value"
-          [(ngModel)]="filtrosSeleccionados.anios" placeholder="Seleccione..." (change)="calcularDatos()">
+        <ng-select id="RESUMEN_anio" class="w-48" [items]="aniosDisponibles" [multiple]="true" bindLabel="Año"
+          bindValue="value" [(ngModel)]="filtrosSeleccionados.anios" placeholder="Seleccione..."
+          (change)="calcularDatos()">
         </ng-select>
       </div>
       <!-- Estatus -->
@@ -24,16 +26,18 @@
       <!-- Tipo de Entrega -->
       <div class="form-group">
         <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de Entrega</label>
-        <ng-select id="RESUMEN_tipoEntrega" class="w-64 custom-ngselect" [items]="tipoEntregaDisponibles" [multiple]="true"
-          [(ngModel)]="filtrosSeleccionados.tipoEntrega" placeholder="Seleccione..." (change)="calcularDatos()">
+        <ng-select id="RESUMEN_tipoEntrega" class="w-64 custom-ngselect" [items]="tipoEntregaDisponibles"
+          [multiple]="true" [(ngModel)]="filtrosSeleccionados.tipoEntrega" placeholder="Seleccione..."
+          (change)="calcularDatos()">
         </ng-select>
       </div>
 
       <!-- Tipo de compra -->
       <div class="form-group">
         <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de compra</label>
-        <ng-select id="RESUMEN_tipoCompra" class="w-64 custom-ngselect" [items]="tiposCompraDisponibles" [multiple]="true"
-          [(ngModel)]="filtrosSeleccionados.tipoCompra" placeholder="Seleccione..." (change)="calcularDatos()">
+        <ng-select id="RESUMEN_tipoCompra" class="w-64 custom-ngselect" [items]="tiposCompraDisponibles"
+          [multiple]="true" [(ngModel)]="filtrosSeleccionados.tipoCompra" placeholder="Seleccione..."
+          (change)="calcularDatos()">
         </ng-select>
       </div>
     </div>
@@ -44,8 +48,81 @@
 
   <!-- Filtros + KPIs -->
   <div class="flex flex-col flex-wrap items-center gap-4 mb-6 lg:flex-row">
-    <!-- KPIs -->
+    <!-- 🔹 KPIs DEL SERVER -->
+    <div class="flex flex-wrap items-center gap-4 mb-4" *ngIf="kpisServer as K">
+      <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
+        <div class="text-sm text-gray-500">Órdenes (server)</div>
+        <div class="text-2xl font-bold text-yellow-700">{{ K.ordenes | number }}</div>
+      </div>
+      <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
+        <div class="text-sm text-gray-500">Emitidas (server)</div>
+        <div class="text-2xl font-bold text-green-700">{{ K.emitidas | number }}</div>
+      </div>
+      <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
+        <div class="text-sm text-gray-500">Recibidas (server)</div>
+        <div class="text-2xl font-bold text-green-700">{{ K.recibidas | number }}</div>
+      </div>
+      <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
+        <div class="text-sm text-gray-500">% Cumplimiento (server)</div>
+        <div class="text-2xl font-bold">
+          {{ K.cumplimiento_pct == null ? '—' : (K.cumplimiento_pct | number:'1.0-2') + '%' }}
+        </div>
+      </div>
+    </div>
 
+    <!-- 🔸 (opcional) SUBTOTALES DEL SERVER -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2" *ngIf="subEstatusServer?.length || subTipoServer?.length">
+      <div class="p-4 bg-white rounded-lg shadow-sm border" *ngIf="subEstatusServer?.length">
+        <h4 class="mb-2 text-sm text-gray-500 font-medium">Por Estatus (server)</h4>
+        <table class="min-w-full text-sm text-left">
+          <thead class="text-gray-500 border-b">
+            <tr>
+              <th class="py-1">Estatus</th>
+              <th class="py-1">Órdenes</th>
+              <th class="py-1">Emitidas</th>
+              <th class="py-1">Recibidas</th>
+              <th class="py-1">% Cumpl.</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of subEstatusServer">
+              <td class="py-1">{{ r.estatus }}</td>
+              <td class="py-1">{{ r.ordenes | number }}</td>
+              <td class="py-1">{{ r.emitidas | number }}</td>
+              <td class="py-1">{{ r.recibidas | number }}</td>
+              <td class="py-1">{{ r.cumplimiento_pct == null ? '—' : (r.cumplimiento_pct | number:'1.0-2') + '%' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="p-4 bg-white rounded-lg shadow-sm border" *ngIf="subTipoServer?.length">
+        <h4 class="mb-2 text-sm text-gray-500 font-medium">Por Tipo de entrega (server)</h4>
+        <table class="min-w-full text-sm text-left">
+          <thead class="text-gray-500 border-b">
+            <tr>
+              <th class="py-1">Tipo</th>
+              <th class="py-1">Órdenes</th>
+              <th class="py-1">Emitidas</th>
+              <th class="py-1">Recibidas</th>
+              <th class="py-1">% Cumpl.</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of subTipoServer">
+              <td class="py-1">{{ r.tipo_de_entrega }}</td>
+              <td class="py-1">{{ r.ordenes | number }}</td>
+              <td class="py-1">{{ r.emitidas | number }}</td>
+              <td class="py-1">{{ r.recibidas | number }}</td>
+              <td class="py-1">{{ r.cumplimiento_pct == null ? '—' : (r.cumplimiento_pct | number:'1.0-2') + '%' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="flex flex-col flex-wrap items-center gap-4 mb-6 lg:flex-row">
+    <!-- KPIs -->
     <div class="p-4 w-48 bg-white rounded-lg shadow-sm border kpi-card">
       <div class="text-sm text-gray-500 kpi-card-text">Total piezas recibidas</div>
       <div class="text-2xl font-bold text-green-700 kpi-card-total-piezas">{{ totalPiezas | number }}</div>
@@ -127,7 +204,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let proveedor of topProveedoresIncumplidos; let i = index">
-            <td class="py-1 renglon-info">{{ i + 1 }}</td>            
+            <td class="py-1 renglon-info">{{ i + 1 }}</td>
             <td class="py-1 font-medium renglon-info">{{ proveedor.nombre }}</td>
             <td class="py-1 renglon-info">{{ proveedor.total }}</td>
             <td class="py-1 text-red-600">{{ proveedor.atrasos }}</td>

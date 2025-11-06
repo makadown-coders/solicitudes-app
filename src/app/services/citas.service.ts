@@ -3,9 +3,9 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Cita, CitaRow } from '../models/Cita';
-import { PaginacionCitas } from '../models/PaginacionCitas';
 import { PeriodoFechasService } from '../shared/periodo-fechas.service';
 import { ExcelService } from './excel.service';
+import { ResumenResponse } from '../models/StatsCitas';
 
 @Injectable({
   providedIn: 'root'
@@ -29,6 +29,38 @@ export class CitasService {
 
   batch(rows: Cita[]) {
     return this.http.post<{ inserted: number }>(`${this.apiUrl}/batch`, { rows });
+  }
+
+  getStatsResumen(params?: Record<string, string | number | boolean | undefined>): Observable<ResumenResponse> {
+    let hp = new HttpParams();
+    Object.entries(params ?? {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v) !== '') hp = hp.set(k, String(v));
+    });
+    return this.http.get<ResumenResponse>(`${this.apiUrl}/stats/resumen`, { params: hp });
+  }
+
+  getStatsProveedores(params?: Record<string, string | number | boolean | undefined>): Observable<any> {
+    let hp = new HttpParams();
+    Object.entries(params ?? {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v) !== '') hp = hp.set(k, String(v));
+    });
+    return this.http.get<any>(`${this.apiUrl}/stats/proveedores`, { params: hp });
+  }
+
+  getStatsCumplimientoClaves(params?: Record<string, string | number | boolean | undefined>): Observable<any> {
+    let hp = new HttpParams();
+    Object.entries(params ?? {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v) !== '') hp = hp.set(k, String(v));
+    });
+    return this.http.get<any>(`${this.apiUrl}/stats/cumplimiento-claves`, { params: hp });
+  }
+
+  refreshMaterializedViews(): Observable<{ ok: boolean; refreshed: string[]; concurrently: boolean }> {
+    const headers: any = {};
+    if ((window as any).ADMIN_KEY) headers['x-admin-key'] = (window as any).ADMIN_KEY;
+    return this.http.post<{ ok: boolean; refreshed: string[]; concurrently: boolean }>(
+      `${this.apiUrl}/stats/refresh-mv`, {}, { headers }
+    );
   }
 
   /**

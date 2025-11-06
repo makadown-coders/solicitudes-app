@@ -1,3 +1,4 @@
+// src/app/features/dashboard-abasto/resumen/resumen.component.ts
 import { CommonModule } from '@angular/common';
 import { Component, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { ChartConfiguration, ChartOptions } from 'chart.js';
@@ -11,6 +12,8 @@ import { FormsModule } from '@angular/forms';
 import { CitaFilterService } from '../../../shared/cita-filter.service';
 import { FiltrosCita } from '../../../models/filtros-cita';
 import { CitaChartService } from '../../../shared/cita-chart.service';
+import { CumplimientoTimes, KPIsResumen, SubtotalEstatus, SubtotalTipoEntrega } from '../../../models/StatsCitas';
+import { DashboardService } from '../../../services/dashboard.service';
 
 @Component({
   selector: 'app-resumen',
@@ -28,7 +31,14 @@ export class ResumenComponent implements OnInit {
   estatusDisponibles: string[] = ['COMPLETO', 'INCOMPLETO'];
   tipoEntregaDisponibles: string[] = ['ENTREGA DIRECTA', 'OPERADOR LOGÍSTICO'];
   tiposCompraDisponibles: string[] = ['FEDERAL', 'ESTATAL', 'NO APLICA']; // ajusta según tus valores reales
+  kpisServer: KPIsResumen | null = null;
+  subEstatusServer: SubtotalEstatus[] = [];
+  subTipoServer: SubtotalTipoEntrega[] = [];
+  cumplimientoServer: CumplimientoTimes | null = null;
 
+  constructor(
+    private dash: DashboardService,   // 👈 inyectamos
+  ) { }
 
   // Lo que el usuario seleccione
   filtrosSeleccionados = {
@@ -119,7 +129,7 @@ export class ResumenComponent implements OnInit {
         ticks: {
           color: '#2E8B57',
           precision: 0,
-          source: 'labels',  count: 1000 
+          source: 'labels', count: 1000
         },
         grid: {
           color: '#e0e0e0',
@@ -129,7 +139,7 @@ export class ResumenComponent implements OnInit {
         //stacked: true,
         ticks: {
           color: '#2E8B57',
-          source: 'labels',  count: 1000 
+          source: 'labels', count: 1000
         },
         grid: {
           color: '#f0f0f0',
@@ -146,8 +156,6 @@ export class ResumenComponent implements OnInit {
   citaChartService = inject(CitaChartService);
   fechasService = inject(PeriodoFechasService);
 
-  constructor() { }
-
   ngOnInit(): void {
     const compras = new Set(this.citas.map(c => c.compra).filter(Boolean));
     this.tiposCompraDisponibles = Array.from(compras).sort();
@@ -157,7 +165,68 @@ export class ResumenComponent implements OnInit {
 
     this.cargarFechasIniciales();
     this.generarAniosDisponibles();
+
     this.calcularDatos();
+
+    // 👇 suscripción a stats del server
+    this.dash.kpis$.subscribe(k => {
+      this.kpisServer = k;
+      console.log('✅ KPIs server actualizados', k);
+    });
+    this.dash.porEstatus$.subscribe(s => this.subEstatusServer = s ?? []);
+    this.dash.porTipoEntrega$.subscribe(s => this.subTipoServer = s ?? []);
+    this.dash.cumplimiento$.subscribe(c => this.cumplimientoServer = c);
+
+    // primera carga (usa año actual si lo tienes en filtrosSeleccionados)
+    /* this.dash.setRangoFechas(this.toISO(this.fechaInicio), this.toISO(this.fechaFin));
+     if (this.filtrosSeleccionados.anios?.length) {
+       this.dash.setFiltroEjercicio(this.filtrosSeleccionados.anios[0]);
+     } else {
+       this.dash.setFiltroEjercicio(undefined as any); // limpia si había algo
+     }
+     // this.propagateFiltersToServer();
+     this.dash.cargarStats();*/
+  }
+
+  private toISO(d: Date | null | undefined) {
+    return d ? new Date(d).toISOString().slice(0, 10) : undefined;
+  }
+
+  private normalizeTipoEntregaForDB(v: string): string {
+    // tus UI usan mayúsculas “ENTREGA DIRECTA / OPERADOR LOGÍSTICO”
+    // en BD tienes “Entrega directa” y “Operador Logístico” (según limpieza que hiciste).
+    const s = (v || '').trim().toUpperCase();
+    if (s.includes('OPERADOR')) return 'Operador Logístico';
+    if (s.includes('ENTREGA')) return 'Entrega directa';
+    return v;
+  }
+
+  private propagateFiltersToServer() {
+    // año (si hay múltiples, toma el primero por ahora)
+    if (this.filtrosSeleccionados.anios?.length) {
+      this.dash.setFiltroEjercicio(this.filtrosSeleccionados.anios[0]);
+    } else {
+      // Limpia ejercicio si no hay selección
+      this.dash.setFiltroEjercicio(undefined as any);
+    }
+
+    // estatus exacto (por ahora toma 1º si hay varios)
+    this.dash.setFiltroEstatus(
+      (this.filtrosSeleccionados.estatus ?? []).map(s => s.toUpperCase())
+    );
+
+    // tipo de entrega (normalizado a texto BD)
+    this.dash.setFiltroTipoEntrega(
+      (this.filtrosSeleccionados.tipoEntrega ?? []).map(this.normalizeTipoEntregaForDB)
+    );
+
+    // compra (exacto)
+    this.dash.setFiltroCompra(
+      (this.filtrosSeleccionados.tipoCompra ?? []).map(s => s.toUpperCase())
+    );
+
+    // rango de fechas → usa fecha_recepcion_min/max del lado server
+    this.dash.setRangoFechas(this.toISO(this.fechaInicio), this.toISO(this.fechaFin));
   }
 
   generarAniosDisponibles() {
@@ -185,8 +254,8 @@ export class ResumenComponent implements OnInit {
     } else {
       const hoy = new Date();
       this.fechaFin = hoy;
-      this.fechaInicio = new Date(hoy.getFullYear(), 0, 1); 
-      
+      this.fechaInicio = new Date(hoy.getFullYear(), 0, 1);
+
       /* OPCIONAL POR SI SE OFRECE:
         // calcular this.fechaInicio como this.fechaFin menos 90 dias
       const d90 = 90 * 24 * 60 * 60 * 1000;
@@ -219,6 +288,9 @@ export class ResumenComponent implements OnInit {
     this.generarTopProveedores(citasFiltradas);
     this.generarTopProveedoresCumplidos(citasFiltradas);
     this.generarTopTiemposPromedioEntregaProveedor(citasFiltradas);
+
+    this.propagateFiltersToServer();
+    this.dash.cargarStats();
   }
 
   obtenerKPIs(citasFiltradas: Cita[]) {
@@ -394,29 +466,29 @@ export class ResumenComponent implements OnInit {
       .filter(p => p.total > 0 && p.porcentaje >= 90)
       .slice(0, 15)
       .sort((a, b) => b.aTiempo - a.aTiempo);
-    
-    this.topProveedoresCumplidos.forEach( (p) => {
-        p.tiempoPromedioEntrega = Math.abs(this.diasPromedioEntregaProveedor(p.nombre, citas));
+
+    this.topProveedoresCumplidos.forEach((p) => {
+      p.tiempoPromedioEntrega = Math.abs(this.diasPromedioEntregaProveedor(p.nombre, citas));
     });
   }
 
   diasPromedioEntregaProveedor(nombre: string, citas: Cita[]): number {
-     const citasFiltradas = citas.filter(c => c.proveedor === nombre);
-     let diasPromedio = 0;
-     for (const cita of citasFiltradas) {
-       if (cita.fecha_emision && cita.fecha_recepcion_almacen) {
-         const fechasRecepcion = cita.fecha_recepcion_almacen
-                     .split('/')
-                     .map((f) => this.fechasService.parseLocalDate(f));
- 
-         fechasRecepcion.forEach(fRecepcion => {
-           const fEmision = this.fechasService.parseLocalDate(cita.fecha_emision+'');
-           const diferencia = fRecepcion.getTime() - fEmision.getTime();
-           diasPromedio += diferencia;
-         });
-       }
-     }
-     return this.convertMilliseconds( diasPromedio / citasFiltradas.length).days;
+    const citasFiltradas = citas.filter(c => c.proveedor === nombre);
+    let diasPromedio = 0;
+    for (const cita of citasFiltradas) {
+      if (cita.fecha_emision && cita.fecha_recepcion_almacen) {
+        const fechasRecepcion = cita.fecha_recepcion_almacen
+          .split('/')
+          .map((f) => this.fechasService.parseLocalDate(f));
+
+        fechasRecepcion.forEach(fRecepcion => {
+          const fEmision = this.fechasService.parseLocalDate(cita.fecha_emision + '');
+          const diferencia = fRecepcion.getTime() - fEmision.getTime();
+          diasPromedio += diferencia;
+        });
+      }
+    }
+    return this.convertMilliseconds(diasPromedio / citasFiltradas.length).days;
   }
 
   generarTopTiemposPromedioEntregaProveedor(citasFiltradas: Cita[]) {
@@ -428,12 +500,12 @@ export class ResumenComponent implements OnInit {
 
       if (cita.fecha_emision && cita.fecha_recepcion_almacen) {
         const fechasRecepcion = cita.fecha_recepcion_almacen
-                    .split('/')
-                    .map((f) => this.fechasService.parseLocalDate(f));
+          .split('/')
+          .map((f) => this.fechasService.parseLocalDate(f));
 
         fechasRecepcion.forEach(fRecepcion => {
           actual.total++;
-          const fEmision = this.fechasService.parseLocalDate(cita.fecha_emision+'');
+          const fEmision = this.fechasService.parseLocalDate(cita.fecha_emision + '');
           const diferencia = fRecepcion.getTime() - fEmision.getTime();
           actual.promedio += diferencia;
         });
@@ -452,7 +524,7 @@ export class ResumenComponent implements OnInit {
       .filter(p => p.total > 0)
       .sort((a, b) => a.promedio - b.promedio)
       .slice(0, 15);
-    
+
     /*  // peores promedios
     const promedios = lista
       .filter(p => p.total > 0)
@@ -464,7 +536,7 @@ export class ResumenComponent implements OnInit {
     );
   }
 
-  convertMilliseconds(ms:number) {
+  convertMilliseconds(ms: number) {
     const days = Math.floor(ms / (24 * 60 * 60 * 1000));
     const daysMs = ms % (24 * 60 * 60 * 1000);
     const hours = Math.floor(daysMs / (60 * 60 * 1000));

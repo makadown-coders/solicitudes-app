@@ -1,3 +1,4 @@
+// src/app/features/dashboard-abasto/dashboard-abasto.component.ts
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, OnChanges, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -16,6 +17,7 @@ import { InventarioService } from '../../services/inventario.service';
 import { ExistenciasComponent } from "./existencias/existencias.component";
 import { RdlSComponent } from './rdls/rdls.component';
 import { InventarioTabComponent } from './inventario-tab/inventario-tab.component';
+import { KPIsResumen } from '../../models/StatsCitas';
 
 @Component({
   selector: 'app-dashboard-abasto',
@@ -58,6 +60,8 @@ export class DashboardAbastoComponent implements OnInit {
     'Acerca de'];
   activeTab = 'Resumen';
 
+  kpis: KPIsResumen | null = null;
+
   constructor(private dashboardService: DashboardService) { }
 
   ngOnInit(): void {
@@ -72,6 +76,9 @@ export class DashboardAbastoComponent implements OnInit {
         this.isLoading.set(false); // Establece isLoading = false;
       }
     });
+
+    // ✅ SUSCRIBIR KPIs
+    //this.dashboardService.kpis$.subscribe(k => this.kpis = k);
 
     // TODO: Refactorizar para recargar manualmente
     if (this.citas.length === 0) {
@@ -93,12 +100,19 @@ export class DashboardAbastoComponent implements OnInit {
     this.dashboardService.limpiarDatos();
     this.isLoading.set(true); // Establece isLoading = true;
     this.dashboardService.refrescarDatos();
+    // this.onRefreshServerKPIs();
     this.inventarioService.refrescarDatosInventario();
     this.inventarioService.refrescarDatosCPMS();
     for (const existencia of Object.values(Existencias)) {
       this.inventarioService.refrescarDatosExistencias(existencia);
     }
+    this.isLoading.set(false);
   }
+
+  // ✅ nuevo: refrescar MVs en el server y luego KPIs
+  /*onRefreshServerKPIs() {
+    this.dashboardService.refrescarMVs();
+  }*/
 
   seleccionarTab(tab: string) {
     this.activeTab = tab;
