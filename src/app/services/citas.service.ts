@@ -31,28 +31,16 @@ export class CitasService {
     return this.http.post<{ inserted: number }>(`${this.apiUrl}/batch`, { rows });
   }
 
-  getStatsResumen(params?: Record<string, string | number | boolean | undefined>): Observable<ResumenResponse> {
-    let hp = new HttpParams();
-    Object.entries(params ?? {}).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && String(v) !== '') hp = hp.set(k, String(v));
-    });
-    return this.http.get<ResumenResponse>(`${this.apiUrl}/stats/resumen`, { params: hp });
+  getStatsResumen(params?: HttpParams): Observable<ResumenResponse> {    
+    return this.http.get<ResumenResponse>(`${this.apiUrl}/stats/resumen`, { params });
   }
 
-  getStatsProveedores(params?: Record<string, string | number | boolean | undefined>): Observable<any> {
-    let hp = new HttpParams();
-    Object.entries(params ?? {}).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && String(v) !== '') hp = hp.set(k, String(v));
-    });
-    return this.http.get<any>(`${this.apiUrl}/stats/proveedores`, { params: hp });
+  getStatsProveedores(params?: HttpParams): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/stats/proveedores`, { params });
   }
 
-  getStatsCumplimientoClaves(params?: Record<string, string | number | boolean | undefined>): Observable<any> {
-    let hp = new HttpParams();
-    Object.entries(params ?? {}).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && String(v) !== '') hp = hp.set(k, String(v));
-    });
-    return this.http.get<any>(`${this.apiUrl}/stats/cumplimiento-claves`, { params: hp });
+  getStatsCumplimientoClaves(params?: HttpParams): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/stats/cumplimiento-claves`, { params });
   }
 
   refreshMaterializedViews(): Observable<{ ok: boolean; refreshed: string[]; concurrently: boolean }> {

@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { BehaviorSubject, map, Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Cita } from '../models/Cita';
@@ -10,7 +10,7 @@ import { CitaSlim } from '../models/PaginacionCitas';
 import { CumplimientoTimes, KPIsResumen, ResumenResponse, SubtotalEstatus, SubtotalTipoEntrega } from '../models/StatsCitas';
 
 type StatsFiltros = {
-  ejercicio?: number | string;
+  ejercicio?: Array<number | string>; 
   estatus?: string[];          // exactos
   tipo_de_entrega?: string[];  // exactos
   compra?: string[];           // exactos
@@ -59,44 +59,45 @@ export class DashboardService {
     this.cargarDesdeLocalStorage();
   }
 
-  setFiltroEjercicio(ejercicio: number | string) {
-    this.filtrosStats = { ...this.filtrosStats, ejercicio };
+  setFiltroEjercicio(vals: number | string | Array<number | string>) {
+    const arr = Array.isArray(vals) ? vals : [vals];
+    this.filtrosStats = { ...this.filtrosStats, ejercicio: arr };
   }
-  setFiltroEstatus(estatus: string[]) {
-    this.filtrosStats = { ...this.filtrosStats, estatus };
+  setFiltroEstatus(vals: string[] | string) {
+    const arr = Array.isArray(vals) ? vals : [vals];
+    this.filtrosStats = { ...this.filtrosStats, estatus: arr };
   }
-  setFiltroTipoEntrega(tipos: string[]) {
-    this.filtrosStats = { ...this.filtrosStats, tipo_de_entrega: tipos };
+  setFiltroTipoEntrega(vals: string[] | string) {
+    const arr = Array.isArray(vals) ? vals : [vals];
+    this.filtrosStats = { ...this.filtrosStats, tipo_de_entrega: arr };
   }
-  setFiltroCompra(compras: string[]) {
-    this.filtrosStats = { ...this.filtrosStats, compra: compras };
+  setFiltroCompra(vals: string[] | string) {
+    const arr = Array.isArray(vals) ? vals : [vals];
+    this.filtrosStats = { ...this.filtrosStats, compra: arr };
   }
-  setRangoFechas(desdeISO: string | undefined, hastaISO: string | undefined) {
+  setRangoFechas(desdeISO?: string, hastaISO?: string) {
     this.filtrosStats = { ...this.filtrosStats, desde: desdeISO, hasta: hastaISO };
   }
 
-  private buildStatsQuery(): Record<string, string> {
-    const q: Record<string, string> = {};
+  private buildStatsParams(): HttpParams {
+    let params = new HttpParams();
     const f = this.filtrosStats;
 
-    if (f.ejercicio != null) q['ejercicio'] = String(f.ejercicio);
+     (f.ejercicio ?? []).forEach(v => params = params.append('ejercicio', String(v)));
 
-    // estos 3 llegan como arrays → el backend actual acepta exactos, no arrays.
-    // Estrategia mínima: si hay >0, mandamos múltiples veces el mismo filtro concatenado por coma y en backend (si quieres) lo amplías a IN.
-    // Para no tocar backend hoy, mandamos SOLO el primer valor si hay varios:
-    if (f.estatus?.length) q['estatus'] = f.estatus[0];
-    if (f.tipo_de_entrega?.length) q['tipo_de_entrega'] = f.tipo_de_entrega[0];
-    if (f.compra?.length) q['compra'] = f.compra[0];
+    (f.estatus ?? []).forEach(v => params = params.append('estatus', v));
+    (f.tipo_de_entrega ?? []).forEach(v => params = params.append('tipo_de_entrega', v));
+    (f.compra ?? []).forEach(v => params = params.append('compra', v));
 
-    if (f.desde) q['desde'] = f.desde;
-    if (f.hasta) q['hasta'] = f.hasta;
+    if (f.desde) params = params.set('desde', f.desde);
+    if (f.hasta) params = params.set('hasta', f.hasta);
 
-    return q;
+    return params;
   }
 
   cargarStats(): void {
     console.log('🔄 Cargando stats resumen con filtros:', this.filtrosStats);
-    const params = this.buildStatsQuery();
+    const params = this.buildStatsParams();
     this.citasService.getStatsResumen(params).subscribe({
       next: (r) => {
         this.kpisSubject.next(r.kpis);

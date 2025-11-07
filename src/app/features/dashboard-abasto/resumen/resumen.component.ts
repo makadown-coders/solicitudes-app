@@ -1,6 +1,6 @@
 // src/app/features/dashboard-abasto/resumen/resumen.component.ts
 import { CommonModule } from '@angular/common';
-import { Component, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { ChartConfiguration, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { NgSelectModule } from '@ng-select/ng-select';
@@ -25,6 +25,7 @@ import { DashboardService } from '../../../services/dashboard.service';
   styleUrl: './resumen.component.css'
 })
 export class ResumenComponent implements OnInit {
+  cdRef = inject(ChangeDetectorRef);
   @Input() citas: Cita[] = [];
   // Opciones de filtros
   aniosDisponibles: number[] = [];
@@ -171,11 +172,22 @@ export class ResumenComponent implements OnInit {
     // 👇 suscripción a stats del server
     this.dash.kpis$.subscribe(k => {
       this.kpisServer = k;
-      console.log('✅ KPIs server actualizados', k);
+      this.cdRef.markForCheck();  // 👈 fuerza re-render OnPush
     });
-    this.dash.porEstatus$.subscribe(s => this.subEstatusServer = s ?? []);
-    this.dash.porTipoEntrega$.subscribe(s => this.subTipoServer = s ?? []);
-    this.dash.cumplimiento$.subscribe(c => this.cumplimientoServer = c);
+    this.dash.porEstatus$.subscribe(s => {
+      this.subEstatusServer = s ?? [];
+      this.cdRef.markForCheck();
+    });
+
+    this.dash.porTipoEntrega$.subscribe(s => {
+      this.subTipoServer = s ?? [];
+      this.cdRef.markForCheck();
+    });
+
+    this.dash.cumplimiento$.subscribe(c => {
+      this.cumplimientoServer = c;
+      this.cdRef.markForCheck();
+    });
 
     // primera carga (usa año actual si lo tienes en filtrosSeleccionados)
     /* this.dash.setRangoFechas(this.toISO(this.fechaInicio), this.toISO(this.fechaFin));
@@ -273,9 +285,9 @@ export class ResumenComponent implements OnInit {
       fechaInicio: this.fechaInicio,
       fechaFin: this.fechaFin,
       anios: this.filtrosSeleccionados.anios,
-      estatus: this.filtrosSeleccionados.estatus.map(e => e.toUpperCase()),
-      tipoEntrega: this.filtrosSeleccionados.tipoEntrega.map(e => e.toUpperCase()),
-      tipoCompra: this.filtrosSeleccionados.tipoCompra.map(e => e.toUpperCase()), // nuevo
+      estatus: this.filtrosSeleccionados.estatus ? this.filtrosSeleccionados.estatus.map(e => e.toUpperCase()): [],
+      tipoEntrega: this.filtrosSeleccionados.tipoEntrega ? this.filtrosSeleccionados.tipoEntrega.map(e => e.toUpperCase()) : [],
+      tipoCompra: this.filtrosSeleccionados.tipoCompra ? this.filtrosSeleccionados.tipoCompra.map(e => e.toUpperCase()) : [], // nuevo
     };
 
     const citasFiltradas = this.citaFilterService.filtrar(this.citas, filtros);

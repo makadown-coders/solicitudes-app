@@ -1,10 +1,12 @@
 <!-- src/app/features/dashboard-abasto/resumen/resumen.component.html -->
-<div class="p-6 space-y-6">
-  <!-- Header: Título + Rango de Fechas -->
+<div class="space-y-6">
   <div class="flex flex-col justify-between items-center gap-4 mb-6 md:flex-row">
     <h2 class="text-2xl font-semibold tracking-tight text-green-800">
       Resumen general de recepción
     </h2>
+  </div> 
+  <!-- Header: Título + Rango de Fechas -->
+  <div class="flex flex-col justify-between items-center gap-4 mb-6 md:flex-row">
     <!-- Filtros -->
     <div class="flex flex-wrap items-center gap-4">
       <!-- Anio -->
@@ -51,15 +53,11 @@
     <!-- 🔹 KPIs DEL SERVER -->
     <div class="flex flex-wrap items-center gap-4 mb-4" *ngIf="kpisServer as K">
       <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
-        <div class="text-sm text-gray-500">Órdenes (server)</div>
-        <div class="text-2xl font-bold text-yellow-700">{{ K.ordenes | number }}</div>
-      </div>
-      <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
-        <div class="text-sm text-gray-500">Emitidas (server)</div>
+        <div class="text-sm text-gray-500">Piezas Emitidas (server)</div>
         <div class="text-2xl font-bold text-green-700">{{ K.emitidas | number }}</div>
       </div>
       <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
-        <div class="text-sm text-gray-500">Recibidas (server)</div>
+        <div class="text-sm text-gray-500">Piezas Recibidas (server)</div>
         <div class="text-2xl font-bold text-green-700">{{ K.recibidas | number }}</div>
       </div>
       <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
@@ -67,6 +65,10 @@
         <div class="text-2xl font-bold">
           {{ K.cumplimiento_pct == null ? '—' : (K.cumplimiento_pct | number:'1.0-2') + '%' }}
         </div>
+      </div>
+      <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
+        <div class="text-sm text-gray-500">Total Órdenes (server)</div>
+        <div class="text-2xl font-bold text-yellow-700">{{ K.ordenes | number }}</div>
       </div>
     </div>
 
