@@ -10,7 +10,7 @@ import { CitaSlim } from '../models/PaginacionCitas';
 import { CumplimientoTimes, KPIsResumen, ResumenResponse, SubtotalEstatus, SubtotalTipoEntrega } from '../models/StatsCitas';
 
 type StatsFiltros = {
-  ejercicio?: Array<number | string>; 
+  ejercicio?: Array<number | string>;
   estatus?: string[];          // exactos
   tipo_de_entrega?: string[];  // exactos
   compra?: string[];           // exactos
@@ -29,15 +29,17 @@ export class DashboardService {
   /**
    * En vias de deprecación / refactorización
    */
-  private STORAGE_KEY = 'citasFull';
+  // private STORAGE_KEY = 'citasFull';
   /**
    * En vias de deprecación / refactorización
    */
-  private citasSubject = new BehaviorSubject<Cita[]>([]);
+  // private citasSubject = new BehaviorSubject<Cita[]>([]);
   /**
    * En vias de deprecación / refactorización
    */
-  public citas$: Observable<Cita[]> = this.citasSubject.asObservable();
+  // public citas$: Observable<Cita[]> = this.citasSubject.asObservable();  
+  private resumenCitasSubject = new BehaviorSubject<Cita[]>([]);
+  public resumenCitas$ = this.resumenCitasSubject.asObservable();
 
   private citasService = inject(CitasService);
 
@@ -56,7 +58,7 @@ export class DashboardService {
   // private filtrosStats: Record<string, string | number | boolean> = {};
 
   constructor(private http: HttpClient) {
-    this.cargarDesdeLocalStorage();
+    // this.cargarDesdeLocalStorage();
   }
 
   setFiltroEjercicio(vals: number | string | Array<number | string>) {
@@ -79,11 +81,44 @@ export class DashboardService {
     this.filtrosStats = { ...this.filtrosStats, desde: desdeISO, hasta: hastaISO };
   }
 
+  cargarCitasParaResumen(): void {
+    const params = this.buildStatsParams()
+      // ajusta si tu endpoint pagina; aquí pedimos un techo alto “seguro”
+      .set('limit', '10000')
+      .set('page', '1');
+
+    this.http.get<{ data: Cita[] }>(`${environment.apiUrl}/citas`, { params })
+      .subscribe({
+        next: (resp) => {
+          resp?.data?.forEach((cita: Cita) => {            
+            if (cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logísitico' ||
+              cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logistico' ||
+              cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logístico') {
+              cita.tipo_de_entrega = 'Operador Logístico';
+            }
+            /*if (cita.unidad?.trim().length == 0) {
+              cita.unidad = this.mapCluesUnidad.get(cita.clues_destino) ?? '';
+            }*/
+            if (cita.unidad?.trim() == 'Almacén Zona Ensenada') {
+              cita.unidad = cita.unidad.toLocaleUpperCase();
+            }
+            if (cita.fecha_recepcion_almacen == null || cita.fecha_recepcion_almacen?.trim().length == 0) {
+              // asignar fecha_recepcion_min pero sin el formato UTC (T00:00:00Z)
+              cita.fecha_recepcion_almacen = cita.fecha_recepcion_min?.substring(0, 10) || null;
+            }
+          });
+          this.resumenCitasSubject.next(resp?.data ?? []);
+        },
+        error: (err) => console.error('❌ Error cargando citas (resumen):', err)
+      });
+  }
+
+
   private buildStatsParams(): HttpParams {
     let params = new HttpParams();
     const f = this.filtrosStats;
 
-     (f.ejercicio ?? []).forEach(v => params = params.append('ejercicio', String(v)));
+    (f.ejercicio ?? []).forEach(v => params = params.append('ejercicio', String(v)));
 
     (f.estatus ?? []).forEach(v => params = params.append('estatus', v));
     (f.tipo_de_entrega ?? []).forEach(v => params = params.append('tipo_de_entrega', v));
@@ -109,7 +144,7 @@ export class DashboardService {
     });
   }
 
-  refrescarMVs(): void {
+  /*refrescarMVs(): void {
     this.citasService.refreshMaterializedViews().subscribe({
       next: () => {
         // Tras refresh de MVs, recargamos KPIs
@@ -117,12 +152,17 @@ export class DashboardService {
       },
       error: (err) => console.error('❌ Error al refrescar MVs:', err)
     });
+  }*/
+
+  recargarResumen(): void {
+    this.cargarStats();           // ya existente
+    this.cargarCitasParaResumen(); // nuevo
   }
 
   /**
    * En vias de deprecación / refactorización
    */
-  private cargarDesdeLocalStorage() {
+  /*private cargarDesdeLocalStorage() {
     const compressed = localStorage.getItem(this.STORAGE_KEY);
     if (compressed) {
       try {
@@ -133,12 +173,12 @@ export class DashboardService {
         localStorage.removeItem(this.STORAGE_KEY);
       }
     }
-  }
+  }*/
 
   /**
    * En vias de deprecación / refactorización
    */
-  refrescarDatos(): void {
+  /*refrescarDatos(): void {
     // purgar todo el localStorage
     // this.limpiarDatos();
 
@@ -165,65 +205,65 @@ export class DashboardService {
         console.error('❌ Error al cargar datos del dashboard:', err);
       }
     });
-  }
+  }*/
 
   /**
    * En vias de deprecación / refactorización
    */
-  limpiarDatos(): void {
-    //    console.info('🧹 Limpiando datos del dashboard...');
-    localStorage.removeItem(this.STORAGE_KEY);
-    this.citasSubject.next([] as Cita[]);
-  }
+  /* limpiarDatos(): void {
+     //    console.info('🧹 Limpiando datos del dashboard...');
+     localStorage.removeItem(this.STORAGE_KEY);
+     this.citasSubject.next([] as Cita[]);
+   }*/
 
   /**
    * En vias de deprecación / refactorización
    */
-  refrescarDeLocalStorage(): void {
-    this.cargarDesdeLocalStorage();
-  }
+  /* refrescarDeLocalStorage(): void {
+     this.cargarDesdeLocalStorage();
+   }*/
 
 
   // 1) Lista slim derivada del cache (citas$)
-  public citasSlim$: Observable<CitaSlim[]> = this.citas$.pipe(
-    map(list => (list ?? []).map(c => ({
-      clave_cnis: (c as any).clave_cnis,
-      lote: ((c as any).lote ?? '').toString().trim(),
-      precio_unitario: (c as any).precio_unitario ?? null,
-      orden_de_suministro: (c as any).orden_de_suministro ?? null,
-      fte_fmto: (c as any).fte_fmto ?? null,
-      proveedor: cleanProveedor((c as any).proveedor ?? ''),   // 👈 limpio (sin comas/puntos)
-    }))),
-    // dedupe opcional por clave__lote
-    map(list => {
-      const seen = new Set<string>();
-      return list.filter(x => {
-        const k = `${x.clave_cnis}__${x.lote}`;
-        if (seen.has(k)) return false;
-        seen.add(k);
-        return true;
-      });
-    })
-  );
+  /* public citasSlim$: Observable<CitaSlim[]> = this.citas$.pipe(
+     map(list => (list ?? []).map(c => ({
+       clave_cnis: (c as any).clave_cnis,
+       lote: ((c as any).lote ?? '').toString().trim(),
+       precio_unitario: (c as any).precio_unitario ?? null,
+       orden_de_suministro: (c as any).orden_de_suministro ?? null,
+       fte_fmto: (c as any).fte_fmto ?? null,
+       proveedor: cleanProveedor((c as any).proveedor ?? ''),   // 👈 limpio (sin comas/puntos)
+     }))),
+     // dedupe opcional por clave__lote
+     map(list => {
+       const seen = new Set<string>();
+       return list.filter(x => {
+         const k = `${x.clave_cnis}__${x.lote}`;
+         if (seen.has(k)) return false;
+         seen.add(k);
+         return true;
+       });
+     })
+   );*/
 
   // 2) Mapa clave__lote → {precio, orden, fte, proveedor, clues_destino} ya listo para el tab
-  public citasSlimMap$ = this.citasSlim$.pipe(
-    map(list => {
-      const mp = new Map<string, { precio?: number | null; orden?: string | null; fte?: string | null; proveedor?: string | null; }>();
-      for (const c of list) {
-        const key = `${(c.clave_cnis ?? '').trim()}__${(c.lote ?? '').trim()}`;
-        if (!mp.has(key)) {
-          mp.set(key, {
-            precio: c.precio_unitario ?? null,
-            orden: c.orden_de_suministro ?? null,
-            fte: c.fte_fmto ?? null,
-            proveedor: c.proveedor ?? null,
-          });
-        }
-      }
-      return mp;
-    })
-  );
+  /* public citasSlimMap$ = this.citasSlim$.pipe(
+     map(list => {
+       const mp = new Map<string, { precio?: number | null; orden?: string | null; fte?: string | null; proveedor?: string | null; }>();
+       for (const c of list) {
+         const key = `${(c.clave_cnis ?? '').trim()}__${(c.lote ?? '').trim()}`;
+         if (!mp.has(key)) {
+           mp.set(key, {
+             precio: c.precio_unitario ?? null,
+             orden: c.orden_de_suministro ?? null,
+             fte: c.fte_fmto ?? null,
+             proveedor: c.proveedor ?? null,
+           });
+         }
+       }
+       return mp;
+     })
+   );*/
 }
 
 

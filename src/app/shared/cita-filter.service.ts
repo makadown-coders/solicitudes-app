@@ -9,6 +9,7 @@ export class CitaFilterService {
     fechasService = inject(PeriodoFechasService)
 
   filtrar(citas: Cita[], filtros: FiltrosCita): Cita[] {
+    console.log(`Filtrando ${citas.length} citas con filtros:`, filtros);
     return citas.filter(cita => {
       //const fechaRecepcion = cita.fecha_recepcion_almacen ? new Date(cita.fecha_recepcion_almacen) : null;
 

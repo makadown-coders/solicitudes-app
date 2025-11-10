@@ -24,14 +24,18 @@ export class CitasService {
   }
 
   init(reset = true) {
-    return this.http.post<{ ok: true }>(`${this.apiUrl}/init?reset=${reset}`, {});
+    return this.http.post<{ ok: true }>(`${this.apiUrl}/init?reset=${reset}`, {}, {
+      headers: { 'X-Skip-Loader': '1' }
+    });
   }
 
   batch(rows: Cita[]) {
-    return this.http.post<{ inserted: number }>(`${this.apiUrl}/batch`, { rows });
+    return this.http.post<{ inserted: number }>(`${this.apiUrl}/batch`, { rows }, {
+      headers: { 'X-Skip-Loader': '1' }
+    });
   }
 
-  getStatsResumen(params?: HttpParams): Observable<ResumenResponse> {    
+  getStatsResumen(params?: HttpParams): Observable<ResumenResponse> {
     return this.http.get<ResumenResponse>(`${this.apiUrl}/stats/resumen`, { params });
   }
 

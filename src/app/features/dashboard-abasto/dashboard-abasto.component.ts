@@ -45,8 +45,6 @@ export class DashboardAbastoComponent implements OnInit {
 
   // aquí recibiremos el arreglo de citas
   citas: Cita[] = [];
-  // isLoading: boolean = true;
-  isLoading = signal(false);
 
   // controla la pestaña activa
   tabs = ['Resumen',
@@ -70,12 +68,11 @@ export class DashboardAbastoComponent implements OnInit {
       this.activeTab = tabGuardado;
     }
     // 1) Suscríbete al BehaviorSubject para recibir actualizaciones
-    this.dashboardService.citas$.subscribe({
+   /* this.dashboardService.citas$.subscribe({
       next: (data: Cita[]) => {
         this.citas = data as Cita[];
-        this.isLoading.set(false); // Establece isLoading = false;
       }
-    });
+    });*/
 
     // ✅ SUSCRIBIR KPIs
     //this.dashboardService.kpis$.subscribe(k => this.kpis = k);
@@ -85,34 +82,28 @@ export class DashboardAbastoComponent implements OnInit {
       // 2) Dispara la carga inicial desde el endpoint
       this.onRefresh();
     } else {
-      this.isLoading.set(true);
-      this.dashboardService.refrescarDeLocalStorage();
+      // this.isLoading.set(true);
+      // this.dashboardService.refrescarDeLocalStorage();
       this.inventarioService.cargarCPMSdesdeLocalStorage();
       for (const existencia of Object.values(Existencias)) {
         this.inventarioService.refrescarDatosExistenciasDeLocalStorage(existencia);
       }
-      this.isLoading.set(false);
+      // this.isLoading.set(false);
     }
   }
 
   // opcionalmente puedes exponer un método para refrescar manualmente
   onRefresh() {
-    this.dashboardService.limpiarDatos();
-    this.isLoading.set(true); // Establece isLoading = true;
-    this.dashboardService.refrescarDatos();
-    // this.onRefreshServerKPIs();
-    this.inventarioService.refrescarDatosInventario();
+    // this.dashboardService.limpiarDatos();
+    // this.isLoading.set(true); // Establece isLoading = true;
+    // this.dashboardService.refrescarDatos();
+    this.inventarioService.refrescarDatosInventario(false);
     this.inventarioService.refrescarDatosCPMS();
     for (const existencia of Object.values(Existencias)) {
       this.inventarioService.refrescarDatosExistencias(existencia);
     }
-    this.isLoading.set(false);
+    // this.isLoading.set(false);
   }
-
-  // ✅ nuevo: refrescar MVs en el server y luego KPIs
-  /*onRefreshServerKPIs() {
-    this.dashboardService.refrescarMVs();
-  }*/
 
   seleccionarTab(tab: string) {
     this.activeTab = tab;

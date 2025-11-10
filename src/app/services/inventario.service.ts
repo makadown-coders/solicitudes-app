@@ -173,13 +173,15 @@ export class InventarioService {
    * En vias de deprecacion para usar backend.
    * Obtiene existencias de los 3 almacenes AZM, AZT y AZE
    */
-  refrescarDatosInventario(): void {
+  refrescarDatosInventario(skipLoader = true): void {
     //    console.info('🔄 InventarioService.refrescarDatosInventario() - Actualizando datos de inventario temporal...');
     this.cargandoInventarioBehaviorSubject.next(true);
     // purgar todo el localStorage
     this.limpiarInventario();
     const url = this.apiUrl;
-    this.http.get<InventarioFull>(url).subscribe({
+    this.http.get<InventarioFull>(url, skipLoader ? {
+      headers: { 'X-Skip-Loader': '1' }
+    } : {}).subscribe({
       next: (response: InventarioFull) => {
 
         const inventario = this.obtenerInventarioDeBase64(response.inventario);
@@ -258,7 +260,7 @@ export class InventarioService {
       });
     } else {
       // caso especial de San Felipe, que usa otro endpoint y otro modelo
-      this.http.get<{ rows: TemporalExistenciaRow[]}>(url).subscribe({
+      this.http.get<{ rows: TemporalExistenciaRow[] }>(url).subscribe({
         next: (res) => {
           const response = res.rows;
           if (!response || response.length === 0) {

@@ -260,9 +260,13 @@ export class CpmService {
     if (inflight) return inflight;
 
     const req$ = forkJoin({
-      expected: this.http.get<CpmApiResponse>(`${this.expectedUrl}?cluesimb=${encodeURIComponent(key)}`)
+      expected: this.http.get<CpmApiResponse>(`${this.expectedUrl}?cluesimb=${encodeURIComponent(key)}`, {
+        headers: { 'X-Skip-Loader': '1' }
+      })
         .pipe(map(r => Array.isArray(r) ? r as CpmExpectedRow[] : (r.rows ?? []) as CpmExpectedRow[])),
-      unit: this.http.get<CpmApiResponse>(`${this.unitCpmUrl}?cluesimb=${encodeURIComponent(key)}`)
+      unit: this.http.get<CpmApiResponse>(`${this.unitCpmUrl}?cluesimb=${encodeURIComponent(key)}`, {
+        headers: { 'X-Skip-Loader': '1' }
+      })
         .pipe(map(r => Array.isArray(r) ? r as any[] : (r.rows ?? []) as any[])),
     }).pipe(
       map(({ expected, unit }) => this.mergeExpectedAndUnit(key, expected, unit)),

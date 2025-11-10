@@ -216,11 +216,11 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             this.articulosMapa.set(m ?? {});
         });
 
-        // 7) Citas “slim” → mapear por (clave,lote)
+        // 7) Citas “slim” → mapear por (clave,lote) LEGACY - quitamos this.dashSrv.citasSlimMap$
         // Estructura esperada: { clave_cnis, lote, precio_unitario?, orden_de_suministro?, fte_fmto? }
-        this.dashSrv.citasSlimMap$.subscribe(mp => {
+/*        this.dashSrv.citasSlimMap$.subscribe(mp => {
             this.citasByClaveLote.set(mp ?? new Map());
-        });
+        }); */
 
         // 8) Quitar loading cuando tengamos algo
         effect(() => {

@@ -1,27 +1,16 @@
 <!-- src/app/features/dashboard-abasto/dashboard-abasto.component.html -->
-<!-- Loading overlay -->
-<div *ngIf="isLoading()" id="loader"
-  class="z-50 fixed inset-0 flex items-center justify-center bg-white bg-opacity-80 dark:bg-gray-800">
-  <div class="flex flex-col items-center space-y-4">
-    <!-- Spinner -->
-    <div class="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-    <!-- Texto -->
-    <p class="text-lg font-semibold text-gray-700 dark:text-gray-200">Cargando citas, CPMs y existencias...</p>
-  </div>
-</div>
 <div class="mx-auto px-4 w-full max-w-[1450px]">
-
-  <div class="p-6" [class.opacity-50]="isLoading()">
+  <div class="p-6">
     <!-- Header con botón de refrescar -->
     <div class="flex justify-between items-center mb-4 dark:bg-black">
       <h1 class="text-2xl font-bold">Dashboard Abasto (Ordenes de Suministro)</h1>
       <div class="flex items-center ml-auto">
-        <button (click)="themeService.toggleTheme()" [disabled]="isLoading()"
-          class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] rounded disabled:opacity-50 boton-modo">
+        <button (click)="themeService.toggleTheme()"
+          class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] cursor-pointer rounded disabled:opacity-50 boton-modo">
           {{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}
         </button>
-        <button (click)="onRefresh()" [disabled]="isLoading()"
-          class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] rounded disabled:opacity-50 boton-refrescar">
+        <button (click)="onRefresh()"
+          class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] cursor-pointer rounded disabled:opacity-50 boton-refrescar">
           🔄 Refrescar datos
         </button>
         <!-- Logo -->
@@ -43,9 +32,9 @@
         </button>
       </nav>
     </div>
-    <div *ngIf="!isLoading()">
+    <div>
       <div [hidden]="activeTab !== 'Resumen'">
-        <app-resumen [citas]="citas"></app-resumen>
+        <app-resumen></app-resumen>
       </div>
       <div [hidden]="activeTab !== 'Existencias (CPM)'">
         <app-existencias [citas]="citas"></app-existencias>
