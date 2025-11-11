@@ -153,7 +153,9 @@ export class CargaCitasComponent {
             nuevoRegistro.procedimiento = procedimiento;
             nuevoRegistro.tipo_de_entrega = tipoEntrega;
             nuevoRegistro.clues_destino = cluesDestino;
-            nuevoRegistro.unidad = unidad;
+            nuevoRegistro.unidad = unidad.trim().length > 0 ? unidad : 
+                ( this.unidadesService.findByCluessa(cluesDestino)?.nombre || 
+                  this.unidadesService.findByCluesimb(cluesDestino)?.nombre || '');
             nuevoRegistro.fte_fmto = fuenteFinanciamiento;
             nuevoRegistro.proveedor = (proveedor + '').trim().toLocaleUpperCase();
             nuevoRegistro.clave_cnis = claveCNIS;

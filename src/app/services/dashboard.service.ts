@@ -102,6 +102,9 @@ export class DashboardService {
             if (cita.unidad?.trim() == 'Almacén Zona Ensenada') {
               cita.unidad = cita.unidad.toLocaleUpperCase();
             }
+            if(cita.unidad?.trim() == 'ALMACÉN DE MEXICALI') {
+              cita.unidad = 'ALMACÉN ZONA MEXICALI';
+            }
             if (cita.fecha_recepcion_almacen == null || cita.fecha_recepcion_almacen?.trim().length == 0) {
               // asignar fecha_recepcion_min pero sin el formato UTC (T00:00:00Z)
               cita.fecha_recepcion_almacen = cita.fecha_recepcion_min?.substring(0, 10) || null;
