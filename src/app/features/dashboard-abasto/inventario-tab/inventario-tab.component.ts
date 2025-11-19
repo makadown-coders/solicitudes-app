@@ -212,7 +212,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         });
 
         // 6) Artículos → mapa por clave { descripcion, presentacion }
-        this.artSrv.getArticulosMapaFromLocal?.().subscribe((m: any) => {
+        this.artSrv.getArticulosMapa?.().subscribe((m: any) => {
             this.articulosMapa.set(m ?? {});
         });
 

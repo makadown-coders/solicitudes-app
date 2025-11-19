@@ -66,7 +66,7 @@ export class RdlSComponent implements OnInit, OnDestroy {
 
   constructor(/* ... */) {
     // 1) Artículos → índice normalizado
-    this.artSrv.getArticulosMapaFromLocal?.().subscribe((m: any) => {
+    this.artSrv.getArticulosMapa?.().subscribe((m: any) => {
       const idx: Record<string, { categoria?: string | null }> = {};
       for (const [k, v] of Object.entries(m ?? {})) {
         idx[this.norm.normClave(k)] = v as any;
@@ -106,17 +106,23 @@ export class RdlSComponent implements OnInit, OnDestroy {
   }
 
   private async initRows() {
-    let articulos: ArticuloLite[] = [];
-    try {
-      articulos = await firstValueFrom(
-        this.http.get<ArticuloLite[]>('/articulos.json').pipe(catchError(() => of([])))
-      );
-    } catch { /* ignore */ }
+    let articulosMapa: Record<string, { descripcion: string; presentacion?: string; categoria?: string | null }> = {};
 
-    const descMap = new Map<string, string>(articulos.map(a => [a.clave?.trim() ?? '', a.descripcion ?? '']));
+    try {
+      // Usamos el servicio en lugar de la llamada directa
+      articulosMapa = await firstValueFrom(
+        this.artSrv.getArticulosMapa().pipe(
+          catchError(() => of({})) // En caso de error, retornamos objeto vacío
+        )
+      );
+    } catch {
+      articulosMapa = {};
+    }
 
     const base: RdlsRow[] = kitCatalogoBasal.map((clave, idx) => {
-      const descripcion = descMap.get(clave) || '';
+      const articulo = articulosMapa[clave];
+      const descripcion = articulo?.descripcion || '';
+
       return {
         no: idx + 1,
         clave,
@@ -389,22 +395,23 @@ export class RdlSComponent implements OnInit, OnDestroy {
       const hospitalData = hospitalesData.find(h => h.key === existencia);
       const nombreHospital = hospitalData ? hospitalData.nombre : existencia;
       // crear un arreglo con los items agregandole la columna de nombre del hospital
-      const itemsWithHospital = items.map(item => ({ 'nombre_hospital': nombreHospital,
+      const itemsWithHospital = items.map(item => ({
+        'nombre_hospital': nombreHospital,
         'CLAVE': item.clave,
         'CANTIDAD': item.disponible,
         'LOTE': item.lote,
         'F_CAD': item.caducidad,
         'FTE': item.fuente
         // ...item 
-        }));
+      }));
       // crear mis headers (columnas) con nombre_hospital al inicio + las columnas del inventario
       // las columnas del inventario las obtengo de la primera fila (suponiendo que todas tienen las mismas columnas)
       const inventarioHeaders = items.length ? Object.keys(items[0]) : [];
       const item_headers = ['nombre_hospital', 'CLAVE', 'CANTIDAD', 'LOTE', 'F_CAD', 'FTE'];
 
       const wsHosp = XLSX.utils.json_to_sheet(
-          itemsWithHospital,
-          { header: [ ...item_headers] as any });
+        itemsWithHospital,
+        { header: [...item_headers] as any });
       XLSX.utils.book_append_sheet(wb, wsHosp, hospitalData?.cluesimb || existencia);
     }
 

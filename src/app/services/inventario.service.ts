@@ -183,7 +183,7 @@ export class InventarioService {
       headers: { 'X-Skip-Loader': '1' }
     } : {}).subscribe({
       next: (response: InventarioFull) => {
-
+        // console.log('🔄 InventarioService.refrescarDatosInventario() - response recibido');
         const inventario = this.obtenerInventarioDeBase64(response.inventario);
         const inventarioNormalizado = this.normalizarClavesInventario(inventario);
 
@@ -404,7 +404,7 @@ export class InventarioService {
 
   private normalizarClavesInventario(inventario: Inventario[]): Inventario[] {
     const prefijos10 = ['060', '533', '535', '513', '537', '080', '070'];
-    return inventario.map(item => {
+    return inventario.map(item => {      
       const claveSinPuntos = item.clave.replace(/\./g, '');
       if (claveSinPuntos.length === 12 &&
         prefijos10.includes(claveSinPuntos.substring(0, 3)) &&
@@ -413,6 +413,9 @@ export class InventarioService {
         const clave10 = claveSinPuntos.substring(0, 10);
         item.clave = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
       }
+      /*if ( item.clave.includes('060.621.0524')) {
+        console.log('🔍 Normalizando clave 060.621.0524 en inventario', item);
+      }*/
       return item;
     });
   }

@@ -92,7 +92,7 @@ export class CpmModalComponent {
         .map(r => ({ clave: r.clave_cnis, cpm: Number(r.cpm ?? 0) }));
 
       // 2) Enriquecer con mapa de artículos local
-      const mapa = await firstValueFrom(this.arts.getArticulosMapaFromLocal());
+      const mapa = await firstValueFrom(this.arts.getArticulosMapa());
       const enriched = rowsBase.map(r => {
         const meta = mapa?.[r.clave];
         return { ...r, descripcion: meta?.descripcion ?? '', presentacion: meta?.presentacion ?? '' };

@@ -118,6 +118,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         // console.log('ExistenciasXClaveComponent ngOnInit');
         try {
             if (this.clavePreseleccionada) {
+                console.log('ExistenciasXClaveComponent - sin clave preseleccionada.');
                 this.articulosService.buscarArticulos(this.clavePreseleccionada).subscribe({
                     next: (data) => {
                         const item = data.resultados.find(a => a.clave === this.clavePreseleccionada);
@@ -131,7 +132,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                 });
             } else {
                 const articulo = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE);
-                // console.log('ExistenciasXClaveComponent - cargando info desde localstorage', articulo);
+                console.log('ExistenciasXClaveComponent - cargando info desde localstorage', articulo);
                 if (articulo && articulo.includes('{')) {
                     // console.log('ExistenciasXClaveComponent - cargando más info desde localstorage...');
                     this.claveConfirmada = true;
@@ -180,10 +181,18 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                     });
             }
 
-            if (this.inventario.length === 0) {
-                this.inventario = this.storageService.getInventarioFromLocalStorage();
-                // console.log('ExistenciasXClaveComponent - this.inventario len', this.inventario.length);
-            }
+            this.inventarioService.inventario$
+                .pipe(takeUntil(this.onDestroy$))
+                .subscribe({
+                    next: (data) => {
+                        if (!data || data.length === 0) return;
+                        this.inventario = [...data];
+                        this.cdRef.detectChanges();
+                    },
+                    error: (error) => {
+                        console.error('Error al obtener el inventario:', error);
+                    }
+                });
         } catch (error) {
             console.error(error);
         }

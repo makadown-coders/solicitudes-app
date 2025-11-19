@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, map, Observable, of } from 'rxjs';
+import { BehaviorSubject, map, Observable, of, shareReplay } from 'rxjs';
 import { Articulo, ArticuloSolicitud } from '../models/articulo-solicitud';
 
 @Injectable({
@@ -19,9 +19,10 @@ export class ArticulosService {
 
   /** para Tab Inventario en Dashboard abasto */
   private _articulosMapaCache: Record<string, { descripcion: string; presentacion?: string }> | null = null;
+  private _articulosMapaCache$: Observable<Record<string, any>> | null = null;
 
   constructor(private http: HttpClient) {
-   // this.cargarArticulosPrimerNivel();
+    // this.cargarArticulosPrimerNivel();
   }
 
   /*private cargarArticulosPrimerNivel() {
@@ -98,26 +99,59 @@ export class ArticulosService {
       );
   }
 
+  
   /**
+   * Returns a map of clave: { descripcion, presentacion, categoria } from local json file.
+   * The map is cached so that subsequent calls return the same map.
    * Para uso en Dashboard abasto > Inventario
    * Para usarse en caso de emergencia.
+   * @returns {Observable<Record<string, any>>} The map of clave: { descripcion, presentacion, categoria }.
+   */
+  getArticulosMapa() {
+    if (!this._articulosMapaCache$) {      
+      this._articulosMapaCache$ = this.http.get<{ resultados: ArticuloSolicitud[]; total: number }>(this.apiUrl+'/all').pipe(
+        map( arr => {
+          const mapa: Record<string, any> = {};
+          for (const a of arr.resultados) {
+            mapa[a.clave] = {
+              descripcion: a.descripcion,
+              presentacion: a.unidadMedida ?? '',
+              categoria: (a as any).categoria ?? null,
+            };
+          }
+          this._articulosMapaCache = mapa;
+          return mapa;
+        }),
+        shareReplay(1) // 👈 Comparte la ejecución entre múltiples suscriptores
+      );
+    }
+
+    return this._articulosMapaCache$;
+  }
+
+  /**
+   * Por deprecar o usar en caso de emergencia =/
    * @returns 
    */
-  getArticulosMapaFromLocal() {
-    if (this._articulosMapaCache) return of(this._articulosMapaCache);
-    return this.http.get<Articulo[]>('/articulos.json').pipe(
-      map(arr => {
-        const mapa: Record<string, { descripcion: string; presentacion?: string; categoria?: string | null }> = {};
-        for (const a of arr) {
-          mapa[a.clave] = {
-            descripcion: a.descripcion,
-            presentacion: a.presentacion ?? '',
-            categoria: (a as any).categoria ?? null,     // 👈 incluir
-          };
-        }
-        this._articulosMapaCache = mapa;
-        return mapa;
-      })
-    );
+  getArticulosMapaLegacy() {
+    if (!this._articulosMapaCache$) {
+      this._articulosMapaCache$ = this.http.get<Articulo[]>('/articulos.json').pipe(      
+        map(arr => {
+          const mapa: Record<string, any> = {};
+          for (const a of arr) {
+            mapa[a.clave] = {
+              descripcion: a.descripcion,
+              presentacion: a.presentacion ?? '',
+              categoria: (a as any).categoria ?? null,
+            };
+          }
+          this._articulosMapaCache = mapa;
+          return mapa;
+        }),
+        shareReplay(1) // 👈 Comparte la ejecución entre múltiples suscriptores
+      );
+    }
+
+    return this._articulosMapaCache$;
   }
 }

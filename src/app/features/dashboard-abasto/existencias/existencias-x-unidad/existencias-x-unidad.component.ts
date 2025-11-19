@@ -286,6 +286,7 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             .pipe(takeUntil(this.onDestroy$))
             .subscribe({
                 next: (data) => {
+                   // console.log('🔄 ExistenciasXUnidadComponent - inventario$ emitió nuevo valor con', data.length, 'items');
                     this.inventario = [...data];
                     this.cdRef.detectChanges();
                 },

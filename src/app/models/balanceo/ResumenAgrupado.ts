@@ -6,3 +6,8 @@ export interface ResumenAgrupado {
     piezas_destino: number;
     piezas_excedente?: number; // excedente de ese almacén si existe
 }
+
+export interface GrupoClaveParaBalanceo {
+  clave_cnis: string;
+  almacenes: ResumenAgrupado[];
+}

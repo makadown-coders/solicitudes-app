@@ -5,7 +5,7 @@ import { environment } from "../../environments/environment";
 import { DetalleBalanceo } from "../models/balanceo/DetalleBalanceo";
 import { ResumenBalanceo } from "../models/balanceo/ResumenBalanceo";
 import { UltimaEjecucion } from "../models/balanceo/UltimaEjecucion";
-import { BalanceoApiResponse } from "../models/balanceo/BalanceoApiResponse"; 
+import { BalanceoApiResponse } from "../models/balanceo/BalanceoApiResponse";
 
 @Injectable({
   providedIn: 'root',
@@ -13,7 +13,7 @@ import { BalanceoApiResponse } from "../models/balanceo/BalanceoApiResponse";
 export class BalanceoService {
   private baseUrl = `${environment.apiUrl}/balanceo`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   ejecutarBalanceo(): Observable<{ ok: boolean; ejecucionId: number }> {
     return this.http.post<{ ok: boolean; ejecucionId: number }>(
@@ -55,6 +55,11 @@ export class BalanceoService {
     );
   }
 
+  /** Detalle global de la última ejecución (sin filtros) */
+  obtenerDetalleGlobalActual(): Observable<BalanceoApiResponse<DetalleBalanceo[]>> {
+    return this.obtenerDetalleActual(); // sin params => trae TODO
+  }
+
   // Opcionales para histórico:
   obtenerResumenPorEjecucion(
     ejecucionId: number
@@ -82,6 +87,19 @@ export class BalanceoService {
     return this.http.get<BalanceoApiResponse<DetalleBalanceo[]>>(
       `${this.baseUrl}/${ejecucionId}/detalle`,
       { params: httpParams }
+    );
+  }
+
+  obtenerClavesRutasSalud(kit?: string) {
+    const params: any = {};
+    if (kit) {
+      // el backend acepta ?kits=KIT_180,KIT_96,...; aquí usamos uno solo
+      params.kits = kit;
+    }
+
+    return this.http.get<{ count: number; claves: string[] }>(
+      `${environment.apiUrl}/cpms/rutas-salud-claves`,
+      { params }
     );
   }
 }

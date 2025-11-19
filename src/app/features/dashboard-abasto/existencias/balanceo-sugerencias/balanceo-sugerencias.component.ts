@@ -4,7 +4,10 @@ import { DetalleBalanceo } from "../../../../models/balanceo/DetalleBalanceo";
 import { ResumenBalanceo } from "../../../../models/balanceo/ResumenBalanceo";
 import { UltimaEjecucion } from "../../../../models/balanceo/UltimaEjecucion";
 import { BalanceoService } from "../../../../services/balanceo.service";
-import { ResumenAgrupado } from "../../../../models/balanceo/ResumenAgrupado";
+import { GrupoClaveParaBalanceo, ResumenAgrupado } from "../../../../models/balanceo/ResumenAgrupado";
+import { ArticulosService } from "../../../../services/articulos.service";
+import { firstValueFrom } from "rxjs";
+import { ExcelService } from "../../../../services/excel.service";
 
 @Component({
     selector: 'app-balanceo-sugerencias',
@@ -18,10 +21,25 @@ export class BalanceoSugerenciasComponent implements OnInit {
     ejecutando = signal(false);
     error = signal<string | null>(null);
 
+    mostrarSoloExcedentes = signal(false);
+    searchTerm = signal('');
+    // ''  = sin filtro de Ruta
+    // 'ALL' = todas las claves de todos los kits de Ruta de la Salud
+    // 'KIT_180', 'KIT_96', etc = claves sólo de ese kit
+    kitRutaSalud = signal<string>('');
+
+    // Lista de kits de Ruta de la Salud
+    kitsRuta = ['KIT_180', 'KIT_96', 'KIT_920', 'KIT_147'];
+    clavesRutasSalud = signal<Set<string> | null>(null);
+
     ultimaEjecucion = signal<UltimaEjecucion | null>(null);
     resumen = signal<ResumenBalanceo[]>([]);
     detalle = signal<DetalleBalanceo[]>([]);
     filaSeleccionada = signal<ResumenAgrupado | null>(null);
+
+    // 👇 nuevo: detalleGlobal para el Excel
+    detalleGlobal = signal<DetalleBalanceo[]>([]);
+    exportando = signal(false);
 
     // 🔹 Agrupamos por (clave_cnis, jurisdiccion_almacen)
     resumenAgrupado = computed<ResumenAgrupado[]>(() => {
@@ -63,11 +81,67 @@ export class BalanceoSugerenciasComponent implements OnInit {
         });
     });
 
-    constructor(private balanceoService: BalanceoService) { }
+    constructor(
+        private balanceoService: BalanceoService,
+        private articulosService: ArticulosService,
+        private excelService: ExcelService
+    ) { }
 
     ngOnInit(): void {
         this.cargarUltimaEjecucionYResumen();
+        //setTimeout(() => {
+        // Cargar descripciones de artículos desde el JSON local
+        this.articulosService.getArticulosMapa().subscribe({
+            next: (mapa) => this.articulosMapa.set(mapa),
+            error: (err) => {
+                console.error('Error cargando mapa de artículos', err);
+                // si falla, simplemente no mostramos descripción
+            },
+        });
+        //}, 5000);
+
+        // 🔹 Cargar las claves de Rutas de la Salud (kits)
+        this.balanceoService.obtenerClavesRutasSalud().subscribe({
+            next: (resp) => {
+                const set = new Set<string>((resp.claves ?? []) as string[]);
+                this.clavesRutasSalud.set(set);
+            },
+            error: (err) => {
+                console.error('Error obteniendo claves de Rutas de la Salud', err);
+                // si falla, el filtro simplemente no hará nada
+            },
+        });
     }
+
+    onKitRutaChange(value: string) {
+        this.kitRutaSalud.set(value);
+
+        // Sin filtro de Ruta de la Salud
+        if (!value) {
+            this.clavesRutasSalud.set(null);
+            return;
+        }
+
+        // 'ALL' => todas las claves de todos los kits
+        const kitParam = value === 'ALL' ? undefined : value;
+
+        this.balanceoService.obtenerClavesRutasSalud(kitParam).subscribe({
+            next: (resp) => {
+                const set = new Set<string>((resp.claves ?? []) as string[]);
+                this.clavesRutasSalud.set(set);
+            },
+            error: (err) => {
+                console.error('Error cargando claves de Rutas de la Salud', err);
+                this.clavesRutasSalud.set(null);
+            },
+        });
+    }
+
+    private articulosMapa = signal<
+        Record<string, { descripcion: string; presentacion?: string; categoria?: string | null }>
+        | null
+    >(null);
+    
 
     cargarUltimaEjecucionYResumen(): void {
         this.loading.set(true);
@@ -97,6 +171,20 @@ export class BalanceoSugerenciasComponent implements OnInit {
                 console.error(err);
                 this.error.set('Error al obtener el resumen actual');
                 this.loading.set(false);
+            },
+        });
+
+        // Detalle global
+        this.balanceoService.obtenerDetalleGlobalActual().subscribe({
+            next: (resp) => {
+                const detalle = ((resp.detalle ?? resp['data']) ?? (resp || [])) as DetalleBalanceo[];
+                this.detalleGlobal.set(detalle);
+                this.exportando.set(false);
+            },
+            error: (err) => {
+                console.error(err);
+                this.error.set('Error al obtener el detalle global para la exportación');
+                this.exportando.set(false);
             },
         });
     }
@@ -154,10 +242,96 @@ export class BalanceoSugerenciasComponent implements OnInit {
         }
     }
 
+    gruposPorClave = computed<GrupoClaveParaBalanceo[]>(() => {
+        const lista = this.resumenAgrupado();
+        const map = new Map<string, GrupoClaveParaBalanceo>();
+
+        for (const item of lista) {
+            let grupo = map.get(item.clave_cnis);
+            if (!grupo) {
+                grupo = { clave_cnis: item.clave_cnis, almacenes: [] };
+                map.set(item.clave_cnis, grupo);
+            }
+            grupo.almacenes.push(item);
+        }
+
+        let grupos = Array.from(map.values()).sort((a, b) =>
+            a.clave_cnis.localeCompare(b.clave_cnis)
+        );
+
+        // 🔍 Filtro: solo claves donde al menos un almacén tenga excedente
+        if (this.mostrarSoloExcedentes()) {
+            grupos = grupos.filter(g =>
+                g.almacenes.some(a => (a.piezas_excedente ?? 0) > 0)
+            );
+        }
+
+        // 2) Filtro: texto por clave / descripción
+        const term = this.searchTerm().trim().toLowerCase();
+        if (term) {
+            const mapa = this.articulosMapa();
+
+            grupos = grupos.filter(g => {
+                const claveMatch = g.clave_cnis.toLowerCase().includes(term);
+
+                let descMatch = false;
+                if (mapa && mapa[g.clave_cnis]?.descripcion) {
+                    descMatch = mapa[g.clave_cnis]!.descripcion
+                        .toLowerCase()
+                        .includes(term);
+                }
+
+                return claveMatch || descMatch;
+            });
+        }
+
+        // 3) Filtro por Rutas de la Salud (kits)
+        const kitSel = this.kitRutaSalud();
+        const setRutas = this.clavesRutasSalud();
+        if (kitSel && setRutas) {
+            grupos = grupos.filter((g) => setRutas.has(g.clave_cnis));
+        }
+
+        return grupos;
+    });
+
     // trackBy helpers
-    trackAgrupado = (_: number, item: ResumenAgrupado) =>
+    trackGrupo = (_: number, grupo: GrupoClaveParaBalanceo) => grupo.clave_cnis;
+    trackAlmacen = (_: number, item: ResumenAgrupado) =>
         `${item.clave_cnis}-${item.jurisdiccion_almacen}`;
+    /*trackAgrupado = (_: number, item: ResumenAgrupado) =>
+        `${item.clave_cnis}-${item.jurisdiccion_almacen}`;*/
 
     trackDetalle = (_: number, item: DetalleBalanceo) =>
         `${item.clave_cnis}-${item.jurisdiccion_almacen}-${item.clues_destino}-${item.prioridad}`;
+
+    getDescripcionClave(clave: string): string {
+        const mapa = this.articulosMapa();
+        if (!mapa) return '';
+        return mapa[clave]?.descripcion ?? '';
+    }
+
+    /** Exporta usando la última ejecución + resumen actual + detalle global */
+    async exportarExcelBalanceo() {
+        try {
+            const ejec = this.ultimaEjecucion();
+            const resumen = this.resumen();
+            const detalle = this.detalleGlobal();
+
+            if (!resumen.length || !detalle.length) {
+                console.warn('No hay datos de balanceo para exportar.');
+                return;
+            }
+
+            const nombre = `Balanceo_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            await this.excelService.exportarBalanceoSugerencias(
+                nombre,
+                ejec,
+                resumen,
+                detalle
+            );
+        } catch (err) {
+            console.error('Error al exportar Excel de balanceo', err);
+        }
+    }
 }
