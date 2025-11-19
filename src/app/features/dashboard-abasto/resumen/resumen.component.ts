@@ -177,7 +177,6 @@ export class ResumenComponent implements OnInit {
 
     // 🔹 SUSCRIPCIÓN: cada vez que el server devuelva citas filtradas, recalculamos todo
     this.dash.resumenCitas$.subscribe((list) => {
-      console.log('🔹 resumenCitas$');
       this.citas = list ?? [];
       // refresca catálogos dependientes (por si cambiaron con filtros)
       const compras2 = new Set(this.citas.map(c => c.compra).filter(Boolean));
@@ -287,7 +286,6 @@ export class ResumenComponent implements OnInit {
   }
 
   calcularDatosCon(citasFuente: Cita[]) {
-    console.log('calcularDatosCon ' + citasFuente.length + ' citas.');
     localStorage.setItem(StorageVariables.DASH_ABASTO_RESUMEN_ANIOS, JSON.stringify(this.filtrosSeleccionados.anios));
     localStorage.setItem(StorageVariables.DASH_ABASTO_RESUMEN_ESTATUS, JSON.stringify(this.filtrosSeleccionados.estatus));
     localStorage.setItem(StorageVariables.DASH_ABASTO_RESUMEN_TIPOS_ENTREGA, JSON.stringify(this.filtrosSeleccionados.tipoEntrega));

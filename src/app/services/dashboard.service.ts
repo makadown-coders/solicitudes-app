@@ -134,7 +134,6 @@ export class DashboardService {
   }
 
   cargarStats(): void {
-    console.log('🔄 Cargando stats resumen con filtros:', this.filtrosStats);
     const params = this.buildStatsParams();
     this.citasService.getStatsResumen(params).subscribe({
       next: (r) => {

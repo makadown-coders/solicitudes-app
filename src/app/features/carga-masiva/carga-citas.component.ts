@@ -247,10 +247,10 @@ export class CargaCitasComponent {
 
             await uploadBatches(this.citasASubir);
 
-            alert(`✅ Existencias cargadas. Registros: ${total}`);
+            alert(`✅ Citas cargadas. Registros: ${total}`);
         } catch (e) {
             console.error(e);
-            alert('❌ Error durante la carga de existencias');
+            alert('❌ Error durante la carga de Citas');
         } finally {
             this.isUploading = false;
             this.progress = 0;

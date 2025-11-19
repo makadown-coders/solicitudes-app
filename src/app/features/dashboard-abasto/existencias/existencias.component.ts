@@ -12,6 +12,7 @@ import { Subject, take, takeUntil } from 'rxjs';
 import { ExistenciasXClaveComponent } from './existencias-x-clave/existencias-x-clave.component';
 import { ExistenciasXUnidadComponent } from './existencias-x-unidad/existencias-x-unidad.component';
 import { ExistenciasXGrupoComponent } from './existencias-x-grupo/existencias-x-grupo.component';
+import { BalanceoSugerenciasComponent } from './balanceo-sugerencias/balanceo-sugerencias.component';
 
 @Component({
     standalone: true,
@@ -20,15 +21,14 @@ import { ExistenciasXGrupoComponent } from './existencias-x-grupo/existencias-x-
         FormsModule,
         ExistenciasXClaveComponent,
         ExistenciasXUnidadComponent,
-        ExistenciasXGrupoComponent
+        ExistenciasXGrupoComponent,
+        BalanceoSugerenciasComponent
     ],
     selector: 'app-existencias',
     templateUrl: 'existencias.component.html',
-
 })
 
 export class ExistenciasComponent implements OnInit, OnDestroy {
-    @Input() citas: Cita[] = [];
     existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
     cpms: CPMS[] = [];
     claveGrupos: ClaveGrupo[] = [];
@@ -38,9 +38,8 @@ export class ExistenciasComponent implements OnInit, OnDestroy {
     // behaviorSubject para desuscribirme de todos los observables
     private onDestroy$ = new Subject<void>();
 
-
     // en construccion
-    existenciasTabs = ['xClave', 'xUnidad', 'xGrupo'];
+    existenciasTabs = ['xClave', 'xUnidad', 'xGrupo', 'Balanceo (beta)'];
     activeExistenciaTab = 'xClave';
     constructor() {
         const tabGuardado = localStorage.getItem(StorageVariables.DASH_ABASTO_ACTIVE_EXISTENCIA_TAB);

@@ -47,6 +47,56 @@ export class CitasService {
     return this.http.get<any>(`${this.apiUrl}/stats/cumplimiento-claves`, { params });
   }
 
+  /** 🔎 Buscar citas por filtros (nuevo) */
+  searchCitas(params: {
+    clave_cnis?: string;
+    desde?: string;            // YYYY-MM-DD (ventana mínima)
+    hasta?: string;            // YYYY-MM-DD (opcional)
+    include_pendientes?: '1' | '0'; // '1' => incluir pendientes (sin recepción) con fecha_límite >= hoy
+    ejercicio?: Array<number | string>;
+    estatus?: string[];
+    tipo_de_entrega?: string[];
+    compra?: string[];
+    unidad?: string[];         // si más adelante quieres filtrar por CLUES
+    limit?: number;            // por si quieres acotar resultados
+  }): Observable<Cita[]> {
+    let hp = new HttpParams();
+    const appendMany = (k: string, arr?: (string | number)[]) =>
+      (arr ?? []).forEach(v => hp = hp.append(k, String(v)));
+
+    if (params.clave_cnis) hp = hp.set('clave_cnis', params.clave_cnis);
+    if (params.desde) hp = hp.set('desde', params.desde);
+    if (params.hasta) hp = hp.set('hasta', params.hasta);
+    if (params.include_pendientes) hp = hp.set('include_pendientes', params.include_pendientes);
+    if (params.limit != null) hp = hp.set('limit', String(params.limit));
+
+    appendMany('ejercicio', params.ejercicio);
+    appendMany('estatus', params.estatus);
+    appendMany('tipo_de_entrega', params.tipo_de_entrega);
+    appendMany('compra', params.compra);
+    appendMany('unidad', params.unidad);
+
+    return this.http.get<Cita[]>(`${this.apiUrl}`, { params: hp });
+  }
+
+  getCitasPorClaveXClave(opts: {
+    clave: string;
+    desde?: string;   // 'YYYY-MM-DD' - aplica solo a fecha_recepcion_lista
+    hasta?: string;   // 'YYYY-MM-DD'
+    windowDays?: number;           // default 30
+    incluyeNoRecibidas?: boolean;  // default true
+    limit?: number;                // default 200
+  }) {
+    let params = new HttpParams().set('clave', (opts.clave ?? '').toUpperCase());
+    if (opts.desde) params = params.set('desde', opts.desde);
+    if (opts.hasta) params = params.set('hasta', opts.hasta);
+    if (opts.windowDays != null) params = params.set('window_days', String(opts.windowDays));
+    if (opts.incluyeNoRecibidas != null) params = params.set('incluye_no_recibidas', opts.incluyeNoRecibidas ? '1' : '0');
+    if (opts.limit != null) params = params.set('limit', String(opts.limit));
+
+    return this.http.get<{ ok: boolean; rows: any[]; ref: any }>(`${this.apiUrl}/xclave`, { params });
+  }
+
   refreshMaterializedViews(): Observable<{ ok: boolean; refreshed: string[]; concurrently: boolean }> {
     const headers: any = {};
     if ((window as any).ADMIN_KEY) headers['x-admin-key'] = (window as any).ADMIN_KEY;

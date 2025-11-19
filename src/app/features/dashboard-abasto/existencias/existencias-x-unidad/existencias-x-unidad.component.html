@@ -57,9 +57,17 @@
           </p>
         </div>
       </div>
+      
     </div>
 
+      <!-- TEXTO TEMPORAL -->
+      <div class="mr-5 text-xs text-gray-600 space-y-1">
+        Proceso en fase de optimización.
+      </div>
+      <!-- TEXTO TEMPORAL -->
+
     <div class="flex justify-end mt-4" *ngIf="cpmsElegidos.length > 0">
+
       <button (click)="exportarExcelExistenciasUnidad()"
         class="flex items-center gap-2 px-4 py-2 text-white bg-green-600 cursor-pointer rounded hover:bg-green-700">
         <lucide-icon [img]="sheetIcon" class="w-5 h-5 text-white"></lucide-icon>
@@ -204,7 +212,8 @@
     </button>
 
     <!-- Contenido del modal -->
-    <app-existencias-x-clave [clavePreseleccionada]="claveSeleccionadaModal" [citas]="citas"></app-existencias-x-clave>
+    <app-existencias-x-clave [clavePreseleccionada]="claveSeleccionadaModal">
+    </app-existencias-x-clave>
 
   </div>
 </div>

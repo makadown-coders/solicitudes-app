@@ -23,6 +23,7 @@ import { CPMS } from '../../../../models/CPMS';
 import { TrazabilidadModalComponent } from '../../../../shared/trazabilidad-modal/trazabilidad-modal.component';
 import { TrazabilidadService } from '../../../../services/trazabilidad.service';
 import { FactorUnidad } from '../../../../models/factor-unidad';
+import { CitasService } from '../../../../services/citas.service';
 
 /**
  * Componente para mostrar las existencias por clave.
@@ -41,7 +42,9 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
 
     @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
     @Input() cpms: CPMS[] = [];
-    @Input() citas: Cita[] = [];
+    citasService = inject(CitasService);
+    // @Input() citas: Cita[] = [];
+    citas: Cita[] = []
 
     pillIcon = LucidePill;
     triangleAlert = TriangleAlertIcon;
@@ -410,6 +413,29 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                 }
                 agrupadoPorAlmacen.get(municipio)!.push(unidadResumen);
             }
+            // calcular existencia de almacen
+            const imssb = ALMACENES_JURIS[municipio].cluesimb;
+            if (imssb) {
+                const existenciasInsumo = this.existenciaUnidades
+                    .get(imssb)
+                    ?.filter(i => i.clave === clave);
+                console.info('existenciasInsumo', existenciasInsumo);
+                let existenciaDisp = 0;
+                if (existenciasInsumo) {
+                    for (const i of existenciasInsumo) {
+                        existenciaDisp += (i.disponible - i.comprometidos);
+                    }
+
+                    if (municipio.toLocaleLowerCase().includes('mexicali') && this.existenciaAlmacenes) {
+                        this.existenciaAlmacenes.existenciasAZM = existenciaDisp;
+                    } else if (municipio.toLocaleLowerCase().includes('ensenada') && this.existenciaAlmacenes) {
+                        this.existenciaAlmacenes.existenciasAZE = existenciaDisp;
+                    } else if (municipio.toLocaleLowerCase().includes('tijuana') && this.existenciaAlmacenes) {
+                        this.existenciaAlmacenes.existenciasAZT = existenciaDisp;
+                    }
+                }
+
+            }
         }
 
         // Construir estructura final
@@ -440,34 +466,60 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     /**
      * Busca las citas de un insumo en la variable que contiene todas las citas
      */
-    buscarExistenciasDeClave(skipLocalStorage = false) {
+    /**
+   * Busca las citas de un insumo en backend (30d recientes) y pendientes.
+   */
+    async buscarExistenciasDeClave(skipLocalStorage = false) {
         const hoy = new Date();
-        const hace30dias = new Date(hoy);
-        hace30dias.setDate(hoy.getDate() - 30);
+        const hace30dias = new Date(hoy); hace30dias.setDate(hoy.getDate() - 30);
 
-        this.citaParaDescripcionDeClave = this.citas.find(c => c.clave_cnis === this.claveFiltrada)!;
+        // si quieres pasar el rango de “Recepción lista” tal cual desde el periodo activo, puedes
+        // usar el PeriodoPicker del tab Resumen; aquí, por simplicidad, no forzamos esos dates.
+        try {
+            const resp = await firstValueFrom(
+                this.citasService.getCitasPorClaveXClave({
+                    clave: this.claveFiltrada,
+                    // desde: this.toISO(this.fechaInicio)  // si decides pasar fechas del picker
+                    // hasta: this.toISO(this.fechaFin),
+                    windowDays: 30,
+                    incluyeNoRecibidas: true,
+                    limit: 500
+                })
+            );
 
-        this.citasHalladasPorClave = this.citas.filter(c => {
-            const esClave = c.clave_cnis === this.claveFiltrada;
+            const rows = resp?.rows ?? [];
+            this.citasHalladasPorClave = rows as Cita[];
+            this.citaParaDescripcionDeClave = (resp?.ref ?? rows[0] ?? null) as Cita | null;
 
-            const fechaLimite = c.fecha_limite_de_entrega
-                ? new Date(c.fecha_limite_de_entrega)
-                : null;
+        } catch (err) {
+            console.warn('⚠️ Backend /xclave no disponible, usando filtro local', err);
+            // ⬇️  fallback local: tu lógica original
+            this.citaParaDescripcionDeClave = this.citas.find(c => c.clave_cnis === this.claveFiltrada)!;
+            this.citasHalladasPorClave = this.citas.filter(c => {
+                const esClave = c.clave_cnis === this.claveFiltrada;
 
-            const fechaValida = fechaLimite &&
-                (fechaLimite >= hoy || fechaLimite >= hace30dias);
+                const fechaLimite = c.fecha_limite_de_entrega
+                    ? new Date(c.fecha_limite_de_entrega)
+                    : null;
 
-            // si se recibio recientemente o si fecha_recepcion_almacen es null
-            const recibidoRecientementeONoSeHaRecibido = c.fecha_recepcion_almacen
-                ? new Date(c.fecha_recepcion_almacen) >= hace30dias
-                : true;
+                const fechaValida = !!fechaLimite && (fechaLimite >= hoy || fechaLimite >= hace30dias);
 
-            return esClave && fechaValida && recibidoRecientementeONoSeHaRecibido;
-        });
+                const recibidoRecientementeONoSeHaRecibido = c.fecha_recepcion_almacen
+                    ? new Date(c.fecha_recepcion_almacen) >= hace30dias
+                    : true;
+
+                return esClave && fechaValida && recibidoRecientementeONoSeHaRecibido;
+            });
+        }
 
         if (!skipLocalStorage) {
             localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE, JSON.stringify(this.citasHalladasPorClave));
-            localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE, JSON.stringify(this.citaParaDescripcionDeClave));
+            if (this.citaParaDescripcionDeClave) {
+                localStorage.setItem(
+                    StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE,
+                    JSON.stringify(this.citaParaDescripcionDeClave)
+                );
+            }
         }
         this.cdRef.detectChanges();
     }

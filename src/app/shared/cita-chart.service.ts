@@ -47,10 +47,6 @@ export class CitaChartService {
   }
 
   obtenerTendenciaDiaria(citasFiltradas: Cita[]): ChartConfiguration<'line'>['data'] {
-    
-    console.log('Generando gráfica de tendencia con', citasFiltradas.length, 'citas filtradas.');
-    console.log('Citas filtradas:', citasFiltradas);
-
     const mapFecha = new Map<string, number>();
 
     citasFiltradas.forEach(cita => {
@@ -59,8 +55,6 @@ export class CitaChartService {
         mapFecha.set(fecha, (mapFecha.get(fecha) || 0) + ( +((cita.pzas_recibidas_por_la_entidad || 0) + '') ));
       }
     });
-
-    console.log('Datos agregados por fecha:', mapFecha);
 
     const fechasOrdenadas = Array.from(mapFecha.keys()).sort();
     const valores = fechasOrdenadas.map(f => mapFecha.get(f) || 0);

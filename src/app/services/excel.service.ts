@@ -526,8 +526,7 @@ export class ExcelService {
         }[],
         disponibles: number,
         faltantes: number,
-        totalPiezasDisponibles: number,
-        citas: Cita[]
+        totalPiezasDisponibles: number 
     ) {
         const workbook = new ExcelJS.Workbook();
         const response = await fetch(templateUrl);
@@ -556,33 +555,6 @@ export class ExcelService {
             row.getCell(11).value = item.existenciaAZT;
             row.getCell(12).value = item.existenciaAZE;
             row.getCell(13).value = item.puntoReorden;
-            // obtener para la clave cuantas citas se recibieron los ultimos 40 dias... 
-            // si es por estado, buscar todo, si es por unidad, buscar por unidad
-            const citasHalladasPorClave = citas.filter(c => {
-                const esClave = c.clave_cnis === item.clave
-
-                const fechaRecibido = c.fecha_recepcion_almacen
-                    ? new Date(c.fecha_recepcion_almacen)
-                    : null;
-
-                const fechaValida = fechaRecibido &&
-                    (fechaRecibido >= hoy || fechaRecibido >= hace40dias);
-
-                // mostrar estatus completos
-                const estatusCompleto = c.estatus.toLocaleLowerCase() === 'completo';
-
-                // si se recibio recientemente o si fecha_recepcion_almacen es null
-                /* const recibidoRecientementeONoSeHaRecibido = c.fecha_recepcion_almacen
-                     ? new Date(c.fecha_recepcion_almacen) >= hace40dias
-                     : true;*/
-
-                return esClave && fechaValida && estatusCompleto /*&& recibidoRecientementeONoSeHaRecibido*/;
-            });
-
-            row.getCell(14).value = citasHalladasPorClave.length;
-            // en columna 15 mostrar solo en un string cada orden de suministro y entre paréntesis la fecha de recepción de almacen,
-            //  para darlo como observacion...
-            row.getCell(15).value = citasHalladasPorClave.map(c => c.orden_de_suministro + ' (recibido ' + c.fecha_recepcion_almacen + ')').join(', ');
         });
 
         /** Hoja 2: Resumen Abasto **/
