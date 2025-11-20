@@ -1,3 +1,4 @@
+// src/app/features/dashboard-abasto/proveedores/proveedores.component.ts 
 import { Component, ViewChildren, QueryList, ElementRef, inject, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Cita } from '../../../models/Cita';

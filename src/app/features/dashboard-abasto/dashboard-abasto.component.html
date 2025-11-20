@@ -33,31 +33,31 @@
       </nav>
     </div>
     <div>
-      <div [hidden]="activeTab !== 'Resumen'">
+      <div [hidden]="activeTab !== 'Resumen'" class="cursor-pointer">
         <app-resumen></app-resumen>
       </div>
-      <div [hidden]="activeTab !== 'Existencias (CPM)'">
+      <div [hidden]="activeTab !== 'Existencias (CPM)'" class="cursor-pointer">
         <app-existencias></app-existencias>
       </div>
-      <div [hidden]="activeTab !== 'Citas Completadas'">
-        <app-proveedores [citas]="citas"></app-proveedores>
+      <div [hidden]="activeTab !== 'Citas Completadas'" class="cursor-pointer">
+        <app-proveedores></app-proveedores>
       </div>
-      <div [hidden]="activeTab !== 'Citas pendientes'">
-        <app-citas-pendientes [citas]="citas"></app-citas-pendientes>
+      <div [hidden]="activeTab !== 'Citas pendientes'" class="cursor-pointer">
+        <app-citas-pendientes></app-citas-pendientes>
       </div>
-      <div [hidden]="activeTab !== 'Cumplimiento Claves'">
-        <app-inventario-critico [citas]="citas"></app-inventario-critico>
+      <div [hidden]="activeTab !== 'Cumplimiento Claves'" class="cursor-pointer">
+        <app-inventario-critico></app-inventario-critico>
       </div>
-      <div [hidden]="activeTab !== 'Entregas pendientes'">
-        <app-resumen-citas [citas]="citas"></app-resumen-citas>
+      <div [hidden]="activeTab !== 'Entregas pendientes'" class="cursor-pointer">
+        <app-resumen-citas></app-resumen-citas>
       </div>
-      <div [hidden]="activeTab !== 'Existencias (beta)'">
+      <div [hidden]="activeTab !== 'Existencias (beta)'" class="cursor-pointer">
         <app-inventario-tab></app-inventario-tab>
       </div>
-      <div [hidden]="activeTab !== 'RdlS'">
+      <div [hidden]="activeTab !== 'RdlS'" class="cursor-pointer">
         <app-rdls></app-rdls>
       </div>
-      <div [hidden]="activeTab !== 'Acerca de'" class="p-6">
+      <div [hidden]="activeTab !== 'Acerca de'" class="p-6 cursor-pointer">
         @let anio = anioActual();
         <div class="mx-auto max-w-2xl text-center">
           <h2 class="mb-2 text-3xl font-bold text-green-800">📊 Dashboard Abasto</h2>

@@ -110,7 +110,7 @@ export class CitasService {
    * @param base64 
    * @returns 
    */
-  obtenerCitasDeBase64(base64: string): Cita[] {
+/*  obtenerCitasDeBase64(base64: string): Cita[] {
 
     // console.info('🔁 Obteniendo info con Power Automate');
     let citasRetorno: Cita[] = [];
@@ -168,9 +168,9 @@ export class CitasService {
           (this.fechaService.excelDateToDatestring(fila[19]));
         const fechaLimiteEntrega = fila[19];
         const piezasRecibidas = fila[20];
-        /* Condiciono a que la fecha de recepción siempre sea null 
-           si no tiene numero de remision (fila[22]) porque están intimamente ligados
-        */
+        // Condiciono a que la fecha de recepción siempre sea null 
+        // si no tiene numero de remision (fila[22]) porque están intimamente ligados
+        
         const fechaRecepcionAlmacen =
           fila[22] === null ? null :
             (fila[21] instanceof Date ? fila[21] :
@@ -280,5 +280,5 @@ export class CitasService {
       }
     }
     return citasRetorno;
-  }
+  } */
 }
