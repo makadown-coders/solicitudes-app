@@ -1,4 +1,13 @@
 <!-- src/app/features/dashboard-abasto/proveedores/proveedores.component.html -->
+<!-- Mensaje de error -->
+<div *ngIf="errorMsg" class="mb-3 p-3 text-sm text-red-800 bg-red-50 border-red-300 rounded border">
+    {{ errorMsg }}
+</div>
+
+<!-- Loader simple -->
+<div *ngIf="loading" class="mb-3 text-sm text-gray-600">
+    Cargando citas de proveedores...
+</div>
 <div class="p-6 mb-6 space-y-6">
     <h2 class="mb-4 text-2xl font-bold text-green-800">Proveedores y Entregas</h2>
 
@@ -43,19 +52,19 @@
 
         <!-- Etiqueta resumen -->
         <div class="min-w-[180px] text-sm text-gray-600 text-right">
-            {{ proveedoresAgrupados.length }} proveedor(es).
+            {{ proveedoresAgrupados().length }} proveedor(es).
         </div>
     </div>
 
 
     <!-- Acordeones -->
-    <div *ngFor="let grupo of proveedoresAgrupados; let i = index" class="mb-4 shadow-sm border rounded scroll-mt-24"
+    <div *ngFor="let grupo of proveedoresAgrupados(); let i = index" class="mb-4 shadow-sm border rounded scroll-mt-24"
         #grupoRef>
         <button type="button" (click)="toggleProveedor(grupo.proveedor, i)"
             class="p-4 w-full text-left font-semibold text-green-900 bg-green-100 hover:bg-green-200 transition">
             @let totalPiezasPorProveedor = getTotalPiezasPorProveedor(grupo.citas);
 
-            {{ grupo.proveedor }} — Total: {{ totalPiezasPorProveedor | number }} piezas
+            {{ grupo.proveedor }} — Total: {{ totalPiezasPorProveedor }} piezas
         </button>
 
         <div [hidden]="proveedorExpandido !== grupo.proveedor" class="bg-white">

@@ -72,3 +72,6 @@ export interface CitaRow {
   30?: string | Date | null; // fechaCita
  // 31?: string; // observacion
 }
+
+
+

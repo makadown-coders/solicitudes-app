@@ -44,7 +44,7 @@ export class DashboardAbastoComponent implements OnInit {
   get isDarkMode() { return this.themeService.isDarkMode(); }
 
   // aquí recibiremos el arreglo de citas
-  citas: Cita[] = [];
+  // citas: Cita[] = [];
 
   // controla la pestaña activa
   tabs = ['Resumen',
@@ -76,20 +76,27 @@ export class DashboardAbastoComponent implements OnInit {
 
     // ✅ SUSCRIBIR KPIs
     //this.dashboardService.kpis$.subscribe(k => this.kpis = k);
+    
+    // if (this.citas.length === 0) {
+    
+    // TODO: Optimizar las cargas de cpm y los existencias para que 
+    // el servicio se encargue de decidir si carga del endpoint o del localStorage cada 12 horas.
 
-    // TODO: Refactorizar para recargar manualmente
-    if (this.citas.length === 0) {
+
+    //if (tabGuardado === this.tabs[0]) { // si el tab guardado ES el primero, carga desde el endpoint
       // 2) Dispara la carga inicial desde el endpoint
-      this.onRefresh();
-    } else {
+      // this.onRefresh();
+    // } else {
       // this.isLoading.set(true);
       // this.dashboardService.refrescarDeLocalStorage();
+      
       this.inventarioService.cargarCPMSdesdeLocalStorage();
       for (const existencia of Object.values(Existencias)) {
         this.inventarioService.refrescarDatosExistenciasDeLocalStorage(existencia);
       }
+
       // this.isLoading.set(false);
-    }
+    // }
   }
 
   // opcionalmente puedes exponer un método para refrescar manualmente
