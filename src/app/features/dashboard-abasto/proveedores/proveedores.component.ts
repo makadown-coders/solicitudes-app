@@ -18,6 +18,7 @@ import { StorageVariables } from '../../../shared/storage-variables';
 import { DetalleCitaModalComponent } from '../../../shared/detalle-cita-modal/detalle-cita-modal.component';
 import { CitasService } from '../../../services/citas.service';
 import { CitaQueryResponse } from '../../../models/CitaQueryResponse';
+import { Observable } from 'rxjs';
 
 @Component({
     selector: 'app-proveedores',
@@ -73,6 +74,15 @@ export class ProveedoresComponent implements OnInit {
         this.cargarCitasDesdeBackend(true); // cargandoDesdeNgOnInit = true para evitar repersistencia
     }
 
+    /**
+     * Para ser usada desde componentes padres (via ViewChild) que quieran forzar
+     * la recarga de datos desde el backend.
+     * @param forceRefresh 
+     */
+    refrescarDatos(forceRefresh = false): void {
+        this.cargarCitasDesdeBackend(false, forceRefresh);
+    }
+
     // =======================
     //   Helpers de fechas
     // =======================
@@ -84,7 +94,7 @@ export class ProveedoresComponent implements OnInit {
     // =======================
     //      Carga backend
     // =======================
-    private cargarCitasDesdeBackend(cargandoDesdeNgOnInit = false): void {
+    private cargarCitasDesdeBackend(cargandoDesdeNgOnInit = false, forceRefresh = false): void {
         this.loading = true;
         this.errorMsg = null;
 
@@ -92,30 +102,29 @@ export class ProveedoresComponent implements OnInit {
         const hasta = this.toYmd(this.fechaFin);
 
         this.citasService
-            .searchCitas({
+            .searchCitasCached({
                 desde,
                 hasta,
                 // Solo citas COMPLETAS (ajusta según tu catálogo real)
                 estatus: ['COMPLETO'],
                 // si quieres limitar duro (por ej. para pruebas) podrías usar:
-                limit: 9999,
-            })
-            .subscribe({
-                next: (rows: CitaQueryResponse) => {
-                    console.log('Citas recibidas para Proveedores:', rows);
-                    this.citas.set(rows ? rows.data : []);
-                    // Reaplicar filtros en memoria
-                    this.loading = false;
-                    this.onBusqueda(cargandoDesdeNgOnInit);
-                },
-                error: (err) => {
-                    console.error('Error al cargar citas para Proveedores', err);
-                    this.errorMsg = 'Error al obtener las citas desde el servidor.';
-                    this.citas.set([]);
-                    this.proveedoresAgrupados.set([]);
-                    this.loading = false;
-                },
-            });
+                limit: 20000
+            },
+                { forceRefresh }).subscribe({
+                    next: (rows: CitaQueryResponse) => {                        
+                        this.citas.set(rows ? rows.data : []);
+                        // Reaplicar filtros en memoria
+                        this.loading = false;
+                        this.onBusqueda(cargandoDesdeNgOnInit);
+                    },
+                    error: (err) => {
+                        console.error('Error al cargar citas para Proveedores', err);
+                        this.errorMsg = 'Error al obtener las citas desde el servidor.';
+                        this.citas.set([]);
+                        this.proveedoresAgrupados.set([]);
+                        this.loading = false;
+                    },
+                });
     }
 
     // =======================
@@ -214,7 +223,7 @@ export class ProveedoresComponent implements OnInit {
 
     getTotalPiezasPorProveedor(citas: Cita[]): number {
         return citas.reduce(
-            (total, cita) => total + ( +cita.pzas_recibidas_por_la_entidad! || 0),
+            (total, cita) => total + (+cita.pzas_recibidas_por_la_entidad! || 0),
             0
         );
     }
@@ -254,7 +263,7 @@ export class ProveedoresComponent implements OnInit {
             );
         });
 
-        console.log('Citas filtradas:', citasFiltradas);
+        // console.log('Citas filtradas:', citasFiltradas);
 
         citasFiltradas.forEach((c) => {
             const proveedor = c.proveedor ?? 'Desconocido';
@@ -276,7 +285,7 @@ export class ProveedoresComponent implements OnInit {
                 }))
                 .filter((g) => g.citas.length > 0);
         }
-        console.log('Proveedores agrupados:', resultado);
+        // console.log('Proveedores agrupados:', resultado);
         return resultado;
     }
 

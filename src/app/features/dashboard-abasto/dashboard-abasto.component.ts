@@ -1,6 +1,6 @@
 // src/app/features/dashboard-abasto/dashboard-abasto.component.ts
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, OnChanges, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnChanges, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
@@ -18,6 +18,7 @@ import { ExistenciasComponent } from "./existencias/existencias.component";
 import { RdlSComponent } from './rdls/rdls.component';
 import { InventarioTabComponent } from './inventario-tab/inventario-tab.component';
 import { KPIsResumen } from '../../models/StatsCitas';
+import { CitasService } from '../../services/citas.service';
 
 @Component({
   selector: 'app-dashboard-abasto',
@@ -38,8 +39,12 @@ import { KPIsResumen } from '../../models/StatsCitas';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardAbastoComponent implements OnInit {
+  @ViewChild(ProveedoresComponent) proveedoresTab?: ProveedoresComponent;
+  @ViewChild(CitasPendientesComponent) citasPendientesTab?: CitasPendientesComponent;
+  
   themeService = inject(ThemeService);
   inventarioService = inject(InventarioService);
+  citasService = inject(CitasService);
   title = 'Dashboard Abasto';
   get isDarkMode() { return this.themeService.isDarkMode(); }
 
@@ -104,11 +109,16 @@ export class DashboardAbastoComponent implements OnInit {
     // this.dashboardService.limpiarDatos();
     // this.isLoading.set(true); // Establece isLoading = true;
     // this.dashboardService.refrescarDatos();
+    this.citasService.clearCache();
     this.inventarioService.refrescarDatosInventario(false);
     this.inventarioService.refrescarDatosCPMS();
     for (const existencia of Object.values(Existencias)) {
       this.inventarioService.refrescarDatosExistencias(existencia);
     }
+
+    // 2) Pedir a cada tab que recargue (desde backend, con forceRefresh = true)
+    this.proveedoresTab?.refrescarDatos(true);
+    this.citasPendientesTab?.refrescarDatos(true);
     // this.isLoading.set(false);
   }
 

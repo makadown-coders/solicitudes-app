@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, ViewChildren, QueryList, ElementRef, OnInit } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ViewChildren, QueryList, ElementRef, OnInit, signal, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Cita } from '../../../models/Cita';
 import { PeriodoFechasService } from '../../../shared/periodo-fechas.service';
@@ -6,6 +6,8 @@ import { FormsModule } from '@angular/forms';
 import { PeriodoPickerDasboardComponent } from '../../../shared/periodo-picker/periodo-picker-dashboard.component';
 import { DetalleCitaModalComponent } from '../../../shared/detalle-cita-modal/detalle-cita-modal.component';
 import { StorageVariables } from '../../../shared/storage-variables';
+import { CitaQueryResponse } from '../../../models/CitaQueryResponse';
+import { CitasService } from '../../../services/citas.service';
 
 interface GrupoUnidad {
   unidad: string;
@@ -17,81 +19,138 @@ interface GrupoUnidad {
   standalone: true,
   imports: [CommonModule, FormsModule, PeriodoPickerDasboardComponent, DetalleCitaModalComponent],
   templateUrl: './citas-pendientes.component.html',
-  styleUrls: ['./citas-pendientes.component.css']
+  styleUrls: ['./citas-pendientes.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CitasPendientesComponent implements OnInit {
-  @Input() citas: Cita[] = [];
+  // ============================================================
+  //    STATE MAESTRO (igual que Proveedores)
+  // ============================================================
+  citas = signal<Cita[]>([]);
 
+  // ============================================================
+  //    STATE UI / cálculos derivados
+  // ============================================================
   citasEntregaAtrasadas: Cita[] = [];
   citasPendientes: Cita[] = [];
   citasSinAgendar: Cita[] = [];
   citasInminentes: Cita[] = [];
   citasIncompletas: Cita[] = [];
   citasAgendadasSinRecepcion: Cita[] = [];
-
   unidadesUnicas: string[] = [];
   tiposCompra: string[] = [];
-
-  unidadesAgrupadas: GrupoUnidad[] = [];
+  unidadesAgrupadas: { unidad: string; citas: Cita[] }[] = [];
 
   unidadExpandida: string | null = null;
 
-  // Filtros
   filtroBusqueda = '';
   filtroUnidad = '';
   filtroCompra = '';
-  fechaInicio = this.inicializarInicio();
-  fechaFin = new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000); // 30 días después
   incluirFechasNulas = true;
 
-  @ViewChildren('grupoUnidad') grupoRefs!: QueryList<ElementRef<HTMLDivElement>>;
+  fechaInicio = new Date(new Date().getFullYear(), 0, 1);
+  fechaFin = new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000);
 
   citaSeleccionada: Cita | null = null;
   mostrarModalDetalle = false;
 
-  constructor(private fechasService: PeriodoFechasService) { }
+  loading = false;
+  errorMsg: string | null = null;
+
+  @ViewChildren('grupoUnidad') grupoRefs!: QueryList<ElementRef<HTMLDivElement>>;
+
+  private fechasService = inject(PeriodoFechasService);
+  private citasService = inject(CitasService);
+
+  // ============================================================
+  //                INIT
+  // ============================================================
   ngOnInit(): void {
-    // inicializar filtros de localStorage
     this.cargarDeLocalStorage();
-    this.procesarCitas();
+    this.cargarCitasDesdeBackend(true);
   }
 
+  // ============================================================
+  //         Método expuesto para DashboardComponent
+  // ============================================================
+  refrescarDatos(forceRefresh = false) {
+    this.cargarCitasDesdeBackend(false, forceRefresh);
+  }
+
+  // ============================================================
+  //         CARGA BACKEND + SIGNAL
+  // ============================================================
+  private toYmd(d: Date) {
+    return d.toISOString().slice(0, 10);
+  }
+
+  private cargarCitasDesdeBackend(
+    cargandoDesdeNgOnInit = false,
+    forceRefresh = false
+  ) {
+    this.loading = true;
+    this.errorMsg = null;
+
+    const desde = this.toYmd(this.fechaInicio);
+    const hasta = this.toYmd(this.fechaFin);
+
+    this.citasService.searchCitasCached(
+      {
+        // desde,
+        // hasta,
+        // include_pendientes: '1',
+        recibido : 'false',
+        limit: 20000,
+      },
+      { forceRefresh }
+    ).subscribe({
+      next: (resp: CitaQueryResponse) => {
+        // console.log('Citas pendientes:', resp.data);
+        this.citas.set(resp?.data ?? []);
+        this.loading = false;
+        this.procesarCitas();
+      },
+      error: err => {
+        this.loading = false;
+        this.errorMsg = 'Error al obtener citas desde backend';
+        this.citas.set([]);
+      }
+    });
+  }
+
+  // ============================================================
+  //                LOCALSTORAGE
+  // ============================================================
   cargarDeLocalStorage() {
     this.filtroBusqueda = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_TEXTO) || '';
     this.filtroUnidad = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_UNIDAD) || '';
     this.filtroCompra = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_COMPRA) || '';
+    this.incluirFechasNulas = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_INCLUIR_NULAS) === 'true';
+
     const inicio = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_INICIO);
     const fin = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_FIN);
-    this.incluirFechasNulas = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_INCLUIR_NULAS) === 'true';
+
     if (inicio && fin) {
       this.fechaInicio = new Date(inicio);
       this.fechaFin = new Date(fin);
     }
   }
 
-  /* ngOnChanges(changes: SimpleChanges): void {
-     if (changes['citas']) {
-       // this.procesarCitas();
-     }
-   }*/
-
-  inicializarInicio(): Date {
-    const inicio = new Date();
-    inicio.setMonth(0);
-    inicio.setDate(1);
-    return inicio;
-  }
-
-  procesarCitas(): void {
-    /*this.citasPendientes = this.citas.filter(c =>
-      !c.fecha_recepcion_almacen || c.fecha_recepcion_almacen.trim() === ''
-    );*/   
-   
-    this.citasPendientes = this.citas.filter(c =>
+  // ============================================================
+  //         PROCESAMIENTOS Y AGRUPACIONES
+  // ============================================================
+  procesarCitas() {
+    const lista = this.citas();
+    console.log('Lista Citas :', lista);
+    
+    this.citasPendientes = [...lista];
+    /*this.citasPendientes = lista.filter(c =>
       ((!c.fecha_recepcion_almacen || c.fecha_recepcion_almacen.trim() === '') &&
         (c.estatus ?? '').toLowerCase() === 'vigente') ||
       (c.estatus ?? '').toLowerCase() === 'incompleto'
-    );
+    );*/
+
+    console.log('Citas pendientes:', this.citasPendientes);
 
     this.unidadesUnicas = Array.from(
       new Set(this.citasPendientes.map(c => c.unidad ?? 'Desconocida'))
@@ -104,8 +163,8 @@ export class CitasPendientesComponent implements OnInit {
     this.actualizarAgrupacion();
   }
 
-  actualizarAgrupacion(): void {
-    // Guardar en storage
+  actualizarAgrupacion() {
+    // Persistencia
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_TEXTO, this.filtroBusqueda);
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_UNIDAD, this.filtroUnidad);
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_COMPRA, this.filtroCompra);
@@ -113,33 +172,78 @@ export class CitasPendientesComponent implements OnInit {
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_FIN, this.fechaFin.toISOString());
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_INCLUIR_NULAS, this.incluirFechasNulas.toString());
 
-    const citasFiltradas = this.citasPendientes.filter(c => {
+    const hoy = new Date();
+    const lista = this.citasPendientes;
+
+    let debugCount = 0;
+    const citasFiltradas = lista.filter(c => {
+      if (c.ejercicio! > 2024) {
+        debugCount++;  
+      }
+      
+      if(debugCount <= 5 && c.ejercicio! > 2024) {
+         console.log('Filtrando cita:', c);
+      }
       const busqueda = this.filtroBusqueda.toLowerCase().trim();
 
-      const coincideBusqueda = busqueda.length === 0 ||
-        (c.orden_de_suministro ?? '').toLowerCase().trim().includes(busqueda) ||
+      const coincideBusqueda =
+        busqueda.length === 0 ||
+        (c.orden_de_suministro ?? '').toLowerCase().includes(busqueda) ||
         (c.proveedor ?? '').toLowerCase().includes(busqueda) ||
         (c.clave_cnis ?? '').toLowerCase().includes(busqueda) ||
         (c.descripcion ?? '').toLowerCase().includes(busqueda);
 
-      const coincideUnidad = !this.filtroUnidad || this.filtroUnidad.length === 0 || c.unidad === this.filtroUnidad;
+      if(debugCount <= 5 && c.ejercicio! > 2024) {         
+          console.log(`Cita ${c.clave_cnis} - coincideBusqueda:`, coincideBusqueda);
+      }
 
-      const coincideCompra = !this.filtroCompra || this.filtroCompra.length === 0 || c.compra === this.filtroCompra;
+      const coincideUnidad = !this.filtroUnidad || c.unidad === this.filtroUnidad;
 
-      const fechaCitaValida = c.fecha_de_cita ?
-        typeof c.fecha_de_cita === 'string' ?
-          this.fechasService.parseLocalDate(c.fecha_de_cita) :
-          new Date(c.fecha_de_cita) : null;
+      if(debugCount <= 5 && c.ejercicio! > 2024) {         
+          console.log(`Cita ${c.clave_cnis} - coincideUnidad:`, coincideUnidad);
+      }
+
+      const coincideCompra = !this.filtroCompra || c.compra === this.filtroCompra;
+
+      if(debugCount <= 5 && c.ejercicio! > 2024) {         
+          console.log(`Cita ${c.clave_cnis} - coincideCompra:`, coincideCompra);
+      }
+
+       const fechaCita = c.fecha_de_cita ?? null;
+      /* const fechaCita = c.fecha_de_cita
+        ? (typeof c.fecha_de_cita === 'string'
+          ? this.fechasService.parseLocalDate(c.fecha_de_cita)
+          : new Date(c.fecha_de_cita))
+        : null; */
+
+      if(debugCount <= 5 && c.ejercicio! > 2024) {         
+          console.log(`Cita ${c.clave_cnis} - c.fechaCita:`, c.fecha_de_cita );
+          console.log(`Cita ${c.clave_cnis} - fechaCita:`, fechaCita);
+      }
+
+      // TODO: CORREGIR ESTO!!!!
       const coincideFecha =
-        this.incluirFechasNulas && !fechaCitaValida
+        this.incluirFechasNulas && !fechaCita
           ? true
-          : fechaCitaValida
-            ? fechaCitaValida >= this.fechaInicio && fechaCitaValida <= this.fechaFin
+          : fechaCita
+            ? fechaCita >= this.fechaInicio && fechaCita <= this.fechaFin
             : false;
+
+      if(debugCount <= 5 && c.ejercicio! > 2024) {         
+          console.log(`Cita ${c.clave_cnis} - coincideFecha:`, coincideFecha);
+          console.log('coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha',
+                           coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha);
+          console.log('---');          
+      }
 
       return coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha;
     });
 
+    console.log('Citas filtradas:', citasFiltradas);
+
+    // ============================
+    //    AGRUPACIONES NUEVAS
+    // ============================
     const citasPorUnidad = new Map<string, Cita[]>();
     citasFiltradas.forEach(c => {
       const unidad = c.unidad ?? 'Desconocida';
@@ -147,69 +251,62 @@ export class CitasPendientesComponent implements OnInit {
       citasPorUnidad.get(unidad)!.push(c);
     });
 
-    const hoy = new Date(); 
-    this.citasEntregaAtrasadas = citasFiltradas.filter(cita =>
-      cita.fecha_limite_de_entrega &&
-      ( typeof cita.fecha_limite_de_entrega === 'string' ?
-      this.fechasService.parseLocalDate(cita.fecha_limite_de_entrega) 
-      : cita.fecha_limite_de_entrega  )
-      < hoy /*&&
-      (cita.pzas_recibidas_por_la_entidad ?? 0) === 0*/
-    );
+    this.unidadesAgrupadas = Array.from(citasPorUnidad.entries()).map(([unidad, citas]) => ({
+      unidad,
+      citas,
+    }));
 
-    this.citasSinAgendar = citasFiltradas.filter(c => !c.fecha_de_cita);    
+    this.unidadesAgrupadas.sort((a, b) => b.citas.length - a.citas.length);
 
-    this.citasIncompletas = citasFiltradas.filter(c => 
-      c.estatus.toLocaleLowerCase().trim() === 'incompleto'
+    // ============================
+    //     KPIs derivados
+    // ============================
+    this.citasSinAgendar = citasFiltradas.filter(c => !c.fecha_de_cita);
+    this.citasIncompletas = citasFiltradas.filter(
+      c => (c.estatus ?? '').toLowerCase() === 'incompleto'
     );
     this.citasAgendadasSinRecepcion = citasFiltradas.filter(c => !!c.fecha_de_cita);
 
-    this.citasInminentes = this.citasSinAgendar.filter(c => 
-      c.fecha_limite_de_entrega &&      
-      this.fechasService.getDiasEntreFechas(
-        new Date(c.fecha_limite_de_entrega), hoy) <= 5 &&
-      this.fechasService.getDiasEntreFechas(
-        new Date(c.fecha_limite_de_entrega), hoy) >= 0
-    );
-    const addCitasInminentes = this.citasAgendadasSinRecepcion.filter(c => 
-      c.fecha_de_cita &&       
-      this.fechasService.getDiasEntreFechas(
-        new Date(c.fecha_de_cita), hoy) <= 5 &&
-      this.fechasService.getDiasEntreFechas(
-        new Date(c.fecha_de_cita), hoy) >= 0    
-    );
-    this.citasInminentes = this.citasInminentes.concat(addCitasInminentes);
-      
+    /*this.citasEntregaAtrasadas = citasFiltradas.filter(cita =>
+      cita.fecha_limite_de_entrega &&
+      ( typeof (cita.fecha_limite_de_entrega) === 'string' ?
+      this.fechasService.parseLocalDate(cita.fecha_limite_de_entrega) 
+      : cita.fecha_limite_de_entrega  )
+      < hoy 
+    );*/
 
-    this.unidadesAgrupadas = Array.from(citasPorUnidad.entries()).map(([unidad, citas]) => ({ unidad, citas }));
-    
-    // ordenar this.unidadesAgrupadas por total de citas
-    this.unidadesAgrupadas.sort((a, b) => b.citas.length - a.citas.length);
+    this.citasEntregaAtrasadas = citasFiltradas.filter(c =>
+      c.fecha_limite_de_entrega < hoy
+    );
+
+    this.citasInminentes = [
+      ...this.citasSinAgendar.filter(c =>
+        c.fecha_limite_de_entrega &&
+        this.fechasService.getDiasEntreFechas(
+          new Date(c.fecha_limite_de_entrega),
+          hoy
+        ) <= 5
+      ),
+      ...this.citasAgendadasSinRecepcion.filter(c =>
+        c.fecha_de_cita &&
+        this.fechasService.getDiasEntreFechas(
+          new Date(c.fecha_de_cita),
+          hoy
+        ) <= 5
+      ),
+    ];
   }
 
+  // ============================================================
+  //      UI
+  // ============================================================
   onPeriodoSeleccionado(_: any, inicio: Date, fin: Date) {
     [this.fechaInicio, this.fechaFin] = this.fechasService.ordenarFechas(inicio, fin);
-    this.actualizarAgrupacion();
+    this.cargarCitasDesdeBackend();
   }
 
-  toggleUnidad(unidad: string): void {
-    if (this.unidadExpandida === unidad) {
-      this.unidadExpandida = null;
-      return;
-    }
-
-    this.unidadExpandida = unidad;
-
-    setTimeout(() => {
-      const index = this.unidadesAgrupadas.findIndex(g => g.unidad === unidad);
-      const grupo = this.grupoRefs.get(index);
-      const topOffset = grupo?.nativeElement.getBoundingClientRect().top ?? 0;
-
-      if (grupo && topOffset > 200) {
-        grupo.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        grupo.nativeElement.style.scrollMarginTop = '6rem';
-      }
-    }, 50);
+  toggleUnidad(unidad: string) {
+    this.unidadExpandida = this.unidadExpandida === unidad ? null : unidad;
   }
 
   abrirModalDetalle(cita: Cita) {

@@ -109,6 +109,7 @@ export class DashboardService {
               // asignar fecha_recepcion_min pero sin el formato UTC (T00:00:00Z)
               cita.fecha_recepcion_almacen = cita.fecha_recepcion_min?.substring(0, 10) || null;
             }
+            cita.unidad = cita.unidad.toLocaleUpperCase();
           });
           this.resumenCitasSubject.next(resp?.data ?? []);
         },

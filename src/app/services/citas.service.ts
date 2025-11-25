@@ -1,23 +1,57 @@
-import { inject, Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { map, Observable } from 'rxjs';
+import { map, Observable, of } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { Cita, CitaRow } from '../models/Cita';
-import { PeriodoFechasService } from '../shared/periodo-fechas.service';
-import { ExcelService } from './excel.service';
+import { Cita } from '../models/Cita';
 import { ResumenResponse } from '../models/StatsCitas';
 import { CitaQueryResponse } from '../models/CitaQueryResponse';
+import { CitasCacheEntry } from '../models/CitasCacheEntry';
+import { SearchCitasParams } from '../models/searchCitasParams';
+import * as LZString from 'lz-string';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CitasService {
   private apiUrl = environment.apiUrl + '/citas'; // Ajusta si necesitas proxy
-  // private fechaService = inject(PeriodoFechasService);
-  // private excelService = inject(ExcelService);
   private mapCluesUnidad: Map<string, string> = new Map<string, string>();
 
-  constructor(private http: HttpClient) { }
+  // ⚙️ Config caché
+  private readonly CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
+  private readonly CACHE_LS_KEY = 'CITAS_CACHE_V1';
+  private readonly CACHE_LS_PREFIX = 'DASH_ABASTO_CITAS_CACHE';
+
+  // cache en memoria: key -> entry
+  private cache = signal<Record<string, CitasCacheEntry>>({});
+
+  constructor(private http: HttpClient) {
+  }
+
+  clearCache() {
+    // 1) Limpiar cache en memoria (signal)
+    this.cache.set({});
+
+    // 2) Limpiar la llave legacy (por si acaso)
+    localStorage.removeItem(this.CACHE_LS_KEY);
+
+    // 3) Limpiar TODAS las llaves per-combinación que empiecen con el prefijo
+    const keysToRemove: string[] = [];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+
+      if (key.startsWith(this.CACHE_LS_PREFIX + '::')) {
+        keysToRemove.push(key);
+      }
+    }
+
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  }
+
+  // ======================================================
+  //   API pública original (stats, etc.)
+  // ======================================================
 
   // Obtener clues de la unidad por unidad
   getCluesUnidad(unidad: string) {
@@ -49,18 +83,7 @@ export class CitasService {
   }
 
   /** 🔎 Buscar citas por filtros (nuevo) */
-  searchCitas(params: {
-    clave_cnis?: string;
-    desde?: string;            // YYYY-MM-DD (ventana mínima)
-    hasta?: string;            // YYYY-MM-DD (opcional)
-    include_pendientes?: '1' | '0'; // '1' => incluir pendientes (sin recepción) con fecha_límite >= hoy
-    ejercicio?: Array<number | string>;
-    estatus?: string[];
-    tipo_de_entrega?: string[];
-    compra?: string[];
-    unidad?: string[];         // si más adelante quieres filtrar por CLUES
-    limit?: number;            // por si quieres acotar resultados
-  }): Observable<CitaQueryResponse> {
+  searchCitas(params: SearchCitasParams): Observable<CitaQueryResponse> {
     let hp = new HttpParams();
     const appendMany = (k: string, arr?: (string | number)[]) =>
       (arr ?? []).forEach(v => hp = hp.append(k, String(v)));
@@ -68,7 +91,7 @@ export class CitasService {
     if (params.clave_cnis) hp = hp.set('clave_cnis', params.clave_cnis);
     if (params.desde) hp = hp.set('desde', params.desde);
     if (params.hasta) hp = hp.set('hasta', params.hasta);
-    if (params.include_pendientes) hp = hp.set('include_pendientes', params.include_pendientes);
+    if (params.recibido) hp = hp.set('recibido', params.recibido);
     if (params.limit != null) hp = hp.set('limit', String(params.limit));
 
     appendMany('ejercicio', params.ejercicio);
@@ -99,7 +122,144 @@ export class CitasService {
               // asignar fecha_recepcion_min pero sin el formato UTC (T00:00:00Z)
               cita.fecha_recepcion_almacen = cita.fecha_recepcion_min?.substring(0, 10) || null;
             }
+            cita.unidad = cita.unidad.toLocaleUpperCase();
           });
+          return resp;
+        })
+      );
+  }
+
+  /**
+   * Construye una llave de cache en base a la combinación maestra de filtros.
+   * La idea es que si otro tab pide exactamente lo mismo, reutilice el cache.
+   */
+  private buildCacheKey(params: SearchCitasParams): string {
+    const norm = (v?: string | number | null) =>
+      v === undefined || v === null ? '' : String(v).trim();
+
+    const normArr = (arr?: (string | number)[]) =>
+      (arr ?? [])
+        .map(x => norm(x))
+        .filter(x => !!x)
+        .sort()                 // 👈 importante para que [A,B] == [B,A]
+        .join(',');
+
+    const partes = [
+      `desde=${norm(params.desde)}`,
+      `hasta=${norm(params.hasta)}`,
+      `clave=${norm(params.clave_cnis)}`,
+      `rec=${norm(params.recibido)}`,
+      `ejercicio=${normArr(params.ejercicio)}`,
+      `estatus=${normArr(params.estatus)}`,
+      `tipo_entrega=${normArr(params.tipo_de_entrega)}`,
+      `compra=${normArr(params.compra)}`,
+      `unidad=${normArr(params.unidad)}`,
+      `limit=${norm(params.limit)}`
+    ];
+
+    return `${this.CACHE_LS_PREFIX}::${partes.join('|')}`;
+  }
+
+  private isCacheValid(entry: { ts: number; data: CitaQueryResponse }): boolean {
+    if (!entry?.ts) return false;
+    const ahora = Date.now();
+    return (ahora - entry.ts) < this.CACHE_TTL_MS;
+  }
+
+  /**
+   * Buscar citas por filtros (con caché).
+   *
+   * Esta función es similar a `searchCitas` pero utiliza un caché en memoria (Map<string, CitasCacheEntry>)
+   * para evitar requests innecesarios al backend.
+   *
+   * Si se encuentra una entrada en el caché con un timestamp reciente (menos de `CACHE_TTL_MS` milisegundos)
+   * se devuelve directo el resultado desde el caché sin ir al backend.
+   *
+   * Si no se encuentra una entrada en el caché o está vencido, se va al backend y se actualiza el caché.
+   *
+   * La caché se guarda en memoria y se persiste en `localStorage`.
+   *
+   * @param params Filtros para buscar las citas
+   * @param opts Opciones extras; si { forceRefresh: true } se fuerza la recarga del caché
+   * @returns Una respuesta de tipo `CitaQueryResponse` con las citas encontradas
+   */
+  searchCitasCached(
+    params: SearchCitasParams,
+    options?: { forceRefresh?: boolean }
+  ): Observable<CitaQueryResponse> {
+    const force = options?.forceRefresh === true;
+    const cacheKey = this.buildCacheKey(params);
+
+    if (!force) {
+      try {
+        const raw = localStorage.getItem(cacheKey);
+        if (raw) {
+          // descomprimir y parsear
+          const decompressed = LZString.decompress(raw);
+          if (decompressed) {
+            const parsed = JSON.parse(decompressed) as { ts: number; data: CitaQueryResponse };
+            if (this.isCacheValid(parsed) && parsed.data) {
+              // 👇 Devolvemos observable “frío” desde cache
+              return of(parsed.data);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Error leyendo cache de citas', e);
+      }
+    }
+
+    // 👉 Si no hay cache válido (o forceRefresh = true), llamamos al backend
+    let hp = new HttpParams();
+    const appendMany = (k: string, arr?: (string | number)[]) =>
+      (arr ?? []).forEach(v => hp = hp.append(k, String(v)));
+
+    if (params.clave_cnis) hp = hp.set('clave_cnis', params.clave_cnis);
+    if (params.desde) hp = hp.set('desde', params.desde);
+    if (params.hasta) hp = hp.set('hasta', params.hasta);
+    if (params.recibido) hp = hp.set('recibido', params.recibido);
+    if (params.limit != null) hp = hp.set('limit', String(params.limit));
+
+    appendMany('ejercicio', params.ejercicio);
+    appendMany('estatus', params.estatus);
+    appendMany('tipo_de_entrega', params.tipo_de_entrega);
+    appendMany('compra', params.compra);
+    appendMany('unidad', params.unidad);
+
+    return this.http.get<CitaQueryResponse>(`${this.apiUrl}`, { params: hp })
+      .pipe(
+        map(resp => {
+          // 👇 tu normalización actual (tipo_de_entrega, unidad, fechas, etc.)
+          resp?.data?.forEach((cita: Cita) => {
+            if (cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logísitico' ||
+              cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logistico' ||
+              cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logístico') {
+              cita.tipo_de_entrega = 'Operador Logístico';
+            }
+            if (cita.unidad?.trim() == 'Almacén Zona Ensenada') {
+              cita.unidad = cita.unidad.toLocaleUpperCase();
+            }
+            if (cita.unidad?.trim() == 'ALMACÉN DE MEXICALI') {
+              cita.unidad = 'ALMACÉN ZONA MEXICALI';
+            }
+            if (cita.fecha_recepcion_almacen == null || cita.fecha_recepcion_almacen?.trim().length == 0) {
+              cita.fecha_recepcion_almacen = cita.fecha_recepcion_min?.substring(0, 10) || null;
+            }
+            cita.unidad = cita.unidad.toLocaleUpperCase();
+          });
+
+          // 👇 Guardar cache
+          try {
+            const payload = JSON.stringify({
+              ts: Date.now(),
+              data: resp
+            });
+            const compressed = LZString.compress(payload);
+            localStorage.setItem(cacheKey, compressed);
+          } catch (e) {
+            console.warn('No se pudo guardar cache de citas', e);
+          }
+
           return resp;
         })
       );
