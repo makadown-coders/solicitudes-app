@@ -99,7 +99,7 @@ export class CitasPendientesComponent implements OnInit {
         // desde,
         // hasta,
         // include_pendientes: '1',
-        recibido : 'false',
+        recibido: 'false',
         limit: 20000,
       },
       { forceRefresh }
@@ -142,7 +142,7 @@ export class CitasPendientesComponent implements OnInit {
   procesarCitas() {
     const lista = this.citas();
     console.log('Lista Citas :', lista);
-    
+
     this.citasPendientes = [...lista];
     /*this.citasPendientes = lista.filter(c =>
       ((!c.fecha_recepcion_almacen || c.fecha_recepcion_almacen.trim() === '') &&
@@ -161,7 +161,7 @@ export class CitasPendientesComponent implements OnInit {
     ).sort();
 
     this.actualizarAgrupacion();
-  }
+  }  
 
   actualizarAgrupacion() {
     // Persistencia
@@ -178,14 +178,10 @@ export class CitasPendientesComponent implements OnInit {
     let debugCount = 0;
     const citasFiltradas = lista.filter(c => {
       if (c.ejercicio! > 2024) {
-        debugCount++;  
+        debugCount++;
       }
-      
-      if(debugCount <= 5 && c.ejercicio! > 2024) {
-         console.log('Filtrando cita:', c);
-      }
-      const busqueda = this.filtroBusqueda.toLowerCase().trim();
 
+      const busqueda = this.filtroBusqueda.toLowerCase().trim();
       const coincideBusqueda =
         busqueda.length === 0 ||
         (c.orden_de_suministro ?? '').toLowerCase().includes(busqueda) ||
@@ -193,35 +189,12 @@ export class CitasPendientesComponent implements OnInit {
         (c.clave_cnis ?? '').toLowerCase().includes(busqueda) ||
         (c.descripcion ?? '').toLowerCase().includes(busqueda);
 
-      if(debugCount <= 5 && c.ejercicio! > 2024) {         
-          console.log(`Cita ${c.clave_cnis} - coincideBusqueda:`, coincideBusqueda);
-      }
-
       const coincideUnidad = !this.filtroUnidad || c.unidad === this.filtroUnidad;
-
-      if(debugCount <= 5 && c.ejercicio! > 2024) {         
-          console.log(`Cita ${c.clave_cnis} - coincideUnidad:`, coincideUnidad);
-      }
-
       const coincideCompra = !this.filtroCompra || c.compra === this.filtroCompra;
 
-      if(debugCount <= 5 && c.ejercicio! > 2024) {         
-          console.log(`Cita ${c.clave_cnis} - coincideCompra:`, coincideCompra);
-      }
+      // ✅ AHORA SÍ parseamos bien la fecha de cita
+      const fechaCita = this.fechasService.toDateOrNull(c.fecha_de_cita);
 
-       const fechaCita = c.fecha_de_cita ?? null;
-      /* const fechaCita = c.fecha_de_cita
-        ? (typeof c.fecha_de_cita === 'string'
-          ? this.fechasService.parseLocalDate(c.fecha_de_cita)
-          : new Date(c.fecha_de_cita))
-        : null; */
-
-      if(debugCount <= 5 && c.ejercicio! > 2024) {         
-          console.log(`Cita ${c.clave_cnis} - c.fechaCita:`, c.fecha_de_cita );
-          console.log(`Cita ${c.clave_cnis} - fechaCita:`, fechaCita);
-      }
-
-      // TODO: CORREGIR ESTO!!!!
       const coincideFecha =
         this.incluirFechasNulas && !fechaCita
           ? true
@@ -229,11 +202,20 @@ export class CitasPendientesComponent implements OnInit {
             ? fechaCita >= this.fechaInicio && fechaCita <= this.fechaFin
             : false;
 
-      if(debugCount <= 5 && c.ejercicio! > 2024) {         
-          console.log(`Cita ${c.clave_cnis} - coincideFecha:`, coincideFecha);
-          console.log('coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha',
-                           coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha);
-          console.log('---');          
+      if (debugCount <= 5 && c.ejercicio! > 2024) {
+        console.log('---- DEBUG CITA ----');
+        console.log('Cita:', c);
+        console.log('coincideBusqueda:', coincideBusqueda);
+        console.log('coincideUnidad  :', coincideUnidad);
+        console.log('coincideCompra  :', coincideCompra);
+        console.log('fecha_de_cita   :', c.fecha_de_cita);
+        console.log('fechaCita(Date) :', fechaCita);
+        console.log('coincideFecha   :', coincideFecha);
+        console.log(
+          'RESULT:',
+          coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha
+        );
+        console.log('--------------------');
       }
 
       return coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha;
@@ -275,25 +257,28 @@ export class CitasPendientesComponent implements OnInit {
       < hoy 
     );*/
 
-    this.citasEntregaAtrasadas = citasFiltradas.filter(c =>
-      c.fecha_limite_de_entrega < hoy
-    );
+    this.citasEntregaAtrasadas = citasFiltradas.filter(c => {
+      const fechaLim = this.fechasService.toDateOrNull(c.fecha_limite_de_entrega);
+      return !!fechaLim && fechaLim < hoy;
+    });
 
     this.citasInminentes = [
-      ...this.citasSinAgendar.filter(c =>
-        c.fecha_limite_de_entrega &&
-        this.fechasService.getDiasEntreFechas(
-          new Date(c.fecha_limite_de_entrega),
-          hoy
-        ) <= 5
-      ),
-      ...this.citasAgendadasSinRecepcion.filter(c =>
-        c.fecha_de_cita &&
-        this.fechasService.getDiasEntreFechas(
-          new Date(c.fecha_de_cita),
-          hoy
-        ) <= 5
-      ),
+      ...this.citasSinAgendar.filter(c => {
+        const fechaLim = this.fechasService.toDateOrNull(c.fecha_limite_de_entrega);
+        return (
+          !!fechaLim &&
+          this.fechasService.getDiasEntreFechas(fechaLim, hoy) <= 5 &&
+          this.fechasService.getDiasEntreFechas(fechaLim, hoy) >= 0
+        );
+      }),
+      ...this.citasAgendadasSinRecepcion.filter(c => {
+        const fc = this.fechasService.toDateOrNull(c.fecha_de_cita);
+        return (
+          !!fc &&
+          this.fechasService.getDiasEntreFechas(fc, hoy) <= 5 &&
+          this.fechasService.getDiasEntreFechas(fc, hoy) >= 0
+        );
+      }),
     ];
   }
 

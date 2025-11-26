@@ -63,7 +63,7 @@ function imssColorList(root: am5.Root) {
 export class InventarioTabComponent implements AfterViewInit, OnDestroy {
     private invSrv = inject(InventarioService);
     private artSrv = inject(ArticulosService);
-    // private citasSrv = inject(CitasService);
+    // ESTE YA NO LO USA
     private dashSrv = inject(DashboardService);
     private unidadesSrv = inject(UnidadesService);
     private trazSrv = inject(TrazabilidadService);

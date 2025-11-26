@@ -7,6 +7,13 @@ import { PeriodoPickerDasboardComponent } from '../../../shared/periodo-picker/p
 import { FormsModule } from '@angular/forms';
 import { DetalleOrdenesModalComponent } from '../../../shared/detalle-ordenes-modal/detalle-ordenes-modal.component';
 
+/**
+ * @deprecated
+ * Este componente quedó en desuso a partir de NOV-2025.
+ * Fue reemplazado conceptualmente por otros tabs del dashboard.
+ * Si necesitas revivirlo, consulta el diseño original con el equipo de Abasto además que 
+ * tiene pendiente adaptarlo a la nueva arquitectura.
+ */
 @Component({
     selector: 'app-resumen-citas',
     standalone: true,

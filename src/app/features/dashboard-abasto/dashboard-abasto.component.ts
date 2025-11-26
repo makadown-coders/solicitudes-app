@@ -56,8 +56,8 @@ export class DashboardAbastoComponent implements OnInit {
     'Existencias (CPM)',
     'Citas Completadas',
     'Citas pendientes',
-    'Cumplimiento Claves',
-    'Entregas pendientes',
+   // 'Cumplimiento Claves',
+   // 'Entregas pendientes',
     'Existencias (beta)',
     'RdlS',
     'Acerca de'];

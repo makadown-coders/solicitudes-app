@@ -7,6 +7,13 @@ import { MaxLengthPipe } from '../../../shared/max-length.pipe';
 import { CitasPorInsumoModalComponent } from './citas-por-insumo-modal.component';
 import { ExcelService } from '../../../services/excel.service';
 
+/**
+ * @deprecated
+ * Este componente quedó en desuso a partir de NOV-2025.
+ * Fue reemplazado conceptualmente por otros tabs del dashboard.
+ * Si necesitas revivirlo, consulta el diseño original con el equipo de Abasto además que 
+ * tiene pendiente adaptarlo a la nueva arquitectura.
+ */
 @Component({
     selector: 'app-insumo-detalle-modal',
     standalone: true,
