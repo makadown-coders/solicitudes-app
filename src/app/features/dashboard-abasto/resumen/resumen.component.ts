@@ -299,10 +299,24 @@ export class ResumenComponent implements OnInit {
       tipoEntrega: this.filtrosSeleccionados.tipoEntrega ? this.filtrosSeleccionados.tipoEntrega.map(e => e.toUpperCase()) : [],
       tipoCompra: (this.filtrosSeleccionados.tipoCompra ?? []),
     };*/
+    // hacer un map de unidades con clues_destino para apoyo en caso de detectar citas sin unidad
+    const mapaUnidades = new Map<string, string>();
+    citasFuente.forEach(c => {
+      if (c.unidad && c.clues_destino) {
+        mapaUnidades.set(c.clues_destino, c.unidad);
+      }
+    });
+
     // mostrar en consola los nombres de cada unidad (distinct)
     citasFuente.forEach(c => {
       if (!c.unidad || c.unidad.trim().length === 0) {
-        console.warn(`Cita sin unidad: CluesDestino=${c.clues_destino}, Orden=${c.orden_de_suministro}`);
+        // console.warn(`Cita sin unidad: CluesDestino=${c.clues_destino}, Orden=${c.orden_de_suministro}`);
+        // obtenemos unidad del mapa
+        const unidadMapa = mapaUnidades.get(c.clues_destino);
+        if (unidadMapa) {
+          c.unidad = unidadMapa;
+          // console.info(`  → asignada unidad desde mapa: ${unidadMapa}`);
+        }
       }
     });
 

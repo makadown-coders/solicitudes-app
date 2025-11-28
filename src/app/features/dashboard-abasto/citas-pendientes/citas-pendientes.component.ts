@@ -141,7 +141,7 @@ export class CitasPendientesComponent implements OnInit {
   // ============================================================
   procesarCitas() {
     const lista = this.citas();
-    console.log('Lista Citas :', lista);
+    // console.log('Lista Citas :', lista);
 
     this.citasPendientes = [...lista];
     /*this.citasPendientes = lista.filter(c =>
@@ -150,7 +150,7 @@ export class CitasPendientesComponent implements OnInit {
       (c.estatus ?? '').toLowerCase() === 'incompleto'
     );*/
 
-    console.log('Citas pendientes:', this.citasPendientes);
+    // console.log('Citas pendientes:', this.citasPendientes);
 
     this.unidadesUnicas = Array.from(
       new Set(this.citasPendientes.map(c => c.unidad ?? 'Desconocida'))
@@ -202,7 +202,7 @@ export class CitasPendientesComponent implements OnInit {
             ? fechaCita >= this.fechaInicio && fechaCita <= this.fechaFin
             : false;
 
-      if (debugCount <= 5 && c.ejercicio! > 2024) {
+      /*if (debugCount <= 5 && c.ejercicio! > 2024) {
         console.log('---- DEBUG CITA ----');
         console.log('Cita:', c);
         console.log('coincideBusqueda:', coincideBusqueda);
@@ -216,12 +216,12 @@ export class CitasPendientesComponent implements OnInit {
           coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha
         );
         console.log('--------------------');
-      }
+      }*/
 
       return coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha;
     });
 
-    console.log('Citas filtradas:', citasFiltradas);
+//    console.log('Citas filtradas:', citasFiltradas);
 
     // ============================
     //    AGRUPACIONES NUEVAS

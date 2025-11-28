@@ -1,5 +1,5 @@
 import * as LZString from 'lz-string';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -11,6 +11,13 @@ import { CPMSFull, InventarioFull } from '../models/ElementosBase64';
 import { ClaveGrupo, CPMS } from '../models/CPMS';
 import { StorageSolicitudService } from './storage-solicitud.service';
 import { TemporalExistenciaRow } from '../models/temporal-existencia-row.model';
+import { CitaSlimByClaveLote, CitaSlimExistencia } from '../models/cita-slim-inventario.model';
+
+// helper compartido
+function cleanLote(l?: string | null) {
+  if (!l) return '';
+  return l.replace(/[\/'']/g, '').slice(0, 20).trim();
+}
 
 @Injectable({
   providedIn: 'root'
@@ -44,6 +51,11 @@ export class InventarioService {
   private existenciasSubject: Map<Existencias, BehaviorSubject<Inventario[]>> = new Map<Existencias, BehaviorSubject<Inventario[]>>();
   public existencias$: Map<Existencias, Observable<Inventario[]>> = new Map<Existencias, Observable<Inventario[]>>();
 
+  private _citasByClaveLote = signal<Map<string, CitaSlimByClaveLote>>(new Map());
+  citasByClaveLote = this._citasByClaveLote.asReadonly();
+
+  private _slimLoaded = false;
+  private _loadingSlim = false;
 
   constructor(private http: HttpClient) {
     // Inicializar mapa de existencias
@@ -403,19 +415,8 @@ export class InventarioService {
   }
 
   private normalizarClavesInventario(inventario: Inventario[]): Inventario[] {
-    const prefijos10 = ['060', '533', '535', '513', '537', '080', '070'];
-    return inventario.map(item => {      
-      const claveSinPuntos = item.clave.replace(/\./g, '');
-      if (claveSinPuntos.length === 12 &&
-        prefijos10.includes(claveSinPuntos.substring(0, 3)) &&
-        claveSinPuntos.endsWith('00')) {
-        // Convertir 12 dígitos a 10, manteniendo formato con puntos
-        const clave10 = claveSinPuntos.substring(0, 10);
-        item.clave = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
-      }
-      /*if ( item.clave.includes('060.621.0524')) {
-        console.log('🔍 Normalizando clave 060.621.0524 en inventario', item);
-      }*/
+    return inventario.map(item => {
+      item.clave = this.normalizarClave(item.clave);
       return item;
     });
   }
@@ -433,6 +434,49 @@ export class InventarioService {
       normalizado = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
     }
     return normalizado;
+  }
+
+  loadCitasSlimIfNeeded() {
+    if (this._slimLoaded || this._loadingSlim) return;
+
+    const url = environment.apiUrl + '/citas/slim-existencia';
+    this._loadingSlim = true;
+    this.http
+      .get<{ ok: boolean; rows: CitaSlimExistencia[] }>(url)
+      .subscribe({
+        next: res => {
+          const mp = new Map<string, CitaSlimByClaveLote>();
+          for (const r of res.rows ?? []) {
+            const clave = this.normalizarClave(r.clave_cnis);
+            const lote = cleanLote(r.lote);
+            if (!clave || !lote) continue;
+            const key = `${clave}__${lote}`;
+
+            // en caso de duplicados clave+lote, dejamos el primero o mergeamos
+            if (!mp.has(key)) {
+              mp.set(key, {
+                precio: r.precio_unitario,
+                orden: r.orden_de_suministro,
+                fte: r.fte_fmto,
+                proveedor: r.proveedor,
+              });
+            }
+          }
+          this._citasByClaveLote.set(mp);
+          this._slimLoaded = true;
+          this._loadingSlim = false;
+        },
+        error: err => {
+          console.error('Error cargando slim inventario:', err);
+          this._loadingSlim = false;
+        }
+      });
+  }
+
+  /** Fuerza recargar desde el backend (para el botón Actualizar) */
+  refreshCitasSlim() {
+    this._slimLoaded = false;
+    this.loadCitasSlimIfNeeded();
   }
 
 }

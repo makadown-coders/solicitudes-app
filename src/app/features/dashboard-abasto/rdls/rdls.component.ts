@@ -22,6 +22,9 @@ import { RdlsNormalizeService } from '../../../services/rdls/rdls-normalize.serv
 
 type ArticuloLite = { clave: string; descripcion: string; presentacion?: string };
 
+/**
+ * TODO: REFACTORIZAR ESTE COMPONENTE PARA VER SI SE PUEDE ADAPTAR A MENU DE RUTAS DE LA SALUD
+ */
 @Component({
   selector: 'app-rdls',
   standalone: true,
@@ -30,7 +33,6 @@ type ArticuloLite = { clave: string; descripcion: string; presentacion?: string 
   templateUrl: './rdls.component.html'
 })
 export class RdlSComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
   private inventario = inject(InventarioService);
 
   private artSrv = inject(ArticulosService);
@@ -119,6 +121,7 @@ export class RdlSComponent implements OnInit, OnDestroy {
       articulosMapa = {};
     }
 
+    // TODO: Refactor aqui con catalogo de kits
     const base: RdlsRow[] = kitCatalogoBasal.map((clave, idx) => {
       const articulo = articulosMapa[clave];
       const descripcion = articulo?.descripcion || '';

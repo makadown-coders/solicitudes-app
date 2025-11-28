@@ -7,32 +7,17 @@ import { ArticulosService } from '../../../services/articulos.service';
 import { InventarioService } from '../../../services/inventario.service';
 import { Inventario } from '../../../models/Inventario';
 import { combineLatest } from 'rxjs';
-import { DashboardService } from '../../../services/dashboard.service';
 import { UnidadesService } from '../../../services/unidades.service';
 import { TrazabilidadService } from '../../../services/trazabilidad.service';
 import { FactorUnidad } from '../../../models/factor-unidad';
 import { ProveedoresService } from '../../../services/proveedores.service';
 import { GruposClavesService } from '../../../services/grupo-clases.service';
 import * as XLSX from 'xlsx';
-// amCharts v5
-import * as am5 from '@amcharts/amcharts5';
-import * as am5xy from '@amcharts/amcharts5/xy';
-import * as am5percent from '@amcharts/amcharts5/percent';
-import am5themes_Animated from '@amcharts/amcharts5/themes/Animated';
 import { StorageSolicitudService } from '../../../services/storage-solicitud.service';
 
 
-type FuenteRow = { categoria: string; hospital: number; almacen: number };
 
-// Paleta IMSS-Bienestar (hex -> am5.color)
-const IMSS_COLORS = {
-    verde: 0x006341,       // Hospital
-    verdeClaro: 0x00A67C,
-    dorado: 0xFFD166,
-    azul: 0x3B82F6,        // Almacén
-    gris: 0x6B7280,
-    celeste: 0x60A5FA,
-};
+ 
 
 const NO_CAT = 'NO ESPECIFICADO';
 
@@ -41,18 +26,10 @@ function normalizeCategoria(cat?: string | null): string {
     return s ? s : NO_CAT;
 }
 
-
-function imssColorList(root: am5.Root) {
-    return [
-        am5.color(IMSS_COLORS.verde),
-        am5.color(IMSS_COLORS.azul),
-        am5.color(IMSS_COLORS.dorado),
-        am5.color(IMSS_COLORS.verdeClaro),
-        am5.color(IMSS_COLORS.gris),
-        am5.color(IMSS_COLORS.celeste),
-    ];
-}
-
+/**
+ * Tab de Inventario. Cancelado. Se reemplazará por un módulo más completo a futuro.
+ * @deprecated
+ */
 @Component({
     selector: 'app-inventario-tab',
     standalone: true,
@@ -63,8 +40,6 @@ function imssColorList(root: am5.Root) {
 export class InventarioTabComponent implements AfterViewInit, OnDestroy {
     private invSrv = inject(InventarioService);
     private artSrv = inject(ArticulosService);
-    // ESTE YA NO LO USA
-    private dashSrv = inject(DashboardService);
     private unidadesSrv = inject(UnidadesService);
     private trazSrv = inject(TrazabilidadService);
     private provSrv = inject(ProveedoresService);
@@ -105,7 +80,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
     private cpmsSet = signal<Set<string>>(new Set());
     // + signals
     private articulosMapa = signal<Record<string, { descripcion: string; presentacion?: string; categoria?: string | null }>>({});
-    private citasByClaveLote = signal<Map<string, { precio?: number | null; orden?: string | null; fte?: string | null; proveedor?: string | null }>>(new Map());
+    //private citasByClaveLote = signal<Map<string, { precio?: number | null; orden?: string | null; fte?: string | null; proveedor?: string | null }>>(new Map());
 
     @ViewChild('gridScroll', { static: true }) gridScroll!: ElementRef<HTMLDivElement>;
     @ViewChild('topScroll', { static: true }) topScroll!: ElementRef<HTMLDivElement>;
@@ -118,16 +93,6 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
     @ViewChild('chartAbasto', { static: true }) chartAbasto!: ElementRef<HTMLDivElement>;
     @ViewChild('chartCategoria', { static: true }) chartCategoria!: ElementRef<HTMLDivElement>;
     @ViewChild('chartFuente', { static: true }) chartFuente!: ElementRef<HTMLDivElement>;
-
-    // amCharts roots / series
-    private rootAbasto?: am5.Root;
-    private rootCategoria?: am5.Root;
-    private rootFuente?: am5.Root;
-
-    private pieSeries?: am5percent.PieSeries;
-    private catSeries?: am5xy.ColumnSeries;
-    private fuenteSeriesHosp?: am5xy.ColumnSeries;
-    private fuenteSeriesAlm?: am5xy.ColumnSeries;
 
     private onGridScroll = () => { };
     private onTopScroll = () => { };
@@ -142,8 +107,6 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         this.onGridScroll = () => { top.scrollLeft = grid.scrollLeft; };
         this.onTopScroll = () => { grid.scrollLeft = top.scrollLeft; };
         this.onResize = () => this.measureGrid();
-        // Crear charts una sola vez
-        this.createCharts();
 
         grid.addEventListener('scroll', this.onGridScroll, { passive: true });
         top.addEventListener('scroll', this.onTopScroll, { passive: true });
@@ -172,6 +135,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
 
 
     constructor() {
+        this.invSrv.loadCitasSlimIfNeeded();
         // 0) Cargar grupos de claves una vez (cachea e indexa)
         this.gruposSrv.load().subscribe(mp => {
             // console.log('mp', mp);
@@ -187,9 +151,12 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         this.provSrv.load().subscribe();
         // 3) Almacenes (ya lo emite tu servicio)
         this.invSrv.inventario$.subscribe(rows => {
+            console.log('InventarioTabComponent: Entrando a suscribe');
             if (!rows || rows.length === 0) {
+                console.log('InventarioTabComponent: Obteniendo de localstorage');
                 rows = this.storageSolicitudService.getInventarioFromLocalStorage();
             }
+            console.log(' InventarioTabComponent: existencias de almacenes', rows);
             this.almacenes.set(rows ?? []);
         });
 
@@ -216,18 +183,12 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             this.articulosMapa.set(m ?? {});
         });
 
-        // 7) Citas “slim” → mapear por (clave,lote) LEGACY - quitamos this.dashSrv.citasSlimMap$
-        // Estructura esperada: { clave_cnis, lote, precio_unitario?, orden_de_suministro?, fte_fmto? }
-/*        this.dashSrv.citasSlimMap$.subscribe(mp => {
-            this.citasByClaveLote.set(mp ?? new Map());
-        }); */
-
-        // 8) Quitar loading cuando tengamos algo
+        // 7) Quitar loading cuando tengamos algo
         effect(() => {
             if (this.almacenes().length || this.hospitales().length) this.loading.set(false);
         });
 
-        // 9)🔎 Prefetch de factores para las filas visibles (página actual)
+        // 8)🔎 Prefetch de factores para las filas visibles (página actual)
         effect(() => {
             const current = this.pageSlice(); // filas ya enriquecidas con clave, lote, clues (ver mapRow)
             // junta los pares únicos clave__clues
@@ -290,7 +251,6 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         effect(() => {
             // cuando cambian filtros/paginación, actualizamos gráficos con TODO el filtrado (no solo slice)
             this.filtered();
-            queueMicrotask(() => this.updateCharts());
         });
     }
 
@@ -352,7 +312,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
 
             // 2) Citas y Artículos
             const keyCita = `${clave}__${cleanLote(inv.lote)}`;
-            const citaInfo = this.citasByClaveLote().get(keyCita) || {};
+            const citaInfo = this.invSrv.citasByClaveLote().get(keyCita) || {};
             const art = this.articulosMapa()[clave] ?? {};
 
             // 3) Factor por clave+clues
@@ -458,207 +418,6 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         if (grid) grid.removeEventListener('scroll', this.onGridScroll);
         if (top) top.removeEventListener('scroll', this.onTopScroll);
         window.removeEventListener('resize', this.onResize);
-        if (this.rootAbasto) { this.rootAbasto.dispose(); this.rootAbasto = undefined; }
-        if (this.rootCategoria) { this.rootCategoria.dispose(); this.rootCategoria = undefined; }
-        if (this.rootFuente) { this.rootFuente.dispose(); this.rootFuente = undefined; }
-    }
-
-    private updateCharts() {
-        const rows = this.filtered();
-
-        // ----- Donut % abasto -----        
-        const totalCpm = this.cpmsSet().size; // rows.filter(r => r.insumoEnCPM === 'SI').length;
-        // console.log('updateDonut totalCpms', totalCpm);
-        const conInventario = rows.filter(r => r.insumoEnCPM === 'SI' && (r.inventarioDisponible ?? 0) > 0);
-        // hacer un distinct de clave en conInventario
-        const conInv = new Set(conInventario.map(r => r.clave)).size;
-        // console.log('updateDonut conInv', conInv);
-        const abastoData = [
-            { label: 'Con inventario', value: conInv },
-            { label: 'Sin inventario', value: Math.max(0, totalCpm - conInv) }
-        ];
-        if (this.pieSeries) {
-            this.pieSeries.data.setAll(abastoData);
-            const pct = totalCpm ? Math.round((conInv * 100) / totalCpm) : 0;
-            const lbl = (this as any)._abastoCenterLabel as am5.Label | undefined;
-            lbl?.set('text', `${conInv}/${totalCpm} (${pct}%)`);
-        }
-
-        // ----- Barras por categoría -----
-        const byCat = new Map<string, number>();
-        for (const r of rows) {
-            const cat = r.categoria ?? NO_CAT;
-            byCat.set(cat, (byCat.get(cat) ?? 0) + (Number(r.inventarioDisponible) || 0));
-        }
-        const catData = Array.from(byCat, ([categoria, inventario]) => ({ categoria, inventario }));
-        if (this.catSeries) {
-            const x = this.catSeries.get('xAxis') as am5xy.CategoryAxis<any>;
-            x.data.setAll(catData);
-            this.catSeries.data.setAll(catData);
-        }
-
-        // ----- Stacked por fuente -----
-        const mapa = new Map<string, { categoria: string; HOSPITAL: number; ALMACEN: number }>();
-        for (const r of rows) {
-            const cat = r.categoria ?? NO_CAT;
-            if (!mapa.has(cat)) mapa.set(cat, { categoria: cat, HOSPITAL: 0, ALMACEN: 0 });
-            const acc = mapa.get(cat)!;
-            const val = Number(r.inventarioDisponible) || 0;
-            if (r.tipoFuente === 'HOSPITAL') acc.HOSPITAL += val;
-            else if (r.tipoFuente === 'ALMACEN') acc.ALMACEN += val;
-        }
-        const fuenteData = Array.from(mapa.values());
-        if (this.fuenteSeriesHosp && this.fuenteSeriesAlm) {
-            const x = this.fuenteSeriesHosp.get('xAxis') as am5xy.CategoryAxis<any>;
-            x.data.setAll(fuenteData);
-            this.fuenteSeriesHosp.data.setAll(fuenteData);
-            this.fuenteSeriesAlm.data.setAll(fuenteData);
-        }
-    }
-
-    private createCharts() {
-        // 1) % Abasto CPM (donut)
-        this.rootAbasto = am5.Root.new(this.chartAbasto.nativeElement);
-        this.rootAbasto.setThemes([am5themes_Animated.new(this.rootAbasto)]);
-        const chartA = this.rootAbasto.container.children.push(
-            am5percent.PieChart.new(this.rootAbasto, {
-                endAngle: 360,
-                innerRadius: am5.percent(50)
-            })
-        );
-        this.pieSeries = chartA.series.push(
-            am5percent.PieSeries.new(this.rootAbasto, {
-                valueField: 'value',
-                categoryField: 'label',
-                endAngle: 360
-            })
-        );
-
-        // Evita recortes: quita labels/ticks del pie y agrega padding al chart
-        /*this.pieSeries.labels.template.setAll({ forceHidden: true });
-        this.pieSeries.ticks.template.setAll({ forceHidden: true });
-        chartA.setAll({ paddingTop: 8, paddingRight: 12, paddingBottom: 8, paddingLeft: 12 });*/
-        this.pieSeries.labels.template.setAll({
-            text: '{category}',
-            inside: true,
-            radius: 10
-        });
-        this.pieSeries.ticks.template.setAll({ visible: true });
-        chartA.setAll({ paddingLeft: 64, paddingRight: 64, paddingTop: 18, paddingBottom: 18 });
-
-
-        // Leyenda centrada abajo
-        const legendA = chartA.children.push(am5.Legend.new(this.rootAbasto, {
-            centerX: am5.p50, x: am5.p50,
-            centerY: am5.p100, y: am5.p100,
-            paddingTop: 8
-        }));
-        legendA.data.setAll(this.pieSeries.dataItems);
-
-
-        this.pieSeries.set('colors', am5.ColorSet.new(this.rootAbasto, {
-            colors: [am5.color(IMSS_COLORS.verde), am5.color(IMSS_COLORS.gris)]
-        }));
-
-        // label central (guárdalo en la instancia para actualizarlo)
-        const centerLabel = chartA.children.push(am5.Label.new(this.rootAbasto, {
-            // text: '0%',
-            centerX: am5.p50,
-            x: am5.p50,
-            layout: this.rootAbasto.verticalLayout,
-            // centerY: am5.p50,
-            // fontSize: 26,
-            // fontWeight: '700',
-        }));
-        // @ts-ignore: guardamos referencia para updateCharts
-        (this as any)._abastoCenterLabel = centerLabel;
-
-        // 2) Inventario por categoría (barras)
-        this.rootCategoria = am5.Root.new(this.chartCategoria.nativeElement);
-        this.rootCategoria.setThemes([am5themes_Animated.new(this.rootCategoria)]);
-        const chartC = this.rootCategoria.container.children.push(
-            am5xy.XYChart.new(this.rootCategoria, {
-                layout: this.rootCategoria.verticalLayout
-            })
-        );
-        const colorSetCat = am5.ColorSet.new(this.rootCategoria, { colors: imssColorList(this.rootCategoria) });
-        chartC.set('colors', colorSetCat);
-
-        const xCat = chartC.xAxes.push(am5xy.CategoryAxis.new(this.rootCategoria, {
-            categoryField: 'categoria',
-            renderer: am5xy.AxisRendererX.new(this.rootCategoria, { minGridDistance: 20 }),
-            tooltip: am5.Tooltip.new(this.rootCategoria, {})
-        }));
-        xCat.get('renderer')!.labels.template.setAll({
-            fontSize: 10,
-            rotation: -30,
-            centerY: am5.p50,
-            dy: 10,
-            maxWidth: 110,
-            oversizedBehavior: 'truncate' // evita empalmes
-        });
-        const yCat = chartC.yAxes.push(am5xy.ValueAxis.new(this.rootCategoria, {
-            renderer: am5xy.AxisRendererY.new(this.rootCategoria, {})
-        }));
-        this.catSeries = chartC.series.push(am5xy.ColumnSeries.new(this.rootCategoria, {
-            name: 'Inventario',
-            xAxis: xCat,
-            yAxis: yCat,
-            valueYField: 'inventario',
-            categoryXField: 'categoria',
-            tooltip: am5.Tooltip.new(this.rootCategoria, { labelText: '{valueY}' })
-        }));
-        // etiquetas pequeñas
-        xCat.get('renderer')!.labels.template.setAll({ fontSize: 10, rotation: -30, centerY: am5.p50, dy: 10 });
-
-        // 3) Inventario por fuente (stacked HOSPITAL vs ALMACEN)
-        this.rootFuente = am5.Root.new(this.chartFuente.nativeElement);
-        this.rootFuente.setThemes([am5themes_Animated.new(this.rootFuente)]);
-        const chartF = this.rootFuente.container.children.push(
-            am5xy.XYChart.new(this.rootFuente, {
-                layout: this.rootFuente.verticalLayout
-            })
-        );
-        const xFuente = chartF.xAxes.push(am5xy.CategoryAxis.new(this.rootFuente, {
-            categoryField: 'categoria',
-            renderer: am5xy.AxisRendererX.new(this.rootFuente, { minGridDistance: 20 })
-        }));
-        xFuente.get('renderer')!.labels.template.setAll({
-            fontSize: 10,
-            rotation: -15,
-            centerY: am5.p50,
-            dy: 8,
-            maxWidth: 110,
-            oversizedBehavior: 'truncate'
-        });
-        const yFuente = chartF.yAxes.push(am5xy.ValueAxis.new(this.rootFuente, {
-            renderer: am5xy.AxisRendererY.new(this.rootFuente, {})
-        }));
-
-        this.fuenteSeriesHosp = chartF.series.push(am5xy.ColumnSeries.new(this.rootFuente, {
-            name: 'Hospital',
-            stacked: true,
-            xAxis: xFuente, yAxis: yFuente,
-            valueYField: 'HOSPITAL',
-            categoryXField: 'categoria',
-            tooltip: am5.Tooltip.new(this.rootFuente, { labelText: 'Hospital: {valueY}' })
-        }));
-
-        this.fuenteSeriesAlm = chartF.series.push(am5xy.ColumnSeries.new(this.rootFuente, {
-            name: 'Almacén',
-            stacked: true,
-            xAxis: xFuente, yAxis: yFuente,
-            valueYField: 'ALMACEN',
-            categoryXField: 'categoria',
-            tooltip: am5.Tooltip.new(this.rootFuente, { labelText: 'Almacén: {valueY}' })
-        }));
-
-        // Leyenda para stacked
-        const legend = chartF.children.push(am5.Legend.new(this.rootFuente, { centerX: am5.p50, x: am5.p50 }));
-        legend.data.setAll([this.fuenteSeriesHosp, this.fuenteSeriesAlm]);
-
-        // Primera carga
-        this.updateCharts();
     }
 
 
@@ -926,184 +685,6 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         // 7) Descargar
         XLSX.writeFile(wb, filename, { bookType: 'xlsx' });
     }
-
-    private buildInventarioPorCategoria(containerId: string, rows: Array<{ categoria: string, total: number }>) {
-        const root = am5.Root.new(containerId);
-        root.setThemes([am5themes_Animated.new(root)]);
-        root._logo?.dispose?.();
-
-        const chart = root.container.children.push(am5xy.XYChart.new(root, {
-            layout: root.verticalLayout,
-            panX: false, panY: false, wheelX: 'none', wheelY: 'none'
-        }));
-
-        // Ejes
-        const xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 20, inside: false });
-        // oculta/estiliza la grilla DESPUÉS de crear el renderer
-        xRenderer.grid.template.setAll({ visible: false });       // o { strokeOpacity: 0 }
-
-        const x = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
-            categoryField: 'categoria',
-            renderer: xRenderer,
-        }));
-
-        const yRenderer = am5xy.AxisRendererY.new(root, {});
-        yRenderer.grid.template.setAll({ strokeOpacity: 0.1 });
-        const y = chart.yAxes.push(am5xy.ValueAxis.new(root, { renderer: yRenderer }));
-
-        x.data.setAll(rows);
-
-        const series = chart.series.push(am5xy.ColumnSeries.new(root, {
-            name: 'Inventario',
-            xAxis: x, yAxis: y,
-            valueYField: 'total',
-            categoryXField: 'categoria',
-            tooltip: am5.Tooltip.new(root, { labelText: '{valueY.formatNumber("#,###")}' })
-        }));
-
-        const colorSet = am5.ColorSet.new(root, { colors: imssColorList(root) });
-        chart.set('colors', colorSet);
-
-        // columnas y labels de valor
-        series.columns.template.setAll({
-            width: am5.percent(70),
-            strokeOpacity: 0,
-        });
-
-        series.bullets.push(() => am5.Bullet.new(root, {
-            locationY: 0.5,
-            sprite: am5.Label.new(root, {
-                text: '{valueY.formatNumber("#,###")}',
-                centerX: am5.p50, centerY: am5.p100,
-                dy: -12, fontSize: 12, fill: am5.color(0x111827)
-            })
-        }));
-
-        series.data.setAll(rows);
-
-        return root;
-    }
-
-    private buildAbastoDonut(containerId: string, data: Array<{ label: string, value: number }>) {
-        const root = am5.Root.new(containerId);
-        root.setThemes([am5themes_Animated.new(root)]);
-
-        // paleta
-        root.interfaceColors.set('grid', am5.color(0xE5E7EB));
-        root.interfaceColors.set('text', am5.color(0x111827));
-        root._logo?.dispose?.();
-
-        const chart = root.container.children.push(
-            am5percent.PieChart.new(root, {
-                layout: root.verticalLayout,
-                innerRadius: am5.percent(60),
-                radius: am5.percent(95)
-            })
-        );
-
-        const series = chart.series.push(
-            am5percent.PieSeries.new(root, {
-                name: 'Abasto',
-                valueField: 'value',
-                categoryField: 'label'
-            })
-        );
-
-        // Colores: disponible (verde) / sin inventario (gris)
-        series.get('colors')!.set('colors', [
-            am5.color(IMSS_COLORS.verde),
-            am5.color(IMSS_COLORS.gris)
-        ]);
-
-        series.data.setAll(data);
-
-        // Label central con % (primer elemento asumido como “Con inventario”)
-        const total = data.reduce((a, b) => a + b.value, 0) || 1;
-        const pct = Math.round((data[0]?.value ?? 0) * 100 / total);
-        chart.children.push(am5.Label.new(root, {
-            text: `${pct}%`,
-            centerX: am5.p50, centerY: am5.p50,
-            fontSize: 24, fontWeight: '700'
-        }));
-
-        // tooltips
-        series.slices.template.setAll({
-            tooltipText: '{category}: {value.formatNumber("#,###")}'
-        });
-
-        // bullets de valor en cada slice (opcional)
-        series.labels.template.setAll({
-            text: '{category}',
-            fill: am5.color(0x374151),
-        });
-
-        return root;
-    }
-
-    private buildInventarioPorFuenteStacked(containerId: string, rows: FuenteRow[]) {
-        const root = am5.Root.new(containerId);
-        root.setThemes([am5themes_Animated.new(root)]);
-        root._logo?.dispose?.();
-
-        const chart = root.container.children.push(am5xy.XYChart.new(root, {
-            layout: root.verticalLayout,
-            panX: false, panY: false, wheelX: 'none', wheelY: 'none'
-        }));
-
-        const xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 20 });
-        xRenderer.grid.template.setAll({ visible: false });  // o { strokeOpacity: 0 }
-
-        const x = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
-            categoryField: 'categoria',
-            renderer: xRenderer
-        }));
-
-        const y = chart.yAxes.push(am5xy.ValueAxis.new(root, {
-            renderer: am5xy.AxisRendererY.new(root, {}),
-            calculateTotals: true
-        }));
-
-        x.data.setAll(rows);
-
-        const makeSeries = (name: string, field: keyof FuenteRow, colorHex: number) => {
-            const s = chart.series.push(am5xy.ColumnSeries.new(root, {
-                name, xAxis: x, yAxis: y,
-                valueYField: field as string,
-                categoryXField: 'categoria',
-                stacked: true,
-                tooltip: am5.Tooltip.new(root, { labelText: `${name}: {valueY.formatNumber("#,###")}` })
-            }));
-            s.columns.template.setAll({
-                width: am5.percent(80),
-                strokeOpacity: 0,
-                fill: am5.color(colorHex)
-            });
-            // labels
-            s.bullets.push(() => am5.Bullet.new(root, {
-                locationY: 0.5,
-                sprite: am5.Label.new(root, {
-                    text: '{valueY.formatNumber("#,###")}',
-                    centerX: am5.p50, centerY: am5.p100, dy: -12, fontSize: 11
-                })
-            }));
-            s.data.setAll(rows);
-            return s;
-        };
-
-        const sHospital = makeSeries('Hospital', 'hospital', IMSS_COLORS.verde);
-        const sAlmacen = makeSeries('Almacén', 'almacen', IMSS_COLORS.azul);
-
-        // Leyenda
-        chart.children.push(am5.Legend.new(root, {
-            useDefaultMarker: true,
-            centerX: am5.p50, x: am5.p50,
-            dy: 8
-        })).data.setAll([sHospital, sAlmacen]);
-
-        return root;
-    }
-
-
 }
 
 function aplicarFactor(disponible: number, factor?: FactorUnidad): number {

@@ -28,10 +28,10 @@ import { CitasService } from '../../services/citas.service';
     RouterModule,
     ProveedoresComponent,
     CitasPendientesComponent,
-    ResumenCitasComponent,
-    InventarioCriticoComponent,
+    // ResumenCitasComponent,
+    // InventarioCriticoComponent,
     ExistenciasComponent,
-    InventarioTabComponent,
+    // InventarioTabComponent,
     RdlSComponent
   ],
   templateUrl: './dashboard-abasto.component.html',
@@ -41,7 +41,7 @@ import { CitasService } from '../../services/citas.service';
 export class DashboardAbastoComponent implements OnInit {
   @ViewChild(ProveedoresComponent) proveedoresTab?: ProveedoresComponent;
   @ViewChild(CitasPendientesComponent) citasPendientesTab?: CitasPendientesComponent;
-  
+
   themeService = inject(ThemeService);
   inventarioService = inject(InventarioService);
   citasService = inject(CitasService);
@@ -56,9 +56,9 @@ export class DashboardAbastoComponent implements OnInit {
     'Existencias (CPM)',
     'Citas Completadas',
     'Citas pendientes',
-   // 'Cumplimiento Claves',
-   // 'Entregas pendientes',
-    'Existencias (beta)',
+    // 'Cumplimiento Claves',
+    // 'Entregas pendientes',
+    // 'Existencias (beta)',
     'RdlS',
     'Acerca de'];
   activeTab = 'Resumen';
@@ -73,34 +73,32 @@ export class DashboardAbastoComponent implements OnInit {
       this.activeTab = tabGuardado;
     }
     // 1) Suscríbete al BehaviorSubject para recibir actualizaciones
-   /* this.dashboardService.citas$.subscribe({
-      next: (data: Cita[]) => {
-        this.citas = data as Cita[];
-      }
-    });*/
+    /* this.dashboardService.citas$.subscribe({
+       next: (data: Cita[]) => {
+         this.citas = data as Cita[];
+       }
+     });*/
 
     // ✅ SUSCRIBIR KPIs
     //this.dashboardService.kpis$.subscribe(k => this.kpis = k);
-    
+
+    // Las partes comentadas aqui son porque ya no se usa el dashboardService para cargar datos
     // if (this.citas.length === 0) {
-    
+    //if (tabGuardado === this.tabs[0]) { // si el tab guardado ES el primero, carga desde el endpoint
+    // 2) Dispara la carga inicial desde el endpoint
+    // this.onRefresh();
+    // } else {
+    // this.isLoading.set(true);
+    // this.dashboardService.refrescarDeLocalStorage();
+
     // TODO: Optimizar las cargas de cpm y los existencias para que 
     // el servicio se encargue de decidir si carga del endpoint o del localStorage cada 12 horas.
+    this.inventarioService.cargarCPMSdesdeLocalStorage();
+    for (const existencia of Object.values(Existencias)) {
+      this.inventarioService.refrescarDatosExistenciasDeLocalStorage(existencia);
+    }
 
-
-    //if (tabGuardado === this.tabs[0]) { // si el tab guardado ES el primero, carga desde el endpoint
-      // 2) Dispara la carga inicial desde el endpoint
-      // this.onRefresh();
-    // } else {
-      // this.isLoading.set(true);
-      // this.dashboardService.refrescarDeLocalStorage();
-      
-      this.inventarioService.cargarCPMSdesdeLocalStorage();
-      for (const existencia of Object.values(Existencias)) {
-        this.inventarioService.refrescarDatosExistenciasDeLocalStorage(existencia);
-      }
-
-      // this.isLoading.set(false);
+    // this.isLoading.set(false);
     // }
   }
 

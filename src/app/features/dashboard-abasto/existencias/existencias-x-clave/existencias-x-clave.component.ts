@@ -132,7 +132,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                 });
             } else {
                 const articulo = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE);
-                console.log('ExistenciasXClaveComponent - cargando info desde localstorage', articulo);
+                // console.log('ExistenciasXClaveComponent - intentando carga de info desde localstorage', articulo);
                 if (articulo && articulo.includes('{')) {
                     // console.log('ExistenciasXClaveComponent - cargando más info desde localstorage...');
                     this.claveConfirmada = true;
