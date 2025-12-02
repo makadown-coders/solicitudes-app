@@ -480,7 +480,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
    */
     async buscarExistenciasDeClave(skipLocalStorage = false) {
         const hoy = new Date();
-        const hace30dias = new Date(hoy); hace30dias.setDate(hoy.getDate() - 30);
+        // const hace90dias = new Date(hoy); hace90dias.setDate(hoy.getDate() - 90);
 
         // si quieres pasar el rango de “Recepción lista” tal cual desde el periodo activo, puedes
         // usar el PeriodoPicker del tab Resumen; aquí, por simplicidad, no forzamos esos dates.
@@ -490,19 +490,25 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                     clave: this.claveFiltrada,
                     // desde: this.toISO(this.fechaInicio)  // si decides pasar fechas del picker
                     // hasta: this.toISO(this.fechaFin),
-                    windowDays: 30,
+                    windowDays: 365,
                     incluyeNoRecibidas: true,
-                    limit: 500
+                    limit: 10 // ultimos 10
                 })
             );
 
             const rows = resp?.rows ?? [];
             this.citasHalladasPorClave = rows as Cita[];
+            this.citasHalladasPorClave.forEach(cita => {
+                if ( !cita.fecha_recepcion_almacen) {
+                    cita.fecha_recepcion_almacen = this.obtenerFechaRecepcion(cita);
+                }
+            });
             this.citaParaDescripcionDeClave = (resp?.ref ?? rows[0] ?? null) as Cita | null;
 
         } catch (err) {
             console.warn('⚠️ Backend /xclave no disponible, usando filtro local', err);
             // ⬇️  fallback local: tu lógica original
+            /*
             this.citaParaDescripcionDeClave = this.citas.find(c => c.clave_cnis === this.claveFiltrada)!;
             this.citasHalladasPorClave = this.citas.filter(c => {
                 const esClave = c.clave_cnis === this.claveFiltrada;
@@ -511,14 +517,15 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                     ? new Date(c.fecha_limite_de_entrega)
                     : null;
 
-                const fechaValida = !!fechaLimite && (fechaLimite >= hoy || fechaLimite >= hace30dias);
+                const fechaValida = !!fechaLimite && (fechaLimite >= hoy || fechaLimite >= hace90dias);
 
                 const recibidoRecientementeONoSeHaRecibido = c.fecha_recepcion_almacen
-                    ? new Date(c.fecha_recepcion_almacen) >= hace30dias
+                    ? new Date(c.fecha_recepcion_almacen) >= hace90dias
                     : true;
 
                 return esClave && fechaValida && recibidoRecientementeONoSeHaRecibido;
             });
+            */
         }
 
         if (!skipLocalStorage) {
@@ -531,6 +538,16 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
             }
         }
         this.cdRef.detectChanges();
+    }
+
+    obtenerFechaRecepcion(cita: Cita): string | null {
+        if (!cita.fecha_recepcion_almacen) {
+            if (cita.fecha_recepcion_lista && cita.fecha_recepcion_lista.length > 0) {
+                // obtener la primer fecha
+                return cita.fecha_recepcion_lista[0];
+            } 
+        } 
+        return cita.fecha_recepcion_almacen;
     }
 
     totalExistenciaEnAlmacen(almacen: string): number {

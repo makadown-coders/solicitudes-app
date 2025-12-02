@@ -72,43 +72,18 @@ export class DashboardAbastoComponent implements OnInit {
     if (tabGuardado) {
       this.activeTab = tabGuardado;
     }
-    // 1) Suscríbete al BehaviorSubject para recibir actualizaciones
-    /* this.dashboardService.citas$.subscribe({
-       next: (data: Cita[]) => {
-         this.citas = data as Cita[];
-       }
-     });*/
-
-    // ✅ SUSCRIBIR KPIs
-    //this.dashboardService.kpis$.subscribe(k => this.kpis = k);
-
-    // Las partes comentadas aqui son porque ya no se usa el dashboardService para cargar datos
-    // if (this.citas.length === 0) {
-    //if (tabGuardado === this.tabs[0]) { // si el tab guardado ES el primero, carga desde el endpoint
-    // 2) Dispara la carga inicial desde el endpoint
-    // this.onRefresh();
-    // } else {
-    // this.isLoading.set(true);
-    // this.dashboardService.refrescarDeLocalStorage();
-
-    // TODO: Optimizar las cargas de cpm y los existencias para que 
-    // el servicio se encargue de decidir si carga del endpoint o del localStorage cada 12 horas.
-    this.inventarioService.cargarCPMSdesdeLocalStorage();
-    for (const existencia of Object.values(Existencias)) {
-      this.inventarioService.refrescarDatosExistenciasDeLocalStorage(existencia);
-    }
-
-    // this.isLoading.set(false);
-    // }
+    // ✅ Nuevo enfoque: dejar al servicio decidir si usa cache o backend
+    this.inventarioService.initExistenciaAlmacenes();
+    this.inventarioService.initCPMS();
+    this.inventarioService.initTodasExistencias();
   }
 
   // opcionalmente puedes exponer un método para refrescar manualmente
   onRefresh() {
-    // this.dashboardService.limpiarDatos();
-    // this.isLoading.set(true); // Establece isLoading = true;
-    // this.dashboardService.refrescarDatos();
     this.citasService.clearCache();
-    this.inventarioService.refrescarDatosInventario(false);
+
+    // this.inventarioService.refrescarDatosInventario(false);
+    this.inventarioService.refrescarExistenciaAlmacenesDesdePostgres();
     this.inventarioService.refrescarDatosCPMS();
     for (const existencia of Object.values(Existencias)) {
       this.inventarioService.refrescarDatosExistencias(existencia);
@@ -117,7 +92,6 @@ export class DashboardAbastoComponent implements OnInit {
     // 2) Pedir a cada tab que recargue (desde backend, con forceRefresh = true)
     this.proveedoresTab?.refrescarDatos(true);
     this.citasPendientesTab?.refrescarDatos(true);
-    // this.isLoading.set(false);
   }
 
   seleccionarTab(tab: string) {

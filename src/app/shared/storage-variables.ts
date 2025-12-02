@@ -62,6 +62,8 @@ export const enum StorageVariables {
     SOLICITUD_ACTIVE_TAB_SEGUNDO_NIVEL = 'activeTab',
     SOLICITUD_CPMS = 'cpms',
     SOLICITUD_CLAVEGRUPOS = 'clavegrupos',
+    SOLICITUD_CPMS_TS = 'SOLICITUD_CPMS_TS',
+    SOLICITUD_INVENTARIO_TS = 'SOLICITUD_INVENTARIO_TS',
     // variables usadas tanto en solicitudes como en dashboard abasto
     // se refieren al nombre del endpoint en /api/inventario
     EXISTENCIA_HGENS = 'HGENS', 
@@ -89,3 +91,6 @@ export enum Existencias {
     HGTZE = 'HGTZE',
     HGSF = 'HGSF'
 }
+
+// helper para armar key de timestamp de existencias
+export const tsKeyExistencia = (existencia: Existencias) => `TS_${existencia}`;

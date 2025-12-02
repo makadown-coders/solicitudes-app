@@ -57,12 +57,21 @@ export class InventarioService {
   private _slimLoaded = false;
   private _loadingSlim = false;
 
+  private readonly TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
+
   constructor(private http: HttpClient) {
     // Inicializar mapa de existencias
     for (const existencia of Object.values(Existencias)) {
       this.existenciasSubject.set(existencia, new BehaviorSubject<Inventario[]>([]));
       this.existencias$.set(existencia, this.existenciasSubject.get(existencia)!.asObservable());
     }
+  }
+
+  private isExpired(tsStr: string | null): boolean {
+    if (!tsStr) return true;
+    const ts = Date.parse(tsStr);
+    if (Number.isNaN(ts)) return true;
+    return (Date.now() - ts) > this.TTL_MS;
   }
 
   /**
@@ -120,6 +129,8 @@ export class InventarioService {
             // console.log('InventarioService.refrescarDatosCPMS() - comprimiendo');
             localStorage.setItem(StorageVariables.SOLICITUD_CPMS, compressed);
             localStorage.setItem(StorageVariables.SOLICITUD_CLAVEGRUPOS, JSON.stringify(claveGrupos));
+            // ⬇️ Timestamp de última actualización CPMS
+            localStorage.setItem(StorageVariables.SOLICITUD_CPMS_TS, new Date().toISOString());
           } catch {
             console.warn('😱 InventarioService.refrescarDatosCPMS() - localStorage lleno, omitiendo guardado');
           }
@@ -134,6 +145,61 @@ export class InventarioService {
       error: (err) => {
         this.cargandoCPMSBehaviorSubject.next(false);
         console.error('❌ InventarioService.refrescarDatosCPMS() - Error al cargar CPMS:', err);
+      }
+    });
+  }
+
+  /**
+   * Refresca existencias de ALMACENES desde Postgres (tmp_existencias + v_unidad_medica_detalle)
+   * y lo guarda en localStorage (SOLICITUD_INVENTARIO) + emite por inventario$.
+   */
+  refrescarExistenciaAlmacenesDesdePostgres(skipLoader = true): void {
+    this.cargandoInventarioBehaviorSubject.next(true);
+
+    const url = environment.apiUrl + '/existencias-temp/almacenes-full';
+
+    this.http.get<{ ok: boolean; rows: TemporalExistenciaRow[] }>(
+      url,
+      skipLoader ? { headers: { 'X-Skip-Loader': '1' } } : {}
+    ).subscribe({
+      next: res => {
+        const rows = res.rows ?? [];
+
+        // Mapeo TemporalExistenciaRow -> Inventario
+        const inventario: Inventario[] = rows.map(r => {
+          const i = new Inventario();
+          i.clave = r.clave_cnis;
+          i.partida = ''; // no viene, lo podemos enriquecer luego si hace falta
+          i.descripcion = ''; // se puede enriquecer con ArticulosService después
+          i.disponible = r.existencia;
+          i.almacen = (r.alias_sas ?? '').toUpperCase(); // o r.alias_sas / r.cluessa / lo que prefieras
+          i.comprometidos = 0;
+          i.lote = r.lote || '';
+          i.caducidad = r.fecha_caducidad as any;
+          i.fuente = ''; //(r.fuente ?? '').toUpperCase();
+          i.fecha_entrada = null;
+          return i;
+        });
+
+        const inventarioNormalizado = this.normalizarClavesInventario(inventario);
+
+        // Serializar + comprimir
+        const raw = JSON.stringify(inventarioNormalizado);
+        const compressed = LZString.compress(raw);
+        try {
+          localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO, compressed);
+          localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO_TS, new Date().toISOString());
+        } catch {
+          console.warn('😱 InventarioService.refrescarDatosInventarioDesdePostgres() - localStorage lleno, omitiendo guardado');
+        }
+
+        this.inventarioSubject.next(inventarioNormalizado as Inventario[]);
+        this.cargandoInventarioBehaviorSubject.next(false);
+      },
+      error: err => {
+        console.error('❌ InventarioService.refrescarDatosInventarioDesdePostgres() - Error al cargar datos:', err);
+        this.inventarioSubject.next([]);
+        this.cargandoInventarioBehaviorSubject.next(false);
       }
     });
   }
@@ -171,8 +237,9 @@ export class InventarioService {
   }
 
   limpiarCPMS() {
-    //    console.info('🧹 Limpiando CPMS...');
     localStorage.removeItem(StorageVariables.SOLICITUD_CPMS);
+    localStorage.removeItem(StorageVariables.SOLICITUD_CLAVEGRUPOS);
+    localStorage.removeItem(StorageVariables.SOLICITUD_CPMS_TS); // ⬅ limpiar timestamp
     this.cpmsSubject.next([]);
   }
 
@@ -204,6 +271,7 @@ export class InventarioService {
         const compressed = LZString.compress(raw);
         try {
           localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO, compressed);
+          localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO_TS, new Date().toISOString());
         } catch {
           console.warn('😱 InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
         }
@@ -291,7 +359,6 @@ export class InventarioService {
             nuevoRegistro.lote = item.lote || '';
             nuevoRegistro.caducidad = item.fecha_caducidad as string;
             nuevoRegistro.fecha_entrada = null;
-            nuevoRegistro.disponible = item.existencia;
             return nuevoRegistro;
           });
           const inventarioNormalizado = this.normalizarClavesInventario(inventario);
@@ -323,6 +390,8 @@ export class InventarioService {
     const compressed = LZString.compress(raw);
     try {
       localStorage.setItem(existencia, compressed);
+      // ⬇⏱ timestamp específico de esta existencia
+      localStorage.setItem(`TS_${existencia}`, new Date().toISOString());
     } catch {
       console.warn('😱 InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
     }
@@ -407,11 +476,13 @@ export class InventarioService {
   private limpiarInventario() {
     // console.info('🧹 Limpiando inventario...');
     localStorage.removeItem(StorageVariables.SOLICITUD_INVENTARIO);
+    localStorage.removeItem(StorageVariables.SOLICITUD_INVENTARIO_TS); // ⬅ limpiar timestamp
     this.inventarioSubject.next([]);
   }
 
   private limpiarExistencias(existencia: Existencias) {
     localStorage.removeItem(existencia);
+    localStorage.removeItem(`TS_${existencia}`); // ⬅ limpiar timestamp
   }
 
   private normalizarClavesInventario(inventario: Inventario[]): Inventario[] {
@@ -477,6 +548,87 @@ export class InventarioService {
   refreshCitasSlim() {
     this._slimLoaded = false;
     this.loadCitasSlimIfNeeded();
+  }
+
+  initExistenciaAlmacenes(): void {
+    const comprimido = localStorage.getItem(StorageVariables.SOLICITUD_INVENTARIO);
+    let inventario: Inventario[] = [];
+
+    if (comprimido) {
+      const raw = LZString.decompress(comprimido);
+      inventario = raw ? JSON.parse(raw) : [];
+    }
+
+    // Emitimos lo que haya en cache, aunque esté viejo, para que la UI pinte algo rápido
+    this.inventarioSubject.next(inventario);
+
+    const tsStr = localStorage.getItem(StorageVariables.SOLICITUD_INVENTARIO_TS);
+    const expired = this.isExpired(tsStr);
+    const noData = !inventario || inventario.length === 0;
+
+    if (noData || expired) {
+      // ⏱ sin datos o expirado → pegamos al nuevo endpoint PG
+      this.refrescarExistenciaAlmacenesDesdePostgres();
+    } else {
+      // console.info('✅ initInventario(): usando inventario de almacenes desde localStorage (vigente)');
+    }
+  }
+
+  /**
+ * Inicializa CPMS:
+ * - Emite lo que haya en localStorage (si existe)
+ * - Si no hay datos o están vencidos (TTL) → dispara refrescarDatosCPMS()
+ */
+  initCPMS(): void {
+    // 1) Intentar cargar de localStorage
+    const stored = new StorageSolicitudService().getCPMSFromLocalStorage(); // o inyectado si ya lo tienes
+    this.cpmsSubject.next(stored ?? []);
+
+    const tsStr = localStorage.getItem(StorageVariables.SOLICITUD_CPMS_TS);
+    const expired = this.isExpired(tsStr);
+    const noData = !stored || stored.length === 0;
+
+    if (noData || expired) {
+      // console.info('⌛ initCPMS(): sin datos o expirado, refrescando desde backend...');
+      this.refrescarDatosCPMS();
+    } else {
+      // console.info('✅ initCPMS(): usando CPMS desde localStorage (vigentes)');
+    }
+  }
+
+  /**
+ * Inicializa existencias de UNA unidad:
+ * - Emite lo que haya en localStorage (si existe)
+ * - Si no hay datos o están vencidos → llama a refrescarDatosExistencias(existencia)
+ */
+  initExistencia(existencia: Existencias): void {
+    const comprimido = localStorage.getItem(existencia);
+    let inventario: Inventario[] = [];
+
+    if (comprimido) {
+      const raw = LZString.decompress(comprimido);
+      inventario = raw ? JSON.parse(raw) : [];
+    }
+
+    this.existenciasSubject.get(existencia)!.next(inventario);
+
+    const tsStr = localStorage.getItem(`TS_${existencia}`);
+    const expired = this.isExpired(tsStr);
+    const noData = !inventario || inventario.length === 0;
+
+    if (noData || expired) {
+      // console.info(`⌛ initExistencia(${existencia}): sin datos o expirado, refrescando...`);
+      this.refrescarDatosExistencias(existencia);
+    } else {
+      // console.info(`✅ initExistencia(${existencia}): usando cache vigente`);
+    }
+  }
+
+  /** Inicializa TODAS las existencias (se usa en DashboardAbasto) */
+  initTodasExistencias(): void {
+    for (const existencia of Object.values(Existencias)) {
+      this.initExistencia(existencia as Existencias);
+    }
   }
 
 }
