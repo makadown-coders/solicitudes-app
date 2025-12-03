@@ -1,9 +1,10 @@
 // src/app/services/unidades.service.ts
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, map, Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Unidad, Unidadv2, UnidadFromApi } from '../models/articulo-solicitud';
+import { UnidadMedica } from '../models';
 
 
 @Injectable({ providedIn: 'root' })
@@ -20,6 +21,10 @@ export class UnidadesService {
   private byCluessa = new Map<string, Unidadv2>();
   private byNombreNorm = new Map<string, Unidadv2>();
   private byAliasSasNorm = new Map<string, Unidadv2>();
+
+  // para kits
+  private unidadesSignal = signal<UnidadMedica[]>([]);
+  unidadesAll = this.unidadesSignal.asReadonly();
 
   // utilidad de normalización de nombre (quita acentos, mayúsculas y espacios extra)
   private normalizeName(s: string) {
@@ -80,6 +85,15 @@ export class UnidadesService {
         return unidades;
       })
     );
+  }
+
+  loadAllOnce() {
+    if (this.unidadesSignal().length) return; // ya cargado
+    this.http.get<{ ok: boolean; rows: UnidadMedica[] }>(this.apiUrl)
+      .subscribe({
+        next: res => this.unidadesSignal.set(res.rows ?? []),
+        error: err => console.error('Error cargando unidades:', err),
+      });
   }
 
   /** Síncrono sobre el caché (útil para autocomplete) */

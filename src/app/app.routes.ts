@@ -53,6 +53,10 @@ export const routes: Routes = [
     title: 'CPM por unidad (BC)',
     loadComponent: () => import('./features/cpm-editor/cpm-editor.component').then(m => m.CpmEditorComponent)
   },
+  { path: 'admin-kits', 
+    loadComponent: () => import('./features/kits/admin-kits/admin-kits.component')
+      .then(m => m.AdminKitsComponent) 
+  },
   { path: 'solicitudes-config', component: SolicitudesConfigComponent },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: '**', redirectTo: '/home' }

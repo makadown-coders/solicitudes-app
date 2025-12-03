@@ -11,3 +11,4 @@ export type KitRow =
         existUnidad?: number; // existencia en la unidad (tmp_existencias) 
         reordenSug?: number; // punto de reorden (si lo calculas) 
     };
+

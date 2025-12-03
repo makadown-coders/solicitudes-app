@@ -1,0 +1,168 @@
+<div class="flex gap-4 h-full">
+    <!-- Columna izquierda: KITS -->
+    <div class="flex flex-col p-4 w-1/3 bg-white/80 rounded-xl shadow-sm border dark:bg-slate-900/80">
+        <h2 class="mb-2 text-lg font-semibold">Kits</h2>
+
+        <input type="text" class="px-2 py-1 mb-2 text-sm rounded-lg border" placeholder="Buscar kit..."
+            [(ngModel)]="filtroKitsValue" />
+
+        <div class="flex gap-2 mb-3">
+            <input type="text" class="flex-1 px-2 py-1 text-sm rounded-lg border" placeholder="Código nuevo kit"
+                [(ngModel)]="nuevoCodigoValue" />
+            <input type="text" class="flex-1 px-2 py-1 text-sm rounded-lg border" placeholder="Nombre"
+                [(ngModel)]="nuevoNombreValue" />
+            <button class="px-3 py-1 text-sm text-white bg-emerald-700 rounded-lg hover:bg-emerald-800"
+                (click)="crearKit()">
+                +
+            </button>
+        </div>
+
+        <div class="overflow-auto flex-1 rounded-lg border">
+            <ng-container *ngIf="!loadingKits(); else loadingKitsTpl">
+                <button *ngFor="let k of filteredKits()"
+                    class="flex items-center justify-between px-3 py-2 w-full text-left text-sm border-b last:border-b-0"
+                    [class.bg-emerald-50]="selectedKitId() === k.id" (click)="onSelectKit(k.id)">
+                    <div>
+                        <div class="font-semibold">{{ k.codigo }}</div>
+                        <div class="text-xs text-slate-500 truncate">
+                            {{ k.nombre || 'Sin nombre' }}
+                        </div>
+                    </div>
+                    <button type="button" class="text-xs text-red-500 hover:text-red-700"
+                        (click)="borrarKit(k); $event.stopPropagation()">
+                        ✕
+                    </button>
+                </button>
+                <div *ngIf="filteredKits().length === 0" class="p-3 text-xs text-slate-500">
+                    No hay kits registrados.
+                </div>
+            </ng-container>
+            <ng-template #loadingKitsTpl>
+                <div class="p-3 text-xs text-slate-500">Cargando kits...</div>
+            </ng-template>
+        </div>
+    </div>
+
+    <!-- Panel derecho: detalle de kit -->
+    <div class="flex-1 flex flex-col p-4 bg-white/80 rounded-xl shadow-sm border dark:bg-slate-900/80">
+        <ng-container *ngIf="selectedKitId(); else noKitTpl">
+            <!-- Tabs de detalle -->
+            <div class="flex mb-3 border-b">
+                <button class="px-3 py-2 text-sm border-b-2" [class.border-emerald-700]="rightTab() === 'claves'"
+                    [class.text-emerald-700]="rightTab() === 'claves'" (click)="rightTab.set('claves')">
+                    Claves del kit
+                </button>
+                <button class="px-3 py-2 text-sm border-b-2" [class.border-emerald-700]="rightTab() === 'unidades'"
+                    [class.text-emerald-700]="rightTab() === 'unidades'" (click)="rightTab.set('unidades')">
+                    Unidades asignadas
+                </button>
+            </div>
+
+            <!-- TAB CLAVES -->
+            <div *ngIf="rightTab() === 'claves'" class="flex-1 flex flex-col gap-3">
+                <div class="flex items-center gap-2">
+                    <input type="text" class="flex-1 px-2 py-1 text-sm rounded-lg border"
+                        placeholder="Agregar clave CNIS..." [(ngModel)]="nuevaClaveValue" />
+                    <button class="px-3 py-1 text-sm text-white bg-emerald-700 rounded-lg hover:bg-emerald-800"
+                        (click)="agregarClave()">
+                        Agregar
+                    </button>
+                </div>
+
+                <div class="overflow-auto flex-1 rounded-lg border">
+                    <ng-container *ngIf="!loadingClaves(); else loadingClavesTpl">
+                        <table class="min-w-full text-xs">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="px-2 py-1 text-left">Clave</th>
+                                    <th class="px-2 py-1 text-left">Aplica</th>
+                                    <th class="px-2 py-1"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let c of claves()" class="border-b last:border-b-0">
+                                    <td class="px-2 py-1">{{ c.clave }}</td>
+                                    <td class="px-2 py-1">
+                                        {{ c.aplica ? 'Sí' : 'No' }}
+                                    </td>
+                                    <td class="px-2 py-1 text-right">
+                                        <button class="text-[11px] text-red-500 hover:text-red-700"
+                                            (click)="eliminarClave(c)">
+                                            Eliminar
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr *ngIf="claves().length === 0">
+                                    <td colspan="3" class="px-2 py-2 text-slate-500">
+                                        Aún no hay claves asignadas.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </ng-container>
+                    <ng-template #loadingClavesTpl>
+                        <div class="p-3 text-xs text-slate-500">Cargando claves...</div>
+                    </ng-template>
+                </div>
+            </div>
+
+            <!-- TAB UNIDADES -->
+            <div *ngIf="rightTab() === 'unidades'" class="flex-1 flex flex-col">
+                <div class="grid grid-cols-2 flex-1 gap-4">
+                    <!-- Unidades disponibles -->
+                    <div class="flex flex-col p-2 rounded-lg border">
+                        <h3 class="mb-2 text-sm font-semibold">Unidades disponibles</h3>
+                        <div class="overflow-auto flex-1 text-xs">
+                            <button *ngFor="let u of unidadesDisponibles()" type="button"
+                                class="flex justify-between items-center px-2 py-1 w-full text-left border-b last:border-b-0 hover:bg-slate-50"
+                                (click)="agregarUnidad(u)">
+                                <span>
+                                    <span class="font-semibold">{{ u.cluesimb }}</span>
+                                    <span class="ml-1 text-slate-500">— {{ u.nombre_de_unidad }}</span>
+                                </span>
+                                <span class="text-emerald-700 text-[11px]">Agregar</span>
+                            </button>
+                            <div *ngIf="unidadesDisponibles().length === 0" class="p-2 text-slate-500">
+                                Todas las unidades están asignadas a este kit (o aún no se cargan).
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Unidades asignadas -->
+                    <div class="flex flex-col p-2 rounded-lg border">
+                        <h3 class="mb-2 text-sm font-semibold">
+                            Unidades asignadas
+                        </h3>
+                        <div class="overflow-auto flex-1 text-xs">
+                            <button *ngFor="let u of unidadesAsignadas()" type="button"
+                                class="flex justify-between items-center px-2 py-1 w-full text-left border-b last:border-b-0 hover:bg-red-50"
+                                (click)="quitarUnidad(u)">
+                                <span>
+                                    <span class="font-semibold">{{ u.cluesimb }}</span>
+                                    <span class="ml-1 text-slate-500">— {{ u.nombre }}</span>
+                                </span>
+                                <span class="text-red-600 text-[11px]">Quitar</span>
+                            </button>
+                            <div *ngIf="unidadesAsignadas().length === 0" class="p-2 text-slate-500">
+                                No hay unidades asignadas al kit.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-3">
+                    <button class="px-4 py-2 text-sm text-white bg-emerald-700 rounded-lg hover:bg-emerald-800"
+                        (click)="guardarUnidades()">
+                        Guardar asignaciones
+                    </button>
+                </div>
+            </div>
+        </ng-container>
+
+        <ng-template #noKitTpl>
+            <div class="text-sm text-slate-500">
+                Crea un kit o selecciona uno de la lista para comenzar.
+            </div>
+        </ng-template>
+    </div>
+</div>
