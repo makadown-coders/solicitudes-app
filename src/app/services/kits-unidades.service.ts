@@ -2,14 +2,15 @@ import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { map, Observable } from "rxjs";
 import { environment } from "../../environments/environment";
-import { UnidadAsignada, ListUnidadesResponse } from "../models/UnidadAsignada";
+import { ListUnidadesResponse } from "../models/ListUnidadesResponse";
+import { UnidadMedica } from "../models";
 
 @Injectable({ providedIn: 'root' })
 export class KitsUnidadesService {
     private http = inject(HttpClient);
     private baseUrl = `${environment.apiUrl}/kits`;
 
-    getUnidadesByKit(kitId: number): Observable<UnidadAsignada[]> {
+    getUnidadesByKit(kitId: number): Observable<UnidadMedica[]> {
         return this.http.get<ListUnidadesResponse>(`${this.baseUrl}/${kitId}/unidades`).pipe(
             map(res => res.rows)
         );

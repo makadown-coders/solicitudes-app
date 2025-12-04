@@ -89,9 +89,11 @@ export class UnidadesService {
 
   loadAllOnce() {
     if (this.unidadesSignal().length) return; // ya cargado
-    this.http.get<{ ok: boolean; rows: UnidadMedica[] }>(this.apiUrl)
+    this.http.get<UnidadMedica[]>(this.apiUrl)
       .subscribe({
-        next: res => this.unidadesSignal.set(res.rows ?? []),
+        next: rows => {          
+          this.unidadesSignal.set(rows ?? []);
+        },
         error: err => console.error('Error cargando unidades:', err),
       });
   }
