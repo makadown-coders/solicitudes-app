@@ -57,6 +57,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/kits/admin-kits/admin-kits.component')
       .then(m => m.AdminKitsComponent) 
   },
+  {
+    path: 'carga-masiva-kits',
+    loadComponent: () => import('./features/kits/kits-import/kits-import.component')
+      .then(m => m.KitsImportComponent)
+  },
   { path: 'solicitudes-config', component: SolicitudesConfigComponent },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: '**', redirectTo: '/home' }

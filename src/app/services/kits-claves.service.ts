@@ -16,6 +16,12 @@ export class KitsClavesService {
     );
   }
 
+  listByCodigo(codigo: string): Observable<KitClave[]> {
+    return this.http.get<ListClavesResponse>(`${this.baseUrl}/${codigo}/clavesByCodigo`).pipe(
+      map(res => res.rows)
+    );
+  }
+
   addClave(kitId: number, dto: KitClaveCreateDto): Observable<KitClave> {
     return this.http.post<KitClaveResponse>(`${this.baseUrl}/${kitId}/claves`, dto).pipe(
       map(res => res.clave)

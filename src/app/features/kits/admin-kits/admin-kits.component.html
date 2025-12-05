@@ -1,3 +1,12 @@
+<div class="flex justify-between items-center mb-3">
+    <div class="text-sm font-semibold">
+        Administración de kits
+    </div>
+    <a routerLink="/carga-masiva-kits"
+        class="px-3 py-1 text-xs font-medium text-emerald-800 bg-emerald-50 border-emerald-200 rounded-lg border hover:bg-emerald-100">
+        📥 Carga masiva desde Excel
+    </a>
+</div>
 <div class="flex gap-4 h-full">
     <!-- Columna izquierda: KITS -->
     <div class="flex flex-col p-4 w-1/3 bg-white/80 rounded-xl shadow-sm border dark:bg-slate-900/80">
@@ -48,14 +57,14 @@
         <ng-container *ngIf="selectedKitId(); else noKitTpl">
             <!-- Tabs de detalle -->
             <div class="flex mb-3 border-b">
-                <button class="px-3 py-2 text-lg border-emerald-700 cursor-pointer" 
-                    [class.border-b-1]="rightTab() === 'claves'"
-                    [class.font-bold]="rightTab() === 'claves'" (click)="rightTab.set('claves')">
+                <button class="px-3 py-2 text-lg border-emerald-700 cursor-pointer"
+                    [class.border-b-1]="rightTab() === 'claves'" [class.font-bold]="rightTab() === 'claves'"
+                    (click)="rightTab.set('claves')">
                     Claves del kit
                 </button>
-                <button class="px-3 py-2 text-lg border-emerald-700 cursor-pointer" 
-                    [class.border-b-1]="rightTab() === 'unidades'"
-                    [class.font-bold]="rightTab() === 'unidades'" (click)="rightTab.set('unidades')">
+                <button class="px-3 py-2 text-lg border-emerald-700 cursor-pointer"
+                    [class.border-b-1]="rightTab() === 'unidades'" [class.font-bold]="rightTab() === 'unidades'"
+                    (click)="rightTab.set('unidades')">
                     Unidades asignadas
                 </button>
             </div>
@@ -119,8 +128,7 @@
                         <div class="overflow-auto flex-1 text-sm">
                             <button *ngFor="let u of unidadesDisponibles()" type="button"
                                 class="flex justify-between items-center px-2 py-1 w-full text-left border-b cursor-pointer last:border-b-0 hover:bg-slate-50"
-                                (click)="agregarUnidad(u)"
-                                [attr.title]="unidadTooltip(u)">
+                                (click)="agregarUnidad(u)" [attr.title]="unidadTooltip(u)">
                                 <span>
                                     <span class="font-semibold">{{ u.cluesimb }}</span>
                                     <span class="ml-1 text-slate-500">— {{ u.nombre_de_unidad }}</span>
@@ -141,8 +149,7 @@
                         <div class="overflow-auto flex-1 text-sm">
                             <button *ngFor="let u of unidadesAsignadas()" type="button"
                                 class="flex justify-between items-center px-2 py-1 w-full text-left border-b cursor-pointer last:border-b-0 hover:bg-red-50"
-                                (click)="quitarUnidad(u)"
-                                [attr.title]="unidadTooltip(u)">
+                                (click)="quitarUnidad(u)" [attr.title]="unidadTooltip(u)">
                                 <span>
                                     <span class="font-semibold">{{ u.cluesimb }}</span>
                                     <span class="ml-1 text-slate-500">— {{ u.nombre_de_unidad }}</span>
@@ -157,7 +164,8 @@
                 </div>
 
                 <div class="flex justify-end mt-3">
-                    <button class="px-4 py-2 text-lg text-white bg-emerald-700 rounded-lg cursor-pointer hover:bg-emerald-800"
+                    <button
+                        class="px-4 py-2 text-lg text-white bg-emerald-700 rounded-lg cursor-pointer hover:bg-emerald-800"
                         (click)="guardarUnidades()">
                         Guardar asignaciones
                     </button>
