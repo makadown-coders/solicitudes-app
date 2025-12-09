@@ -1,19 +1,20 @@
 import * as ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
-import { environment } from '../../environments/environment';
-import { ArticuloSolicitud } from '../models/articulo-solicitud';
-import { CPMS, ClaveGrupo } from '../models/CPMS';
-import { DatosClues } from '../models/datos-clues';
-import { clasificacionMedicamentosData } from '../models/clasificacionMedicamentosData';
-import { ClasificadorVEN } from '../models/clasificador-ven';
-import { InventarioDisponibles } from '../models/Inventario';
-import { ModoCapturaSolicitud } from '../shared/modo-captura-solicitud';
-import { StorageSolicitudService } from './storage-solicitud.service';
 import {
     convertirBufferABase64,
     descargarArchivo,
     ensureExcelExtension
 } from './excel-utils';
+import { environment } from '../../../environments/environment';
+import { ArticuloSolicitud,
+    InventarioDisponibles,
+    CPMS,
+    clasificacionMedicamentosData,
+    ClasificadorVEN,
+    ClaveGrupo } from '../../models';
+import { DatosClues } from '../../models/datos-clues';
+import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
+import { StorageSolicitudService } from '../storage-solicitud.service';
 
 export class SolicitudExcelExporter {
     constructor(private readonly solicitudService: StorageSolicitudService) {}
@@ -161,7 +162,7 @@ export class SolicitudExcelExporter {
         const base64 = await convertirBufferABase64(buffer);
         const enProduccion = environment.production;
 
-        const datosClues = datosCluesStr && !standalone
+        datosClues = datosCluesStr && !standalone
             ? (JSON.parse(datosCluesStr) as DatosClues)
             : null;
 

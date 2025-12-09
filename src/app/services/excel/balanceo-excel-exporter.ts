@@ -1,8 +1,8 @@
 import * as ExcelJS from 'exceljs';
-import { DetalleBalanceo } from '../models/balanceo/DetalleBalanceo';
-import { ResumenBalanceo } from '../models/balanceo/ResumenBalanceo';
-import { UltimaEjecucion } from '../models/balanceo/UltimaEjecucion';
 import { descargarArchivo, ensureExcelExtension } from './excel-utils';
+import { DetalleBalanceo } from '../../models/balanceo/DetalleBalanceo';
+import { ResumenBalanceo } from '../../models/balanceo/ResumenBalanceo';
+import { UltimaEjecucion } from '../../models/balanceo/UltimaEjecucion';
 
 export class BalanceoExcelExporter {
     async exportarBalanceoSugerencias(

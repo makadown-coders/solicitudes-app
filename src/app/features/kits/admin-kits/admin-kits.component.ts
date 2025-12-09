@@ -10,6 +10,8 @@ import { UnidadesService } from '../../../services/unidades.service';
 import { NgFastToastService } from 'ng-fast-toast';
 import { RouterLink } from '@angular/router';
 import { ArticulosService } from '../../../services/articulos.service';
+import { ExcelService } from '../../../services/excel.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-admin-kits',
@@ -25,12 +27,14 @@ export class AdminKitsComponent {
   private kitsUnidadesSrv = inject(KitsUnidadesService);
   private unidadesSrv = inject(UnidadesService);
   private fastToast = inject(NgFastToastService);
-  private articulosSrv = inject(ArticulosService); // 🔹 NUEVO
+  private articulosSrv = inject(ArticulosService);
+  private excelService = inject(ExcelService);
 
   // Estado general
   loadingKits = signal(false);
   kits = signal<Kit[]>([]);
   selectedKitId = signal<number | null>(null);
+  exportandoKits = signal(false);
 
   // Form kit
   nuevoCodigo = signal('');
@@ -443,4 +447,82 @@ export class AdminKitsComponent {
       },
     });
   }
+
+  async exportarExcelKits() {
+    if (this.exportandoKits()) return;
+
+    try {
+      this.exportandoKits.set(true);
+
+      const resp = await firstValueFrom(this.kitsSrv.getMatrix());
+      const rows = resp.rows ?? [];
+
+      if (!rows.length) {
+        this.fastToast.warn({
+          title: 'Sin datos',
+          content: 'No se encontraron relaciones kit–clave para exportar.',
+          duration: 5,
+        });
+        return;
+      }
+
+      // 1) Distintos kits y claves
+      const kitsSet = new Set<string>();
+      const clavesSet = new Set<string>();
+
+      for (const r of rows) {
+        if (r.kit_codigo) kitsSet.add(r.kit_codigo.trim());
+        if (r.clave) clavesSet.add(r.clave.trim());
+      }
+
+      const kits = Array.from(kitsSet).sort();
+      const claves = Array.from(clavesSet).sort();
+
+      // 2) Mapa clave -> set de kits donde aplica
+      const mapClaveKits = new Map<string, Set<string>>();
+      for (const r of rows) {
+        const clave = (r.clave || '').trim();
+        const kit = (r.kit_codigo || '').trim();
+        if (!clave || !kit) continue;
+
+        if (!mapClaveKits.has(clave)) {
+          mapClaveKits.set(clave, new Set<string>());
+        }
+        mapClaveKits.get(clave)!.add(kit);
+      }
+
+      // 3) Construir filas para el Excel
+      const filas = claves.map(clave => ({
+        clave,
+        kitsAplica: Array.from(mapClaveKits.get(clave) ?? []).sort(),
+      }));
+
+      const mapaArticulos = this.articulosMapa();
+
+      const nombre = `Catalogo_kits_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+      await this.excelService.exportarCatalogoKits(
+        nombre,
+        kits,
+        filas,
+        mapaArticulos ?? undefined
+      );
+
+      this.fastToast.success({
+        title: 'Catálogo exportado',
+        content: `Se exportaron ${kits.length} kits y ${claves.length} claves.`,
+        duration: 6,
+      });
+    } catch (err) {
+      console.error('Error exportando catálogo de kits', err);
+      this.fastToast.error({
+        title: 'Error al exportar',
+        content: 'Ocurrió un error al generar el Excel. Revisa la consola.',
+        duration: 7,
+      });
+    } finally {
+      this.exportandoKits.set(false);
+    }
+  }
+
 }

@@ -13,6 +13,7 @@ import {
 import { KitsClavesService } from './kits-claves.service';
 import { UpsertSingleKitPayload } from '../models/UpsertSingleKitPayload';
 import { UpsertSingleKitResponse } from '../models/UpsertSingleKitResponse';
+import { KitMatrixRowDto } from '../models/KitMatrixRowDto';
 
 @Injectable({ providedIn: 'root' })
 export class KitsService {
@@ -62,6 +63,12 @@ export class KitsService {
         return this.http.post<UpsertSingleKitResponse>(
             `${this.baseUrl}/import-one`,
             payload
+        );
+    }
+
+    getMatrix(): Observable<{ ok: boolean; rows: KitMatrixRowDto[] }> {
+        return this.http.get<{ ok: boolean; rows: KitMatrixRowDto[] }>(
+            `${this.baseUrl}/matrix`
         );
     }
 

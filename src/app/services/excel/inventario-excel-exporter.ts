@@ -1,12 +1,9 @@
 import * as ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
-import { CPMS, ClaveGrupo } from '../models/CPMS';
-import { Cita, CitaRow } from '../models/Cita';
-import { ArticuloCritico } from '../shared/inventario-critico.service';
-import { ResumenXGrupo } from '../models/resumen-x-grupo.model';
-import { Inventario, InventarioDisponibles, InventarioRow } from '../models/Inventario';
-import { ResumenXGrupoRow } from '../models/resumen-x-grupo-row.model';
 import { descargarArchivo, ensureExcelExtension, formatearFecha } from './excel-utils';
+import { CitaRow, InventarioRow, Cita, CPMS, Inventario, InventarioDisponibles, ClaveGrupo } from '../../models';
+import { ResumenXGrupo } from '../../models/resumen-x-grupo.model';
+import { ArticuloCritico } from '../../shared/inventario-critico.service';
 
 export class InventarioExcelExporter {
     obtenerCitasDeExcel(buffer: ArrayBuffer) {
@@ -179,6 +176,7 @@ export class InventarioExcelExporter {
     ) {
         const workbook = new ExcelJS.Workbook();
 
+        // ===== Hoja principal =====
         const hojaResumen = workbook.addWorksheet('Resumen X Grupo');
         hojaResumen.columns = [
             { header: 'Municipio', key: 'municipio', width: 20 },
@@ -193,62 +191,40 @@ export class InventarioExcelExporter {
         ];
         hojaResumen.getRow(1).font = { bold: true };
 
-        resumenData.forEach(r => {
-            const row = hojaResumen.addRow({
-                municipio: r.municipio,
-                clues: r.clues,
-                nombreUnidad: r.nombre_unidad,
-                nivelAtencion: r.nivel_atencion,
-                tipologia: r.tipologia,
-                categoria: r.categoria,
-                clavesManejadas: r.claves_manejadas,
-                clavesDesabasto: r.claves_desabasto,
-                porcentajeDesabasto: `${(r.porcentaje_desabasto || 0).toFixed(2)}%`
-            }) as ResumenXGrupoRow;
-            row.nivelAtencion = r.nivel_atencion;
-            row.tipologia = r.tipologia;
-            row.categoria = r.categoria;
-            row.clues = r.clues;
+        resumenData.forEach(row => {
+            hojaResumen.addRow({
+                ...row,
+                porcentajeDesabasto: `${row.porcentajeDesabasto.toFixed(1)}%`
+            });
         });
 
-        const hojaDetalle = workbook.addWorksheet('Detalle por unidad');
-        hojaDetalle.columns = [
-            { header: '#', key: 'index', width: 8 },
-            { header: 'Clave', key: 'clave', width: 15 },
-            { header: 'Descripción', key: 'descripcion', width: 40 },
-            { header: 'Unidad de Medida', key: 'unidad', width: 20 },
-            { header: 'CPM', key: 'cpm', width: 12 },
-            { header: 'Existencia Unidad', key: 'existenciaUnidad', width: 18 },
-            { header: 'Existencia Almacenes', key: 'existenciaAlmacenes', width: 20 },
-            { header: 'Existencia Total', key: 'existenciaTotal', width: 18 },
-            { header: 'Desabasto', key: 'desabasto', width: 12 }
-        ];
-        hojaDetalle.getRow(1).font = { bold: true };
+        resumenData.forEach(row => {
+            const hojaUnidad = workbook.addWorksheet(row.clues);
 
-        const unidades = Array.from(new Set(resumenData.map(r => r.clues)));
-        const clavesFiltro = grupoSeleccionado === 'todos'
-            ? claveGrupos.map(cg => cg.clave)
-            : claveGrupos.filter(cg => cg.grupoTerapeutico === grupoSeleccionado).map(cg => cg.clave);
+            // Fila 1: nombre de la unidad
+            hojaUnidad.addRow([row.nombreUnidad]);
+            hojaUnidad.addRow([]); // Fila 2 vacía
 
-        unidades.forEach(clue => {
-            const row = hojaDetalle.addRow({ clues: clue }) as ResumenXGrupoRow;
-            row.unidad = resumenData.find(r => r.clues === clue)?.nombre_unidad || '';
-            row.nivelAtencion = resumenData.find(r => r.clues === clue)?.nivel_atencion || '';
-            row.tipologia = resumenData.find(r => r.clues === clue)?.tipologia || '';
-            row.categoria = resumenData.find(r => r.clues === clue)?.categoria || '';
-            row.clues = clue;
-            row.key = clue;
-        });
+            // Encabezados (fila 3)
+            hojaUnidad.addRow([
+                '#',
+                'Clave',
+                'Descripción',
+                'Unidad',
+                'CPM',
+                'Existencia',
+                'AZM',
+                'AZT',
+                'AZE',
+                'Desabasto'
+            ]);
+            hojaUnidad.getRow(3).font = { bold: true };
 
-        hojaResumen.eachRow((row: ResumenXGrupoRow, rowNumber) => {
-            if (rowNumber === 1) return;
-
-            const clue = row.clues;
-            const hojaUnidad = workbook.addWorksheet(row.nombreUnidad || '');
-
-            const cpmsFiltrados = cpms.filter(cpm => cpm.cluesimb === clue);
-            const clavesUnidad = cpmsFiltrados
-                .filter(cpm => clavesFiltro.includes(cpm.clave))
+            const clavesUnidad = cpms
+                .filter(c => c.cluesimb.toLowerCase() === row.clues.toLowerCase())
+                .filter(c => claveGrupos.some(
+                    cg => cg.clave === c.clave && cg.grupoTerapeutico === grupoSeleccionado
+                ))
                 .sort((a, b) => a.clave.localeCompare(b.clave));
 
             clavesUnidad.forEach((cpm, index) => {
@@ -265,6 +241,8 @@ export class InventarioExcelExporter {
                     existenciaAlmacenes.existenciasAZE;
 
                 const totalExistencias = existenciaTotal + totalAlmacenes;
+
+                // const desabasto = cpm.cantidad > totalExistencias; // puede variar 
                 const desabasto = totalExistencias === 0;
 
                 hojaUnidad.addRow([
@@ -282,7 +260,7 @@ export class InventarioExcelExporter {
             });
 
             hojaUnidad.columns.forEach(col => col.width = 15);
-            hojaUnidad.getColumn(3).width = 40;
+            hojaUnidad.getColumn(3).width = 40; // Descripción más ancha
 
             const lastRowIndex = hojaUnidad.lastRow!.number;
             const totalRowIndex = lastRowIndex + 2;
@@ -301,6 +279,7 @@ export class InventarioExcelExporter {
             hojaUnidad.getCell(`D${totalRowIndex}`).font = { bold: true };
         });
 
+        // Descargar archivo
         const buffer = await workbook.xlsx.writeBuffer();
         descargarArchivo(buffer, ensureExcelExtension(nombreArchivo));
     }

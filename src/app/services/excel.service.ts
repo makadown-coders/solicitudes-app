@@ -15,6 +15,9 @@ import { base64ToArrayBuffer } from './excel/excel-utils';
 import { SolicitudExcelExporter } from './excel/solicitud-excel-exporter';
 import { InventarioExcelExporter } from './excel/inventario-excel-exporter';
 import { BalanceoExcelExporter } from './excel/balanceo-excel-exporter';
+import { KitCatalogoRow } from '../models/KitCatalogoRow';
+import { ArticuloInfo } from '../models/ArticuloInfo';
+import { KitsExcelExporter } from './excel/kits-excel-exporter';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
@@ -23,6 +26,7 @@ export class ExcelService {
     private readonly solicitudExporter = new SolicitudExcelExporter(this.solicitudService);
     private readonly inventarioExporter = new InventarioExcelExporter();
     private readonly balanceoExporter = new BalanceoExcelExporter();
+    private readonly kitsExporter = new KitsExcelExporter();
 
     exportarExcelPrecarga(nombreArchivo: string, articulosSolicitados: ArticuloSolicitud[]) {
         return this.solicitudExporter.exportarExcelPrecarga(nombreArchivo, articulosSolicitados);
@@ -150,6 +154,21 @@ export class ExcelService {
             ejecucion,
             resumen,
             detalle
+        );
+    }
+
+
+    async exportarCatalogoKits(
+        nombreArchivo: string,
+        kits: string[],
+        filas: KitCatalogoRow[],
+        articulosMapa?: Record<string, ArticuloInfo>
+    ) {
+        await this.kitsExporter.exportarCatalogoKits(
+            nombreArchivo,
+            kits,
+            filas,
+            articulosMapa
         );
     }
 }

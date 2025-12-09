@@ -2,12 +2,34 @@
 <div class="p-4 space-y-4 md:p-6">
   <div class="flex items-center gap-3">
     <h2 class="text-2xl font-semibold text-green-800">RdlS · Análisis Plan de Distribución (2º Nivel)</h2>
-    <span class="px-2 py-1 text-xs text-amber-800 bg-amber-100 rounded-lg">Catálogo basal &lt; 30 camas</span>
-    <div class="ml-auto">
-      <input
-        class="px-3 py-2 w-64 rounded-xl border-gray-300 border focus:outline-none focus:ring-2 focus:ring-green-500"
-        placeholder="Buscar por clave/descripcion..." [ngModel]="term()" (ngModelChange)="term.set($event)" />
+    <span class="px-2 py-1 text-xs text-amber-800 bg-amber-100 rounded-lg">(beta)</span>
+    <!-- Bloque derecho: búsqueda + filtro Ruta de la Salud -->
+    <div class="flex flex-wrap items-center gap-2 ml-auto">
+      <!-- 🔍 Búsqueda -->
+      <div>
+        <input
+          class="px-3 py-2 w-64 rounded-xl border-gray-300 border focus:outline-none focus:ring-2 focus:ring-green-500"
+          placeholder="Buscar por clave/descripcion." [ngModel]="term()" (ngModelChange)="term.set($event)" />
+      </div>
+
+      <!-- 🔽 Select Ruta de la Salud -->
+      <div class="w-56">
+        <label for="kitRutaRdlS" class="sr-only">Ruta de la Salud</label>
+        <select id="kitRutaRdlS"
+          class="block px-3 py-2 w-full text-sm text-gray-700 bg-white rounded-xl border-gray-300 border focus:outline-none focus:ring-2 focus:ring-green-500"
+          [ngModel]="kitRutaSaludElegido()" (ngModelChange)="onKitRutaChange($event)">
+          <option value="ALL">RdlS · todas las claves</option>
+          <option *ngFor="let kit of kitsRuta()" [ngValue]="kit">
+            {{ kit }}
+          </option>
+        </select>
+      </div>
+
+      <span *ngIf="loadingKitsRuta()" class="text-xs text-slate-500">
+        Cargando kits RdlS...
+      </span>
     </div>
+
   </div>
   <!-- CONTENEDOR -->
   <div class="relative rounded-xl border">
