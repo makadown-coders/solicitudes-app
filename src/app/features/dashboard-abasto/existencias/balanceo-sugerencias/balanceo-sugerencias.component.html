@@ -51,11 +51,14 @@
                     (change)="onKitRutaChange($any($event.target).value)">
                     <option value="">Todas las claves</option>
                     <option value="ALL">Ruta de la Salud · todos los kits</option>
-                    <option *ngFor="let kit of kitsRuta" [value]="kit">
+                    <option *ngFor="let kit of kitsRuta()" [value]="kit">
                         {{ kit }}
                     </option>
                 </select>
             </div>
+            <span *ngIf="loadingKitsRuta()" class="text-xs text-slate-500">
+                Cargando kits RdlS...
+            </span>
 
             <!-- 🔁 Botón Recalcular -->
             <button type="button"

@@ -11,18 +11,22 @@ import {
     ListKitsResponse
 } from '../models';
 import { KitsClavesService } from './kits-claves.service';
+import { UpsertSingleKitPayload } from '../models/UpsertSingleKitPayload';
+import { UpsertSingleKitResponse } from '../models/UpsertSingleKitResponse';
 
 @Injectable({ providedIn: 'root' })
 export class KitsService {
     private http = inject(HttpClient);
     private baseUrl = `${environment.apiUrl}/kits`;
+    private kitsClavesService = inject(KitsClavesService);
 
     list(search?: string): Observable<Kit[]> {
         let params = new HttpParams();
         if (search && search.trim()) {
             params = params.set('search', search.trim());
         }
-        return this.http.get<ListKitsResponse>(this.baseUrl, { params })
+        const peticion = this.http.get<ListKitsResponse>(this.baseUrl, { params });
+        return peticion
             .pipe(
                 map(res => res.rows)
             );
@@ -44,22 +48,31 @@ export class KitsService {
         return this.http.delete<{ ok: boolean }>(`${this.baseUrl}/${id}`);
     }
 
+    /*
     importOne(payload: { codigo: string; claves: string[] }) {
         return this.http.post<ImportOneResponse>(
             `${this.baseUrl}/import-one`,
             payload
         );
     }
+    */
 
-    syncKitFromExcel(payload: { codigo: string; claves: string[] }) {
-        const kitsClavesService = new KitsClavesService();
+    syncKitFromExcel(payload: UpsertSingleKitPayload): Observable<UpsertSingleKitResponse> {
+        // ajusta la ruta si la expusiste con otro nombre
+        return this.http.post<UpsertSingleKitResponse>(
+            `${this.baseUrl}/import-one`,
+            payload
+        );
+    }
+
+    /*syncKitFromExcel(payload: { codigo: string; claves: string[] }) {        
         
-        return kitsClavesService.listByCodigo(payload.codigo).pipe(
+        return this.kitsClavesService.listByCodigo(payload.codigo).pipe(
             map(existingClaves => {
                 const existingSet = new Set(existingClaves.map(c => c.clave));
                 const newClaves = payload.claves.filter(c => !existingSet.has(c));
                 return newClaves;
             })
         );
-    }
+    }*/
 }

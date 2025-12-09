@@ -220,33 +220,32 @@ export class KitsImportComponent {
     this.progress.set(0);
 
     try {
-      const total = kits.length;
-      let done = 0;
+      const totalClaves = this.totalClaves();
+      let processedClaves = 0;
 
       for (const k of kits) {
-        // AQUÍ ENCHUFAS TU ENDPOINT POR KIT.
-        // Ejemplo: kitsSrv.syncKit(codigo, claves)
-        // - Si existe: backend hace delete+insert de claves respetando unidades.
-        // - Si no existe: backend crea kit y luego inserta claves.
+        console.log(`Subiendo kit ${k.codigo} con ${k.claves.length} claves...`);
 
         await firstValueFrom(
           this.kitsSrv.syncKitFromExcel({
             codigo: k.codigo,
             claves: k.claves,
-            // si quieres mandas exists: k.exists
           })
         );
 
-        done++;
-        this.progress.set(Math.min(100, Math.round(done * 100 / total)));
+        // avanzar progreso por número de claves del kit
+        processedClaves += k.claves.length;
+        const pct = Math.min(100, Math.round((processedClaves * 100) / (totalClaves || 1)));
+        this.progress.set(pct);
       }
 
       this.toast.success({
         title: 'Kits actualizados',
-        content: `Se procesaron ${total} kit(s) y ${this.totalClaves()} claves.`,
+        content: `Se procesaron ${kits.length} kit(s) y ${this.totalClaves()} claves.`,
         duration: 7,
       });
-      // opcional: recargar catálogo para que admin-kits vea los nuevos
+
+      // refrescar catálogo y limpiar UI
       this.loadExistingKits();
       this.parsedKits.set([]);
       this.fileName.set('');

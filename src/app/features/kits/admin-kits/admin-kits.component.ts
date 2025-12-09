@@ -8,11 +8,13 @@ import { KitsUnidadesService } from '../../../services/kits-unidades.service';
 import { KitsService } from '../../../services/kits.service';
 import { UnidadesService } from '../../../services/unidades.service';
 import { NgFastToastService } from 'ng-fast-toast';
+import { RouterLink } from '@angular/router';
+import { ArticulosService } from '../../../services/articulos.service';
 
 @Component({
   selector: 'app-admin-kits',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './admin-kits.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -23,6 +25,7 @@ export class AdminKitsComponent {
   private kitsUnidadesSrv = inject(KitsUnidadesService);
   private unidadesSrv = inject(UnidadesService);
   private fastToast = inject(NgFastToastService);
+  private articulosSrv = inject(ArticulosService); // 🔹 NUEVO
 
   // Estado general
   loadingKits = signal(false);
@@ -45,8 +48,17 @@ export class AdminKitsComponent {
   // todas las unidades (UnidadesService)
   unidadesAll = this.unidadesSrv.unidadesAll;
 
+  // 🔹 NUEVO: filtro texto para unidades (aplica a disponibles y asignadas)
+  filtroUnidades = signal('');
+
   // subtab derecha: 'claves' | 'unidades'
   rightTab = signal<'claves' | 'unidades'>('claves');
+
+  // 🔹 NUEVO: mapa de artículos para sacar descripciones por clave
+  private articulosMapa = signal<
+    Record<string, { descripcion: string; presentacion?: string; categoria?: string | null }>
+    | null
+  >(null);
 
   // 👇 propiedades puente para [(ngModel)]
 
@@ -78,6 +90,14 @@ export class AdminKitsComponent {
     this.nuevaClave.set(v ?? '');
   }
 
+  // 🔹 NUEVO: puente para filtro de unidades
+  get filtroUnidadesValue() {
+    return this.filtroUnidades();
+  }
+  set filtroUnidadesValue(v: string) {
+    this.filtroUnidades.set(v ?? '');
+  }
+
   // computed: kits filtrados
   filteredKits = computed(() => {
     const q = this.filtroKits().trim().toLowerCase();
@@ -98,23 +118,65 @@ export class AdminKitsComponent {
   // unidades disponibles vs asignadas para el kit actual (por cluesimb)
   unidadCluesAsignadas = computed(() => {
     if (!this.selectedKitId()) return new Set<string>();
-    // this.unidadesAsignadas() PUEDE SER NULL!!!!!
     if (!this.unidadesAsignadas()) return new Set<string>();
 
     return new Set(this.unidadesAsignadas().map(u => u.cluesimb));
   });
 
-  unidadesDisponibles = computed<UnidadMedica[]>(() => {
+  // base: todas las unidades elegibles
+  private unidadesDisponiblesBase = computed<UnidadMedica[]>(() => {
     const all = this.unidadesAll()
       .filter(u =>
-        u.tipo_unidad?.toLocaleUpperCase() !== 'ALMACENES' && u.cluesimb!.length > 3);
+        u.tipo_unidad?.toLocaleUpperCase() !== 'ALMACENES' &&
+        (u.cluesimb ?? '').length > 3
+      );
     const asignadas = this.unidadCluesAsignadas();
     return all.filter(u => !asignadas.has(u.cluesimb!));
+  });
+
+  // 🔹 NUEVO: filtro amigable por texto (CLUES, nombre, muni, localidad, tipo)
+  private filtrarUnidadesLista(list: UnidadMedica[]): UnidadMedica[] {
+    const term = this.filtroUnidades().trim().toLowerCase();
+    if (!term) return list;
+
+    return list.filter(u => {
+      const clues = (u.cluesimb ?? '').toLowerCase();
+      const nombre = (u.nombre_de_unidad ?? '').toLowerCase();
+      const muni = (u.nombre_municipio ?? '').toLowerCase();
+      const loc = (u.nombre_localidad ?? '').toLowerCase();
+      const tipo = (u.tipo_unidad ?? '').toLowerCase();
+
+      return (
+        clues.includes(term) ||
+        nombre.includes(term) ||
+        muni.includes(term) ||
+        loc.includes(term) ||
+        tipo.includes(term)
+      );
+    });
+  }
+
+  // 👇 final: listas ya filtradas para la UI
+  unidadesDisponibles = computed<UnidadMedica[]>(() => {
+    return this.filtrarUnidadesLista(this.unidadesDisponiblesBase());
+  });
+
+  unidadesAsignadasFiltradas = computed<UnidadMedica[]>(() => {
+    return this.filtrarUnidadesLista(this.unidadesAsignadas());
   });
 
   constructor() {
     this.loadKits();
     this.unidadesSrv.loadAllOnce();
+
+    // 🔹 NUEVO: cargar mapa de artículos para descripciones por clave
+    this.articulosSrv.getArticulosMapa().subscribe({
+      next: (mapa) => this.articulosMapa.set(mapa),
+      error: (err) => {
+        console.error('Error cargando mapa de artículos en AdminKits', err);
+        // si falla, simplemente no mostramos descripción
+      },
+    });
   }
 
   unidadTooltip(u: UnidadMedica): string {
@@ -126,6 +188,14 @@ export class AdminKitsComponent {
     const tipo = u.tipo_unidad ?? 'Tipo no definido';
 
     return `Dirección: ${direccion}\n${localidad}\nTipo de unidad: ${tipo}`;
+  }
+
+  // 🔹 NUEVO: descripción de la clave (máx 250 chars)
+  getDescripcionClave(clave: string): string {
+    const mapa = this.articulosMapa();
+    if (!mapa) return '';
+    const desc = mapa[clave]?.descripcion ?? '';
+    return desc.length > 250 ? desc.slice(0, 250) + '…' : desc;
   }
 
   // ---------- KITS ----------
@@ -150,6 +220,7 @@ export class AdminKitsComponent {
   onSelectKit(id: number) {
     if (this.selectedKitId() === id) return;
     this.selectedKitId.set(id);
+    // 👇 dejamos el tab como esté (persistencia de selección)
     this.loadClaves(id);
     this.loadUnidadesKit(id);
   }
@@ -166,7 +237,7 @@ export class AdminKitsComponent {
       return;
     }
 
-    // evitar duplicados en UI (y evitar que truene el unique index del backend)
+    // evitar duplicados en UI
     const yaExiste = this.kits().some(
       k => (k.codigo || '').toUpperCase() === codigo.toUpperCase()
     );
@@ -250,10 +321,7 @@ export class AdminKitsComponent {
       return;
     }
 
-    // validar duplicado en UI
-    const yaExiste = this.claves().some(
-      c => c.clave === clave
-    );
+    const yaExiste = this.claves().some(c => c.clave === clave);
     if (yaExiste) {
       this.fastToast.warn({
         title: 'Clave duplicada',
@@ -303,7 +371,6 @@ export class AdminKitsComponent {
     this.loadingUnidadesKit.set(true);
     this.kitsUnidadesSrv.getUnidadesByKit(kitId).subscribe({
       next: rows => {
-        console.log('asignando a this.unidadesAsignadas:', rows);
         this.unidadesAsignadas.set(rows);
         this.loadingUnidadesKit.set(false);
       },
@@ -326,11 +393,10 @@ export class AdminKitsComponent {
       });
       return;
     }
-    
-    this.unidadesAsignadas.set([
-      ...current,
-      u
-    ].sort((a, b) => a.cluesimb!.localeCompare(b.cluesimb!)));
+
+    this.unidadesAsignadas.set(
+      [...current, u].sort((a, b) => a.cluesimb!.localeCompare(b.cluesimb!))
+    );
 
     const kit = this.currentKit();
     this.fastToast.success({
@@ -341,7 +407,9 @@ export class AdminKitsComponent {
   }
 
   quitarUnidad(u: UnidadMedica) {
-    this.unidadesAsignadas.set(this.unidadesAsignadas().filter(x => x.cluesimb !== u.cluesimb));
+    this.unidadesAsignadas.set(
+      this.unidadesAsignadas().filter(x => x.cluesimb !== u.cluesimb)
+    );
 
     const kit = this.currentKit();
     this.fastToast.warn({
@@ -356,7 +424,7 @@ export class AdminKitsComponent {
     if (!kitId) return;
     const clues = this.unidadesAsignadas().map(u => u.cluesimb).filter(Boolean) as string[];
 
-    this.kitsUnidadesSrv.saveUnidadesByKit(kitId, clues as string[]).subscribe({
+    this.kitsUnidadesSrv.saveUnidadesByKit(kitId, clues).subscribe({
       next: () => {
         const kit = this.currentKit();
         this.fastToast.success({

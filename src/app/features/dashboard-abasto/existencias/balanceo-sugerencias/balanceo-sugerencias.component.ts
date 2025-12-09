@@ -8,6 +8,8 @@ import { GrupoClaveParaBalanceo, ResumenAgrupado } from "../../../../models/bala
 import { ArticulosService } from "../../../../services/articulos.service";
 import { firstValueFrom } from "rxjs";
 import { ExcelService } from "../../../../services/excel.service";
+import { KitsService } from "../../../../services/kits.service";
+import { Kit } from "../../../../models";
 
 @Component({
     selector: 'app-balanceo-sugerencias',
@@ -26,10 +28,12 @@ export class BalanceoSugerenciasComponent implements OnInit {
     // ''  = sin filtro de Ruta
     // 'ALL' = todas las claves de todos los kits de Ruta de la Salud
     // 'KIT_180', 'KIT_96', etc = claves sólo de ese kit
-    kitRutaSalud = signal<string>('');
+    kitRutaSaludElegido = signal<string>('');
 
-    // Lista de kits de Ruta de la Salud
-    kitsRuta = ['KIT_180', 'KIT_96', 'KIT_920', 'KIT_147'];
+    // kitsRuta = ['KIT_180', 'KIT_96', 'KIT_920', 'KIT_147'];
+    // Lista de kits de Ruta de la Salud (desde backend)
+    kitsRuta = signal<string[]>([]);
+    loadingKitsRuta = signal(false);
     clavesRutasSalud = signal<Set<string> | null>(null);
 
     ultimaEjecucion = signal<UltimaEjecucion | null>(null);
@@ -84,10 +88,14 @@ export class BalanceoSugerenciasComponent implements OnInit {
     constructor(
         private balanceoService: BalanceoService,
         private articulosService: ArticulosService,
-        private excelService: ExcelService
-    ) { }
+        private excelService: ExcelService,
+        private kitsService: KitsService
+    ) {
+        console.log('BalanceoSugerenciasComponent constructor');
+     }
 
     ngOnInit(): void {
+        console.log('BalanceoSugerenciasComponent initialized');
         this.cargarUltimaEjecucionYResumen();
         //setTimeout(() => {
         // Cargar descripciones de artículos desde el JSON local
@@ -111,10 +119,32 @@ export class BalanceoSugerenciasComponent implements OnInit {
                 // si falla, el filtro simplemente no hará nada
             },
         });
+
+        this.cargarKitsRutaSalud();
+    }
+
+    private cargarKitsRutaSalud(): void {
+        console.log('Cargando kits de Ruta de la Salud...');
+        this.loadingKitsRuta.set(true);
+
+        this.kitsService.list().subscribe({
+            next: (resp: Kit[]) => {
+                console.log('Kits de Ruta de la Salud obtenidos:', resp);
+                const list = (resp ?? []).map(k => k.codigo);
+                this.kitsRuta.set(list.sort());
+                this.loadingKitsRuta.set(false);
+            },
+            error: (err) => {
+                console.error('Error obteniendo kits Ruta de la Salud', err);
+                // Fallback: si falla, dejamos al menos algo para que no muera la UI
+                this.kitsRuta.set(['KIT_180', 'KIT_96', 'KIT_920', 'KIT_147']);
+                this.loadingKitsRuta.set(false);
+            },
+        });
     }
 
     onKitRutaChange(value: string) {
-        this.kitRutaSalud.set(value);
+        this.kitRutaSaludElegido.set(value);
 
         // Sin filtro de Ruta de la Salud
         if (!value) {
@@ -141,7 +171,7 @@ export class BalanceoSugerenciasComponent implements OnInit {
         Record<string, { descripcion: string; presentacion?: string; categoria?: string | null }>
         | null
     >(null);
-    
+
 
     cargarUltimaEjecucionYResumen(): void {
         this.loading.set(true);
@@ -286,7 +316,7 @@ export class BalanceoSugerenciasComponent implements OnInit {
         }
 
         // 3) Filtro por Rutas de la Salud (kits)
-        const kitSel = this.kitRutaSalud();
+        const kitSel = this.kitRutaSaludElegido();
         const setRutas = this.clavesRutasSalud();
         if (kitSel && setRutas) {
             grupos = grupos.filter((g) => setRutas.has(g.clave_cnis));

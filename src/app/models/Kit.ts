@@ -35,3 +35,4 @@ export interface ImportLog {
   status: 'pending' | 'ok' | 'error';
   message?: string;
 }
+
