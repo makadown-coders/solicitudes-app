@@ -242,6 +242,14 @@ export class CpmService {
   //   Núcleo de carga 🧠 (reutiliza lo tuyo)
   // =========================
 
+  /**
+   * Carga por clave de unidad (semilla desde localStorage si ya fue cargado anteriormente)
+   * y devuelve la unión (KIT ∪ CPM) *para esa unidad*.
+   * Si ya hay fetch en curso para esta unidad, reusa.
+   * @param key CLUES IMB de la unidad
+   * @param opts Opciones extras; si { force: true } se fuerza la recarga
+   * @returns Un Observable que emite la unión (KIT ∪ CPM) *para esa unidad*
+   */
   private ensureForUnit(key: string, opts?: { force?: boolean }): Observable<CpmUnionRow[]> {
     const subj = this.subjectForUnit(key);
 

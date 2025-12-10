@@ -748,8 +748,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       const cluesimbActual = this.datosClues?.hospital?.cluesimb;
 
       if (cluesimbActual) {
-        try { 
-          await firstValueFrom(this.cpmService.ensureForCluesimb(cluesimbActual)); 
+        try {
+          await firstValueFrom(this.cpmService.ensureForCluesimb(cluesimbActual));
           this.loadExistenciasUnidad(cluesimbActual);
         } catch { }
       }
@@ -981,10 +981,10 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   /*************************************************************************************/
   /*************************************************************************************/
   kitModalVisible = false;
-  cpmModalVisible = false;  
+  cpmModalVisible = false;
 
   /** PARA MODAL DE CLAVES POR CPM */
-  abrirCpmModal(){
+  abrirCpmModal() {
     // forzar recarga de this.datosClues de localstorageService porque este componente no lo recarga
     this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
     this.cpmModalVisible = true;
@@ -1031,4 +1031,29 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   /*************************************************************************************/
   /*************************************************************************************/
   /*************************************************************************************/
+
+  /**
+ * Maneja Enter en los inputs del formulario de captura.
+ * Si el formulario es válido, no hay edición activa y no hay autocomplete abierto,
+ * dispara agregarArticulo().
+ */
+  onFormularioEnter(event?: Event) {
+    const keyboardEvent = event as KeyboardEvent | undefined;
+
+    keyboardEvent?.preventDefault();
+    keyboardEvent?.stopPropagation();
+
+    // No hacer nada si el formulario no está listo
+    if (!this.formularioValido) return;
+
+    // No permitir mientras se edita un renglón
+    if (this.modoEdicionIndex !== null) return;
+
+    // Si sigue abierto el autocomplete, que primero se seleccione la clave
+    if (this.autocompleteResults?.length) return;
+
+    // Disparar alta
+    void this.agregarArticulo();
+  }
+
 }

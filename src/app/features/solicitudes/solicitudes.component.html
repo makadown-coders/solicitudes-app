@@ -100,8 +100,12 @@
         <input type="text" placeholder="Unidad de Medida" maxlength="50" [(ngModel)]="unidadInput" id="unidadInput"
             class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null" />
 
-        <input type="number" placeholder="Cantidad" min="1" max="99999" [(ngModel)]="cantidadInput" id="cantidadInput"
-            class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null" />
+        <input type="number"
+            placeholder="Cantidad" min="1" max="99999"
+            [(ngModel)]="cantidadInput" id="cantidadInput"
+            (keydown.enter)="onFormularioEnter($event)"            
+            class="p-2 w-full border rounded"
+            [disabled]="modoEdicionIndex !== null" />
 
         <button (click)="agregarArticulo()" [disabled]="!formularioValido || modoEdicionIndex !== null" [ngClass]="(formularioValido && modoEdicionIndex === null)
               ? 'bg-green-800 hover:bg-green-900 text-white'
@@ -157,15 +161,6 @@
 <app-nombrar-archivo-modal *ngIf="modalPedirNombreArchivo" [(nombreArchivo)]="nombreArchivo"
     [(generarPrecarga)]="generarPrecarga" (aceptar)="confirmarExportacion()" (cancelarCerrar)="cerrarModalArchivo()" />
 
-
-<!-- Modal flotante para mensaje de importación
-<div *ngIf="mensajeImportacion" class="z-50 fixed inset-0 flex items-center justify-center pointer-events-none">
-    <div
-        class="px-6 py-4 w-[90%] text-green-900 text-center text-base font-semibold bg-white/90 rounded-xl border-green-300 shadow-lg border animate-fade-modal sm:w-auto">
-        ✅ {{ mensajeImportacion }}
-    </div>
-</div>
--->
 
 <br />
 <br />

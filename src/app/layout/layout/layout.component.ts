@@ -97,7 +97,8 @@ export class LayoutComponent implements OnInit, OnChanges {
     if (!timestampFallback ||
       ahora - Number(timestampFallback) > medioDiaMs
     ) {
-      this.inventarioService.refrescarDatosInventario();
+      // this.inventarioService.refrescarDatosInventario();
+      this.inventarioService.refrescarExistenciaAlmacenesDesdePostgres();
       // Esperar 12 horas para refrescar inventario despues de la última vez
       localStorage.setItem('ultimaVezRefrescadoInventario', ahora.toString());
     } else {

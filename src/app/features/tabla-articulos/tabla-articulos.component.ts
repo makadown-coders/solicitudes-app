@@ -108,7 +108,7 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
       if (cluesStr) {
         const datosClues = JSON.parse(cluesStr) as DatosClues;
         this.cluesimbActual = datosClues.hospital?.cluesimb ?? '';
-        
+
         this.cpmService.cpmsForImport(this.cluesimbActual)
           .pipe(takeUntil(this.onDestroy$))
           .subscribe((rows: CpmUnionRow[]) => {
@@ -124,12 +124,29 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
     }
   }
 
+  /**
+ * True si la cantidad temporal NO pasa la sanitización.
+ */
   esCantidadInvalida(): boolean {
-    const esInvalida = this.cantidadTemporal <= 0 || this.cantidadTemporal > 99999;
-    return esInvalida;
+    return this.sanearCantidad(this.cantidadTemporal) === null;
   }
 
+  /**
+   * Emitir confirmación con la cantidad sanitizada.
+   * Si la cantidad es inválida, no se emite nada.
+   * @param index La posición del elemento en el que se hizo click.
+   */
   mandarConfirmacion(index: number) {
+    const cantidadValida = this.sanearCantidad(this.cantidadTemporal);
+
+    // Segunda línea de defensa: si algo raro se cuela, simplemente NO emitimos
+    if (cantidadValida === null) {
+      // Opcional: podrías hacer un pequeño log o snack aquí
+      return;
+    }
+
+    // Normalizamos la cantidad a la versión sanitizada
+    this.cantidadTemporal = cantidadValida;
     this.cantidadTemporalChange.emit(this.cantidadTemporal);
     this.confirmar.emit(index);
   }
@@ -171,8 +188,112 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   public buscarCPM(clave: string): number {
-    const cpm = this.cpmsDeCluesActual.find(cpmItem => cpmItem.clave.trim()+'' === clave.trim()+'');    
+    const cpm = this.cpmsDeCluesActual.find(cpmItem => cpmItem.clave.trim() + '' === clave.trim() + '');
     return cpm ? cpm.cantidad : 0;
+  }
+
+  /**
+ * Sanitiza y valida la cantidad:
+ * - Convierte a número
+ * - Trunca decimales
+ * - Debe estar entre 1 y 99999
+ * 
+ * @param valor valor crudo del input
+ * @returns número válido o null si es inválido
+ */
+  private sanearCantidad(valor: any): number | null {
+    // Permite detectar vacío explícitamente
+    if (valor === null || valor === undefined || valor === '') {
+      return null;
+    }
+
+    let n = Number(valor);
+
+    if (!Number.isFinite(n)) {
+      return null;
+    }
+
+    // Truncar decimales
+    n = Math.trunc(n);
+
+    // Rango permitido
+    if (n < 1 || n > 99999) {
+      return null;
+    }
+
+    return n;
+  }
+
+  /**
+ * Permite solo dígitos y teclas de control.
+ * Evita "-", "+", "e", ".", letras, etc.
+ */
+  soloEnteroPositivo(event: KeyboardEvent) {
+    // Dejamos que Enter lo maneje otro handler
+    if (event.key === 'Enter') {
+      // No escribas nada en el input
+      event.preventDefault();
+      return;
+    }
+
+    const allowedControlKeys = [
+      'Backspace',
+      'Tab',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown',
+      'Delete',
+      'Home',
+      'End'
+    ];
+
+    // Teclas de control (borrar, navegar, etc)
+    if (allowedControlKeys.includes(event.key)) {
+      return;
+    }
+
+    // Atajos tipo Ctrl+C, Ctrl+V, etc
+    if ((event.ctrlKey || event.metaKey) && ['a', 'c', 'v', 'x'].includes(event.key.toLowerCase())) {
+      return;
+    }
+
+    const isDigit = /^[0-9]$/.test(event.key);
+
+    if (!isDigit) {
+      event.preventDefault();
+    }
+  }
+
+  /**
+ * Al perder el foco, si la cantidad es válida, normalizamos el valor
+ * (se asegura que quede como entero limpio).
+ */
+  normalizarCantidadEnInput() {
+    const cantidadValida = this.sanearCantidad(this.cantidadTemporal);
+    if (cantidadValida !== null) {
+      this.cantidadTemporal = cantidadValida;
+    }
+  }
+
+  /**
+ * Maneja la tecla Enter en el input de cantidad.
+ * Si la cantidad es válida, dispara la confirmación del renglón.
+ */
+  onEnterCantidad(index: number, event?: Event) {
+    // Convertimos a KeyboardEvent si aplica
+    const keyboardEvent = event as KeyboardEvent | undefined;
+
+    if (keyboardEvent) {
+      keyboardEvent?.preventDefault();
+      keyboardEvent?.stopPropagation();
+    }
+
+    if (this.esCantidadInvalida()) {
+      return;
+    }
+
+    this.mandarConfirmacion(index);
   }
 
 }
