@@ -8,6 +8,7 @@ import { DetalleCitaModalComponent } from '../../../shared/detalle-cita-modal/de
 import { StorageVariables } from '../../../shared/storage-variables';
 import { CitaQueryResponse } from '../../../models/CitaQueryResponse';
 import { CitasService } from '../../../services/citas.service';
+import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
 
 interface GrupoUnidad {
   unidad: string;
@@ -22,7 +23,7 @@ interface GrupoUnidad {
   styleUrls: ['./citas-pendientes.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class CitasPendientesComponent implements OnInit {
+export class CitasPendientesComponent extends AbstractTabComponent implements OnInit {
   // ============================================================
   //    STATE MAESTRO (igual que Proveedores)
   // ============================================================
@@ -56,6 +57,7 @@ export class CitasPendientesComponent implements OnInit {
 
   loading = false;
   errorMsg: string | null = null;
+  mostradoPorPrimeraVez = false;
 
   @ViewChildren('grupoUnidad') grupoRefs!: QueryList<ElementRef<HTMLDivElement>>;
 
@@ -161,7 +163,7 @@ export class CitasPendientesComponent implements OnInit {
     ).sort();
 
     this.actualizarAgrupacion();
-  }  
+  }
 
   actualizarAgrupacion() {
     // Persistencia
@@ -221,7 +223,7 @@ export class CitasPendientesComponent implements OnInit {
       return coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha;
     });
 
-//    console.log('Citas filtradas:', citasFiltradas);
+    //    console.log('Citas filtradas:', citasFiltradas);
 
     // ============================
     //    AGRUPACIONES NUEVAS
@@ -302,5 +304,15 @@ export class CitasPendientesComponent implements OnInit {
   cerrarModalDetalle() {
     this.mostrarModalDetalle = false;
     this.citaSeleccionada = null;
+  }
+
+  protected override onTabActivated(): void {
+    if (this.mostradoPorPrimeraVez === false) {
+      this.actualizarAgrupacion();
+      this.mostradoPorPrimeraVez = true;
+    }
+  }
+  protected override onTabDeactivated(): void {
+    // No action needed
   }
 }

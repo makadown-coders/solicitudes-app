@@ -91,11 +91,11 @@ export class BalanceoSugerenciasComponent implements OnInit {
         private excelService: ExcelService,
         private kitsService: KitsService
     ) {
-        console.log('BalanceoSugerenciasComponent constructor');
+        
      }
 
     ngOnInit(): void {
-        console.log('BalanceoSugerenciasComponent initialized');
+        
         this.cargarUltimaEjecucionYResumen();
         //setTimeout(() => {
         // Cargar descripciones de artículos desde el JSON local
@@ -124,12 +124,12 @@ export class BalanceoSugerenciasComponent implements OnInit {
     }
 
     private cargarKitsRutaSalud(): void {
-        console.log('Cargando kits de Ruta de la Salud...');
+        
         this.loadingKitsRuta.set(true);
 
         this.kitsService.list().subscribe({
             next: (resp: Kit[]) => {
-                console.log('Kits de Ruta de la Salud obtenidos:', resp);
+                
                 const list = (resp ?? []).map(k => k.codigo);
                 this.kitsRuta.set(list.sort());
                 this.loadingKitsRuta.set(false);

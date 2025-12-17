@@ -43,7 +43,7 @@ export const enum StorageVariables {
     DASH_ABASTO_INV_FILTRO_TEXTO = 'dash_abasto_inv_filtro_texto',
     DASH_ABASTO_INV_FILTRO_UNIDAD = 'dash_abasto_inv_filtro_unidad',
     DASH_ABASTO_INV_FILTRO_COMPRAS = 'dash_abasto_inv_filtro_compras',
-    // Dashboard Abasto tab Entregas pendientes
+    // Dashboard Abasto tab Resumen Citas
     DASH_ABASTO_RESUMENCITAS_FILTRO_COMPRA = 'dash_abasto_resumen_citas_filtro_compra',
     DASH_ABASTO_RESUMENCITAS_RANGO = 'dash_abasto_resumen_citas_rango',
     // POC Finanzas – Evaluación SMI/SG

@@ -29,7 +29,7 @@
                 <tr class="renglon-info">
                     <th class="p-2 border">Tipo Entrega</th>
                     <th class="p-2 border">Unidad</th>
-                    <th *ngFor="let dia of diasRango" class="p-2 border">{{ dia }}</th>
+                    <th *ngFor="let dia of diasRango" class="p-2 border">{{ dia | date: 'yyyy-MM-dd' }}</th>
                     <th class="p-2 border">Total</th>
                     <th class="p-2 border">Detalle</th>
                 </tr>

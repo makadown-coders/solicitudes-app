@@ -103,7 +103,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     // helper
     /*private aplicarFactorBase(cantidad: number): number {
         if (!this.factorConv.en_dispensacion || this.factorConv.cantidad_fc <= 1) return cantidad;
-        return Math.round(cantidad / this.factorConv.cantidad_fc); // base
+        return Math.floor(cantidad / this.factorConv.cantidad_fc); // base
     }*/
 
     constructor() {
@@ -408,7 +408,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                 const fc = factor.cantidad_fc;
 
                 const existenciaBase = enDisp && fc > 1
-                    ? Math.round(existenciaDisp / fc)
+                    ? Math.floor(existenciaDisp / fc)
                     : existenciaDisp;
 
                 unidadResumen.clave.existencia = existenciaBase;

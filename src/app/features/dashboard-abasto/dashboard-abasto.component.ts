@@ -28,7 +28,7 @@ import { CitasService } from '../../services/citas.service';
     RouterModule,
     ProveedoresComponent,
     CitasPendientesComponent,
-    // ResumenCitasComponent,
+    ResumenCitasComponent,
     // InventarioCriticoComponent,
     ExistenciasComponent,
     // InventarioTabComponent,
@@ -57,7 +57,7 @@ export class DashboardAbastoComponent implements OnInit {
     'Citas Completadas',
     'Citas pendientes',
     // 'Cumplimiento Claves',
-    // 'Entregas pendientes',
+    'Resumen Citas',
     // 'Existencias (beta)',
     'RdlS',
     'Acerca de'];
