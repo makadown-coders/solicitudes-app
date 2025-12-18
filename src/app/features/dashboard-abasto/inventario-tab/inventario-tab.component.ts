@@ -196,6 +196,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         });
 
         // 6) Artículos → mapa por clave { descripcion, presentacion }
+        // TODO: Corregir la obtencion de articulo para que traiga campos descripcion y presentacion
         this.artSrv.getArticulosMapa?.().subscribe((m: any) => {
             this.articulosMapa.set(m ?? {});
         });
@@ -331,7 +332,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             // 2) Citas y Artículos
             const keyCita = `${clave}__${cleanLote(inv.lote)}`;
             const citas = this.invSrv.citasByClaveLote().get(keyCita) || [];
-            const art = this.articulosMapa()[clave] ?? {};
+            const art = this.articulosMapa()[clave] ?? {};            
 
             // 3) Factor por clave+clues
             const keyFactor = `${clave}__${clues}`;
