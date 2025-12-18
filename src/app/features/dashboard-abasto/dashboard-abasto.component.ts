@@ -31,7 +31,7 @@ import { CitasService } from '../../services/citas.service';
     ResumenCitasComponent,
     // InventarioCriticoComponent,
     ExistenciasComponent,
-    // InventarioTabComponent,
+    InventarioTabComponent,
     RdlSComponent
   ],
   templateUrl: './dashboard-abasto.component.html',
@@ -58,7 +58,7 @@ export class DashboardAbastoComponent implements OnInit {
     'Citas pendientes',
     // 'Cumplimiento Claves',
     'Resumen Citas',
-    // 'Existencias (beta)',
+    'Existencias (beta)',
     'RdlS',
     'Acerca de'];
   activeTab = 'Resumen';

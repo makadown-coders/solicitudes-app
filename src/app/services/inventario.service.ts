@@ -1,7 +1,17 @@
+// src/app/services/inventario.service.ts
 import * as LZString from 'lz-string';
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject,
+         catchError,
+         defer,
+         finalize,
+         map,
+         Observable,
+         shareReplay,
+         tap,
+         of
+       } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { PeriodoFechasService } from '../shared/periodo-fechas.service';
 import { ExcelService } from './excel.service';
@@ -51,12 +61,12 @@ export class InventarioService {
   private existenciasSubject: Map<Existencias, BehaviorSubject<Inventario[]>> = new Map<Existencias, BehaviorSubject<Inventario[]>>();
   public existencias$: Map<Existencias, Observable<Inventario[]>> = new Map<Existencias, Observable<Inventario[]>>();
 
-  private _citasByClaveLote = signal<Map<string, CitaSlimByClaveLote>>(new Map());
+  private _citasByClaveLote = signal<Map<string, CitaSlimByClaveLote[]>>(new Map());
   citasByClaveLote = this._citasByClaveLote.asReadonly();
 
-  private _slimLoaded = false;
-  private _loadingSlim = false;
-
+  private slimInFlight$?: Observable<Map<string, CitaSlimByClaveLote[]>>;
+  private slimLoadedAt = 0;
+  private readonly SLIM_TTL_MS = 30 * 60 * 1000; // 30 min (ajústalo)
   private readonly TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
 
   constructor(private http: HttpClient) {
@@ -508,46 +518,90 @@ export class InventarioService {
   }
 
   loadCitasSlimIfNeeded() {
-    if (this._slimLoaded || this._loadingSlim) return;
+    this.ensureCitasSlim$().subscribe();
+  }
 
+  private isSlimFresh(): boolean {
+    return (Date.now() - this.slimLoadedAt) < this.SLIM_TTL_MS;
+  }
+
+  ensureCitasSlim$(): Observable<Map<string, CitaSlimByClaveLote[]>> {
+    // 1) si el cache está fresco, regresa inmediato (sin pegarle al backend)
+    const current = this._citasByClaveLote();
+    if (current.size > 0 && this.isSlimFresh()) return of(current);
+
+    // 2) si ya hay una petición en vuelo, reusa la misma
+    if (this.slimInFlight$) return this.slimInFlight$;
+
+    // 3) si no hay, crea UNA y compártela
     const url = environment.apiUrl + '/citas/slim-existencia';
-    this._loadingSlim = true;
-    this.http
-      .get<{ ok: boolean; rows: CitaSlimExistencia[] }>(url)
-      .subscribe({
-        next: res => {
-          const mp = new Map<string, CitaSlimByClaveLote>();
-          for (const r of res.rows ?? []) {
-            const clave = this.normalizarClave(r.clave_cnis);
-            const lote = cleanLote(r.lote);
-            if (!clave || !lote) continue;
-            const key = `${clave}__${lote}`;
 
-            // en caso de duplicados clave+lote, dejamos el primero o mergeamos
-            if (!mp.has(key)) {
-              mp.set(key, {
-                precio: r.precio_unitario,
-                orden: r.orden_de_suministro,
-                fte: r.fte_fmto,
-                proveedor: r.proveedor,
-              });
-            }
-          }
-          this._citasByClaveLote.set(mp);
-          this._slimLoaded = true;
-          this._loadingSlim = false;
-        },
-        error: err => {
-          console.error('Error cargando slim inventario:', err);
-          this._loadingSlim = false;
-        }
-      });
+    console.log('🚀 Cargando slim existencias desde backend...');
+    this.slimInFlight$ = defer(() =>
+      this.http.get<{ ok: boolean; rows: CitaSlimExistencia[] }>(url)
+    ).pipe(
+      map((res:any) => {
+        console.log('✅ Slim respuesta:', res.data);
+        return this.buildSlimMap(res.data.rows ?? []);
+      }),
+      tap(mp => {
+        this._citasByClaveLote.set(mp);
+        this.slimLoadedAt = Date.now();
+      }),
+      // si falla, no revientes: deja cache como esté y suelta inFlight
+      catchError(err => {
+        console.error('Error cargando slim inventario:', err);
+        return of(this._citasByClaveLote());
+      }),
+      finalize(() => {
+        this.slimInFlight$ = undefined;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false })
+    );
+
+    return this.slimInFlight$;
+  }
+
+  /**
+   * Convierte una lista de CitaSlimExistencia en un Map de clave-lote a CitaSlimByClaveLote[].
+   *
+   * La clave del Map es una concatenación de la clave de la cita y el lote, separados por '__'.
+   * El valor asociado a cada clave es un array de CitaSlimByClaveLote.
+   * Cada CitaSlimByClaveLote tiene los campos precio, orden, fte y proveedor de la cita original.
+   *
+   * @param rows La lista de CitaSlimExistencia a convertir
+   * @returns El Map de clave-lote a CitaSlimByClaveLote[]
+   */
+  private buildSlimMap(rows: CitaSlimExistencia[]): Map<string, CitaSlimByClaveLote[]> {
+    const mp = new Map<string, CitaSlimByClaveLote[]>();
+    console.log('🔍 buildSlimMap - procesando', rows.length, 'registros de citas slim');
+
+    for (const r of rows ?? []) {
+      const clave = this.normalizarClave(r.clave_cnis);
+      const lote = cleanLote(r.lote);
+      if (!clave || !lote) continue;
+
+      const key = `${clave}__${lote}`;
+      const item: CitaSlimByClaveLote = {
+        precio: r.precio_unitario,
+        orden: r.orden_de_suministro,
+        fte: r.fte_fmto,
+        proveedor: r.proveedor,
+      };
+
+      const arr = mp.get(key);
+      if (arr) arr.push(item);
+      else mp.set(key, [item]);
+    }
+
+    return mp;
   }
 
   /** Fuerza recargar desde el backend (para el botón Actualizar) */
   refreshCitasSlim() {
-    this._slimLoaded = false;
-    this.loadCitasSlimIfNeeded();
+    this.slimLoadedAt = 0;
+    this._citasByClaveLote.set(new Map());
+    this.ensureCitasSlim$().subscribe();
   }
 
   initExistenciaAlmacenes(): void {

@@ -8,22 +8,23 @@
       placeholder="Buscar (clave, descripción, lote, unidad, CLUES)"
       class="px-3 py-2 w-full rounded-lg border md:w-96" />
 
-    <!-- Categoría -->
-    <select [ngModel]="categoriaFiltro()" (ngModelChange)="categoriaFiltro.set($event)"
-      class="px-3 py-2 rounded-lg border">
-      <option value="">Todas las categorías</option>
-      <option *ngFor="let c of categoriasDisponibles()" [value]="c">{{ c }}</option>
-      <!-- Opcional: atajos “genéricos” para activar el select de grupos aunque
-         el catálogo tenga nombres largos como 'Categoria I. Medicamentos' -->
-    </select>
-
-    <!-- Grupo/Insumo (solo cuando base de categoría es medicamento o material) -->
-    <ng-container *ngIf="['MEDICAMENTO','MATERIAL DE CURACIÓN'].includes(catBase(categoriaFiltro()))">
-      <select [ngModel]="grupoFiltro()" (ngModelChange)="grupoFiltro.set($event)" class="px-3 py-2 rounded-lg border">
-        <option value="">Todos los grupos</option>
-        <option *ngFor="let g of gruposDisponibles()" [value]="g">{{ g }}</option>
+    <!-- 🔽 Select Ruta de la Salud -->
+    <div class="w-56">
+      <label for="kitRutaInventario" class="sr-only">Ruta de la Salud</label>
+      <select id="kitRutaInventario"
+        class="block px-3 py-2 w-full text-sm text-gray-700 bg-white rounded-xl border-gray-300 border focus:outline-none focus:ring-2 focus:ring-green-500"
+        [ngModel]="rdlsMode()" (ngModelChange)="onRdlSModeChange($event)">
+        <option value="INV_ALL">Inventario · todas las claves</option>
+        <option value="RDLS_ALL">RdlS · todas las claves</option>
+        <option *ngFor="let kit of kitsRuta()" [ngValue]="kit">
+          {{ kit }}
+        </option>
       </select>
-    </ng-container>
+    </div>
+
+    <span *ngIf="loadingKitsRuta()" class="text-xs text-slate-500">
+      Cargando kits RdlS...
+    </span>
 
     <!-- Fuente -->
     <select [ngModel]="fuente()" (ngModelChange)="fuente.set($event)" class="px-3 py-2 rounded-lg border">
@@ -97,7 +98,8 @@
             <td class="p-2">{{ r.categoria }}</td>
             <td class="p-2">{{ r.grupoInsumo }}</td>
             <td class="p-2" [attr.title]="r.descripcion || '—'">
-              {{ r.descripcion ? ((r.descripcion.length > 50) ? (r.descripcion | slice: 0:30) + ' [...]' : r.descripcion ) : '—' }}
+              {{ r.descripcion ? ((r.descripcion.length > 50) ? (r.descripcion | slice: 0:30) + ' [...]' : r.descripcion
+              ) : '—' }}
             </td>
             <td class="p-2">{{ r.precioUnitario == null ? '—' : (r.precioUnitario | number:'1.2-2') }}</td>
             <td class="p-2">{{ r.valorTotal == null ? '—' : (r.valorTotal | number:'1.2-2') }}</td>
@@ -128,10 +130,6 @@
       <button (click)="exportarExcel()"
         class="flex items-center gap-2 py-1 px-4 text-white font-semibold bg-green-600 shadow-sm cursor-pointer hover:bg-green-700 rounded">
         📤 Exportar
-      </button>
-      <button (click)="exportarExcelSACIA()"
-        class="flex items-center gap-2 py-1 px-4 text-white font-semibold bg-green-600 shadow-sm cursor-pointer hover:bg-green-700 rounded">
-        📤 Exportar (SACIA)
       </button>
     </div>
   </div>
@@ -168,6 +166,10 @@
       (click)="goTo(totalPages())" [disabled]="page()>=totalPages()">Última
       »</button>
 
+  </div>
+
+  <div class="text-xs text-gray-500">
+    · componente en construcción ·
   </div>
 
 </div>

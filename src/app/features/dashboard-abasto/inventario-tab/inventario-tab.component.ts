@@ -1,5 +1,18 @@
 // src/app/features/dashboard-abasto/inventario/inventario-tab.component.ts
-import { AfterViewInit, ChangeDetectionStrategy, Component, computed, effect, ElementRef, EnvironmentInjector, inject, OnDestroy, runInInjectionContext, signal, ViewChild } from '@angular/core';
+import {
+    AfterViewInit,
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    effect,
+    ElementRef,
+    EnvironmentInjector,
+    inject,
+    OnDestroy,
+    runInInjectionContext,
+    signal,
+    ViewChild
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InventarioVistaRow } from '../../../models/inventario-vista.model';
@@ -14,12 +27,12 @@ import { ProveedoresService } from '../../../services/proveedores.service';
 import { GruposClavesService } from '../../../services/grupo-clases.service';
 import * as XLSX from 'xlsx';
 import { StorageSolicitudService } from '../../../services/storage-solicitud.service';
-
-
-
- 
+import { BalanceoService } from '../../../services/balanceo.service';
+import { KitsService } from '../../../services/kits.service';
 
 const NO_CAT = 'NO ESPECIFICADO';
+
+type RdlSMode = 'INV_ALL' | 'RDLS_ALL' | string; // string = codigo de kit
 
 function normalizeCategoria(cat?: string | null): string {
     const s = (cat ?? '').trim();
@@ -28,7 +41,6 @@ function normalizeCategoria(cat?: string | null): string {
 
 /**
  * Tab de Inventario. Cancelado. Se reemplazará por un módulo más completo a futuro.
- * @deprecated
  */
 @Component({
     selector: 'app-inventario-tab',
@@ -45,13 +57,20 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
     private provSrv = inject(ProveedoresService);
     private gruposSrv = inject(GruposClavesService);
     private storageSolicitudService = inject(StorageSolicitudService);
+    kitRutaSaludElegido = signal<string>('ALL');
+    kitsRuta = signal<string[]>([]);
+    loadingKitsRuta = signal<boolean>(false);
+    rdlsMode = signal<RdlSMode>('INV_ALL'); // default: NO filtrar por RdlS
+    clavesRutasSalud = signal<Set<string> | null>(null);
+    private balanceoService = inject(BalanceoService);
+    private kitsService = inject(KitsService);
 
     private env = inject(EnvironmentInjector);
 
     // cache reactivo de factores: key = `${clave}__${clues}`
     private factoresMap = signal<Map<string, FactorUnidad>>(new Map());
     private gruposMapa = signal<Map<string, { categoria: string; grupoInsumo: string }>>(new Map());
-    grupoFiltro = signal<string>('');
+    // grupoFiltro = signal<string>('');
 
     // para evitar disparar múltiples fetches simultáneos
     private fetchingKeys = new Set<string>();
@@ -59,7 +78,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
     // Filtros UI
     query = signal('');
     fuente = signal<'ALL' | 'HOSPITAL' | 'ALMACEN'>('ALL');
-    categoriaFiltro = signal<string>('');
+    // categoriaFiltro = signal<string>('');
 
     // Paginación front
     page = signal(1);
@@ -119,6 +138,9 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
                 queueMicrotask(() => this.measureGrid());
             });
         });
+
+        this.cargarKitsRutaSalud();
+        this.onRdlSModeChange('INV_ALL'); // default: inventario completo
     }
 
     private measureGrid() {
@@ -138,12 +160,10 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         this.invSrv.loadCitasSlimIfNeeded();
         // 0) Cargar grupos de claves una vez (cachea e indexa)
         this.gruposSrv.load().subscribe(mp => {
-            // console.log('mp', mp);
             // lo guardamos como Map<string, {categoria, grupoInsumo}>
             const flat = new Map<string, { categoria: string; grupoInsumo: string }>();
             for (const [k, v] of mp.entries()) flat.set(k, { categoria: v.categoria, grupoInsumo: v.grupoInsumo });
             this.gruposMapa.set(flat);
-            // console.log('gruposMapa', this.gruposMapa());
         });
         // 1)  Cargar unidades una vez (cachea e indexa)
         this.unidadesSrv.load().subscribe();
@@ -151,12 +171,9 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         this.provSrv.load().subscribe();
         // 3) Almacenes (ya lo emite tu servicio)
         this.invSrv.inventario$.subscribe(rows => {
-            console.log('InventarioTabComponent: Entrando a suscribe');
             if (!rows || rows.length === 0) {
-                console.log('InventarioTabComponent: Obteniendo de localstorage');
                 rows = this.storageSolicitudService.getInventarioFromLocalStorage();
             }
-            console.log(' InventarioTabComponent: existencias de almacenes', rows);
             this.almacenes.set(rows ?? []);
         });
 
@@ -231,15 +248,15 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         effect(() => {
             this.query();
             this.fuente();
-            this.categoriaFiltro();
-            this.page.set(1); // volver a página 1
+            this.kitRutaSaludElegido();
+            this.page.set(1);
         });
 
-        effect(() => {
-            // cuando cambia la categoría seleccionada, limpiamos el grupo seleccionado
-            this.categoriaFiltro();
-            this.grupoFiltro.set('');
-        });
+        // effect(() => {
+        // cuando cambia la categoría seleccionada, limpiamos el grupo seleccionado
+        // this.categoriaFiltro();
+        // this.grupoFiltro.set('');
+        // });
 
         effect(() => {
             const tp = this.totalPages();
@@ -255,13 +272,14 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
     }
 
     // Normaliza a “base” de categoría (medicamento / material / otro)
-    catBase = (s: string | null | undefined) => {
+    /* catBase = (s: string | null | undefined) => {
         const t = (s ?? '').toLowerCase();
         if (t.includes('medica')) return 'MEDICAMENTO';             // “Medicamentos”
         if (t.includes('material')) return 'MATERIAL DE CURACIÓN';  // “Material de Curación”
         return 'OTRA';
-    };
+    }; */
 
+    /*
     gruposDisponibles = computed(() => {
         const catSel = this.categoriaFiltro();
         const base = this.catBase(catSel);
@@ -274,12 +292,12 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             if (baseRow === base) set.add(r.grupoInsumo);
         }
         return Array.from(set).sort((a, b) => a.localeCompare(b));
-    });
+    });    
 
     categoriasDisponibles = computed(() => {
         const set = new Set(this.rows().map(r => r.categoria).filter(Boolean) as string[]);
         return Array.from(set).sort();
-    });
+    });*/
 
     // saltar varias páginas de un jalón
     jump(by: number) {
@@ -312,7 +330,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
 
             // 2) Citas y Artículos
             const keyCita = `${clave}__${cleanLote(inv.lote)}`;
-            const citaInfo = this.invSrv.citasByClaveLote().get(keyCita) || {};
+            const citas = this.invSrv.citasByClaveLote().get(keyCita) || [];
             const art = this.articulosMapa()[clave] ?? {};
 
             // 3) Factor por clave+clues
@@ -330,22 +348,30 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
                 grupoInsumo = hit.grupoInsumo;
             }
 
-            const prov = this.provSrv.findByNombre(citaInfo.proveedor ?? '');
+            const ordenDeSuministro = this.joinUnique(citas.map(x => x.orden));
+            const proveedorTexto = this.joinUnique(citas.map(x => x.proveedor));
+
+            const proveedorPrimero = (citas.find(x => !!x.proveedor)?.proveedor) ?? '';
+            const prov = this.provSrv.findByNombre(proveedorPrimero);
             const rfcProveedor = prov?.rfc ?? null;
+
+            // Para precio/fuente: mantengo compatibilidad tomando el primer valor “usable”
+            const precioUnitario = this.firstNum(citas.map(x => x.precio));
+            const fuenteFin = this.firstStr(citas.map(x => x.fte)) ?? (inv as any).fuente ?? null;
 
             return {
                 entidadFederativa: 'BAJA CALIFORNIA',
                 clues,
-                ordenDeSuministro: citaInfo.orden ?? null,
+                ordenDeSuministro: ordenDeSuministro || null,
                 rfcProveedor: rfcProveedor,
-                fuenteFinanciamiento: citaInfo.fte ?? (inv as any).fuente ?? null,
+                fuenteFinanciamiento: fuenteFin,
                 partidaPresupuestal: slicePartida(inv.partida),
                 clave,
                 categoria: normalizeCategoria(art.categoria),
                 grupoInsumo,
                 descripcion: safeStr(inv.descripcion) || art.descripcion || null,
-                precioUnitario: (citaInfo.precio ?? null) as number | null,
-                valorTotal: (citaInfo.precio != null ? citaInfo.precio * dispAjustado : null) as number | null,
+                precioUnitario: precioUnitario,
+                valorTotal: (precioUnitario != null ? precioUnitario * dispAjustado : null),
                 insumoEnCPM: cpms.has(clave) ? 'SI' : 'NO',
                 estadoInsumo: 1,
                 inventarioDisponible: dispAjustado,
@@ -371,36 +397,32 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
     filtered = computed(() => {
         const q = this.query().toLowerCase().trim();
         const f = this.fuente();
-        const cat = this.categoriaFiltro();
-        const grp = this.grupoFiltro();
 
-        const baseCatSel = this.catBase(cat);
+        // Nota: aquí kitSel realmente solo sirve para disparar onKitRutaChange; el filtro lo manda el setRutas
+        const kitSel = this.kitRutaSaludElegido();
+        const setRdlS = this.clavesRutasSalud();
 
         return this.rows().filter(r => {
-            // Filtro fuente (ALL | HOSPITAL | ALMACEN)
+            // 1) Fuente
             const okFuente = (f === 'ALL') || (r.tipoFuente === f);
 
-            // Filtro categoría:
-            // - Si seleccionaste “MEDICAMENTO”, acepta filas cuya categoría “huela” a medicamento
-            // - Si seleccionaste “MATERIAL DE CURACIÓN, idem para material
-            // - En cualquier otro caso (categorías enumeradas) requiere igualdad exacta si cat tiene valor
-            const baseRow = this.catBase(r.categoria ?? '');
-            const okCat =
-                !cat ||
-                (baseCatSel === 'MEDICAMENTO' && baseRow === 'MEDICAMENTO') ||
-                (baseCatSel === 'MATERIAL DE CURACIÓN' && baseRow === 'MATERIAL DE CURACIÓN') ||
-                (baseCatSel === 'OTRA' && r.categoria === cat);
+            // 2) RdlS: si ya hay set cargado, filtramos por claves del set
+            //    (con 'ALL' el backend te trae todas las claves de todos los kits)
+            const okRdlS = !setRdlS
+                ? true
+                : setRdlS.has(this.invSrv.normalizarClave(r.clave));
 
-            // Filtro grupo (solo aplica si el grupoFiltro tiene valor)
-            const okGrupo = !grp || r.grupoInsumo === grp;
+            // 3) Texto (tu búsqueda actual)
+            const okText = !q
+                || (r.clave ?? '').toLowerCase().includes(q)
+                || (r.descripcion ?? '').toLowerCase().includes(q)
+                || (r.lote ?? '').toLowerCase().includes(q)
+                || (r.unidadOrigenTexto ?? '').toLowerCase().includes(q)
+                || (r.clues ?? '').toLowerCase().includes(q);
 
-            // Filtro texto libre
-            if (!q) return okFuente && okCat && okGrupo;
-            const bag = `${r.clave} ${r.categoria ?? ''} ${r.grupoInsumo ?? ''} ${r.descripcion ?? ''} ${r.lote ?? ''} ${r.unidadOrigenTexto ?? ''} ${r.clues} ${r.ordenDeSuministro ?? ''} ${r.rfcProveedor ?? ''} ${r.fuenteFinanciamiento ?? ''} ${r.partidaPresupuestal ?? ''}`.toLowerCase();
-            return okFuente && okCat && okGrupo && bag.includes(q);
+            return okFuente && okRdlS && okText;
         });
     });
-
 
     totalItems = computed(() => this.filtered().length);
     pageSlice = computed(() => {
@@ -418,6 +440,36 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         if (grid) grid.removeEventListener('scroll', this.onGridScroll);
         if (top) top.removeEventListener('scroll', this.onTopScroll);
         window.removeEventListener('resize', this.onResize);
+    }
+
+    joinUnique(list: Array<string | null | undefined>): string {
+        const out: string[] = [];
+        const seen = new Set<string>();
+        for (const v of list) {
+            const s = (v ?? '').trim();
+            if (!s) continue;
+            if (seen.has(s)) continue;
+            seen.add(s);
+            out.push(s);
+        }
+        return out.join(', ');
+    }
+
+    firstStr(list: Array<string | null | undefined>): string | null {
+        for (const v of list) {
+            const s = (v ?? '').trim();
+            if (s) return s;
+        }
+        return null;
+    }
+
+    firstNum(list: Array<number | null | undefined>): number | null {
+        for (const v of list) {
+            if (v == null) continue;
+            const n = Number(v);
+            if (Number.isFinite(n)) return n;
+        }
+        return null;
     }
 
 
@@ -543,148 +595,69 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         XLSX.writeFile(wb, filename, { bookType: 'xlsx' });
     }
 
-    /**
-     * Exporta a Excel la información del inventario en formato requerido por SACIA
-     * 
-     * @remarks
-     * La exportación incluye solo las filas con ordenes de suministro válidas y con inventario disponible > 0.
-     * Se mantiene el orden de columnas siguiente:
-     * 1. ENTIDAD
-     * 2. CLUES
-     * 3. ORDEN DE SUMINISTRO
-     * 4. RFC
-     * 5. CLAVE
-     * 14. ESTADO DEL INSUMO
-     * 15. INVENTARIO DISPONIBLE
-     * 16. LOTE
-     * 18. F_CAD (fecha de caducidad)
-     * 19. F_FAB (fecha de fabricación)
-     * 20. F_REC (fecha de recepción)
-     * 
-     * El nombre del archivo se genera con un timestamp en formato 'dd/mm/yyyy hh:mm:ss'
-     */
-    exportarExcelSACIA() {
+    private cargarKitsRutaSalud(): void {
+        this.loadingKitsRuta.set(true);
 
-        const clavesAExcluir = ['060.025.0632', '060.066.0104', '060.132.0204', '060.168.3347', '060.598.0077', '070.161.9001', '180.251.0125.00', '180.251.0207.00', '180.251.0208.00', '110.253.0200.00', '110.253.0221.00',
-            '110.253.0222.00', '110.253.0231.00', '110.253.0232.00', '110.253.0233.00', '110.253.0237.00', '250.501.0000.00', '060.066.0609', '070.203.0615', '160.000.0326.00', '160.088.9001.00', '160.167.0482.00',
-            '160.168.1311.00', '160.203.0612.00', '160.203.0613.00', '160.254.0180.00', '160.254.0231.00', '160.254.0235.00',
-            '160.254.0236.00', '160.254.0246.00', '160.254.0286.00', '160.254.0323.00', '160.254.0342.00', '160.254.0344.00',
-            '160.254.0555.00', '160.254.0600.00', '160.254.0672.00', '160.254.1027.00', '160.254.1028.00', '160.254.1029.00',
-            '160.307.3301.00', '160.621.7480.00', '160.621.7484.00', '160.621.7485.00', '160.621.7486.00', '160.621.7487.00',
-            '160.621.7489.00', '160.621.7490.00', '160.621.9006.00', '160.621.9024.00', '160.641.9056.00', '160.810.0283.00',
-            '160.810.0552.01', '160.841.0221.00', '160.935.6346.00', '160.979.0230.00', '204.020.0398.00', '254.001.0058.00',
-            '254.001.0334.00', '254.001.0394.00', '311.685.5119.00', '204.030.0098.00', '060.402.0092', '060.436.0115', '060.532.1010', '070.168.1313', '070.168.1314',
-            '070.168.1315', '070.777.7772.01', '160.120.1008.00', '160.161.1221.00', '160.161.9006.00', '160.161.9008.00', '160.161.9012.00', '160.161.9023.00', '160.166.0103.00', '160.189.0304.00',
-            '160.231.0666.00', '160.254.0003.00', '160.254.0204.00', '160.254.0208.00', '160.254.0223.00', '160.254.0240.00', '160.254.0241.00', '160.254.0245.00', '160.254.0265.00', '160.254.0277.00',
-            '160.254.0322.00', '160.254.0345.00', '160.254.0445.00', '160.254.0448.00', '160.254.0474.00', '160.254.0524.00', '160.254.0534.00', '160.254.0547.00', '160.254.0814.00', '160.268.1206.00',
-            '160.300.1002.00', '160.307.3302.00', '160.345.1355.00', '160.345.1356.00', '160.621.7481.00',
-            '160.621.7488.00', '160.621.7491.00', '160.674.0339.00', '160.777.7772.00', '204.020.0080.00',
-            '204.020.0119.00', '204.020.0491.00', '204.050.0073.00', '254.001.0057.00', '254.001.0131.00',
-            '254.002.0001.00', '180.000.0060.00', '180.000.0062.00', '180.000.0063.00', '180.000.0065.00',
-            '180.000.0066.00', '180.000.0067.00', '180.000.0068.00', '180.000.0069.00', '180.000.0099.00',
-            '180.000.0152.00', '180.000.0153.00', '180.000.0154.00', '180.000.0163.00', '180.000.0164.00',
-            '180.000.0165.00', '180.000.0166.00', '180.000.0290.00', '180.259.0057.00', '180.259.0058.00',
-            '180.259.0059.00', '180.259.0060.00', '180.259.0061.00', '180.259.0062.00', '180.259.0063.00',
-            '180.259.0064.00', '180.259.0065.00', '180.259.0066.00', '180.259.0067.00', '180.259.0068.00',
-            '180.259.0069.00', '180.259.0070.00', '180.259.0079.00', '180.259.0080.00', '180.259.0081.00',
-            '180.259.0082.00', '180.259.0099.00', '180.259.0100.00', '180.259.0102.00', '180.259.0103.00',
-            '180.259.0105.00', '180.259.0106.00', '180.259.0107.00', '180.259.0108.00', '180.259.0109.00',
-            '180.259.0110.00', '180.259.0113.00', '180.259.0117.00', '180.259.0118.00', '180.259.0132.00',
-            '180.259.0133.00', '180.259.0134.00', '180.259.0136.00', '180.259.0151.00', '180.259.0152.00',
-            '180.259.0154.00', '180.259.0155.00', '180.259.0156.00', '180.259.0157.00', '180.259.0158.00',
-            '180.259.0159.00', '180.259.0160.00', '180.259.0161.00', '180.259.0162.00', '180.259.0327.00',
-            '180.259.0328.00', '180.259.0329.00', '180.259.0353.00', '180.259.0354.00', '180.259.0355.00',
-            '180.259.0356.00', '180.259.0357.00', '180.259.0358.00', '180.259.0359.00', '180.259.0360.00',
-            '180.259.0361.00', '180.259.0362.00', '180.259.0363.00', '180.259.0364.00', '180.259.0389.00', '180.259.0390.00',
-            '180.259.0497.00', '180.259.0498.00', '180.259.0499.00', '180.259.0507.00', '180.259.0544.00',
-            '180.259.0545.00', '180.259.0546.00', '180.259.0580.00', '180.259.0581.00', '180.259.0582.00',
-            '180.259.0583.00', '180.259.0584.00', '180.259.0585.00', '180.259.0586.00', '180.259.0587.00', '180.259.0588.00',
-            '180.259.0591.00', '180.259.0592.00', '060.235.0140', '060.010.0011', '060.066.0757', '060.088.0208', '060.168.3339', '060.402.2019', '060.405.0105', '070.168.1316', '070.777.7772', '160.000.0320.00', '160.040.3799.11', '160.111.1431.00', '160.131.0641.00', '160.161.9021.00', '160.168.1310.00', '160.168.1312.00', '160.168.1408.00', '160.203.0167.00', '160.207.0014.00', '160.207.0015.00', '160.254.0184.00', '160.254.0203.00', '160.254.0317.00', '160.254.0330.00', '160.254.0586.00', '160.254.0599.00', '160.254.0635.00', '160.254.0649.00', '160.254.0677.00', '160.555.5001.00', '160.596.0138.00', '160.611.9361.00', '160.621.7479.00', '160.621.9003.00', '204.020.0051.00', '204.020.0313.00', '204.020.0484.00',
-            '060.168.4301'
-        ];
-
-        // 1) Tomamos TODO lo filtrado (no solo la página) excluyendo las claves a excluir
-        const rows = this.filtered().filter(r => !clavesAExcluir.includes(r.clave));
-
-        // 2) Definimos el orden de columnas (1..20)
-        const headers = [
-            'ENTIDAD',  // 1
-            'CLUES',               // 2
-            'ORDEN DE SUMINISTRO', // 3
-            'RFC',       // 4
-            'CLAVE',          // 7
-            'ESTADO DEL INSUMO',   // 14
-            'INVENTARIO DISPONIBLE', // 15
-            'LOTE',              // 16
-            'F_CAD',  // 18
-            'F_FAB',// 19
-            'F_REC',  // 20
-        ] as const;
-
-        // 3) Mapeo a la forma requerida ignorando ordenes de suministro nulas y con inventario disponible > 0
-        const data = rows.filter(r => r.inventarioDisponible > 0).map(r => {
-            let RFC = (r.rfcProveedor ?? 'IMSS999999999').trim();
-            // caso especifico
-            if (RFC === 'PFA800109TG4' || RFC === 'PFA -800109-TG4') {
-                RFC = 'PFF -021025-1V4'; // pierre fabre 
-            }
-
-            return {
-                'ENTIDAD': 'BAJA CALIFORNIA',
-                'CLUES': r.cluesSSA ?? (r.clues ?? ''),
-                'ORDEN DE SUMINISTRO': r.ordenDeSuministro ?? 'SIN ORDEN',
-                'RFC': RFC,
-                'CLAVE': r.clave ?? '',
-                'ESTADO DEL INSUMO': r.estadoInsumo ?? 1,
-                'INVENTARIO DISPONIBLE': r.inventarioDisponible ?? 0,
-                'LOTE': r.lote ?? '',
-                // ⬇⬇ aquí el formateo fijo a 'dd/mm/yyyy 00:00:00', sin UTC
-                'F_CAD': formatExcelDate0(
-                    r.fechaCaducidad, '31/12/2025 00:00:00'
-                ),
-                'F_FAB': formatExcelDate0(
-                    r.fechaFabricacion, '01/01/2025 00:00:00'
-                ),
-                'F_REC': formatExcelDate0(
-                    r.fechaRecepcion, '01/01/2025 00:00:00'
-                ),
-            };
+        this.kitsService.list().subscribe({
+            next: (resp: any[]) => {
+                const list = (resp ?? []).map(k => k.codigo as string);
+                this.kitsRuta.set(list.sort());
+                this.loadingKitsRuta.set(false);
+            },
+            error: (err) => {
+                console.error('Error obteniendo kits Ruta de la Salud', err);
+                this.kitsRuta.set([]);
+                this.loadingKitsRuta.set(false);
+            },
         });
-
-        // 4) Hoja y libro
-        const ws = XLSX.utils.json_to_sheet(data, { header: [...headers] as any });
-
-        // 5) Ajustes visuales (anchos de columnas aproximados)
-        ws['!cols'] = [
-            { wch: 18 }, // ENTIDAD
-            { wch: 16 }, // CLUES
-            { wch: 30 }, // ORDEN
-            { wch: 18 }, // RFC
-            { wch: 18 }, // CLAVE/CNIS
-            { wch: 8 }, // ESTADO
-            { wch: 16 }, // DISPONIBLE
-            { wch: 18 }, // LOTE
-            { wch: 20 }, // CADUCIDAD
-            { wch: 20 }, // FABRICACIÓN
-            { wch: 20 }, // RECEPCIÓN
-        ];
-
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
-
-        // 6) Nombre del archivo con timestamp
-        const stamp = new Date();
-        const yyyy = stamp.getFullYear();
-        const mm = String(stamp.getMonth() + 1).padStart(2, '0');
-        const dd = String(stamp.getDate()).padStart(2, '0');
-        const hh = String(stamp.getHours()).padStart(2, '0');
-        const mi = String(stamp.getMinutes()).padStart(2, '0');
-        const ss = String(stamp.getSeconds()).padStart(2, '0');
-        const filename = `LAYOUT_SACIA_IMSSB_${yyyy}${mm}${dd}_${hh}${mi}${ss}.xlsx`;
-
-        // 7) Descargar
-        XLSX.writeFile(wb, filename, { bookType: 'xlsx' });
     }
+
+    onKitRutaChange(value: string) {
+        this.kitRutaSaludElegido.set(value);
+
+        const kitParam = value === 'ALL' ? undefined : value;
+
+        this.balanceoService.obtenerClavesRutasSalud(kitParam).subscribe({
+            next: (resp: any) => {
+                const set = new Set<string>(
+                    (resp.claves ?? []).map((c: string) => this.invSrv.normalizarClave(c))
+                );
+                this.clavesRutasSalud.set(set);
+            },
+            error: (err) => {
+                console.error('Error cargando claves de Rutas de la Salud', err);
+                this.clavesRutasSalud.set(null);
+            },
+        });
+    }
+
+    onRdlSModeChange(value: RdlSMode) {
+        this.rdlsMode.set(value);
+
+        // ✅ Caso 1: Inventario · todas (sin filtro RdlS)
+        if (value === 'INV_ALL') {
+            this.clavesRutasSalud.set(null);  // null => "no aplicar filtro"
+            return;                           // y NO pegamos al backend
+        }
+
+        // ✅ Caso 2: RdlS · todas o kit específico
+        const kitParam = (value === 'RDLS_ALL') ? undefined : value;
+
+        this.balanceoService.obtenerClavesRutasSalud(kitParam).subscribe({
+            next: (resp: any) => {
+                const set = new Set<string>(
+                    (resp.claves ?? []).map((c: string) => this.invSrv.normalizarClave(c))
+                );
+                this.clavesRutasSalud.set(set);
+            },
+            error: (err) => {
+                console.error('Error cargando claves de RdlS', err);
+                this.clavesRutasSalud.set(null); // fallback: no filtrar
+            },
+        });
+    }
+
+
 }
 
 function aplicarFactor(disponible: number, factor?: FactorUnidad): number {

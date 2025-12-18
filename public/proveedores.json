@@ -1404,6 +1404,10 @@
         "descripcion": "MERCK SHARP  DOHME COMERCIALIZADORA S DE RL DE CV"
     },
     {
+        "rfc": "MS& -040819-FJA",
+        "descripcion": "MERCK SHARP & DOHME COMERCIALIZADORA S DE RL DE CV"
+    },
+    {
         "rfc": "MCO -131114-AAA",
         "descripcion": "MERSY CORP SA DE CV"
     },
@@ -2138,5 +2142,33 @@
     {
         "rfc": "NEO -080507-BY0",
         "descripcion": "NEODREN S DE RL DE CV"
+    },
+    {
+        "rfc": "SPA -960328-P62",
+        "descripcion": "SANOFI PASTEUR SA DE CV"
+    },
+    {
+        "rfc": "NME -940113-L8A",
+        "descripcion": "NEURONIC MEXICANA SA DE CV"
+    },
+    {
+        "rfc": "ROS -240228L10",
+        "descripcion": "ROSMEDVAL SA DE CV"
+    },
+    {
+        "rfc": "AFA -0610128Q0",
+        "descripcion": "ACCORD FARMA SA DE CV"
+    },
+    {
+        "rfc": "PRO -720307I77",
+        "descripcion": "PROGELA SA DE CV"
+    },
+    {
+        "rfc": "HEA -190411PA4",
+        "descripcion": "HEALTHYFI SA DE CV"
+    },
+    {
+        "rfc": "GRI -0305023M0",
+        "descripcion": "GRIMANN SA DE CV"
     }
 ]

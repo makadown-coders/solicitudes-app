@@ -90,7 +90,8 @@ export class ProveedoresService {
   private normalizeName(raw: string): string {
     return (raw ?? '')
       .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar acentos
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar acentos      
+      .replace(/[.,]/g, '') // quitar comas y puntos
       .replace(/\s+/g, ' ')
       .trim();
   }

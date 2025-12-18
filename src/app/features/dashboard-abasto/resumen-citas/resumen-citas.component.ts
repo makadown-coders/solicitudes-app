@@ -80,14 +80,8 @@ export class ResumenCitasComponent implements OnInit {
     }
 
     ngOnInit(): void {
-
         const set = new Set<string>();
-        /*this.citas.forEach(c => {
-            if (c.compra) set.add(c.compra);
-        });*/
         this.tiposCompra = Array.from(set).sort();
-
-        //this.cargarDeLocalStorage();
         this.inicializarFechas();
         this.cargarCitasDesdeBackend(true);
     }
@@ -138,13 +132,12 @@ export class ResumenCitasComponent implements OnInit {
                 }
             }
         });
-        //console.log('Días únicos en el rango:', Array.from(diasUnicos));
+        
         this.diasRango = Array.from(diasUnicos).sort((a, b) => {
             const da = new Date(a.split('/').reverse().join('-'));
             const db = new Date(b.split('/').reverse().join('-'));
             return da.getTime() - db.getTime();
         });
-        //console.log('Días del rango generados:', this.diasRango);
     }
 
     formatFecha(date: Date): string {
@@ -198,7 +191,6 @@ export class ResumenCitasComponent implements OnInit {
         this.datosAgrupados.forEach(d => {
             this.grupoExpandido[d.tipoEntrega] = true;
         });
-        console.log('Datos agrupados recalculados:', this.datosAgrupados);
     }
 
     onPeriodoSeleccionado(inicio: Date, fin: Date) {
@@ -296,9 +288,6 @@ export class ResumenCitasComponent implements OnInit {
         ).subscribe({
             next: (resp: CitaQueryResponse) => {
 
-                console.log('registros arrojados por backend:', resp.data?.length);
-                console.log('Rango de fechas seleccionado:', this.fechaInicio, ' - ', this.fechaFin);
-
                 const citasFiltradasPorFechaDesdeHasta = (resp.data ?? []).filter(cita => {
                     if (!cita.fecha_de_cita) return false;
                     // fecha de cita tiene un formato ej. "2024-12-16T08:00:00.000Z"
@@ -306,7 +295,6 @@ export class ResumenCitasComponent implements OnInit {
                     return fechaCita! >= this.fechaInicio && fechaCita! <= this.fechaFin;
                 });
 
-                console.log('Citas a manosear :', citasFiltradasPorFechaDesdeHasta);
                 this.citas.set(citasFiltradasPorFechaDesdeHasta ?? []);
                 // this.citas.set(resp?.data ?? []);
                 this.loading = false;
@@ -326,27 +314,12 @@ export class ResumenCitasComponent implements OnInit {
     // ============================================================
     procesarCitas() {
         const lista = this.citas();
-        // console.log('Lista Citas :', lista);
 
         const citasPendientes = [...lista];
-        /*this.citasPendientes = lista.filter(c =>
-          ((!c.fecha_recepcion_almacen || c.fecha_recepcion_almacen.trim() === '') &&
-            (c.estatus ?? '').toLowerCase() === 'vigente') ||
-          (c.estatus ?? '').toLowerCase() === 'incompleto'
-        );*/
-
-        // console.log('Citas pendientes:', this.citasPendientes);
-
-        /*
-        this.unidadesUnicas = Array.from(
-            new Set(this.citasPendientes.map(c => c.unidad ?? 'Desconocida'))
-        ).sort(); */
 
         this.tiposCompra = Array.from(
             new Set(citasPendientes.map(c => c.compra ?? 'Desconocido'))
         ).sort();
-        // console.log('Tipos de compra encontrados:', this.tiposCompra);
-        // this.recalcularAgrupacion();
     }
 
 }
