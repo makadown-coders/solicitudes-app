@@ -1,19 +1,25 @@
 // src/app/features/dashboard-abasto/resumen/resumen.component.ts
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ChartConfiguration, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Cita } from '../../../models/Cita';
 import { StorageVariables } from '../../../shared/storage-variables';
 import { PeriodoPickerDasboardComponent } from '../../../shared/periodo-picker/periodo-picker-dashboard.component';
-import { PeriodoFechasService } from '../../../shared/periodo-fechas.service';
 import { FormsModule } from '@angular/forms';
-import { CitaFilterService } from '../../../shared/cita-filter.service';
-import { FiltrosCita } from '../../../models/filtros-cita';
 import { CitaChartService } from '../../../shared/cita-chart.service';
 import { CumplimientoTimes, KPIsResumen, SubtotalEstatus, SubtotalTipoEntrega } from '../../../models/StatsCitas';
 import { DashboardService } from '../../../services/dashboard.service';
+
+type ProveedorStats = {
+  total: number;
+  atrasos: number;
+  aTiempo: number;
+  promedioEntregaMs: number;
+  promedioEntregaCount: number;
+};
 
 @Component({
   selector: 'app-resumen',
@@ -22,10 +28,12 @@ import { DashboardService } from '../../../services/dashboard.service';
     FormsModule, BaseChartDirective, PeriodoPickerDasboardComponent,
     NgSelectModule,],
   templateUrl: './resumen.component.html',
-  styleUrl: './resumen.component.css'
+  styleUrl: './resumen.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResumenComponent implements OnInit {
   cdRef = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
   private citas: Cita[] = [];
   // Opciones de filtros
   aniosDisponibles: number[] = [];
@@ -81,6 +89,7 @@ export class ResumenComponent implements OnInit {
   topTiemposPromedioEntregaProveedor: {
     proveedor: string;
     promedio: number;
+    promedioDias: number;
   }[] = [];
 
   stackedBarData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
@@ -155,9 +164,7 @@ export class ResumenComponent implements OnInit {
   fechaInicio: Date = new Date();
   fechaFin: Date = new Date();
 
-  citaFilterService = inject(CitaFilterService);
   citaChartService = inject(CitaChartService);
-  fechasService = inject(PeriodoFechasService);
 
   ngOnInit(): void {
     const compras = new Set(this.citas.map(c => c.compra).filter(Boolean));
@@ -176,26 +183,30 @@ export class ResumenComponent implements OnInit {
     //this.calcularDatos();
 
     // 🔹 SUSCRIPCIÓN: cada vez que el server devuelva citas filtradas, recalculamos todo
-    this.dash.resumenCitas$.subscribe((list) => {
-      this.citas = list ?? [];
-      // refresca catálogos dependientes (por si cambiaron con filtros)
-      const compras2 = new Set(this.citas.map(c => c.compra).filter(Boolean));
-      if (compras2.size > 0) this.tiposCompraDisponibles = Array.from(compras2).sort();
+    this.dash.resumenCitas$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((list) => {
+        this.citas = list ?? [];
+        // refresca catálogos dependientes (por si cambiaron con filtros)
+        const compras2 = new Set(this.citas.map(c => c.compra).filter(Boolean));
+        if (compras2.size > 0) this.tiposCompraDisponibles = Array.from(compras2).sort();
 
-      const tentregas2 = new Set(this.citas.map(c => c.tipo_de_entrega).filter(Boolean));
-      if (tentregas2.size > 0) this.tipoEntregaDisponibles = Array.from(tentregas2).sort();
+        const tentregas2 = new Set(this.citas.map(c => c.tipo_de_entrega).filter(Boolean));
+        if (tentregas2.size > 0) this.tipoEntregaDisponibles = Array.from(tentregas2).sort();
 
-      this.generarAniosDisponibles(); // por si el set de años cambia con filtros
-      this.calcularDatosCon(this.citas); // 👈 nueva función (ver abajo)
+        this.generarAniosDisponibles(); // por si el set de años cambia con filtros
+        this.calcularDatosCon(this.citas); // 👈 nueva función (ver abajo)
 
-      this.cdRef.markForCheck();
-    });
+        this.cdRef.markForCheck();
+      });
 
     // 👇 suscripción a stats del server
-    this.dash.kpis$.subscribe(k => {
-      this.kpisServer = k;
-      this.cdRef.markForCheck();  // 👈 fuerza re-render OnPush
-    });
+    this.dash.kpis$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(k => {
+        this.kpisServer = k;
+        this.cdRef.markForCheck();  // 👈 fuerza re-render OnPush
+      });
 
     // Primera corrida: propaga filtros actuales y dispara carga al server
     this.propagateFiltersToServer();
@@ -321,15 +332,16 @@ export class ResumenComponent implements OnInit {
     });
 
     const citasFiltradas = citasFuente.filter(c => c.unidad != null && c.unidad.length > 0);  //this.citaFilterService.filtrar(citasFuente, filtros);
+    const proveedorStats = this.construirProveedorStats(citasFiltradas);
 
     this.obtenerKPIs(citasFiltradas);
     // Gráficas
     this.barChartData = this.citaChartService.obtenerPiezasPorUnidad(citasFiltradas);
     this.lineChartData = this.citaChartService.obtenerTendenciaDiaria(citasFiltradas);
     this.generarCumplimientoMensualPorBarras(citasFiltradas);
-    this.generarTopProveedores(citasFiltradas);
-    this.generarTopProveedoresCumplidos(citasFiltradas);
-    this.generarTopTiemposPromedioEntregaProveedor(citasFiltradas);
+    this.generarTopProveedores(proveedorStats);
+    this.generarTopProveedoresCumplidos(proveedorStats);
+    this.generarTopTiemposPromedioEntregaProveedor(proveedorStats);
 
     // this.propagateFiltersToServer();
     // this.dash.cargarStats();
@@ -342,6 +354,7 @@ export class ResumenComponent implements OnInit {
     // Total órdenes distintas ya se calcula, ahora contamos las vigentes
     const ordenesVigentes = new Set<string>();
     this.totalPiezasEmitidas = 0;
+    this.totalPiezasRecibidas = 0;
     this.totalEntregasEnFecha = 0;
     this.totalEntregasAtrasadas = 0;
     this.totalOrdenesCompletas = 0;
@@ -413,22 +426,49 @@ export class ResumenComponent implements OnInit {
     this.onFiltrosChanged();
   }
 
-  generarTopProveedores(citas: Cita[]) {
-    const resumen = new Map<string, { total: number; atrasos: number }>();
+  construirProveedorStats(citas: Cita[]): Map<string, ProveedorStats> {
+    const resumen = new Map<string, ProveedorStats>();
 
     for (const cita of citas) {
       const proveedor = cita.proveedor || 'SIN PROVEEDOR';
-      const total = resumen.get(proveedor) || { total: 0, atrasos: 0 };
-      total.total++;
+      const actual = resumen.get(proveedor) || {
+        total: 0,
+        atrasos: 0,
+        aTiempo: 0,
+        promedioEntregaMs: 0,
+        promedioEntregaCount: 0,
+      };
+
+      actual.total++;
+
       if (cita.fecha_limite_de_entrega && cita.fecha_recepcion_almacen) {
-        const f1 = new Date(cita.fecha_limite_de_entrega);
-        const f2 = new Date(cita.fecha_recepcion_almacen);
-        if (f2 > f1) total.atrasos++;
+        const fRecepcion = new Date(cita.fecha_recepcion_almacen);
+        const fLimite = new Date(cita.fecha_limite_de_entrega);
+        if (fRecepcion <= fLimite) {
+          actual.aTiempo++;
+        } else {
+          actual.atrasos++;
+        }
       }
-      resumen.set(proveedor, total);
+
+      if (cita.fecha_emision && cita.fecha_recepcion_almacen) {
+        const fEmision = new Date(cita.fecha_emision);
+        const fRecepcion = new Date(cita.fecha_recepcion_almacen);
+        const diferencia = fRecepcion.getTime() - fEmision.getTime();
+        if (!Number.isNaN(diferencia)) {
+          actual.promedioEntregaMs += diferencia;
+          actual.promedioEntregaCount++;
+        }
+      }
+
+      resumen.set(proveedor, actual);
     }
 
-    const lista = Array.from(resumen.entries()).map(([nombre, { total, atrasos }]) => ({
+    return resumen;
+  }
+
+  generarTopProveedores(stats: Map<string, ProveedorStats>) {
+    const lista = Array.from(stats.entries()).map(([nombre, { total, atrasos }]) => ({
       nombre,
       total,
       atrasos,
@@ -485,29 +525,15 @@ export class ResumenComponent implements OnInit {
     };
   }
 
-  generarTopProveedoresCumplidos(citas: Cita[]) {
-    const resumen = new Map<string, { total: number; aTiempo: number }>();
-
-    for (const cita of citas) {
-      const proveedor = cita.proveedor || 'SIN PROVEEDOR';
-      const actual = resumen.get(proveedor) || { total: 0, aTiempo: 0 };
-      actual.total++;
-
-      if (cita.fecha_limite_de_entrega && cita.fecha_recepcion_almacen) {
-        const fRecepcion = new Date(cita.fecha_recepcion_almacen);
-        const fLimite = new Date(cita.fecha_limite_de_entrega);
-        if (fRecepcion <= fLimite) {
-          actual.aTiempo++;
-        }
-      }
-      resumen.set(proveedor, actual);
-    }
-
-    const lista = Array.from(resumen.entries()).map(([nombre, { total, aTiempo }]) => ({
+  generarTopProveedoresCumplidos(stats: Map<string, ProveedorStats>) {
+    const lista = Array.from(stats.entries()).map(([nombre, { total, aTiempo, promedioEntregaMs, promedioEntregaCount }]) => ({
       nombre,
       total,
       aTiempo,
-      porcentaje: total > 0 ? (aTiempo / total) * 100 : 0
+      porcentaje: total > 0 ? (aTiempo / total) * 100 : 0,
+      tiempoPromedioEntrega: promedioEntregaCount > 0
+        ? this.convertMilliseconds(promedioEntregaMs / promedioEntregaCount).days
+        : undefined,
     }));
 
     const preCumplidos = lista.sort((a, b) => b.porcentaje - a.porcentaje);
@@ -515,68 +541,19 @@ export class ResumenComponent implements OnInit {
       .filter(p => p.total > 0 && p.porcentaje >= 90)
       .slice(0, 15)
       .sort((a, b) => b.aTiempo - a.aTiempo);
-
-    this.topProveedoresCumplidos.forEach((p) => {
-      p.tiempoPromedioEntrega = Math.abs(this.diasPromedioEntregaProveedor(p.nombre, citas));
-    });
   }
 
-  diasPromedioEntregaProveedor(nombre: string, citas: Cita[]): number {
-    const citasFiltradas = citas.filter(c => c.proveedor === nombre);
-    let diasPromedio = 0;
-    for (const cita of citasFiltradas) {
-      if (cita.fecha_emision && cita.fecha_recepcion_almacen) {
-        const fechasRecepcion = cita.fecha_recepcion_almacen
-          .split('/')
-          .map((f) => this.fechasService.parseLocalDate(f));
-
-        fechasRecepcion.forEach(fRecepcion => {
-          const fEmision = new Date(cita.fecha_emision);  //this.fechasService.parseLocalDate(cita.fecha_emision + '');
-          const diferencia = fRecepcion.getTime() - fEmision.getTime();
-          diasPromedio += diferencia;
-        });
-      }
-    }
-    return this.convertMilliseconds(diasPromedio / citasFiltradas.length).days;
-  }
-
-  generarTopTiemposPromedioEntregaProveedor(citasFiltradas: Cita[]) {
-    const resumen = new Map<string, { total: number; promedio: number }>();
-
-    for (const cita of citasFiltradas) {
-      const proveedor = cita.proveedor || 'SIN PROVEEDOR';
-      const actual = resumen.get(proveedor) || { total: 0, promedio: 0 };
-
-      if (cita.fecha_emision && cita.fecha_recepcion_almacen) {
-        actual.total++;
-          const fEmision = new Date(cita.fecha_emision); // this.fechasService.parseLocalDate(cita.fecha_emision + '');
-          const fRecepcion = new Date(cita.fecha_recepcion_almacen);
-          const diferencia = fRecepcion.getTime() - fEmision.getTime();
-          actual.promedio += diferencia;
-        /*
-        // seccion de codigo por deprecar, ya que la fecha de recepcion ahora es unica (la minima)
-        const fechasRecepcion = cita.fecha_recepcion_almacen
-          .split('/')
-          .map((f) => this.fechasService.parseLocalDate(f));
-
-        fechasRecepcion.forEach(fRecepcion => {
-          actual.total++;
-          const fEmision = this.fechasService.parseLocalDate(cita.fecha_emision + '');
-          const diferencia = fRecepcion.getTime() - fEmision.getTime();
-          actual.promedio += diferencia;
-        });*/
-      }
-      resumen.set(proveedor, actual);
-    }
-
-    const lista = Array.from(resumen.entries()).map(([proveedor, { total, promedio }]) => ({
-      proveedor,
-      total,
-      promedio: promedio / total
-    }));
-
+  generarTopTiemposPromedioEntregaProveedor(stats: Map<string, ProveedorStats>) {
     this.topTiemposPromedioEntregaProveedor = [];
-    const promedios = lista
+    const promedios = Array.from(stats.entries())
+      .map(([proveedor, { promedioEntregaMs, promedioEntregaCount }]) => ({
+        proveedor,
+        total: promedioEntregaCount,
+        promedio: promedioEntregaCount > 0 ? promedioEntregaMs / promedioEntregaCount : 0,
+        promedioDias: promedioEntregaCount > 0
+          ? this.convertMilliseconds(promedioEntregaMs / promedioEntregaCount).days
+          : 0,
+      }))
       .filter(p => p.total > 0)
       .sort((a, b) => a.promedio - b.promedio)
       .slice(0, 15);
@@ -588,7 +565,7 @@ export class ResumenComponent implements OnInit {
       .slice(0, 15);*/
 
     promedios.forEach(p => this.topTiemposPromedioEntregaProveedor
-      .push({ proveedor: p.proveedor, promedio: p.promedio })
+      .push({ proveedor: p.proveedor, promedio: p.promedio, promedioDias: p.promedioDias })
     );
   }
 
@@ -600,6 +577,14 @@ export class ResumenComponent implements OnInit {
     const minutes = Math.floor(hoursMs / (60 * 1000));
 
     return { days, hours, minutes };
+  }
+
+  trackByProveedorNombre(index: number, proveedor: { nombre: string }) {
+    return proveedor.nombre;
+  }
+
+  trackByProveedorPromedio(index: number, proveedor: { proveedor: string }) {
+    return proveedor.proveedor;
   }
 
 }

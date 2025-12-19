@@ -108,7 +108,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let proveedor of topProveedoresIncumplidos; let i = index">
+          <tr *ngFor="let proveedor of topProveedoresIncumplidos; let i = index; trackBy: trackByProveedorNombre">
             <td class="py-1 renglon-info">{{ i + 1 }}</td>
             <td class="py-1 font-medium renglon-info">{{ proveedor.nombre }}</td>
             <td class="py-1 renglon-info">{{ proveedor.total }}</td>
@@ -135,7 +135,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let proveedor of topProveedoresCumplidos; let i = index">
+          <tr *ngFor="let proveedor of topProveedoresCumplidos; let i = index; trackBy: trackByProveedorNombre">
             <td class="py-1 renglon-info">{{ i + 1 }}</td>
             <td class="py-1 font-medium renglon-info">{{ proveedor.nombre }}</td>
             <td class="py-1 renglon-info">{{ proveedor.total }}</td>
@@ -158,10 +158,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let proveedor of topTiemposPromedioEntregaProveedor; let i = index">
+          <tr *ngFor="let proveedor of topTiemposPromedioEntregaProveedor; let i = index; trackBy: trackByProveedorPromedio">
             <td class="py-1 renglon-info">{{ i + 1 }}</td>
             <td class="py-1 font-medium renglon-info">{{ proveedor.proveedor }}</td>
-            <td class="py-1 renglon-info">{{ convertMilliseconds(proveedor.promedio).days }} días</td>
+            <td class="py-1 renglon-info">{{ proveedor.promedioDias }} días</td>
           </tr>
         </tbody>
       </table>
