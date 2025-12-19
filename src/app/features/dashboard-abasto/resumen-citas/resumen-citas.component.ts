@@ -9,6 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { DetalleOrdenesModalComponent } from '../../../shared/detalle-ordenes-modal/detalle-ordenes-modal.component';
 import { CitaQueryResponse } from '../../../models/CitaQueryResponse';
 import { CitasService } from '../../../services/citas.service';
+import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
 
 
 @Component({
@@ -22,7 +23,8 @@ import { CitasService } from '../../../services/citas.service';
     templateUrl: './resumen-citas.component.html',
     styleUrls: ['./resumen-citas.component.css']
 })
-export class ResumenCitasComponent implements OnInit {
+export class ResumenCitasComponent extends AbstractTabComponent implements OnInit {
+    mostradoPorPrimeraVez = false;
     citas = signal<Cita[]>([]);
 
     // Variables de control
@@ -70,6 +72,7 @@ export class ResumenCitasComponent implements OnInit {
     }
 
     constructor(private fechasService: PeriodoFechasService) {
+        super();
         effect(() => {
             const citas = this.citas();
             if (!citas.length) return;
@@ -80,10 +83,9 @@ export class ResumenCitasComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        const set = new Set<string>();
-        this.tiposCompra = Array.from(set).sort();
-        this.inicializarFechas();
-        this.cargarCitasDesdeBackend(true);
+        if (!this.mostradoPorPrimeraVez && this.isActive) {
+            this.onTabActivated();
+        }
     }
 
     inicializarFechas() {
@@ -132,7 +134,7 @@ export class ResumenCitasComponent implements OnInit {
                 }
             }
         });
-        
+
         this.diasRango = Array.from(diasUnicos).sort((a, b) => {
             const da = new Date(a.split('/').reverse().join('-'));
             const db = new Date(b.split('/').reverse().join('-'));
@@ -320,6 +322,19 @@ export class ResumenCitasComponent implements OnInit {
         this.tiposCompra = Array.from(
             new Set(citasPendientes.map(c => c.compra ?? 'Desconocido'))
         ).sort();
+    }
+
+    protected override onTabActivated(): void {
+        if (!this.mostradoPorPrimeraVez) {
+            const set = new Set<string>();
+            this.tiposCompra = Array.from(set).sort();
+            this.inicializarFechas();
+            this.cargarCitasDesdeBackend(true);
+            this.mostradoPorPrimeraVez = true;
+        }
+    }
+    protected override onTabDeactivated(): void {
+        // No action needed
     }
 
 }

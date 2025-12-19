@@ -1,4 +1,8 @@
-import { Component, Input, OnChanges, SimpleChanges, ViewChildren, QueryList, ElementRef, OnInit, signal, ChangeDetectionStrategy, inject } from '@angular/core';
+import {
+  Component, Input, OnChanges, SimpleChanges,
+  ViewChildren, QueryList, ElementRef, OnInit, signal,
+  ChangeDetectionStrategy, inject
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Cita } from '../../../models/Cita';
 import { PeriodoFechasService } from '../../../shared/periodo-fechas.service';
@@ -9,6 +13,9 @@ import { StorageVariables } from '../../../shared/storage-variables';
 import { CitaQueryResponse } from '../../../models/CitaQueryResponse';
 import { CitasService } from '../../../services/citas.service';
 import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
+import { ArticulosService } from '../../../services/articulos.service';
+import { ProveedoresService } from '../../../services/proveedores.service';
+import { catchError, firstValueFrom, Observable, of } from 'rxjs';
 
 interface GrupoUnidad {
   unidad: string;
@@ -40,7 +47,8 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
   citasAgendadasSinRecepcion: Cita[] = [];
   unidadesUnicas: string[] = [];
   tiposCompra: string[] = [];
-  unidadesAgrupadas: { unidad: string; citas: Cita[] }[] = [];
+
+  unidadesAgrupadas = signal<{ unidad: string; citas: Cita[] }[]>([]);
 
   unidadExpandida: string | null = null;
 
@@ -63,13 +71,19 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
 
   private fechasService = inject(PeriodoFechasService);
   private citasService = inject(CitasService);
+  private artSrv = inject(ArticulosService);
+  private provSrv = inject(ProveedoresService);
 
   // ============================================================
   //                INIT
   // ============================================================
   ngOnInit(): void {
-    this.cargarDeLocalStorage();
-    this.cargarCitasDesdeBackend(true);
+    if ((!this.mostradoPorPrimeraVez && this.isActive) ||
+      (this.unidadesAgrupadas().length === 0)) {
+      setTimeout(() => {
+        this.onTabActivated();
+      }, 5000);
+    }
   }
 
   // ============================================================
@@ -106,11 +120,11 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
       },
       { forceRefresh }
     ).subscribe({
-      next: (resp: CitaQueryResponse) => {
+      next: async (resp: CitaQueryResponse) => {
         // console.log('Citas pendientes:', resp.data);
         this.citas.set(resp?.data ?? []);
         this.loading = false;
-        this.procesarCitas();
+        await this.procesarCitas();
       },
       error: err => {
         this.loading = false;
@@ -141,7 +155,7 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
   // ============================================================
   //         PROCESAMIENTOS Y AGRUPACIONES
   // ============================================================
-  procesarCitas() {
+  async procesarCitas() {
     const lista = this.citas();
     // console.log('Lista Citas :', lista);
 
@@ -162,10 +176,10 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
       new Set(this.citasPendientes.map(c => c.compra ?? 'Desconocido'))
     ).sort();
 
-    this.actualizarAgrupacion();
+    await this.actualizarAgrupacion();
   }
 
-  actualizarAgrupacion() {
+  async actualizarAgrupacion() {
     // Persistencia
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_TEXTO, this.filtroBusqueda);
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_UNIDAD, this.filtroUnidad);
@@ -176,6 +190,19 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
 
     const hoy = new Date();
     const lista = this.citasPendientes;
+
+    let articulosMapa: Record<string, { descripcion: string; presentacion?: string; categoria?: string | null }> = {};
+
+    try {
+      // Usamos el servicio en lugar de la llamada directa
+      articulosMapa = await firstValueFrom(
+        this.artSrv.getArticulosMapa().pipe(
+          catchError(() => of()) // En caso de error, retornamos objeto vacío
+        )
+      );
+    } catch {
+      articulosMapa = {};
+    }
 
     let debugCount = 0;
     const citasFiltradas = lista.filter(c => {
@@ -230,17 +257,29 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
     // ============================
     const citasPorUnidad = new Map<string, Cita[]>();
     citasFiltradas.forEach(c => {
+      const articulo = articulosMapa[c.clave_cnis];
+      // agregar descripcion, ya que es el unico campo que no viene en la cita
+      if (articulo) {
+        c.descripcion = articulo.descripcion;
+      }
+      let proveedor = c.proveedor ?? 'Desconocido';
+      const provFromService = this.provSrv.findByNombre(proveedor);
+      if (provFromService && provFromService.rfc && provFromService.rfc.trim() !== '') {
+        proveedor += ' (' + provFromService.rfc + ')';
+        c.proveedor = proveedor;
+      }
+
       const unidad = c.unidad ?? 'Desconocida';
       if (!citasPorUnidad.has(unidad)) citasPorUnidad.set(unidad, []);
       citasPorUnidad.get(unidad)!.push(c);
     });
 
-    this.unidadesAgrupadas = Array.from(citasPorUnidad.entries()).map(([unidad, citas]) => ({
+    const agrupadas = Array.from(citasPorUnidad.entries()).map(([unidad, citas]) => ({
       unidad,
       citas,
     }));
-
-    this.unidadesAgrupadas.sort((a, b) => b.citas.length - a.citas.length);
+    agrupadas.sort((a, b) => b.citas.length - a.citas.length);
+    this.unidadesAgrupadas.set(agrupadas);    
 
     // ============================
     //     KPIs derivados
@@ -307,8 +346,12 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
   }
 
   protected override onTabActivated(): void {
+    console.log('Citas pendientes onTabActivated');
     if (this.mostradoPorPrimeraVez === false) {
-      this.actualizarAgrupacion();
+      console.log('Citas pendientes primera vez');
+      this.cargarDeLocalStorage();
+      this.cargarCitasDesdeBackend(true);
+      //this.actualizarAgrupacion();
       this.mostradoPorPrimeraVez = true;
     }
   }
@@ -316,3 +359,5 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
     // No action needed
   }
 }
+
+

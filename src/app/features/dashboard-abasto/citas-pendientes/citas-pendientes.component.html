@@ -83,7 +83,7 @@
   </div>
 
   <!-- Acordeones -->
-  <div *ngFor="let grupo of unidadesAgrupadas; let i = index" class="mb-4 shadow-sm border rounded" #grupoUnidad>
+  <div *ngFor="let grupo of unidadesAgrupadas(); let i = index" class="mb-4 shadow-sm border rounded" #grupoUnidad>
     <button type="button" (click)="toggleUnidad(grupo.unidad)"
       class="p-4 w-full text-left font-semibold text-green-900 bg-green-100 hover:bg-green-200 transition">
       {{ grupo.unidad }} — Total: {{ grupo.citas.length | number }} cita(s)
@@ -121,7 +121,10 @@
             <td class="p-2 border">{{ cita.proveedor }}</td>
             <td class="p-2 border">{{ cita.clues_destino }}</td>
             <td class="p-2 border">{{ cita.clave_cnis }}</td>
-            <td class="p-2 border">{{ cita.descripcion }}</td>
+            <td class="p-2 border" title="{{ cita.descripcion }}">
+              {{ cita.descripcion ? ((cita.descripcion.length > 50) ? (cita.descripcion | slice: 0:30) + ' [...]' : cita.descripcion
+              ) : '—' }}
+            </td>
             <td class="p-2 border">{{ cita.compra }}</td>
             <td class="p-2 text-right border">{{ cita.no_de_piezas_emitidas || 0 }}</td>
             <td class="p-2 border">{{ cita.fecha_limite_de_entrega | date: 'dd/MM/yyyy' }}</td>

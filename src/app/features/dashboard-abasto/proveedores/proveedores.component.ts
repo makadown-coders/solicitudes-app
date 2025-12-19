@@ -18,8 +18,10 @@ import { StorageVariables } from '../../../shared/storage-variables';
 import { DetalleCitaModalComponent } from '../../../shared/detalle-cita-modal/detalle-cita-modal.component';
 import { CitasService } from '../../../services/citas.service';
 import { CitaQueryResponse } from '../../../models/CitaQueryResponse';
-import { Observable } from 'rxjs';
+import { catchError, firstValueFrom, Observable, of } from 'rxjs';
 import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
+import { ArticulosService } from '../../../services/articulos.service';
+import { ProveedoresService } from '../../../services/proveedores.service';
 
 @Component({
     selector: 'app-proveedores',
@@ -62,6 +64,8 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
     // inyección de servicios
     private fechasService = inject(PeriodoFechasService);
     private citasService = inject(CitasService);
+    private artSrv = inject(ArticulosService);
+    private provSrv = inject(ProveedoresService);
 
     proveedoresAgrupados = signal<{ proveedor: string; citas: Cita[] }[]>([]);
     // proveedoresAgrupados: { proveedor: string; citas: Cita[] }[] = [];
@@ -92,7 +96,7 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
     // =======================
     //      Carga backend
     // =======================
-    private cargarCitasDesdeBackend(cargandoDesdeNgOnInit = false, forceRefresh = false): void {
+    private async cargarCitasDesdeBackend(cargandoDesdeNgOnInit = false, forceRefresh = false) {
         this.loading = true;
         this.errorMsg = null;
 
@@ -109,11 +113,11 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
                 limit: 20000
             },
                 { forceRefresh }).subscribe({
-                    next: (rows: CitaQueryResponse) => {
+                    next: async (rows: CitaQueryResponse) => {
                         this.citas.set(rows ? rows.data : []);
                         // Reaplicar filtros en memoria
                         this.loading = false;
-                        this.onBusqueda(cargandoDesdeNgOnInit);
+                        await this.onBusqueda(cargandoDesdeNgOnInit);
                     },
                     error: (err) => {
                         console.error('Error al cargar citas para Proveedores', err);
@@ -155,7 +159,7 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
         }
     }
 
-    onPeriodoSeleccionado(
+    async onPeriodoSeleccionado(
         texto: string,
         fechaInicio: Date,
         fechaFin: Date
@@ -175,10 +179,10 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
         );
 
         // 🔁 nuevo fetch desde backend con el nuevo rango
-        this.cargarCitasDesdeBackend();
+        await this.cargarCitasDesdeBackend();
     }
 
-    onBusqueda(cargandoDesdeNgOnInit = false) {
+    async onBusqueda(cargandoDesdeNgOnInit = false) {
         if (!cargandoDesdeNgOnInit) {
             // solo persiste filtros y recalcula agrupación en memoria
             localStorage.setItem(
@@ -194,7 +198,8 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
                 this.filtroCompra
             );
         }
-        this.proveedoresAgrupados.set(this.getProveedoresAgrupados());
+        const agrupados = await this.getProveedoresAgrupados();
+        this.proveedoresAgrupados.set(agrupados);
     }
 
     // =======================
@@ -226,7 +231,20 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
         );
     }
 
-    getProveedoresAgrupados(): { proveedor: string; citas: Cita[] }[] {
+    async getProveedoresAgrupados(): Promise<{ proveedor: string; citas: Cita[] }[]> {
+        let articulosMapa: Record<string, { descripcion: string; presentacion?: string; categoria?: string | null }> = {};
+        
+            try {
+              // Usamos el servicio en lugar de la llamada directa
+              articulosMapa = await firstValueFrom(
+                this.artSrv.getArticulosMapa().pipe(
+                  catchError(() => of({})) // En caso de error, retornamos objeto vacío
+                )
+              );
+            } catch {
+              articulosMapa = {};
+            }
+
         const proveedorMap = new Map<string, Cita[]>();
         const lista = this.citas(); // 👈 usamos el valor actual del signal
 
@@ -262,10 +280,19 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
         });
 
         // console.log('Citas filtradas:', citasFiltradas);
-
-        citasFiltradas.forEach((c) => {
-            const proveedor = c.proveedor ?? 'Desconocido';
+        citasFiltradas.forEach((c) => {            
+            const articulo = articulosMapa[c.clave_cnis];
+            // agregar descripcion, ya que es el unico campo que no viene en la cita
+            if (articulo) {
+                c.descripcion = articulo.descripcion;
+            }
+            let proveedor = c.proveedor ?? 'Desconocido';
+            const provFromService = this.provSrv.findByNombre(proveedor);
+            if (provFromService && provFromService.rfc && provFromService.rfc.trim() !== '') {
+                proveedor += ' (' + provFromService.rfc + ')';
+            }
             if (!proveedorMap.has(proveedor)) proveedorMap.set(proveedor, []);
+            
             proveedorMap.get(proveedor)!.push(c);
         });
 
@@ -332,6 +359,6 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
     }
     
     protected override onTabDeactivated(): void {
-        throw new Error('Method not implemented.');
+         // No se requiere acción específica al desactivar la pestaña actualmente
     }
 }

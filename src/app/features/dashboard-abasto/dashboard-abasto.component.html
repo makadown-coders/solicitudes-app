@@ -37,7 +37,7 @@
         <app-resumen></app-resumen>
       </div>
       <div [hidden]="activeTab !== 'Existencias (CPM)'" class="cursor-pointer">
-        <app-existencias></app-existencias>
+        <app-existencias [isActive]="activeTab === 'Existencias (CPM)'"></app-existencias>
       </div>
       <div [hidden]="activeTab !== 'Citas Completadas'" class="cursor-pointer">
         <app-proveedores [isActive]="activeTab === 'Citas Completadas'"></app-proveedores>
@@ -49,7 +49,7 @@
         <app-inventario-critico></app-inventario-critico>
       </!-->
       <div [hidden]="activeTab !== 'Resumen Citas'" class="cursor-pointer">
-        <app-resumen-citas></app-resumen-citas>
+        <app-resumen-citas [isActive]="activeTab === 'Resumen Citas'"></app-resumen-citas>
       </div>
       <div [hidden]="activeTab !== 'Existencias (beta)'" class="cursor-pointer">
         <app-inventario-tab [isActive]="activeTab === 'Existencias (beta)'"></app-inventario-tab>
