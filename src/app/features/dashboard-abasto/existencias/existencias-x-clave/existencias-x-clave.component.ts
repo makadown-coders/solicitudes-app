@@ -26,6 +26,13 @@ import { FactorUnidad } from '../../../../models/factor-unidad';
 import { CitasService } from '../../../../services/citas.service';
 import { AbstractTabComponent } from '../../../../shared/abstract-tab.component';
 
+const ALMACENES_JURIS: Record<string, { nombre: string; cluesimb: string }> = {
+    mexicali: { nombre: 'ALMACÉN DE MEXICALI', cluesimb: 'BCIMB001405' },
+    tijuana: { nombre: 'ALMACEN TIJUANA', cluesimb: 'BCIMB001335' },
+    ensenada: { nombre: 'ALMACEN ENSENADA', cluesimb: 'BCIMB001340' },
+};
+const JURISDICCION_ALMACENES = ['mexicali', 'tijuana', 'ensenada'];
+
 /**
  * Componente para mostrar las existencias por clave.
  * Tambien se usa en existencias x unidad por medio de un "modal dialog"
@@ -280,27 +287,42 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
         this.datosAgrupados = [];
         this.mostrarNotaFactor = false;
         if (!clave) return;
-        // TODO: por optimizar esto jalando del backend
-        const ALMACENES_JURIS: Record<string, { nombre: string; cluesimb: string }> = {
-            mexicali: { nombre: 'ALMACÉN DE MEXICALI', cluesimb: 'BCIMB001405' },
-            tijuana: { nombre: 'ALMACEN TIJUANA', cluesimb: 'BCIMB001335' },
-            ensenada: { nombre: 'ALMACEN ENSENADA', cluesimb: 'BCIMB001340' },
-        };
-        const jurisdiccionAlmacenes = ['mexicali', 'tijuana', 'ensenada'];
-
         const agrupadoPorAlmacen = new Map<string, UnidadClaveResumen[]>();
+        const hospitalesPorJurisdiccion = new Map<string, typeof hospitalesData>();
+        for (const hospital of hospitalesData) {
+            const jurisdiccion = hospital.jurisdiccion.toLocaleLowerCase();
+            if (!hospitalesPorJurisdiccion.has(jurisdiccion)) {
+                hospitalesPorJurisdiccion.set(jurisdiccion, []);
+            }
+            hospitalesPorJurisdiccion.get(jurisdiccion)!.push(hospital);
+        }
+        const cpmsPorUnidad = new Map<string, number>();
+        for (const cpm of this.cpms) {
+            if (cpm.clave === clave) {
+                cpmsPorUnidad.set(cpm.cluesimb, cpm.cantidad ?? 0);
+            }
+        }
+        const sumExistenciaPorClave = (items?: Inventario[]) => {
+            if (!items) return 0;
+            let total = 0;
+            for (const item of items) {
+                if (item.clave === clave) {
+                    total += (item.disponible - item.comprometidos);
+                }
+            }
+            return total;
+        };
+        const factorTasks: Promise<void>[] = [];
 
-        for (const municipio of jurisdiccionAlmacenes) {
-            const hospitalesDeJurisdiccion = hospitalesData
-                .filter(h => h.jurisdiccion.toLocaleLowerCase() === municipio);
+        for (const municipio of JURISDICCION_ALMACENES) {
+            const hospitalesDeJurisdiccion = hospitalesPorJurisdiccion.get(municipio) ?? [];
+            const unidadesResumen: UnidadClaveResumen[] = [];
+            agrupadoPorAlmacen.set(municipio, unidadesResumen);
 
             for (const hospital of hospitalesDeJurisdiccion) {
                 const hospitalClues = hospital.cluesimb;
 
-                // existencia DISP cruda de la unidad
-                const existenciasInsumo = this.existenciaUnidades
-                    .get(hospital.key)
-                    ?.filter(i => i.clave === clave);
+                const existenciaDisp = sumExistenciaPorClave(this.existenciaUnidades.get(hospital.key));
 
                 const unidadResumen: UnidadClaveResumen = {
                     unidad: hospital?.nombre ?? hospitalClues,
@@ -309,62 +331,41 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
                     clave: { cpm: 0, existencia: 0, reposicion: 0 },
                 } as any;
 
-                // CPM
-                const cpmEntry = this.cpms.find(c => c.clave === clave && c.cluesimb === hospitalClues);
-                const cpm = cpmEntry?.cantidad ?? 0;
+                const cpm = cpmsPorUnidad.get(hospitalClues) ?? 0;
                 unidadResumen.clave.cpm = cpm;
+                unidadResumen.clave.existencia = existenciaDisp;
 
-                if (existenciasInsumo) {
-                    for (const i of existenciasInsumo) {
-                        unidadResumen.clave.existencia += (i.disponible - i.comprometidos);
-                    }
-                }
-                const existenciaDisp = unidadResumen.clave.existencia;
+                const factorTask = this.getFactor(clave, hospitalClues).then((factor) => {
+                    const enDisp = !!factor.en_dispensacion;
+                    const fc = factor.cantidad_fc;
 
-                // FC por unidad (CLUES)
-                const factor = await this.getFactor(clave, hospitalClues);
-                const enDisp = !!factor.en_dispensacion;
-                const fc = factor.cantidad_fc;
+                    const existenciaBase = enDisp && fc > 1
+                        ? Math.floor(existenciaDisp / fc)
+                        : existenciaDisp;
 
-                const existenciaBase = enDisp && fc > 1
-                    ? Math.floor(existenciaDisp / fc)
-                    : existenciaDisp;
+                    unidadResumen.clave.existencia = existenciaBase;
+                    unidadResumen.clave.reposicion = cpm > existenciaBase ? (cpm - existenciaBase) : 0;
+                    (unidadResumen as any)._existenciaDisp = existenciaDisp;
+                });
+                factorTasks.push(factorTask);
 
-                unidadResumen.clave.existencia = existenciaBase;
-                unidadResumen.clave.reposicion = cpm > existenciaBase ? (cpm - existenciaBase) : 0;
-
-                // guarda DISP cruda para tooltip
-                (unidadResumen as any)._existenciaDisp = existenciaDisp;
-
-                if (!agrupadoPorAlmacen.has(municipio)) {
-                    agrupadoPorAlmacen.set(municipio, []);
-                }
-                agrupadoPorAlmacen.get(municipio)!.push(unidadResumen);
+                unidadesResumen.push(unidadResumen);
             }
             // calcular existencia de almacen
-            const imssb = ALMACENES_JURIS[municipio].cluesimb;
+            const imssb = ALMACENES_JURIS[municipio]?.cluesimb;
             if (imssb) {
-                const existenciasInsumo = this.existenciaUnidades
-                    .get(imssb)
-                    ?.filter(i => i.clave === clave);
-                console.info('existenciasInsumo', existenciasInsumo);
-                let existenciaDisp = 0;
-                if (existenciasInsumo) {
-                    for (const i of existenciasInsumo) {
-                        existenciaDisp += (i.disponible - i.comprometidos);
-                    }
-
-                    if (municipio.toLocaleLowerCase().includes('mexicali') && this.existenciaAlmacenes) {
-                        this.existenciaAlmacenes.existenciasAZM = existenciaDisp;
-                    } else if (municipio.toLocaleLowerCase().includes('ensenada') && this.existenciaAlmacenes) {
-                        this.existenciaAlmacenes.existenciasAZE = existenciaDisp;
-                    } else if (municipio.toLocaleLowerCase().includes('tijuana') && this.existenciaAlmacenes) {
-                        this.existenciaAlmacenes.existenciasAZT = existenciaDisp;
-                    }
+                const existenciaDisp = sumExistenciaPorClave(this.existenciaUnidades.get(imssb));
+                if (municipio.toLocaleLowerCase().includes('mexicali') && this.existenciaAlmacenes) {
+                    this.existenciaAlmacenes.existenciasAZM = existenciaDisp;
+                } else if (municipio.toLocaleLowerCase().includes('ensenada') && this.existenciaAlmacenes) {
+                    this.existenciaAlmacenes.existenciasAZE = existenciaDisp;
+                } else if (municipio.toLocaleLowerCase().includes('tijuana') && this.existenciaAlmacenes) {
+                    this.existenciaAlmacenes.existenciasAZT = existenciaDisp;
                 }
-
             }
         }
+
+        await Promise.all(factorTasks);
 
         // Construir estructura final
         this.datosAgrupados = Array.from(agrupadoPorAlmacen.entries()).map(([municipio, unidades]) => {
