@@ -40,7 +40,7 @@
         <app-existencias></app-existencias>
       </div>
       <div [hidden]="activeTab !== 'Citas Completadas'" class="cursor-pointer">
-        <app-proveedores></app-proveedores>
+        <app-proveedores [isActive]="activeTab === 'Citas Completadas'"></app-proveedores>
       </div>
       <div [hidden]="activeTab !== 'Citas pendientes'" class="cursor-pointer">
         <app-citas-pendientes [isActive]="activeTab === 'Citas pendientes'"></app-citas-pendientes>
@@ -52,10 +52,10 @@
         <app-resumen-citas></app-resumen-citas>
       </div>
       <div [hidden]="activeTab !== 'Existencias (beta)'" class="cursor-pointer">
-        <app-inventario-tab></app-inventario-tab>
+        <app-inventario-tab [isActive]="activeTab === 'Existencias (beta)'"></app-inventario-tab>
       </div>
       <div [hidden]="activeTab !== 'RdlS'" class="cursor-pointer">
-        <app-rdls></app-rdls>
+        <app-rdls [isActive]="activeTab === 'RdlS'"></app-rdls>
       </div>
       <div [hidden]="activeTab !== 'Acerca de'" class="p-6 cursor-pointer">
         @let anio = anioActual();

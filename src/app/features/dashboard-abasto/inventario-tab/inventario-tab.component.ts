@@ -1,6 +1,7 @@
 // src/app/features/dashboard-abasto/inventario/inventario-tab.component.ts
 import {
     AfterViewInit,
+    // AfterViewInit,
     ChangeDetectionStrategy,
     Component,
     computed,
@@ -29,6 +30,7 @@ import * as XLSX from 'xlsx';
 import { StorageSolicitudService } from '../../../services/storage-solicitud.service';
 import { BalanceoService } from '../../../services/balanceo.service';
 import { KitsService } from '../../../services/kits.service';
+import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
 
 const NO_CAT = 'NO ESPECIFICADO';
 
@@ -49,7 +51,8 @@ function normalizeCategoria(cat?: string | null): string {
     templateUrl: './inventario-tab.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class InventarioTabComponent implements AfterViewInit, OnDestroy {
+export class InventarioTabComponent extends AbstractTabComponent implements AfterViewInit, OnDestroy {
+    mostradoPorPrimeraVez = false;
     private invSrv = inject(InventarioService);
     private artSrv = inject(ArticulosService);
     private unidadesSrv = inject(UnidadesService);
@@ -118,8 +121,12 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
     private onResize = () => { };
 
     ngAfterViewInit() {
+        if (this.mostradoPorPrimeraVez === false && this.isActive) {
+            this.onTabActivated();
+        }
+    }
 
-        // sincronizar scrolls (horizontal)
+    private cargarKitsAfterInit() {
         const grid = this.gridScroll.nativeElement;
         const top = this.topScroll.nativeElement;
 
@@ -134,13 +141,13 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         // ✅ crear el effect dentro de un injection context válido
         runInInjectionContext(this.env, () => {
             effect(() => {
-                this.pageSlice();                 // lee la signal/computed
+                this.pageSlice(); // lee la signal/computed
                 queueMicrotask(() => this.measureGrid());
             });
         });
 
         this.cargarKitsRutaSalud();
-        this.onRdlSModeChange('INV_ALL'); // default: inventario completo
+        this.onRdlSModeChange('INV_ALL');
     }
 
     private measureGrid() {
@@ -157,6 +164,11 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
 
 
     constructor() {
+        super();
+        this.constructorDeTab();
+    }
+
+    constructorDeTab() {
         this.invSrv.loadCitasSlimIfNeeded();
         // 0) Cargar grupos de claves una vez (cachea e indexa)
         this.gruposSrv.load().subscribe(mp => {
@@ -332,7 +344,7 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
             // 2) Citas y Artículos
             const keyCita = `${clave}__${cleanLote(inv.lote)}`;
             const citas = this.invSrv.citasByClaveLote().get(keyCita) || [];
-            const art = this.articulosMapa()[clave] ?? {};            
+            const art = this.articulosMapa()[clave] ?? {};
 
             // 3) Factor por clave+clues
             const keyFactor = `${clave}__${clues}`;
@@ -658,8 +670,17 @@ export class InventarioTabComponent implements AfterViewInit, OnDestroy {
         });
     }
 
+    protected override onTabActivated(): void {
+        if (this.mostradoPorPrimeraVez === false) {
+            this.cargarKitsAfterInit(); // default: inventario completo
+        }
+    }
+    protected override onTabDeactivated(): void {
+        // no-op
+    }
 
-}
+
+} // class
 
 function aplicarFactor(disponible: number, factor?: FactorUnidad): number {
     if (!factor) return disponible; // aún no cargado → muestra base (se actualizará cuando llegue)

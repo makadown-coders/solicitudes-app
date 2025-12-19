@@ -122,7 +122,9 @@ export class DashboardService {
     let params = new HttpParams();
     const f = this.filtrosStats;
 
-    (f.ejercicio ?? []).forEach(v => params = params.append('ejercicio', String(v)));
+    // validar tambien que el arreglo de ejercicio no contenga valores nulos o indefinidos
+    (f.ejercicio ?? []).filter(v => v != null).forEach(v => params = params.append('ejercicio', String(v)));
+    // (f.ejercicio ?? []).forEach(v => params = params.append('ejercicio', String(v)));
 
     (f.estatus ?? []).forEach(v => params = params.append('estatus', v));
     (f.tipo_de_entrega ?? []).forEach(v => params = params.append('tipo_de_entrega', v));

@@ -536,12 +536,12 @@ export class InventarioService {
     // 3) si no hay, crea UNA y compártela
     const url = environment.apiUrl + '/citas/slim-existencia';
 
-    console.log('🚀 Cargando slim existencias desde backend...');
+    // console.log('🚀 Cargando slim existencias desde backend...');
     this.slimInFlight$ = defer(() =>
       this.http.get<{ ok: boolean; rows: CitaSlimExistencia[] }>(url)
     ).pipe(
       map((res:any) => {
-        console.log('✅ Slim respuesta:', res.data);
+        // console.log('✅ Slim respuesta:', res.data);
         return this.buildSlimMap(res.data.rows ?? []);
       }),
       tap(mp => {
@@ -574,7 +574,7 @@ export class InventarioService {
    */
   private buildSlimMap(rows: CitaSlimExistencia[]): Map<string, CitaSlimByClaveLote[]> {
     const mp = new Map<string, CitaSlimByClaveLote[]>();
-    console.log('🔍 buildSlimMap - procesando', rows.length, 'registros de citas slim');
+    // console.log('🔍 buildSlimMap - procesando', rows.length, 'registros de citas slim');
 
     for (const r of rows ?? []) {
       const clave = this.normalizarClave(r.clave_cnis);

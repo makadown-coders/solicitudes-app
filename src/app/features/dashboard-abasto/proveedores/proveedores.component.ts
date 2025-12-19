@@ -19,6 +19,7 @@ import { DetalleCitaModalComponent } from '../../../shared/detalle-cita-modal/de
 import { CitasService } from '../../../services/citas.service';
 import { CitaQueryResponse } from '../../../models/CitaQueryResponse';
 import { Observable } from 'rxjs';
+import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
 
 @Component({
     selector: 'app-proveedores',
@@ -33,7 +34,8 @@ import { Observable } from 'rxjs';
     styleUrls: ['./proveedores.component.css'],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ProveedoresComponent implements OnInit {
+export class ProveedoresComponent extends AbstractTabComponent implements OnInit {
+    mostradoPorPrimeraVez = false;
     // 🔁 Ahora las citas se cargan desde el backend, no por @Input()
     citas = signal<Cita[]>([]); // 👈 antes era Cita[] = []
 
@@ -65,13 +67,9 @@ export class ProveedoresComponent implements OnInit {
     // proveedoresAgrupados: { proveedor: string; citas: Cita[] }[] = [];
 
     ngOnInit(): void {
-        this.cargarDeLocalStorage();
-        this.periodoFormateado = this.fechasService.formatearRango(
-            this.fechaInicio,
-            this.fechaFin
-        );
-        // 🔁 Primera carga desde backend
-        this.cargarCitasDesdeBackend(true); // cargandoDesdeNgOnInit = true para evitar repersistencia
+        if (this.mostradoPorPrimeraVez === false && this.isActive) {
+            this.onTabActivated();
+        }
     }
 
     /**
@@ -111,7 +109,7 @@ export class ProveedoresComponent implements OnInit {
                 limit: 20000
             },
                 { forceRefresh }).subscribe({
-                    next: (rows: CitaQueryResponse) => {                        
+                    next: (rows: CitaQueryResponse) => {
                         this.citas.set(rows ? rows.data : []);
                         // Reaplicar filtros en memoria
                         this.loading = false;
@@ -318,5 +316,22 @@ export class ProveedoresComponent implements OnInit {
     cerrarModalDetalle() {
         this.mostrarModalDetalle = false;
         this.citaSeleccionada = null;
+    }
+
+    protected override onTabActivated(): void {
+        if (this.mostradoPorPrimeraVez === false) {
+            this.cargarDeLocalStorage();
+            this.periodoFormateado = this.fechasService.formatearRango(
+                this.fechaInicio,
+                this.fechaFin
+            );
+            // 🔁 Primera carga desde backend
+            this.cargarCitasDesdeBackend(true); // cargandoDesdeNgOnInit = true para evitar repersistencia
+            this.mostradoPorPrimeraVez = true;
+        }
+    }
+    
+    protected override onTabDeactivated(): void {
+        throw new Error('Method not implemented.');
     }
 }

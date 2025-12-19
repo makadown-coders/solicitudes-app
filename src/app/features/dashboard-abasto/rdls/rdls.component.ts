@@ -20,6 +20,7 @@ import { RdlsAlmacenesService } from '../../../services/rdls/rdls-almacenes.serv
 import { RdlsNormalizeService } from '../../../services/rdls/rdls-normalize.service';
 import { BalanceoService } from '../../../services/balanceo.service';
 import { KitsService } from '../../../services/kits.service';
+import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
 
 // Subconjunto de RdlsRow sólo para campos CPM
 type CpmsBuckets = Pick<RdlsRow,
@@ -38,7 +39,9 @@ type CpmsBuckets = Pick<RdlsRow,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rdls.component.html'
 })
-export class RdlSComponent implements OnInit, OnDestroy {
+export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDestroy {
+  mostradoPorPrimeraVez = false;
+
   private inventario = inject(InventarioService);
 
   private artSrv = inject(ArticulosService);
@@ -123,7 +126,12 @@ export class RdlSComponent implements OnInit, OnDestroy {
 
   private subs: Subscription[] = [];
 
-  constructor(/* ... */) {
+  constructor() {
+    super();
+    this.constructorDeTab();
+  }
+
+  constructorDeTab(): void {
     // 1) Artículos → índice normalizado
     this.artSrv.getArticulosMapa?.().subscribe((m: any) => {
       const idx: Record<string, { categoria?: string | null }> = {};
@@ -157,10 +165,14 @@ export class RdlSComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit() {
-    await this.initRows();
+    // movido hacia onTabActivated para evitar cargas innecesarias
+    if (this.mostradoPorPrimeraVez === false && this.isActive) {
+      this.onTabActivated();
+    }
+    /* await this.initRows();
     this.hydrateConCpms();
     this.hydrateConExistenciasHospitales();
-    this.cargarKitsRutaSalud();
+    this.cargarKitsRutaSalud(); */
   }
 
   private cargarKitsRutaSalud(): void {
@@ -593,7 +605,7 @@ export class RdlSComponent implements OnInit, OnDestroy {
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     // incluir el kit elegido (codigo)
-    const filename = `RdlS_Distribucion_${ this.kitRutaSaludElegido() }_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.xlsx`;
+    const filename = `RdlS_Distribucion_${this.kitRutaSaludElegido()}_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.xlsx`;
 
     XLSX.writeFile(wb, filename, { bookType: 'xlsx' });
   }
@@ -668,6 +680,20 @@ export class RdlSComponent implements OnInit, OnDestroy {
       TOTAL_CPM_MEXICALI: 0,
       TOTAL_CPM_ENSENADA: 0,
     };
+  }
+
+  protected override async onTabActivated(): Promise<void> {
+    if (this.mostradoPorPrimeraVez === false) {
+      await this.initRows();
+      this.hydrateConCpms();
+      this.hydrateConExistenciasHospitales();
+      this.cargarKitsRutaSalud();
+      this.mostradoPorPrimeraVez = true;
+    }
+  }
+
+  protected override onTabDeactivated(): void {
+    // No action needed
   }
 
 }

@@ -23,6 +23,9 @@ import { ExcelService } from '../../../../services/excel.service';
 import { InventarioService } from '../../../../services/inventario.service';
 
 
+/**
+ * @deprecated se optó por lo que contiene inventario-tab.component.ts
+ */
 @Component({
     standalone: true,
     imports: [CommonModule,
@@ -33,7 +36,6 @@ import { InventarioService } from '../../../../services/inventario.service';
     selector: 'app-existencias-x-unidad',
     templateUrl: 'existencias-x-unidad.component.html'
 })
-
 export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy {
     @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
     @Input() cpms: CPMS[] = [];

@@ -6,10 +6,10 @@ import { UltimaEjecucion } from "../../../../models/balanceo/UltimaEjecucion";
 import { BalanceoService } from "../../../../services/balanceo.service";
 import { GrupoClaveParaBalanceo, ResumenAgrupado } from "../../../../models/balanceo/ResumenAgrupado";
 import { ArticulosService } from "../../../../services/articulos.service";
-import { firstValueFrom } from "rxjs";
 import { ExcelService } from "../../../../services/excel.service";
 import { KitsService } from "../../../../services/kits.service";
 import { Kit } from "../../../../models";
+import { AbstractTabComponent } from "../../../../shared/abstract-tab.component";
 
 @Component({
     selector: 'app-balanceo-sugerencias',
@@ -18,7 +18,8 @@ import { Kit } from "../../../../models";
     templateUrl: './balanceo-sugerencias.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BalanceoSugerenciasComponent implements OnInit {
+export class BalanceoSugerenciasComponent extends AbstractTabComponent implements OnInit {
+    mostradoPorPrimeraVez = false;
     loading = signal(false);
     ejecutando = signal(false);
     error = signal<string | null>(null);
@@ -91,45 +92,22 @@ export class BalanceoSugerenciasComponent implements OnInit {
         private excelService: ExcelService,
         private kitsService: KitsService
     ) {
-        
-     }
+        super();
+    }
 
     ngOnInit(): void {
-        
-        this.cargarUltimaEjecucionYResumen();
-        //setTimeout(() => {
-        // Cargar descripciones de artículos desde el JSON local
-        this.articulosService.getArticulosMapa().subscribe({
-            next: (mapa) => this.articulosMapa.set(mapa),
-            error: (err) => {
-                console.error('Error cargando mapa de artículos', err);
-                // si falla, simplemente no mostramos descripción
-            },
-        });
-        //}, 5000);
-
-        // 🔹 Cargar las claves de Rutas de la Salud (kits)
-        this.balanceoService.obtenerClavesRutasSalud().subscribe({
-            next: (resp) => {
-                const set = new Set<string>((resp.claves ?? []) as string[]);
-                this.clavesRutasSalud.set(set);
-            },
-            error: (err) => {
-                console.error('Error obteniendo claves de Rutas de la Salud', err);
-                // si falla, el filtro simplemente no hará nada
-            },
-        });
-
-        this.cargarKitsRutaSalud();
+        if (this.mostradoPorPrimeraVez === false && this.isActive) {
+            this.onTabActivated();
+        }
     }
 
     private cargarKitsRutaSalud(): void {
-        
+
         this.loadingKitsRuta.set(true);
 
         this.kitsService.list().subscribe({
             next: (resp: Kit[]) => {
-                
+
                 const list = (resp ?? []).map(k => k.codigo);
                 this.kitsRuta.set(list.sort());
                 this.loadingKitsRuta.set(false);
@@ -363,5 +341,40 @@ export class BalanceoSugerenciasComponent implements OnInit {
         } catch (err) {
             console.error('Error al exportar Excel de balanceo', err);
         }
+    }
+
+    protected override onTabActivated(): void {
+        if (this.mostradoPorPrimeraVez === false) {
+
+            this.cargarUltimaEjecucionYResumen();
+            //setTimeout(() => {
+            // Cargar descripciones de artículos desde el JSON local
+            this.articulosService.getArticulosMapa().subscribe({
+                next: (mapa) => this.articulosMapa.set(mapa),
+                error: (err) => {
+                    console.error('Error cargando mapa de artículos', err);
+                    // si falla, simplemente no mostramos descripción
+                },
+            });
+            //}, 5000);
+
+            // 🔹 Cargar las claves de Rutas de la Salud (kits)
+            this.balanceoService.obtenerClavesRutasSalud().subscribe({
+                next: (resp) => {
+                    const set = new Set<string>((resp.claves ?? []) as string[]);
+                    this.clavesRutasSalud.set(set);
+                },
+                error: (err) => {
+                    console.error('Error obteniendo claves de Rutas de la Salud', err);
+                    // si falla, el filtro simplemente no hará nada
+                },
+            });
+
+            this.cargarKitsRutaSalud();
+            this.mostradoPorPrimeraVez = true;
+        }
+    }
+    protected override onTabDeactivated(): void {
+        // No action needed
     }
 }
