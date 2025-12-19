@@ -26,6 +26,7 @@ import { FactorUnidad } from '../../../../models/factor-unidad';
 import { CitasService } from '../../../../services/citas.service';
 import { AbstractTabComponent } from '../../../../shared/abstract-tab.component';
 
+// TODO: por optimizar esto jalando del backend
 const ALMACENES_JURIS: Record<string, { nombre: string; cluesimb: string }> = {
     mexicali: { nombre: 'ALMACÉN DE MEXICALI', cluesimb: 'BCIMB001405' },
     tijuana: { nombre: 'ALMACEN TIJUANA', cluesimb: 'BCIMB001335' },
