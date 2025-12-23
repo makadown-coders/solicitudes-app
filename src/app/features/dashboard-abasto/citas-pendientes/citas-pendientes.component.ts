@@ -16,6 +16,7 @@ import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
 import { ArticulosService } from '../../../services/articulos.service';
 import { ProveedoresService } from '../../../services/proveedores.service';
 import { catchError, firstValueFrom, Observable, of } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
 
 interface GrupoUnidad {
   unidad: string;
@@ -73,6 +74,16 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
   private citasService = inject(CitasService);
   private artSrv = inject(ArticulosService);
   private provSrv = inject(ProveedoresService);
+  constructor(activatedRoute: ActivatedRoute) {
+    super();
+    // Si viene con parámetros de ruta (que la ruta contenga el texto 'citas-pendientes'), hacer this.isActive = true
+    if (activatedRoute.snapshot.url[0].path === 'citas-pendientes') {
+      this.isActive = true;
+      this.mostradoPorPrimeraVez = true;
+      this.cargarDeLocalStorage();
+      this.cargarCitasDesdeBackend(true);
+    }
+  }
 
   // ============================================================
   //                INIT
@@ -346,9 +357,7 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
   }
 
   protected override onTabActivated(): void {
-    console.log('Citas pendientes onTabActivated');
     if (this.mostradoPorPrimeraVez === false) {
-      console.log('Citas pendientes primera vez');
       this.cargarDeLocalStorage();
       this.cargarCitasDesdeBackend(true);
       //this.actualizarAgrupacion();

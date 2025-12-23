@@ -10,6 +10,7 @@ import { DetalleOrdenesModalComponent } from '../../../shared/detalle-ordenes-mo
 import { CitaQueryResponse } from '../../../models/CitaQueryResponse';
 import { CitasService } from '../../../services/citas.service';
 import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
+import { ActivatedRoute } from '@angular/router';
 
 
 @Component({
@@ -71,7 +72,7 @@ export class ResumenCitasComponent extends AbstractTabComponent implements OnIni
         this.detalleVisible = false;
     }
 
-    constructor(private fechasService: PeriodoFechasService) {
+    constructor(private fechasService: PeriodoFechasService, activatedRoute: ActivatedRoute) {
         super();
         effect(() => {
             const citas = this.citas();
@@ -80,6 +81,14 @@ export class ResumenCitasComponent extends AbstractTabComponent implements OnIni
             this.generarDiasDelRango();
             this.recalcularAgrupacion();
         });
+         if (activatedRoute.snapshot.url[0].path === 'resumen-citas') {
+            this.isActive = true;
+            this.mostradoPorPrimeraVez = true;
+            const set = new Set<string>();
+            this.tiposCompra = Array.from(set).sort();
+            this.inicializarFechas();
+            this.cargarCitasDesdeBackend(true);
+         }
     }
 
     ngOnInit(): void {

@@ -22,6 +22,7 @@ import { catchError, firstValueFrom, Observable, of } from 'rxjs';
 import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
 import { ArticulosService } from '../../../services/articulos.service';
 import { ProveedoresService } from '../../../services/proveedores.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
     selector: 'app-proveedores',
@@ -69,6 +70,22 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
 
     proveedoresAgrupados = signal<{ proveedor: string; citas: Cita[] }[]>([]);
     // proveedoresAgrupados: { proveedor: string; citas: Cita[] }[] = [];
+
+    constructor(activatedRoute: ActivatedRoute) {
+        super();
+        // Si viene con parámetros de ruta (que la ruta contenga el texto 'citas-completadas'), hacer this.isActive = true
+        if (activatedRoute.snapshot.url[0].path === 'citas-completadas') {
+            this.isActive = true;
+            this.mostradoPorPrimeraVez = true;
+            this.cargarDeLocalStorage();
+            this.periodoFormateado = this.fechasService.formatearRango(
+                this.fechaInicio,
+                this.fechaFin
+            );
+            // 🔁 Primera carga desde backend
+            this.cargarCitasDesdeBackend(true);
+        }
+    }
 
     ngOnInit(): void {
         if (this.mostradoPorPrimeraVez === false && this.isActive) {
@@ -233,17 +250,17 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
 
     async getProveedoresAgrupados(): Promise<{ proveedor: string; citas: Cita[] }[]> {
         let articulosMapa: Record<string, { descripcion: string; presentacion?: string; categoria?: string | null }> = {};
-        
-            try {
-              // Usamos el servicio en lugar de la llamada directa
-              articulosMapa = await firstValueFrom(
+
+        try {
+            // Usamos el servicio en lugar de la llamada directa
+            articulosMapa = await firstValueFrom(
                 this.artSrv.getArticulosMapa().pipe(
-                  catchError(() => of({})) // En caso de error, retornamos objeto vacío
+                    catchError(() => of({})) // En caso de error, retornamos objeto vacío
                 )
-              );
-            } catch {
-              articulosMapa = {};
-            }
+            );
+        } catch {
+            articulosMapa = {};
+        }
 
         const proveedorMap = new Map<string, Cita[]>();
         const lista = this.citas(); // 👈 usamos el valor actual del signal
@@ -280,7 +297,7 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
         });
 
         // console.log('Citas filtradas:', citasFiltradas);
-        citasFiltradas.forEach((c) => {            
+        citasFiltradas.forEach((c) => {
             const articulo = articulosMapa[c.clave_cnis];
             // agregar descripcion, ya que es el unico campo que no viene en la cita
             if (articulo) {
@@ -292,7 +309,7 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
                 proveedor += ' (' + provFromService.rfc + ')';
             }
             if (!proveedorMap.has(proveedor)) proveedorMap.set(proveedor, []);
-            
+
             proveedorMap.get(proveedor)!.push(c);
         });
 
@@ -357,8 +374,8 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
             this.mostradoPorPrimeraVez = true;
         }
     }
-    
+
     protected override onTabDeactivated(): void {
-         // No se requiere acción específica al desactivar la pestaña actualmente
+        // No se requiere acción específica al desactivar la pestaña actualmente
     }
 }

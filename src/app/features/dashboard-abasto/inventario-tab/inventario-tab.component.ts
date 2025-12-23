@@ -31,6 +31,7 @@ import { StorageSolicitudService } from '../../../services/storage-solicitud.ser
 import { BalanceoService } from '../../../services/balanceo.service';
 import { KitsService } from '../../../services/kits.service';
 import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
+import { ActivatedRoute } from '@angular/router';
 
 const NO_CAT = 'NO ESPECIFICADO';
 
@@ -153,19 +154,25 @@ export class InventarioTabComponent extends AbstractTabComponent implements Afte
     private measureGrid() {
         const table = this.dataTable?.nativeElement;
         const thead = this.theadEl?.nativeElement;
+        // console.log('measureGrid', { table, thead });
         if (!table || !thead) return;
 
         // ancho real scrolleable de la tabla
         this.tableScrollWidth = table.scrollWidth;
-
+        console.log('tableScrollWidth', this.tableScrollWidth);
         // alto real del thead para posicionar la barra top
         this.theadHeight = thead.getBoundingClientRect().height;
     }
 
-
-    constructor() {
+    constructor(activatedRoute: ActivatedRoute) {
         super();
         this.constructorDeTab();
+        // Si viene con parámetros de ruta (que la ruta contenga el texto 'existencias'), hacer this.isActive = true
+        if (activatedRoute.snapshot.url[0].path === 'existencias') {
+            this.isActive = true;
+            this.mostradoPorPrimeraVez = true;
+            setTimeout(() => { this.cargarKitsAfterInit(); }, 100);
+        }
     }
 
     constructorDeTab() {

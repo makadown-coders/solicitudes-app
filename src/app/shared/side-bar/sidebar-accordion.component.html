@@ -1,0 +1,70 @@
+<aside class="p-3 w-72 bg-white border-custom-default rounded-2xl shrink-0 dark:bg-[#1a202c]">
+    <div class="px-2 py-2 text-sm font-semibold text-slate-700 dark:text-white">
+        Menú
+    </div>
+
+    <nav class="space-y-1">
+        <ng-container *ngFor="let item of items()">
+            <!-- GROUP -->
+            <ng-container *ngIf="item.type === 'group'; else linkTpl">
+                <button type="button"
+                    class="flex items-center justify-between px-3 py-2 w-full rounded-xl border-transparent hover:bg-green-50 dark:hover:bg-black border"
+                    [class.border-custom-default]="expandedGroupId() === item.id" (click)="toggleGroup(item.id)">
+                    <span class="text-sm font-medium text-slate-700 dark:text-white">
+                        {{ item.label }}
+                    </span>
+                    <span class="text-xs text-slate-500 dark:text-slate-300">
+                        {{ expandedGroupId() === item.id ? '▾' : '▸' }}
+                    </span>
+                </button>
+
+                <div *ngIf="expandedGroupId() === item.id"
+                    class="mt-1 ml-2 pl-2 border-l border-gray-200 dark:border-gray-700 space-y-1">
+                    <ng-container *ngFor="let ch of item.children">
+                        <a *ngIf="ch.type === 'link'"
+                            class="block px-3 py-2 text-sm rounded-xl hover:bg-green-50 dark:hover:bg-black"
+                            [routerLink]="ch.route"
+                            routerLinkActive="bg-green-100 text-green-900 dark:bg-black dark:text-[#CBA135]">
+                            {{ ch.label }}
+                        </a>
+
+                        <!-- Subgroup (si luego quieres 2 niveles) -->
+                        <div *ngIf="ch.type === 'group'" class="mt-1">
+                            <div class="px-3 py-2 text-xs tracking-wide text-slate-500 uppercase dark:text-slate-300">
+                                {{ ch.label }}
+                            </div>
+                            <!--  <a *ngFor="let leaf of ch.children">
+                    {{ leaf | json }}
+                </a> -->
+
+                            @for (leaf of ch.children; track leaf.id) {
+                            @if (leaf.type === 'link') {
+                            <a class="block px-3 py-2 text-sm rounded-xl hover:bg-green-50 dark:hover:bg-black"
+                                [routerLink]="leaf.route"
+                                routerLinkActive="bg-green-100 text-green-900 dark:bg-black dark:text-[#CBA135]">
+                                {{ leaf.label }}
+                            </a>
+                            }
+                            }
+
+                        </div>
+                    </ng-container>
+                </div>
+            </ng-container>
+
+            <!-- LINK -->
+            <ng-template #linkTpl>
+                <!-- <a class="block px-3 py-2 text-sm rounded-xl hover:bg-green-50 dark:hover:bg-black">
+                    {{ item | json }}
+                </a> -->
+                @if (item.type === 'link' && item.route) {
+                <a class="block px-3 py-2 text-sm rounded-xl hover:bg-green-50 dark:hover:bg-black"
+                    [routerLink]="item.route"
+                    routerLinkActive="bg-green-100 text-green-900 dark:bg-black dark:text-[#CBA135]">
+                    {{ item.label }}
+                </a>
+                }
+            </ng-template>
+        </ng-container>
+    </nav>
+</aside>

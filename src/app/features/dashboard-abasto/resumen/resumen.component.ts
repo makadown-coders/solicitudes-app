@@ -1,6 +1,6 @@
 // src/app/features/dashboard-abasto/resumen/resumen.component.ts
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
 import { ChartConfiguration, ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { NgSelectModule } from '@ng-select/ng-select';
@@ -14,6 +14,7 @@ import { FiltrosCita } from '../../../models/filtros-cita';
 import { CitaChartService } from '../../../shared/cita-chart.service';
 import { CumplimientoTimes, KPIsResumen, SubtotalEstatus, SubtotalTipoEntrega } from '../../../models/StatsCitas';
 import { DashboardService } from '../../../services/dashboard.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-resumen',
@@ -24,8 +25,9 @@ import { DashboardService } from '../../../services/dashboard.service';
   templateUrl: './resumen.component.html',
   styleUrl: './resumen.component.css'
 })
-export class ResumenComponent implements OnInit {
+export class ResumenComponent implements OnInit, OnDestroy {
   cdRef = inject(ChangeDetectorRef);
+  private destroy$ = new Subject<void>();
   private citas: Cita[] = [];
   // Opciones de filtros
   aniosDisponibles: number[] = [];
@@ -42,6 +44,11 @@ export class ResumenComponent implements OnInit {
   constructor(
     private dash: DashboardService,   // 👈 inyectamos
   ) { }
+  
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   // Lo que el usuario seleccione
   filtrosSeleccionados = {
@@ -176,7 +183,7 @@ export class ResumenComponent implements OnInit {
     //this.calcularDatos();
 
     // 🔹 SUSCRIPCIÓN: cada vez que el server devuelva citas filtradas, recalculamos todo
-    this.dash.resumenCitas$.subscribe((list) => {
+    this.dash.resumenCitas$.pipe(takeUntil(this.destroy$)).subscribe((list) => {
       this.citas = list ?? [];
       // refresca catálogos dependientes (por si cambiaron con filtros)
       const compras2 = new Set(this.citas.map(c => c.compra).filter(Boolean));
@@ -192,7 +199,7 @@ export class ResumenComponent implements OnInit {
     });
 
     // 👇 suscripción a stats del server
-    this.dash.kpis$.subscribe(k => {
+    this.dash.kpis$.pipe(takeUntil(this.destroy$)).subscribe(k => {
       this.kpisServer = k;
       this.cdRef.markForCheck();  // 👈 fuerza re-render OnPush
     });

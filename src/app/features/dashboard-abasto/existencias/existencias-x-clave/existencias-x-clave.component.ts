@@ -25,6 +25,7 @@ import { TrazabilidadService } from '../../../../services/trazabilidad.service';
 import { FactorUnidad } from '../../../../models/factor-unidad';
 import { CitasService } from '../../../../services/citas.service';
 import { AbstractTabComponent } from '../../../../shared/abstract-tab.component';
+import { ActivatedRoute } from '@angular/router';
 
 // TODO: por optimizar esto jalando del backend
 const ALMACENES_JURIS: Record<string, { nombre: string; cluesimb: string }> = {
@@ -116,7 +117,35 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
         return Math.floor(cantidad / this.factorConv.cantidad_fc); // base
     }*/
 
-
+    constructor(activatedRoute: ActivatedRoute) {
+        super();
+        if (activatedRoute.snapshot.url[0].path === 'xclave') {
+            this.isActive = true;
+            this.mostradoPorPrimeraVez = true;
+            this.cargaOnTabActivated();
+            /*  this.inventarioService.existencias$.forEach((value, key) => {
+                              value.pipe(takeUntil(this.onDestroy$)).subscribe({
+                                  next: (data: Inventario[]) => {
+                                      // console.log('Cargando existencias de unidad', key);
+                                      this.existenciaUnidades.set(key, data as Inventario[]);
+                                  }
+                              });
+                          });
+                          // suscribirse al observable de cpms 
+                          this.inventarioService.cpms$.pipe(takeUntil(this.onDestroy$)).subscribe({
+                              next: (cpms: CPMS[]) => {
+                                  this.cpms = [...cpms];
+                              }
+                          });
+              
+                          // suscribirse al observable de claveGrupos
+                          this.inventarioService.claveGrupos$.pipe(takeUntil(this.onDestroy$)).subscribe({
+                              next: (claveGrupos: ClaveGrupo[]) => {
+                                  this.claveGrupos = [...claveGrupos];
+                              }
+                          });*/
+        }
+    }
 
     ngOnInit(): void {
         // console.log('ExistenciasXClaveComponent ngOnInit');
@@ -575,88 +604,92 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
         return '—';
     }
 
-    protected override onTabActivated(): void {
-        if (!this.mostradoPorPrimeraVez) {
-            try {
-                if (this.clavePreseleccionada) {
-                    console.log('ExistenciasXClaveComponent - sin clave preseleccionada.');
-                    this.articulosService.buscarArticulos(this.clavePreseleccionada).subscribe({
-                        next: (data) => {
-                            const item = data.resultados.find(a => a.clave === this.clavePreseleccionada);
-                            if (item) {
-                                this.selectClave(item, true);
-                            }
-                        },
-                        error: (err) => {
-                            console.warn('⚠️ Error buscando clave en modal:', err);
+    cargaOnTabActivated(): void {
+        try {
+            if (this.clavePreseleccionada) {
+                console.log('ExistenciasXClaveComponent - sin clave preseleccionada.');
+                this.articulosService.buscarArticulos(this.clavePreseleccionada).subscribe({
+                    next: (data) => {
+                        const item = data.resultados.find(a => a.clave === this.clavePreseleccionada);
+                        if (item) {
+                            this.selectClave(item, true);
                         }
-                    });
-                } else {
-                    const articulo = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE);
-                    // console.log('ExistenciasXClaveComponent - intentando carga de info desde localstorage', articulo);
-                    if (articulo && articulo.includes('{')) {
-                        // console.log('ExistenciasXClaveComponent - cargando más info desde localstorage...');
-                        this.claveConfirmada = true;
-                        const item = JSON.parse(articulo) as Articulo;
-                        this.claveBusqueda = item.clave;
-                        // this.buscarFactor();
-                        this.claveFiltrada = item.clave;
-                        this.descripcion = item.descripcion;
-                        this.unidad = item.presentacion ?? '';
-                        const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
-                        this.clasificacion = clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
-                        // obtener de DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE
-                        const citasls = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE);
-                        if (citasls) {
-                            this.citasHalladasPorClave = JSON.parse(citasls) as Cita[];
-                        }
-                        // obtener de DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES
-                        const exc = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES);
-                        if (exc) {
-                            this.existenciaAlmacenes = JSON.parse(exc) as InventarioDisponibles;
-                        }
-
-                        // obtener de DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS
-                        const exc2 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS);
-                        if (exc2) {
-                            this.datosAgrupados = JSON.parse(exc2) as AlmacenClaveResumen[];
-                        }
-
-                        // obtener de DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE
-                        const exc3 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE);
-                        if (exc3 && exc3.includes('{')) {
-                            this.citaParaDescripcionDeClave = JSON.parse(exc3) as Cita;
-                        }
+                    },
+                    error: (err) => {
+                        console.warn('⚠️ Error buscando clave en modal:', err);
+                    }
+                });
+            } else {
+                const articulo = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE);
+                // console.log('ExistenciasXClaveComponent - intentando carga de info desde localstorage', articulo);
+                if (articulo && articulo.includes('{')) {
+                    // console.log('ExistenciasXClaveComponent - cargando más info desde localstorage...');
+                    this.claveConfirmada = true;
+                    const item = JSON.parse(articulo) as Articulo;
+                    this.claveBusqueda = item.clave;
+                    // this.buscarFactor();
+                    this.claveFiltrada = item.clave;
+                    this.descripcion = item.descripcion;
+                    this.unidad = item.presentacion ?? '';
+                    const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
+                    this.clasificacion = clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
+                    // obtener de DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE
+                    const citasls = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE);
+                    if (citasls) {
+                        this.citasHalladasPorClave = JSON.parse(citasls) as Cita[];
+                    }
+                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES
+                    const exc = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES);
+                    if (exc) {
+                        this.existenciaAlmacenes = JSON.parse(exc) as InventarioDisponibles;
                     }
 
-                    this.searchSubject.pipe(debounceTime(400), takeUntil(this.onDestroy$))
-                        .subscribe(texto => {
-                            if (texto.length > 2) {
-                                this.buscarArticulosConFallback(texto);
-                            } else {
-                                this.autocompleteResults = [];
-                                this.selectedIndex = -1;
-                                this.moreResults = false;
-                                this.totalResults = 0;
-                            }
-                        });
+                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS
+                    const exc2 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS);
+                    if (exc2) {
+                        this.datosAgrupados = JSON.parse(exc2) as AlmacenClaveResumen[];
+                    }
+
+                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE
+                    const exc3 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE);
+                    if (exc3 && exc3.includes('{')) {
+                        this.citaParaDescripcionDeClave = JSON.parse(exc3) as Cita;
+                    }
                 }
 
-                this.inventarioService.inventario$
-                    .pipe(takeUntil(this.onDestroy$))
-                    .subscribe({
-                        next: (data) => {
-                            if (!data || data.length === 0) return;
-                            this.inventario = [...data];
-                            this.cdRef.detectChanges();
-                        },
-                        error: (error) => {
-                            console.error('Error al obtener el inventario:', error);
+                this.searchSubject.pipe(debounceTime(400), takeUntil(this.onDestroy$))
+                    .subscribe(texto => {
+                        if (texto.length > 2) {
+                            this.buscarArticulosConFallback(texto);
+                        } else {
+                            this.autocompleteResults = [];
+                            this.selectedIndex = -1;
+                            this.moreResults = false;
+                            this.totalResults = 0;
                         }
                     });
-            } catch (error) {
-                console.error(error);
             }
+
+            this.inventarioService.inventario$
+                .pipe(takeUntil(this.onDestroy$))
+                .subscribe({
+                    next: (data) => {
+                        if (!data || data.length === 0) return;
+                        this.inventario = [...data];
+                        this.cdRef.detectChanges();
+                    },
+                    error: (error) => {
+                        console.error('Error al obtener el inventario:', error);
+                    }
+                });
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    protected override onTabActivated(): void {
+        if (!this.mostradoPorPrimeraVez) {
+            this.cargaOnTabActivated();
             this.mostradoPorPrimeraVez = true;
         }
     }

@@ -36,8 +36,8 @@
       <div [hidden]="activeTab !== 'Resumen'" class="cursor-pointer">
         <app-resumen></app-resumen>
       </div>
-      <div [hidden]="activeTab !== 'Existencias (CPM)'" class="cursor-pointer">
-        <app-existencias [isActive]="activeTab === 'Existencias (CPM)'"></app-existencias>
+      <div [hidden]="activeTab !== 'Análisis de Abasto'" class="cursor-pointer">
+        <app-existencias [isActive]="activeTab === 'Análisis de Abasto'"></app-existencias>
       </div>
       <div [hidden]="activeTab !== 'Citas Completadas'" class="cursor-pointer">
         <app-proveedores [isActive]="activeTab === 'Citas Completadas'"></app-proveedores>
@@ -58,37 +58,8 @@
         <app-rdls [isActive]="activeTab === 'RdlS'"></app-rdls>
       </div>
       <div [hidden]="activeTab !== 'Acerca de'" class="p-6 cursor-pointer">
-        @let anio = anioActual();
-        <div class="mx-auto max-w-2xl text-center">
-          <h2 class="mb-2 text-3xl font-bold text-green-800">📊 Dashboard Abasto</h2>
-          <p class="mb-6 text-gray-500 text-base">Versión {{ anio }}</p>
-
-          <div class="p-6 text-left bg-green-50 border-green-200 rounded-lg shadow-sm border">
-            <h3 class="mb-5 text-xl font-semibold text-green-700 text-center">Créditos</h3>
-            <div class="space-y-4">
-              <div>
-                <p class="font-semibold text-gray-800">Coordinador Institucional del Proyecto</p>
-                <p class="text-gray-600">Lic. Héctor Manuel Avelar Morales</p>
-              </div>
-              <div>
-                <p class="font-semibold text-gray-800">Referente Técnico-Operativo <span
-                    class="text-sm text-gray-500">(Lineamientos de Abasto)</span></p>
-                <p class="text-gray-600">Lic. Elia Del Carmen Rojas Villalas / Lic. Abril Núñez Madrid</p>
-              </div>
-              <div>
-                <p class="font-semibold text-gray-800">Diseño y Desarrollo Tecnológico</p>
-                <p class="text-gray-600">Ing. Mario Arturo Serrano Flores / Ing. Marciano Aguirre Esquer</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-6 text-sm text-gray-500">
-            &copy; {{ anio }} IMSS Bienestar - Baja California
-          </div>
-        </div>
+        <app-acerca></app-acerca>
       </div>
-
-
     </div>
   </div>
 </div>

@@ -63,6 +63,77 @@ export const routes: Routes = [
       .then(m => m.KitsImportComponent)
   },
   { path: 'solicitudes-config', component: SolicitudesConfigComponent },
+
+  // Nueva versión del dashboard de abasto
+  {
+    path: 'dashboard-abasto-v2',
+    loadComponent: () => import('./features/dashboard-abasto/dashboard-shell.component')
+      .then(m => m.DashboardShellComponent),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'resumen' },
+      {
+        path: 'resumen',
+        loadComponent: () => import('./features/dashboard-abasto/resumen/resumen.component')
+          .then(m => m.ResumenComponent),
+        title: 'Dashboard Abasto · Resumen'
+      },
+      {
+        path: 'analisis',
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'xclave' },
+
+          {
+            path: 'xclave',
+            loadComponent: () => import('./features/dashboard-abasto/existencias/existencias-x-clave/existencias-x-clave.component')
+              .then(m => m.ExistenciasXClaveComponent),
+            title: 'Dashboard Abasto · Análisis · xClave'
+          },
+          {
+            path: 'balanceo',
+            loadComponent: () => import('./features/dashboard-abasto/existencias/balanceo-sugerencias/balanceo-sugerencias.component')
+              .then(m => m.BalanceoSugerenciasComponent),
+            title: 'Dashboard Abasto · Análisis · Balanceo'
+          },
+        ]
+      },
+      {
+        path: 'citas-completadas',
+        loadComponent: () => import('./features/dashboard-abasto/proveedores/proveedores.component')
+          .then(m => m.ProveedoresComponent),
+        title: 'Dashboard Abasto · Citas Completadas'
+      },
+      {
+        path: 'citas-pendientes',
+        loadComponent: () => import('./features/dashboard-abasto/citas-pendientes/citas-pendientes.component')
+          .then(m => m.CitasPendientesComponent),
+        title: 'Dashboard Abasto · Citas Pendientes'
+      },
+      {
+        path: 'resumen-citas',
+        loadComponent: () => import('./features/dashboard-abasto/resumen-citas/resumen-citas.component')
+          .then(m => m.ResumenCitasComponent),
+        title: 'Dashboard Abasto · Resumen Citas'
+      },
+      {
+        path: 'existencias',
+        loadComponent: () => import('./features/dashboard-abasto/inventario-tab/inventario-tab.component')
+          .then(m => m.InventarioTabComponent),
+        title: 'Dashboard Abasto · Existencias'
+      },
+      {
+        path: 'rdls',
+        loadComponent: () => import('./features/dashboard-abasto/rdls/rdls.component')
+          .then(m => m.RdlSComponent),
+        title: 'Dashboard Abasto · RdlS'
+      },
+      {
+        path: 'acerca',
+        loadComponent: () => import('./features/dashboard-abasto/acerca/acerca.component')
+          .then(m => m.AcercaComponent),
+        title: 'Dashboard Abasto · Acerca de'
+      },
+    ],
+  },  
   { path: '', redirectTo: '/home', pathMatch: 'full' },
-  { path: '**', redirectTo: '/home' }
-];
+  { path: '**', redirectTo: '/home' },
+]; 

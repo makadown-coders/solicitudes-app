@@ -19,6 +19,7 @@ import { RdlSComponent } from './rdls/rdls.component';
 import { InventarioTabComponent } from './inventario-tab/inventario-tab.component';
 import { KPIsResumen } from '../../models/StatsCitas';
 import { CitasService } from '../../services/citas.service';
+import { AcercaComponent } from './acerca/acerca.component';
 
 @Component({
   selector: 'app-dashboard-abasto',
@@ -32,7 +33,8 @@ import { CitasService } from '../../services/citas.service';
     // InventarioCriticoComponent,
     ExistenciasComponent,
     InventarioTabComponent,
-    RdlSComponent
+    RdlSComponent,
+    AcercaComponent
   ],
   templateUrl: './dashboard-abasto.component.html',
   styleUrl: './dashboard-abasto.component.css',
@@ -53,7 +55,7 @@ export class DashboardAbastoComponent implements OnInit {
 
   // controla la pestaña activa
   tabs = ['Resumen',
-    'Existencias (CPM)',
+    'Análisis de Abasto',
     'Citas Completadas',
     'Citas pendientes',
     // 'Cumplimiento Claves',
@@ -65,7 +67,7 @@ export class DashboardAbastoComponent implements OnInit {
 
   kpis: KPIsResumen | null = null;
 
-  constructor(private dashboardService: DashboardService) { }
+  constructor() { }
 
   ngOnInit(): void {
     const tabGuardado = localStorage.getItem(StorageVariables.DASH_ABASTO_ACTIVE_TAB);
@@ -99,7 +101,4 @@ export class DashboardAbastoComponent implements OnInit {
     localStorage.setItem(StorageVariables.DASH_ABASTO_ACTIVE_TAB, tab.toString());
   }
 
-  anioActual() {
-    return new Date().getFullYear();
-  }
 }
