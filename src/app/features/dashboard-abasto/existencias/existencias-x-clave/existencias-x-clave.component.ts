@@ -106,7 +106,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
 
     // al principio del componente
     // factorConv = { en_dispensacion: false, cantidad_fc: 1 };
-    private factorMap = new Map<string, FactorUnidad>(); // key = `${clave}|${cluesimb}`
+    factorMap = new Map<string, FactorUnidad>(); // key = `${clave}|${cluesimb}`
 
     // Variable para loading mientras se busca toda la info sobre la clave
     loadingClave = signal(false);
@@ -119,31 +119,23 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
 
     constructor(activatedRoute: ActivatedRoute) {
         super();
-        if (activatedRoute.snapshot.url[0].path === 'xclave') {
+        if (activatedRoute.snapshot.url[0].path === 'xclave') {            
+            // contenido de existencias.component... pero como aqui no es subtab, se reusa.
+            this.inventarioService.existencias$.forEach((value, key) => {
+                value.pipe(takeUntil(this.onDestroy$)).subscribe({
+                    next: (data: Inventario[]) => {
+                        // console.log('Cargando existencias de unidad', key);
+                        this.existenciaUnidades.set(key, data as Inventario[]);
+                    }
+                });
+            });
+            // suscribirse al observable de cpms 
+            this.inventarioService.cpms$.pipe(takeUntil(this.onDestroy$)).subscribe({
+                next: (cpms: CPMS[]) => {
+                    this.cpms = [...cpms];
+                }
+            });
             this.isActive = true;
-            this.mostradoPorPrimeraVez = true;
-            this.cargaOnTabActivated();
-            /*  this.inventarioService.existencias$.forEach((value, key) => {
-                              value.pipe(takeUntil(this.onDestroy$)).subscribe({
-                                  next: (data: Inventario[]) => {
-                                      // console.log('Cargando existencias de unidad', key);
-                                      this.existenciaUnidades.set(key, data as Inventario[]);
-                                  }
-                              });
-                          });
-                          // suscribirse al observable de cpms 
-                          this.inventarioService.cpms$.pipe(takeUntil(this.onDestroy$)).subscribe({
-                              next: (cpms: CPMS[]) => {
-                                  this.cpms = [...cpms];
-                              }
-                          });
-              
-                          // suscribirse al observable de claveGrupos
-                          this.inventarioService.claveGrupos$.pipe(takeUntil(this.onDestroy$)).subscribe({
-                              next: (claveGrupos: ClaveGrupo[]) => {
-                                  this.claveGrupos = [...claveGrupos];
-                              }
-                          });*/
         }
     }
 
@@ -404,22 +396,30 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
         });
 
         // Nota “¿Qué estoy viendo?”
-        this.mostrarNotaFactor = Array.from(this.factorMap.entries())
-            .some(([key, f]) =>
-                key.startsWith(`${this.claveFiltrada}|`) &&
-                f.en_dispensacion === 1 &&
-                (f.cantidad_fc ?? 1) > 1
-            );
+        this.mostrarQueEstoyViendo();
 
         if (!skipLocalStorage) {
             localStorage.setItem(
                 StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS,
                 JSON.stringify(this.datosAgrupados)
             );
+            // meter this.factorMap en DASH_ABASTO_EXISTENCIAS_EXC_FACTOR_MAP
+            localStorage.setItem(
+                StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_FACTOR_MAP,
+                JSON.stringify([...this.factorMap])
+            );
         }
 
         this.calcularInventarioDisponible(this.claveFiltrada, skipLocalStorage);
         this.buscarExistenciasDeClave(skipLocalStorage);
+    }
+
+    private mostrarQueEstoyViendo() {
+        this.mostrarNotaFactor = Array.from(this.factorMap.entries())
+            .some(([key, f]) => key.startsWith(`${this.claveFiltrada}|`) &&
+                f.en_dispensacion === 1 &&
+                (f.cantidad_fc ?? 1) > 1
+            );
     }
 
     /**
@@ -654,6 +654,14 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
                     const exc3 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE);
                     if (exc3 && exc3.includes('{')) {
                         this.citaParaDescripcionDeClave = JSON.parse(exc3) as Cita;
+                    }
+                    
+                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_FACTOR_MAP para this.factorMap
+                    const exc4 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_FACTOR_MAP);
+                    if (exc4) {
+                        const mapEntries: [string, FactorUnidad][] = JSON.parse(exc4);
+                        this.factorMap = new Map(mapEntries);
+                        this.mostrarQueEstoyViendo();
                     }
                 }
 

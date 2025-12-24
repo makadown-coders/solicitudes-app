@@ -7,6 +7,7 @@ export class LoaderService {
 
   // control de visibilidad con anti-flicker
   private _visible = signal(false);
+  private _customMessage = signal<string | null>(null);
   private showTimer: any = null;
   private hideTimer: any = null;
 
@@ -16,9 +17,10 @@ export class LoaderService {
 
   // público (para componentes)
   readonly isLoading = computed(() => this._visible());
+  readonly customMessage = computed(() => this._customMessage());
 
-  inc() {
-    if (this.inFlight() === 0) this.scheduleShow();
+  inc(customMessage = '') {
+    if (this.inFlight() === 0) this.scheduleShow(customMessage);
     this.inFlight.update(v => v + 1);
   }
 
@@ -31,11 +33,12 @@ export class LoaderService {
   readonly hasInFlight = computed(() => this.inFlight() > 0);
 
   // --- timers ---
-  private scheduleShow() {
+  private scheduleShow(customMessage = '') {
     clearTimeout(this.hideTimer);
     clearTimeout(this.showTimer);
     this.showTimer = setTimeout(() => {
       this._visible.set(true);
+      this._customMessage.set(customMessage);
       // programa una "ventana mínima" de visibilidad
       this.hideTimer = setTimeout(() => {
         // nada: esto solo define el earliest-hide
@@ -47,7 +50,10 @@ export class LoaderService {
     // si todavía no alcanzamos minShowMs, espera a que el hideTimer expire
     const tryHide = () => {
       clearTimeout(this.showTimer);
-      if (!this.hasInFlight()) this._visible.set(false);
+      if (!this.hasInFlight()) {
+        this._visible.set(false);
+        this._customMessage.set(null);
+      }
     };
 
     if (this._visible()) {

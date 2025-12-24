@@ -32,8 +32,8 @@ export class ResumenCitasComponent extends AbstractTabComponent implements OnIni
     filtroCompra = '';
     tiposCompra: string[] = [];
     // fecha de inicio es Hoy - 15 dias
-    fechaInicio: Date = new Date(Date.now() - (1 * 24 * 60 * 60 * 1000));
-    fechaFin: Date = new Date(Date.now() + (10 * 24 * 60 * 60 * 1000));
+    fechaInicio: Date = new Date(Date.now() - (5 * 24 * 60 * 60 * 1000));
+    fechaFin: Date = new Date(Date.now() + (15 * 24 * 60 * 60 * 1000));
     diasRango: string[] = [];
 
     datosAgrupados: {
@@ -49,7 +49,7 @@ export class ResumenCitasComponent extends AbstractTabComponent implements OnIni
     detalleVisible = false;
     ordenesSeleccionadas: Cita[] = [];
 
-    loading = false;
+    loading = signal<boolean>(false);
     errorMsg: string | null = null;
     private citasService = inject(CitasService);
 
@@ -81,14 +81,10 @@ export class ResumenCitasComponent extends AbstractTabComponent implements OnIni
             this.generarDiasDelRango();
             this.recalcularAgrupacion();
         });
-         if (activatedRoute.snapshot.url[0].path === 'resumen-citas') {
+
+        if (activatedRoute.snapshot.url[0].path === 'resumen-citas') {
             this.isActive = true;
-            this.mostradoPorPrimeraVez = true;
-            const set = new Set<string>();
-            this.tiposCompra = Array.from(set).sort();
-            this.inicializarFechas();
-            this.cargarCitasDesdeBackend(true);
-         }
+        }
     }
 
     ngOnInit(): void {
@@ -286,7 +282,7 @@ export class ResumenCitasComponent extends AbstractTabComponent implements OnIni
         cargandoDesdeNgOnInit = false,
         forceRefresh = false
     ) {
-        this.loading = true;
+        this.loading.set(true);
         this.errorMsg = null;
 
         this.citasService.searchCitasCached(
@@ -307,13 +303,12 @@ export class ResumenCitasComponent extends AbstractTabComponent implements OnIni
                 });
 
                 this.citas.set(citasFiltradasPorFechaDesdeHasta ?? []);
-                // this.citas.set(resp?.data ?? []);
-                this.loading = false;
+                this.loading.set(false);
                 this.procesarCitas();
                 // this.generarDiasDelRango();
             },
             error: err => {
-                this.loading = false;
+                this.loading.set(false);
                 this.errorMsg = 'Error al obtener citas desde backend';
                 this.citas.set([]);
             }

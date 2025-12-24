@@ -154,12 +154,10 @@ export class InventarioTabComponent extends AbstractTabComponent implements Afte
     private measureGrid() {
         const table = this.dataTable?.nativeElement;
         const thead = this.theadEl?.nativeElement;
-        // console.log('measureGrid', { table, thead });
         if (!table || !thead) return;
 
         // ancho real scrolleable de la tabla
         this.tableScrollWidth = table.scrollWidth;
-        console.log('tableScrollWidth', this.tableScrollWidth);
         // alto real del thead para posicionar la barra top
         this.theadHeight = thead.getBoundingClientRect().height;
     }
@@ -693,7 +691,7 @@ function aplicarFactor(disponible: number, factor?: FactorUnidad): number {
     if (!factor) return disponible; // aún no cargado → muestra base (se actualizará cuando llegue)
     // en_dispensacion: 1/0, cantidad_fc: >0
     if ((factor.en_dispensacion ?? 0) === 1 && toNum(factor.cantidad_fc) > 0) {
-        return disponible / Number(factor.cantidad_fc);
+        return Math.floor( disponible / Number(factor.cantidad_fc) );
     }
     return disponible;
 }

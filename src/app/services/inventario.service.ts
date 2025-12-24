@@ -671,10 +671,7 @@ export class InventarioService {
     const noData = !inventario || inventario.length === 0;
 
     if (noData || expired) {
-      // console.info(`⌛ initExistencia(${existencia}): sin datos o expirado, refrescando...`);
       this.refrescarDatosExistencias(existencia);
-    } else {
-      // console.info(`✅ initExistencia(${existencia}): usando cache vigente`);
     }
   }
 

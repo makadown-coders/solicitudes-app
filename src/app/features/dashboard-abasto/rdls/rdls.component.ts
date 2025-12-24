@@ -21,6 +21,9 @@ import { RdlsNormalizeService } from '../../../services/rdls/rdls-normalize.serv
 import { BalanceoService } from '../../../services/balanceo.service';
 import { KitsService } from '../../../services/kits.service';
 import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
+import { ActivatedRoute } from '@angular/router';
+import { TrazabilidadService } from '../../../services/trazabilidad.service';
+import { FactorUnidad } from '../../../models';
 
 // Subconjunto de RdlsRow sólo para campos CPM
 type CpmsBuckets = Pick<RdlsRow,
@@ -48,7 +51,7 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
   private gruposSrv = inject(GruposClavesService);
   private norm = inject(RdlsNormalizeService);
   private almSrv = inject(RdlsAlmacenesService);
-
+  private trazSrv = inject(TrazabilidadService);
   private balanceoService = inject(BalanceoService);
   private kitsService = inject(KitsService);
 
@@ -123,12 +126,16 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
   // ==== caches reactivos ====
   private articulosMapa = signal<Record<string, { categoria?: string | null }>>({});
   private gruposMapa = signal<Map<string, { categoria: string; grupoInsumo: string }>>(new Map());
+  private factoresMap = signal<Map<string, FactorUnidad>>(new Map());
 
   private subs: Subscription[] = [];
 
-  constructor() {
+  constructor(activatedRoute: ActivatedRoute) {
     super();
     this.constructorDeTab();
+    if (activatedRoute.snapshot.url[0].path === 'rdls') {
+      this.isActive = true;
+    }
   }
 
   constructorDeTab(): void {
@@ -364,12 +371,21 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
   private hydrateConExistenciasHospitales() {
 
     const applyForHospital = (key: Existencias, assign: (r: RdlsRow, val: number) => void) => {
-      const sub = (this.inventario.existencias$.get(key)!).subscribe((items: Inventario[]) => {
+      const cluesimb = hospitalesData.find(h => h.key === key)?.cluesimb || '';
+      const sub = (this.inventario.existencias$.get(key)!).subscribe(async (items: Inventario[]) => {
         if (!Array.isArray(items)) return;
         const idx = new Map<string, number>(); // clave normalizada → total disponible
+        
         for (const it of items) {
           const k = this.inventario.normalizarClave(it.clave);
-          const disp = Number(it.disponible ?? 0);
+          let disp = Number(it.disponible ?? 0) - Number(it.comprometidos ?? 0);
+          // aplicar factor de conversión sin es necesario
+          if ( cluesimb && cluesimb.length > 0 ) {
+            const factor = await this.trazSrv.getFactorConversionPorUnidad(it.clave, cluesimb);
+            if (factor && factor.en_dispensacion === 1 && factor.cantidad_fc > 1) {
+              disp = Math.floor( disp / factor.cantidad_fc );
+            }
+          }
           idx.set(k, (idx.get(k) || 0) + disp);
         }
         const rows = this.rows().slice();
@@ -586,7 +602,7 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
       const itemsWithHospital = items.map(item => ({
         'nombre_hospital': nombreHospital,
         'CLAVE': item.clave,
-        'CANTIDAD': item.disponible,
+        'CANTIDAD': item.disponible - item.comprometidos,
         'LOTE': item.lote,
         'F_CAD': item.caducidad,
         'FTE': item.fuente

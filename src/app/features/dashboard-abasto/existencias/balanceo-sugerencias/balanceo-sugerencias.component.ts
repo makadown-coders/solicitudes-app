@@ -10,6 +10,7 @@ import { ExcelService } from "../../../../services/excel.service";
 import { KitsService } from "../../../../services/kits.service";
 import { Kit } from "../../../../models";
 import { AbstractTabComponent } from "../../../../shared/abstract-tab.component";
+import { ActivatedRoute } from "@angular/router";
 
 @Component({
     selector: 'app-balanceo-sugerencias',
@@ -90,9 +91,13 @@ export class BalanceoSugerenciasComponent extends AbstractTabComponent implement
         private balanceoService: BalanceoService,
         private articulosService: ArticulosService,
         private excelService: ExcelService,
-        private kitsService: KitsService
+        private kitsService: KitsService,
+        private activatedRoute: ActivatedRoute
     ) {
         super();
+        if ( this.activatedRoute.snapshot.url[0].path === 'balanceo') {
+            this.isActive = true;
+        }
     }
 
     ngOnInit(): void {

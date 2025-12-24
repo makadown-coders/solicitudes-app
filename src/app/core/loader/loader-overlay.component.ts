@@ -14,7 +14,7 @@ import { LoaderService } from '../../services/loader.service';
         <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.2"/>
         <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
       </svg>
-      <span class="text-sm font-medium text-gray-700">Cargando…</span>
+      <span class="text-sm font-medium text-gray-700">{{ customMessage() }} </span>
     </div>
   </div>
   `,
@@ -22,5 +22,8 @@ import { LoaderService } from '../../services/loader.service';
 })
 export class LoaderOverlayComponent {
   private loader = inject(LoaderService);
+  // agregar un mensaje customizado si hay que hacerlo
+  customMessage = computed(() => this.loader.customMessage());
+
   visible = computed(() => this.loader.isLoading());
 }

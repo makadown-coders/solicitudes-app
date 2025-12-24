@@ -22,6 +22,10 @@ export class DashboardShellComponent implements OnInit {
 
     get isDarkMode() { return this.themeService.isDarkMode(); }
 
+    constructor() {
+        // this.onRefresh();
+     }
+
     ngOnInit(): void {
         // ✅ Nuevo enfoque: dejar al servicio decidir si usa cache o backend
         this.inventarioService.initExistenciaAlmacenes();
