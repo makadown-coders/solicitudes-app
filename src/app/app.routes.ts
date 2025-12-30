@@ -53,9 +53,10 @@ export const routes: Routes = [
     title: 'CPM por unidad (BC)',
     loadComponent: () => import('./features/cpm-editor/cpm-editor.component').then(m => m.CpmEditorComponent)
   },
-  { path: 'admin-kits', 
+  {
+    path: 'admin-kits',
     loadComponent: () => import('./features/kits/admin-kits/admin-kits.component')
-      .then(m => m.AdminKitsComponent) 
+      .then(m => m.AdminKitsComponent)
   },
   {
     path: 'carga-masiva-kits',
@@ -63,6 +64,18 @@ export const routes: Routes = [
       .then(m => m.KitsImportComponent)
   },
   { path: 'solicitudes-config', component: SolicitudesConfigComponent },
+  {
+    path: 'sacia',
+    children: [
+      {
+        path: 'validador-layout',
+        title: 'SACIA · Validador de Layout',
+        loadComponent: () =>
+          import('./features/sacia/validador-layout/validador-layout.component')
+            .then(m => m.ValidadorLayoutComponent)
+      },
+    ],
+  },
 
   // Nueva versión del dashboard de abasto
   {
@@ -133,7 +146,7 @@ export const routes: Routes = [
         title: 'Dashboard Abasto · Acerca de'
       },
     ],
-  },  
+  },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: '**', redirectTo: '/home' },
 ]; 
