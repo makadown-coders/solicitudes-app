@@ -35,7 +35,8 @@ export class CpmService {
   public cpms$ = this.unionSubject.asObservable();
 
   // índices auxiliares "globales" (última unidad)
-  private kitSet = new Set<string>();               // claves en KIT (normalizadas)
+  // TODO: hacerlo private kitSet = new Set<string[]>();
+  private kitSet = new Set<string>();               // claves en KIT (normalizadas) 
   private cpmIndex = new Map<string, number>();     // clave -> cpm (normalizada)
 
   private importRestrictToKit$ = new BehaviorSubject<boolean>(false);
@@ -45,9 +46,12 @@ export class CpmService {
   // =========================
   private unionsByUnit = new Map<string, BehaviorSubject<CpmUnionRow[]>>(); // cluesimb -> subject
   private inflightByUnit = new Map<string, Observable<CpmUnionRow[]>>();    // evitar duplicar fetches
+  // TODO: Hacer lo private kitSetByUnit = new Map<string, Set<string[]>>();
   private kitSetByUnit = new Map<string, Set<string>>();                    // cluesimb -> Set(claves)
   private cpmIndexByUnit = new Map<string, Map<string, number>>();          // cluesimb -> Map(clave,cpm)
   private restrictByUnit = new Map<string, BehaviorSubject<boolean>>();     // cluesimb -> flag subject
+
+  // TODO: Adaptar kitSet y kitSetByUnit con el nuevo enfoque hacia los componentes...
 
   // =========================
   //   UTILS

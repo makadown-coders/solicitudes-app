@@ -31,6 +31,11 @@ export const loaderInterceptor: HttpInterceptorFn = (req, next) => {
     customMessage = 'Cargando CPMs... espere un momento';
   }
 
+  if (cleanReq.url.includes('factor')) {
+    console.log('cleanReq.url', cleanReq.url);
+    customMessage = 'Cargando factores de conversión para existencias... espere un momento';
+  }
+
   if (cleanReq.url.includes('all')) {
     customMessage = 'Cargando existencias con factor de conversión... espere un momento';
   }

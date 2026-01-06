@@ -57,11 +57,17 @@ export const routes: Routes = [
     path: 'admin-kits',
     loadComponent: () => import('./features/kits/admin-kits/admin-kits.component')
       .then(m => m.AdminKitsComponent)
-  },
+  },/*
   {
     path: 'carga-masiva-kits',
     loadComponent: () => import('./features/kits/kits-import/kits-import.component')
       .then(m => m.KitsImportComponent)
+  },*/
+  {
+    path: 'carga-masiva-cpm-kits',
+    loadComponent: () =>
+      import('./features/carga-masiva/carga-cpm-kits.component')
+        .then(m => m.CargaCpmKitsComponent)
   },
   { path: 'solicitudes-config', component: SolicitudesConfigComponent },
   {

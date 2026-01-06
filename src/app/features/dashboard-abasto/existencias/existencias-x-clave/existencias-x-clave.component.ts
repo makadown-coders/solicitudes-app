@@ -54,7 +54,6 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
     @Input() cpms: CPMS[] = [];
     citasService = inject(CitasService);
-    // @Input() citas: Cita[] = [];
     citas: Cita[] = []
 
     pillIcon = LucidePill;
@@ -63,7 +62,6 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     circleAlert = CircleAlertIcon;
     truck = TruckIcon;
     circleCheck = CircleCheckIcon
-    //citasFull: Cita[] = [];
     citasHalladasPorClave: Cita[] = [];
     /**
      * Cita para la descripcion de la clave
@@ -110,12 +108,6 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
 
     // Variable para loading mientras se busca toda la info sobre la clave
     loadingClave = signal(false);
-
-    // helper
-    /*private aplicarFactorBase(cantidad: number): number {
-        if (!this.factorConv.en_dispensacion || this.factorConv.cantidad_fc <= 1) return cantidad;
-        return Math.floor(cantidad / this.factorConv.cantidad_fc); // base
-    }*/
 
     constructor(activatedRoute: ActivatedRoute) {
         super();
@@ -218,27 +210,11 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
         }
     }
 
-    /*async buscarFactor() {
-        // 🔹 cargar factor de conversión después de fijar la clave
-        try {
-            const resp = await firstValueFrom(this.trazabilidadService.getFactorConversion(this.claveBusqueda));
-            if (resp) {
-                this.factorConv = resp;
-            } else {
-                this.factorConv = { en_dispensacion: false, cantidad_fc: 1 };
-            }
-            this.cdRef.detectChanges();
-        } catch {
-            this.factorConv = { en_dispensacion: false, cantidad_fc: 1 };
-        }
-    }*/
     private async getFactor(clave: string, cluesimb: string): Promise<FactorUnidad> {
         const key = `${clave}|${cluesimb}`;
         const cached = this.factorMap.get(key);
         if (cached) return cached;
 
-        // Si tu servicio regresa Observable, descomenta firstValueFrom:
-        // const resp = await firstValueFrom(this.trazabilidadService.getFactorConversionPorUnidad(clave, cluesimb));
         const resp = await this.trazabilidadService.getFactorConversionPorUnidad(clave, cluesimb);
 
         const factor: FactorUnidad = {
@@ -263,7 +239,6 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
         this.datosAgrupados = [];
         this.citasHalladasPorClave = [];
         this.mostrarNotaFactor = false;
-        // this.factorConv = { en_dispensacion: false, cantidad_fc: 1 };
         localStorage.removeItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE);
     }
 

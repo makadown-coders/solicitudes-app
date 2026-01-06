@@ -13,6 +13,11 @@ import { ArticulosService } from '../../../services/articulos.service';
 import { ExcelService } from '../../../services/excel.service';
 import { firstValueFrom } from 'rxjs';
 
+/**
+ * @deprecated Usar CargaCpmKitsComponent en su lugar
+ * ¿Porqué? porque las tablas [kit_clave] ni [unidad_medica_kit] están en proceso de eliminación.
+ * Probablemente este componente se refactorizará en el futuro.
+ */
 @Component({
   selector: 'app-admin-kits',
   standalone: true,

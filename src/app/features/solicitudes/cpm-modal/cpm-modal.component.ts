@@ -9,6 +9,7 @@ import { firstValueFrom } from 'rxjs';
 import { InventarioDisponibles } from '../../../models';
 import { InventarioService } from '../../../services/inventario.service';
 import { NgFastToastService } from 'ng-fast-toast';
+import { TrazabilidadService } from '../../../services/trazabilidad.service';
 
 type Row = {
   clave: string;
@@ -49,6 +50,7 @@ export class CpmModalComponent {
   private cpmApi = inject(CpmEditorService);
   private invSvc = inject(InventarioService);
   private toast = inject(NgFastToastService);
+  private trazabilidadService = inject(TrazabilidadService);
 
   // ---------- UI state ----------
   loading = signal(true);
@@ -102,7 +104,17 @@ export class CpmModalComponent {
       let idx = new Map<string, number>();
       try {
         const ex = await firstValueFrom(this.existApi.byUnidad(this.cluesimb));
-        idx = new Map<string, number>(ex!.map(x => [x.clave_cnis, x.existencia_total ?? 0]));
+        
+        const entries = await Promise.all(ex!.map(async x => {
+          // obteniendo factor de conversion
+          const factor = await this.trazabilidadService
+            .getFactorConversionPorUnidad(x.clave_cnis, this.cluesimb);
+          if (factor && factor.cantidad_fc > 0 && x.existencia_total > 0) {
+            return [x.clave_cnis, Math.floor((x.existencia_total) / factor.cantidad_fc)] as const;
+          }
+          return [x.clave_cnis, x.existencia_total ?? 0] as const;
+        }));
+        idx = new Map<string, number>(entries);
       } catch { /* sin existencias es válido */ }
 
       const withExist = enriched.map(r => ({ ...r, exist: idx.get(r.clave) ?? 0 }));
@@ -255,7 +267,7 @@ export class CpmModalComponent {
     for (const r of seleccionadas) {
       if (existentes.has(r.clave)) { omitidasPorDup++; continue; }
       const qty = this.sugerencia(r); // ya anti-doble y con cobertura
-      if (!qty || qty < 0) { 
+      if (!qty || qty < 0) {
         // dejare pasar las sugeridas en cero
         omitidasPorQty++; // continue;
       }
@@ -275,7 +287,7 @@ export class CpmModalComponent {
       const partes: string[] = [];
       //const partes2: string[] = [];
       if (omitidasPorDup > 0) partes.push(`${omitidasPorDup} duplicada${omitidasPorDup > 1 ? 's' : ''}`);
-     // if (omitidasPorQty > 0) partes2.push(`${omitidasPorQty} sin cantidad (ajustar haciendo click en icono de edición)`);
+      // if (omitidasPorQty > 0) partes2.push(`${omitidasPorQty} sin cantidad (ajustar haciendo click en icono de edición)`);
       this.importDetail.set(partes.length ? `Omitidas: ${partes.join(' · ')}` : 'Verifica la selección.');
       this.procesarToastDesdeAgregarSeleccion();
       return;

@@ -15,6 +15,7 @@ import { InventarioDisponibles } from '../../../models/Inventario';
 import { CpmRowLite } from '../../../models/CpmExpectedRow';
 import { KitRow } from '../../../models/KitRow';
 import { ColKey } from '../../../models/ColKey';
+import { TrazabilidadService } from '../../../services/trazabilidad.service';
 
 
 @Component({
@@ -52,6 +53,7 @@ export class KitModalComponent implements OnInit {
     private invSvc = inject(InventarioService);
     private toast = inject(NgFastToastService);
     private cdRef = inject(ChangeDetectorRef);
+    private trazabilidadService = inject(TrazabilidadService);
 
     // ===== Estado interno =====
     // UI switches
@@ -101,7 +103,7 @@ export class KitModalComponent implements OnInit {
             try { await firstValueFrom(this.cpmService.ensureForCluesimb(clues)); } catch { /* noop */ }
         }
 
-        await this.ensureDescripcionIndex();        
+        await this.ensureDescripcionIndex();
         await this.loadKit();             // construye filas CPM + AZM/AZE/AZT
         this.loadExistenciasForUnit();    // mezcla existencias por unidad + reorden        
     }
@@ -166,11 +168,19 @@ export class KitModalComponent implements OnInit {
         this.kitStats.sinExist = 0;
         this.kitStats.existTotal = 0;
         this.existSvc.byUnidad(clues).subscribe({
-            next: (rows: ExistUnidadRow[]) => {
+            next: async (rows: ExistUnidadRow[]) => {
                 this.existUnidadIndex.clear();
                 for (const r of rows) {
                     const k = this.normClave(r.clave_cnis);
-                    this.existUnidadIndex.set(k, Number(r.existencia_total) || 0);
+                    // obteniendo factor de conversion
+                    const factor = await this.trazabilidadService
+                        .getFactorConversionPorUnidad(r.clave_cnis, this.cluesimb);
+                    if (factor && factor.cantidad_fc > 0 && r.existencia_total > 0) {
+                        const existenciaConvertida = (r.existencia_total) / factor.cantidad_fc;
+                        this.existUnidadIndex.set(k, Math.floor(existenciaConvertida));
+                    } else {
+                        this.existUnidadIndex.set(k, Number(r.existencia_total) || 0);
+                    }
                 }
                 this.hasUnidadExistencias = this.existUnidadIndex.size > 0;
                 this.mergeExistenciasIntoKit();

@@ -2,8 +2,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { firstValueFrom } from 'rxjs';
-import { FactorUnidad } from '../models/factor-unidad';
+import { first, firstValueFrom, Observable } from 'rxjs';
+import { FactoresResponse, FactorUnidad } from '../models/factor-unidad';
 import { MovimientoTrazabilidad } from '../models';
 
 type RawFactor = { en_dispensacion: number | boolean; cantidad_fc: number };
@@ -19,6 +19,7 @@ export class TrazabilidadService {
   constructor(private http: HttpClient) {
     this.restoreFromStorage();     // precarga a memCache desde localStorage
     this.pruneExpiredInStorage();  // limpia expirados (no bloqueante)
+    this.cargarAllFactoresConversion(); // precarga todos los factores desde el backend
   }
 
   obtenerPorClaveYClues(clave: string, cluesimb: string) {
@@ -37,8 +38,8 @@ export class TrazabilidadService {
     );
   }
 
-  // **NUEVO**: con caché persistente + de-dup
-  async getFactorConversionPorUnidad(clave: string, cluesimb: string): Promise<FactorUnidad> {
+  // **Legacy**: con caché persistente + de-dup
+  async getFactorConversionPorUnidadLegacy(clave: string, cluesimb: string): Promise<FactorUnidad> {
     const key = `${clave}|${cluesimb}`;
 
     // 1) Mem cache
@@ -90,6 +91,62 @@ export class TrazabilidadService {
 
     this.pending.set(key, p);
     return p;
+  }
+
+  /**
+   * Tiene la misma funcionalidad que getFactorConversionPorUnidadLegacy, pero en lugar de hacer la llamada al backend,
+   * busca el factor en memoria o en caché persistente. 
+   * Si no lo halla, regresa fallback ({ clave, cluesimb, en_dispensacion: 0, cantidad_fc: 1 }).
+   * @param clave 
+   * @param cluesimb 
+   */
+  async getFactorConversionPorUnidad(clave: string, cluesimb: string): Promise<FactorUnidad> {
+    const key = `${clave}|${cluesimb}`;
+
+    // 1) Mem cache
+    const hitMem = this.memCache.get(key);
+    if (hitMem) return hitMem;
+    // 2) Storage cache (con TTL)
+    const hitStore = this.getFromStorage(key);
+    if (hitStore) {
+      this.memCache.set(key, hitStore);
+      return hitStore;
+    }
+
+    return { clave, cluesimb, en_dispensacion: 0, cantidad_fc: 1 };
+  }
+
+  /**
+   * Metodo a ejecutar cuando se inicia la aplicacion para precargar todos los factores de conversion.
+   * Afortunadamente la bd no es tan grande y podemos traerlos todos de una sola vez.
+   * Esto ayuda a reducir la latencia y evitar llamadas al backend.
+   * @returns 
+   */
+  private async cargarAllFactoresConversion() {
+    const allFactores = await firstValueFrom(
+        this.http
+        .get<FactoresResponse>(`${environment.apiUrl}/trazabilidad/all-factores-conversion`));
+
+    if (!allFactores.success || !allFactores.data) {
+      // limpiar caché si la carga falla
+      this.memCache.clear();
+      // limpiar this.STORAGE_KEY
+      localStorage.removeItem(this.STORAGE_KEY);
+      return;
+    }
+
+    // Procesar los factores y guardarlos en caché
+    for (const [clave, factor] of Object.entries(allFactores.data)) {
+      const key = `${clave}|${factor.cluesimb}`;
+      const factorUnidad: FactorUnidad = {
+        clave,
+        cluesimb: factor.cluesimb,
+        en_dispensacion: typeof factor.factor === 'boolean' ? (factor.factor ? 1 : 0) : factor.factor,
+        cantidad_fc: factor.factor ?? 1
+      };
+      this.memCache.set(key, factorUnidad);
+      this.saveToStorage(key, { en_dispensacion: factorUnidad.en_dispensacion, cantidad_fc: factorUnidad.cantidad_fc, ts: Date.now() });
+    }
   }
 
   // ---------- Helpers de caché persistente ----------

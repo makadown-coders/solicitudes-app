@@ -6,6 +6,11 @@ import { KitsService } from "../../../services/kits.service";
 import { ImportLog, Kit, ParsedKitPreview } from "../../../models";
 import { first, firstValueFrom } from "rxjs";
 
+/**
+ * @deprecated Usar CargaCpmKitsComponent en su lugar
+ * ¿Porqué? porque las tablas [kit_clave] ni [unidad_medica_kit] están en proceso de eliminación.
+ * Probablemente este componente se eliminará en el futuro.
+ */
 @Component({
   selector: 'app-kits-import',
   standalone: true,
