@@ -38,15 +38,16 @@ export class InventarioService {
   public inventario$: Observable<Inventario[]> = this.inventarioSubject.asObservable();
   private fechaService = inject(PeriodoFechasService);
   private excelService = inject(ExcelService);
-  private cpmsSubject = new BehaviorSubject<CPMS[]>([]);
-  public cpms$: Observable<CPMS[]> = this.cpmsSubject.asObservable();
+  // ========================= CPMS Legacy, en vías de deprecación =========================
+  // private cpmsSubject = new BehaviorSubject<CPMS[]>([]);
+  // public cpms$: Observable<CPMS[]> = this.cpmsSubject.asObservable();
 
   private claveGruposSubject = new BehaviorSubject<ClaveGrupo[]>([]);
   public claveGrupos$: Observable<ClaveGrupo[]> = this.claveGruposSubject.asObservable();
 
   // TODO: Desacoplar esto de Dashboard para meterlo en CPMService
-  private cpmsCluesActualSubject = new BehaviorSubject<CPMS[]>([]);
-  public cpmsCluesActual$: Observable<CPMS[]> = this.cpmsCluesActualSubject.asObservable();
+  // private cpmsCluesActualSubject = new BehaviorSubject<CPMS[]>([]);
+  // public cpmsCluesActual$: Observable<CPMS[]> = this.cpmsCluesActualSubject.asObservable();
 
   // crear un booleano para avisar que se está cargando el CPMS
   private cargandoCPMSBehaviorSubject = new BehaviorSubject<boolean>(false);
@@ -82,82 +83,7 @@ export class InventarioService {
     const ts = Date.parse(tsStr);
     if (Number.isNaN(ts)) return true;
     return (Date.now() - ts) > this.TTL_MS;
-  }
-
-  /**
-   * Metodo para refrescar los datos de CPMS (mediante power automate)
-   * En vias de deprecacion para usar backend.
-   */
-  refrescarDatosCPMS() {
-    //    console.info('🔄 InventarioService.refrescarDatosCPMS() - Actualizando CPMS...');
-    this.cargandoCPMSBehaviorSubject.next(true);
-    // purgar todo el localStorage
-    this.limpiarCPMS();
-    const url = environment.apiUrl + '/cpms';
-    this.http.get<CPMSFull>(url).subscribe({
-      next: (response: CPMSFull) => {
-        const arrayBuffer = this.excelService.base64ToArrayBuffer(response.cpms);
-        let cpms: CPMS[] = [];
-        let claveGrupos: ClaveGrupo[] = [];
-        [cpms, claveGrupos] = this.excelService.procesarArchivoCPMS(arrayBuffer);
-
-        // console.info('✅ InventarioService.refrescarDatosCPMS() - CPMS tamanio original', cpms.length);
-        // 0-1) Procesar los cpms para que excluya claves que tienen cantidad cero en todas las unidades 
-        if (cpms && cpms.length > 0) {
-          let resumenEstatal = this.agregarResumenEstatal(cpms);
-          // crear un arreglo de claves en resumenEstatal que tienen CPM total > 0
-          const clavesConCpmTotal = resumenEstatal.filter(item => item.cantidad > 0).map(item => item.clave);
-          //          console.info('🧹 Filtrando CPMS...');
-          // filtrar this.existenciasTabInfo.cpms para mantener solo las claves que tienen CPM total > 0
-          let cpmsFiltrados: CPMS[] = [];
-          for (let i = 0; i < clavesConCpmTotal.length; i++) {
-            const clave = clavesConCpmTotal[i];
-            const cpm = cpms.filter(item => item.clave === clave && item.cantidad > 0);
-            if (cpm) {
-              cpmsFiltrados = [...cpmsFiltrados, ...cpm];
-            }
-          }
-          // filtrar en claveGrupos para que muestre lo que hay tambien en cpmsFiltrados
-          claveGrupos = claveGrupos.filter(item => clavesConCpmTotal.includes(item.clave));
-
-
-          //          console.log('cpmsFiltrados tamanio', cpmsFiltrados.filter(item => item.cantidad > 0).map(item => item.clave).length);
-          // agregando resumen estatal por si se ofrece
-          resumenEstatal = resumenEstatal.filter(item => clavesConCpmTotal.includes(item.clave));
-          // console.log('resumenEstatal tamanio', resumenEstatal.filter(item => item.cantidad > 0).map(item => item.clave).length);
-
-          cpms = [];
-
-          cpms = [...resumenEstatal, ...cpmsFiltrados];
-          // console.log('cpms tamanio', cpms.map(item => item.clave).length);
-
-          // 1) Serializar y comprimir
-          const raw = JSON.stringify(cpms);
-          // console.log('InventarioService.refrescarDatosCPMS() - raw un pedazo', raw.substring(0, 10));
-          const compressed = LZString.compress(raw);
-          try {
-            // console.log('InventarioService.refrescarDatosCPMS() - comprimiendo');
-            localStorage.setItem(StorageVariables.SOLICITUD_CPMS, compressed);
-            localStorage.setItem(StorageVariables.SOLICITUD_CLAVEGRUPOS, JSON.stringify(claveGrupos));
-            // ⬇️ Timestamp de última actualización CPMS
-            localStorage.setItem(StorageVariables.SOLICITUD_CPMS_TS, new Date().toISOString());
-          } catch {
-            console.warn('😱 InventarioService.refrescarDatosCPMS() - localStorage lleno, omitiendo guardado');
-          }
-
-        }
-        // 2) Emitir        
-        this.cpmsSubject.next(cpms as CPMS[]);
-        this.claveGruposSubject.next(claveGrupos as ClaveGrupo[]);
-        this.cargandoCPMSBehaviorSubject.next(false);
-        //        console.info('✅ InventarioService.refrescarDatosCPMS() - FINALIZADO');
-      },
-      error: (err) => {
-        this.cargandoCPMSBehaviorSubject.next(false);
-        console.error('❌ InventarioService.refrescarDatosCPMS() - Error al cargar CPMS:', err);
-      }
-    });
-  }
+  }  
 
   /**
    * Refresca existencias de ALMACENES desde Postgres (tmp_existencias + v_unidad_medica_detalle)
@@ -233,14 +159,6 @@ export class InventarioService {
     return registrosEstatales;
   }
 
-  emitirCPMS(cpms: CPMS[]) {
-    this.cpmsSubject.next(cpms);
-  }
-
-  emitirCPMSCluesActual(cpms: CPMS[]) {
-    this.cpmsCluesActualSubject.next(cpms);
-  }
-
   emitirInventario(inventario: Inventario[]) {
     // console.info('📦 InventarioService.emitirInventario()', inventario);
     this.inventarioSubject.next(inventario);
@@ -250,11 +168,7 @@ export class InventarioService {
     localStorage.removeItem(StorageVariables.SOLICITUD_CPMS);
     localStorage.removeItem(StorageVariables.SOLICITUD_CLAVEGRUPOS);
     localStorage.removeItem(StorageVariables.SOLICITUD_CPMS_TS); // ⬅ limpiar timestamp
-    this.cpmsSubject.next([]);
-  }
-
-  cargarCPMSdesdeLocalStorage() {
-    this.cpmsSubject.next(new StorageSolicitudService().getCPMSFromLocalStorage());
+    // this.cpmsSubject.next([]);
   }
 
   /**
@@ -626,29 +540,7 @@ export class InventarioService {
     } else {
       // console.info('✅ initInventario(): usando inventario de almacenes desde localStorage (vigente)');
     }
-  }
-
-  /**
- * Inicializa CPMS:
- * - Emite lo que haya en localStorage (si existe)
- * - Si no hay datos o están vencidos (TTL) → dispara refrescarDatosCPMS()
- */
-  initCPMS(): void {
-    // 1) Intentar cargar de localStorage
-    const stored = new StorageSolicitudService().getCPMSFromLocalStorage(); // o inyectado si ya lo tienes
-    this.cpmsSubject.next(stored ?? []);
-
-    const tsStr = localStorage.getItem(StorageVariables.SOLICITUD_CPMS_TS);
-    const expired = this.isExpired(tsStr);
-    const noData = !stored || stored.length === 0;
-
-    if (noData || expired) {
-      // console.info('⌛ initCPMS(): sin datos o expirado, refrescando desde backend...');
-      this.refrescarDatosCPMS();
-    } else {
-      // console.info('✅ initCPMS(): usando CPMS desde localStorage (vigentes)');
-    }
-  }
+  }  
 
   /**
  * Inicializa existencias de UNA unidad:

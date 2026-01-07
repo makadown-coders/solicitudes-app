@@ -7,7 +7,6 @@ import { catchError } from 'rxjs/operators';
 // arriba de tu archivo
 import * as XLSX from 'xlsx';
 
-import { kitCatalogoBasal } from '../../../data/kit-catalogo-basal';
 import { GruposClavesService } from '../../../services/grupo-clases.service';
 import { InventarioService } from '../../../services/inventario.service';
 import { hospitalesData } from '../../../models/hospitalesData';
@@ -24,6 +23,7 @@ import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
 import { ActivatedRoute } from '@angular/router';
 import { TrazabilidadService } from '../../../services/trazabilidad.service';
 import { FactorUnidad } from '../../../models';
+import { CpmService } from '../../../services/cpm.service';
 
 // Subconjunto de RdlsRow sólo para campos CPM
 type CpmsBuckets = Pick<RdlsRow,
@@ -54,6 +54,7 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
   private trazSrv = inject(TrazabilidadService);
   private balanceoService = inject(BalanceoService);
   private kitsService = inject(KitsService);
+  private cpmService = inject(CpmService);
 
 
   // === Ruta de la Salud (kits) ===
@@ -207,11 +208,13 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
     const kitParam = value === 'ALL' ? undefined : value;
 
     this.balanceoService.obtenerClavesRutasSalud(kitParam).subscribe({
-      next: (resp) => {
+      next: async (resp) => {
         const set = new Set<string>(
           (resp.claves ?? []).map((c: string) => this.norm.normClave(c))
         );
         this.clavesRutasSalud.set(set);
+        await this.hydrateConCpms();
+        this.hydrateConExistenciasHospitales();
       },
       error: (err) => {
         console.error('Error cargando claves de Rutas de la Salud', err);
@@ -238,133 +241,103 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
       articulosMapa = {};
     }
 
-    // TODO: Refactor aqui con catalogo de kits
-    const base: RdlsRow[] = kitCatalogoBasal.map((clave, idx) => {
-      const articulo = articulosMapa[clave];
-      const descripcion = articulo?.descripcion || '';
-
-      return {
-        no: idx + 1,
-        clave,
-        descripcion,
-        tipo: '',
-        grupo_terapeutico: '',
-        piezas: 1,
-
-        AZM: 0, AZE: 0, AZT: 0,
-        totalAlmacenes: 0,
-
-        HGTK: 0, HMIT: 0, HGTZOE: 0, HGT: 0, HGPR: 0,
-        HGM: 0, HMIM: 0, UNEME: 0, HGSF: 0, HGE: 0,
-        totalHospitales: 0,
-
-        CPM_HGTK: 0, CPM_HMIT: 0, CPM_HGTZOE: 0, CPM_HGT: 0, CPM_HGPR: 0,
-        CPM_HGM: 0, CPM_HMIM: 0, CPM_UNEME: 0, CPM_HGSF: 0, CPM_HGE: 0,
-        TOTAL_CPM_TIJUANA: 0,
-        TOTAL_CPM_MEXICALI: 0,
-        TOTAL_CPM_ENSENADA: 0,
-      };
-    });
+    const base: RdlsRow[] = [];
 
     this.rows.set(base);
     this.page.set(1);
   }
 
-  private hydrateConCpms() {
-    const sub = this.inventario.cpms$.subscribe((cpms: CPMS[]) => {
-      if (!Array.isArray(cpms) || !cpms.length) return;
+  private async hydrateConCpms(): Promise<void> {
+    // 1) mapa de "HGTK" -> cluesimb, etc.
+    const cluesMap = new Map<string, string>();
+    for (const h of hospitalesData) cluesMap.set(h.key, h.cluesimb);
 
-      // 1) Mapa bruto clave|cluesimb -> cantidad
-      const mapClaveClues = new Map<string, number>(); // `${clave}|${cluesimb}` -> cantidad
-      for (const c of cpms) {
-        const claveRaw = (c.clave ?? '').trim();
-        const cluesRaw = (c.cluesimb ?? '').trim();
-        if (!claveRaw || !cluesRaw) continue;
+    // 2) lista de cluesimb que RDlS usa para columnas
+    const cluesList = [
+      cluesMap.get('HGTKT'),  // Tecate
+      cluesMap.get('HMITIJ'),
+      cluesMap.get('HGTZE'),
+      cluesMap.get('HGTIJ'),
+      cluesMap.get('HGPR'),
+      cluesMap.get('HGMXL'),
+      cluesMap.get('HMIMXL'),
+      cluesMap.get('UOMXL'),
+      cluesMap.get('HGSF'),
+      cluesMap.get('HGENS'),
+    ].filter((x): x is string => !!x);
 
-        const key = `${claveRaw}|${cluesRaw}`;
-        mapClaveClues.set(key, (mapClaveClues.get(key) || 0) + (c.cantidad ?? 0));
-      }
+    // 3) asegurar que el cache por unidad esté cargado (in-flight + shareReplay ya lo hace eficiente)
+    await Promise.all(
+      cluesList.map(cluesimb => firstValueFrom(this.cpmService.cpmsFor(cluesimb)))
+    );
 
-      // 2) Mapa de "HGTK" -> cluesimb, etc., igual que antes
-      const cluesMap = new Map<string, string>();
-      for (const h of hospitalesData) {
-        cluesMap.set(h.key, h.cluesimb);
-      }
+    // 4) reconstruir buckets para las claves presentes en rows()
+    this.cpmsBucketsPorClave = new Map<string, CpmsBuckets>();
 
-      // 3) Construimos cpmsBucketsPorClave desde cero
-      this.cpmsBucketsPorClave = new Map<string, CpmsBuckets>();
+    const rows = this.pageSlice(); // this.rows();
+    for (const r of rows) {
+      const claveNorm = this.norm.normClave(r.clave);
 
-      const clavesSet = new Set<string>();
-      for (const c of cpms) {
-        const claveRaw = (c.clave ?? '').trim();
-        if (claveRaw) clavesSet.add(claveRaw);
-      }
+      const cpm_hgtk = this.cpmService.getCpmForClave(claveNorm, cluesMap.get('HGTKT'));
+      const cpm_hmit = this.cpmService.getCpmForClave(claveNorm, cluesMap.get('HMITIJ'));
+      const cpm_hgtzoe = this.cpmService.getCpmForClave(claveNorm, cluesMap.get('HGTZE'));
+      const cpm_hgt = this.cpmService.getCpmForClave(claveNorm, cluesMap.get('HGTIJ'));
+      const cpm_hgpr = this.cpmService.getCpmForClave(claveNorm, cluesMap.get('HGPR'));
 
-      for (const claveRaw of clavesSet) {
-        const clave = claveRaw.trim();
+      const cpm_hgm = this.cpmService.getCpmForClave(claveNorm, cluesMap.get('HGMXL'));
+      const cpm_hmim = this.cpmService.getCpmForClave(claveNorm, cluesMap.get('HMIMXL'));
+      const cpm_uneme = this.cpmService.getCpmForClave(claveNorm, cluesMap.get('UOMXL'));
+      const cpm_hgsf = this.cpmService.getCpmForClave(claveNorm, cluesMap.get('HGSF'));
 
-        const cpm_hgtk = mapClaveClues.get(`${clave}|${cluesMap.get('HGTKT')}`) ?? 0; // Tecate
-        const cpm_hmit = mapClaveClues.get(`${clave}|${cluesMap.get('HMITIJ')}`) ?? 0;
-        const cpm_hgtzoe = mapClaveClues.get(`${clave}|${cluesMap.get('HGTZE')}`) ?? 0;
-        const cpm_hgt = mapClaveClues.get(`${clave}|${cluesMap.get('HGTIJ')}`) ?? 0;
-        const cpm_hgpr = mapClaveClues.get(`${clave}|${cluesMap.get('HGPR')}`) ?? 0;
+      const cpm_hge = this.cpmService.getCpmForClave(claveNorm, cluesMap.get('HGENS'));
 
-        const cpm_hgm = mapClaveClues.get(`${clave}|${cluesMap.get('HGMXL')}`) ?? 0;
-        const cpm_hmim = mapClaveClues.get(`${clave}|${cluesMap.get('HMIMXL')}`) ?? 0;
-        const cpm_uneme = mapClaveClues.get(`${clave}|${cluesMap.get('UOMXL')}`) ?? 0;
-        const cpm_hgsf = mapClaveClues.get(`${clave}|${cluesMap.get('HGSF')}`) ?? 0;
+      const TOTAL_CPM_TIJUANA = cpm_hgtk + cpm_hmit + cpm_hgtzoe + cpm_hgt + cpm_hgpr;
+      const TOTAL_CPM_MEXICALI = cpm_hgm + cpm_hmim + cpm_uneme + cpm_hgsf;
+      const TOTAL_CPM_ENSENADA = cpm_hge;
 
-        const cpm_hge = mapClaveClues.get(`${clave}|${cluesMap.get('HGENS')}`) ?? 0;
+      const bucket = {
+        CPM_HGTK: cpm_hgtk,
+        CPM_HMIT: cpm_hmit,
+        CPM_HGTZOE: cpm_hgtzoe,
+        CPM_HGT: cpm_hgt,
+        CPM_HGPR: cpm_hgpr,
+        CPM_HGM: cpm_hgm,
+        CPM_HMIM: cpm_hmim,
+        CPM_UNEME: cpm_uneme,
+        CPM_HGSF: cpm_hgsf,
+        CPM_HGE: cpm_hge,
+        TOTAL_CPM_TIJUANA,
+        TOTAL_CPM_MEXICALI,
+        TOTAL_CPM_ENSENADA,
+      };
 
-        const TOTAL_CPM_TIJUANA = cpm_hgtk + cpm_hmit + cpm_hgtzoe + cpm_hgt + cpm_hgpr;
-        const TOTAL_CPM_MEXICALI = cpm_hgm + cpm_hmim + cpm_uneme + cpm_hgsf;
-        const TOTAL_CPM_ENSENADA = cpm_hge;
+      this.cpmsBucketsPorClave.set(claveNorm, bucket);
+    }
 
-        const normClave = this.norm.normClave(clave);
+    // 5) aplicar buckets a filas (igual que hoy)
+    const nextRows = this.pageSlice();
+    for (const r of nextRows) {
+      const claveNorm = this.norm.normClave(r.clave);
+      const b = this.cpmsBucketsPorClave.get(claveNorm) ?? this.getEmptyCpmsBuckets();
 
-        this.cpmsBucketsPorClave.set(normClave, {
-          CPM_HGTK: cpm_hgtk,
-          CPM_HMIT: cpm_hmit,
-          CPM_HGTZOE: cpm_hgtzoe,
-          CPM_HGT: cpm_hgt,
-          CPM_HGPR: cpm_hgpr,
-          CPM_HGM: cpm_hgm,
-          CPM_HMIM: cpm_hmim,
-          CPM_UNEME: cpm_uneme,
-          CPM_HGSF: cpm_hgsf,
-          CPM_HGE: cpm_hge,
-          TOTAL_CPM_TIJUANA,
-          TOTAL_CPM_MEXICALI,
-          TOTAL_CPM_ENSENADA,
-        });
-      }
+      r.CPM_HGTK = b.CPM_HGTK;
+      r.CPM_HMIT = b.CPM_HMIT;
+      r.CPM_HGTZOE = b.CPM_HGTZOE;
+      r.CPM_HGT = b.CPM_HGT;
+      r.CPM_HGPR = b.CPM_HGPR;
 
-      // 4) Hidratar las filas base (this.rows) con esos buckets
-      const rows = this.rows().slice();
-      for (const r of rows) {
-        const claveNorm = this.norm.normClave(r.clave);
-        const buckets = this.cpmsBucketsPorClave.get(claveNorm) ?? this.getEmptyCpmsBuckets();
+      r.CPM_HGM = b.CPM_HGM;
+      r.CPM_HMIM = b.CPM_HMIM;
+      r.CPM_UNEME = b.CPM_UNEME;
+      r.CPM_HGSF = b.CPM_HGSF;
 
-        r.CPM_HGTK = buckets.CPM_HGTK;
-        r.CPM_HMIT = buckets.CPM_HMIT;
-        r.CPM_HGTZOE = buckets.CPM_HGTZOE;
-        r.CPM_HGT = buckets.CPM_HGT;
-        r.CPM_HGPR = buckets.CPM_HGPR;
+      r.CPM_HGE = b.CPM_HGE;
 
-        r.CPM_HGM = buckets.CPM_HGM;
-        r.CPM_HMIM = buckets.CPM_HMIM;
-        r.CPM_UNEME = buckets.CPM_UNEME;
-        r.CPM_HGSF = buckets.CPM_HGSF;
-
-        r.CPM_HGE = buckets.CPM_HGE;
-
-        r.TOTAL_CPM_TIJUANA = buckets.TOTAL_CPM_TIJUANA;
-        r.TOTAL_CPM_MEXICALI = buckets.TOTAL_CPM_MEXICALI;
-        r.TOTAL_CPM_ENSENADA = buckets.TOTAL_CPM_ENSENADA;
-      }
-      this.rows.set(rows);
-    });
-    this.subs.push(sub);
+      r.TOTAL_CPM_TIJUANA = b.TOTAL_CPM_TIJUANA;
+      r.TOTAL_CPM_MEXICALI = b.TOTAL_CPM_MEXICALI;
+      r.TOTAL_CPM_ENSENADA = b.TOTAL_CPM_ENSENADA;
+    }
+    this.rows.set(nextRows);
   }
 
 
@@ -375,15 +348,15 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
       const sub = (this.inventario.existencias$.get(key)!).subscribe(async (items: Inventario[]) => {
         if (!Array.isArray(items)) return;
         const idx = new Map<string, number>(); // clave normalizada → total disponible
-        
+
         for (const it of items) {
           const k = this.inventario.normalizarClave(it.clave);
           let disp = Number(it.disponible ?? 0) - Number(it.comprometidos ?? 0);
           // aplicar factor de conversión sin es necesario
-          if ( cluesimb && cluesimb.length > 0 ) {
+          if (cluesimb && cluesimb.length > 0) {
             const factor = await this.trazSrv.getFactorConversionPorUnidad(it.clave, cluesimb);
             if (factor && factor.en_dispensacion === 1 && factor.cantidad_fc > 1) {
-              disp = Math.floor( disp / factor.cantidad_fc );
+              disp = Math.floor(disp / factor.cantidad_fc);
             }
           }
           idx.set(k, (idx.get(k) || 0) + disp);
@@ -442,30 +415,14 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
 
     for (const r of rows) {
       const clave = this.norm.normClave(r.clave);
-      /* if (clave==='010.000.0247.02') {
-         console.log('debug test 010.000.0247.02');
-       }*/
       const g = grupos.get(clave);
       const art = arts[clave];
-      /* if (clave==='010.000.0247.02') {
-         console.log('grupos ', g);
-         console.log('art ', art);
-       }*/
 
       const cat = g?.categoria ?? art?.categoria ?? null;
-      /* if (clave==='010.000.0247.02') {
-         console.log('cat ', cat);
-       }*/
 
       r.tipo = this.norm.normalizeCategoria(cat);
-      /* if (clave==='010.000.0247.02') {
-         console.log('r.tipo ', r.tipo);
-       }*/
 
-      r.grupo_terapeutico = g?.grupoInsumo ?? ''; // this.norm.grupoTerapeutico(cat, g?.grupoInsumo ?? null);
-      /*if (clave==='010.000.0247.02') {
-        console.log('r.grupo_terapeutico ', r.grupo_terapeutico);
-      }*/
+      r.grupo_terapeutico = g?.grupoInsumo ?? '';
     }
     this.rows.set(rows);
   }
@@ -701,15 +658,22 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
   protected override async onTabActivated(): Promise<void> {
     if (this.mostradoPorPrimeraVez === false) {
       await this.initRows();
-      this.hydrateConCpms();
-      this.hydrateConExistenciasHospitales();
+      // await this.hydrateConCpms();
+      // this.hydrateConExistenciasHospitales();
       this.cargarKitsRutaSalud();
+      this.onKitRutaChange('ALL');
       this.mostradoPorPrimeraVez = true;
     }
   }
 
   protected override onTabDeactivated(): void {
     // No action needed
+  }
+
+  onBuscar($event: string) {
+    this.term.set($event);
+    this.hydrateConCpms().then(() => {});
+    this.hydrateConExistenciasHospitales();
   }
 
 }

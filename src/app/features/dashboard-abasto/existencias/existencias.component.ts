@@ -81,12 +81,6 @@ export class ExistenciasComponent extends AbstractTabComponent implements OnInit
                     }
                 });
             });
-            // suscribirse al observable de cpms 
-            this.inventarioService.cpms$.pipe(takeUntil(this.onDestroy$)).subscribe({
-                next: (cpms: CPMS[]) => {
-                    this.cpms = [...cpms];
-                }
-            });
 
             // suscribirse al observable de claveGrupos
             this.inventarioService.claveGrupos$.pipe(takeUntil(this.onDestroy$)).subscribe({

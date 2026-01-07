@@ -29,21 +29,14 @@ export class DashboardShellComponent implements OnInit {
     ngOnInit(): void {
         // ✅ Nuevo enfoque: dejar al servicio decidir si usa cache o backend
         this.inventarioService.initExistenciaAlmacenes();
-        this.inventarioService.initCPMS();
         this.inventarioService.initTodasExistencias();
     }
 
     onRefresh() {
         this.citasService.clearCache();
-        // this.inventarioService.refrescarDatosInventario(false);
         this.inventarioService.refrescarExistenciaAlmacenesDesdePostgres();
-        this.inventarioService.refrescarDatosCPMS();
         for (const existencia of Object.values(Existencias)) {
             this.inventarioService.refrescarDatosExistencias(existencia);
         }
-
-        // 2) Pedir a cada tab que recargue (desde backend, con forceRefresh = true)
-        //this.proveedoresTab?.refrescarDatos(true);
-        //this.citasPendientesTab?.refrescarDatos(true);
     }
 }

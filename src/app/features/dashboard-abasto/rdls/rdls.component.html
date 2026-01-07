@@ -9,7 +9,8 @@
       <div>
         <input
           class="px-3 py-2 w-64 rounded-xl border-gray-300 border focus:outline-none focus:ring-2 focus:ring-green-500"
-          placeholder="Buscar por clave/descripcion." [ngModel]="term()" (ngModelChange)="term.set($event)" />
+          placeholder="Buscar por clave/descripcion." [ngModel]="term()"
+          (ngModelChange)="onBuscar($event)" />
       </div>
 
       <!-- 🔽 Select Ruta de la Salud -->

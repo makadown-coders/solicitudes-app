@@ -19,13 +19,13 @@ import { CircleAlertIcon, CircleCheckIcon, LucideAngularModule, LucidePill, Octa
 import { Cita } from '../../../../models/Cita';
 import { StorageSolicitudService } from '../../../../services/storage-solicitud.service';
 import { controlados } from '../../../../models/controlados';
-import { CPMS } from '../../../../models/CPMS';
 import { TrazabilidadModalComponent } from '../../../../shared/trazabilidad-modal/trazabilidad-modal.component';
 import { TrazabilidadService } from '../../../../services/trazabilidad.service';
 import { FactorUnidad } from '../../../../models/factor-unidad';
 import { CitasService } from '../../../../services/citas.service';
 import { AbstractTabComponent } from '../../../../shared/abstract-tab.component';
 import { ActivatedRoute } from '@angular/router';
+import { CpmService } from '../../../../services/cpm.service';
 
 // TODO: por optimizar esto jalando del backend
 const ALMACENES_JURIS: Record<string, { nombre: string; cluesimb: string }> = {
@@ -51,8 +51,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     // arriba en la clase
     mostrarNotaFactor = false;
 
-    @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
-    @Input() cpms: CPMS[] = [];
+    @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();    
     citasService = inject(CitasService);
     citas: Cita[] = []
 
@@ -90,6 +89,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     articulosService = inject(ArticulosService);
     inventarioService = inject(InventarioService);
     storageService = inject(StorageSolicitudService);
+    private cpmService = inject(CpmService);
 
     // para cuando se abra este componente como si fuera modal dialog
     @Input() clavePreseleccionada: string | null = null;
@@ -111,7 +111,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
 
     constructor(activatedRoute: ActivatedRoute) {
         super();
-        if (activatedRoute.snapshot.url[0].path === 'xclave') {            
+        if (activatedRoute.snapshot.url[0].path === 'xclave') {
             // contenido de existencias.component... pero como aqui no es subtab, se reusa.
             this.inventarioService.existencias$.forEach((value, key) => {
                 value.pipe(takeUntil(this.onDestroy$)).subscribe({
@@ -120,12 +120,6 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
                         this.existenciaUnidades.set(key, data as Inventario[]);
                     }
                 });
-            });
-            // suscribirse al observable de cpms 
-            this.inventarioService.cpms$.pipe(takeUntil(this.onDestroy$)).subscribe({
-                next: (cpms: CPMS[]) => {
-                    this.cpms = [...cpms];
-                }
             });
             this.isActive = true;
         }
@@ -275,9 +269,9 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     }
 
     async filtrarClave(skipLocalStorage = false) {
-        if (this.cpms.length === 0) {
+        /*if (this.cpms.length === 0) {
             this.cpms = [...this.storageService.getCPMSFromLocalStorage()];
-        }
+        }*/
 
         const clave = this.claveBusqueda.trim().toUpperCase();
         this.claveFiltrada = clave;
@@ -286,19 +280,44 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
         if (!clave) return;
         const agrupadoPorAlmacen = new Map<string, UnidadClaveResumen[]>();
         const hospitalesPorJurisdiccion = new Map<string, typeof hospitalesData>();
+        const cluesMap = new Map<string, string>();
+
         for (const hospital of hospitalesData) {
             const jurisdiccion = hospital.jurisdiccion.toLocaleLowerCase();
             if (!hospitalesPorJurisdiccion.has(jurisdiccion)) {
                 hospitalesPorJurisdiccion.set(jurisdiccion, []);
             }
             hospitalesPorJurisdiccion.get(jurisdiccion)!.push(hospital);
+            cluesMap.set(hospital.key, hospital.cluesimb);
         }
+        const cluesList = [
+            cluesMap.get('HGTKT'),  // Tecate
+            cluesMap.get('HMITIJ'),
+            cluesMap.get('HGTZE'),
+            cluesMap.get('HGTIJ'),
+            cluesMap.get('HGPR'),
+            cluesMap.get('HGMXL'),
+            cluesMap.get('HMIMXL'),
+            cluesMap.get('UOMXL'),
+            cluesMap.get('HGSF'),
+            cluesMap.get('HGENS'),
+        ].filter((x): x is string => !!x);
+
         const cpmsPorUnidad = new Map<string, number>();
-        for (const cpm of this.cpms) {
-            if (cpm.clave === clave) {
-                cpmsPorUnidad.set(cpm.cluesimb, cpm.cantidad ?? 0);
-            }
-        }
+        // asegurar que el cache por unidad esté cargado (in-flight + shareReplay ya lo hace eficiente)
+        // y llenar cpmsPorUnidad
+        await Promise.all(
+            cluesList.map(async cluesimb => {
+                const cpms = await firstValueFrom(this.cpmService.cpmsFor(cluesimb))
+                for (const cpm of cpms) {
+                    if (cpm.clave_cnis === clave) {
+                        cpmsPorUnidad.set(cpm.cluesimb, cpm.cpm ?? 0);
+                    }
+                }
+                return ;
+            })
+        );
+
         const sumExistenciaPorClave = (items?: Inventario[]) => {
             if (!items) return 0;
             let total = 0;
@@ -630,7 +649,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
                     if (exc3 && exc3.includes('{')) {
                         this.citaParaDescripcionDeClave = JSON.parse(exc3) as Cita;
                     }
-                    
+
                     // obtener de DASH_ABASTO_EXISTENCIAS_EXC_FACTOR_MAP para this.factorMap
                     const exc4 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_FACTOR_MAP);
                     if (exc4) {

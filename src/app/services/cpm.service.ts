@@ -1,4 +1,4 @@
-// src/app/services/cpm.service.ts
+// src/app/services/cpm.service.ts (FRONTEND - Angular)
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import {
@@ -46,7 +46,7 @@ export class CpmService {
   // =========================
   private unionsByUnit = new Map<string, BehaviorSubject<CpmUnionRow[]>>(); // cluesimb -> subject
   private inflightByUnit = new Map<string, Observable<CpmUnionRow[]>>();    // evitar duplicar fetches
-  // TODO: Hacer lo private kitSetByUnit = new Map<string, Set<string[]>>();
+  private kitsByUnit = new Map<string, Set<string>>(); // cluesimb -> Set(kit_codigo)
   private kitSetByUnit = new Map<string, Set<string>>();                    // cluesimb -> Set(claves)
   private cpmIndexByUnit = new Map<string, Map<string, number>>();          // cluesimb -> Map(clave,cpm)
   private restrictByUnit = new Map<string, BehaviorSubject<boolean>>();     // cluesimb -> flag subject
@@ -116,13 +116,13 @@ export class CpmService {
   // =========================
   //   API LEGACY (se mantiene)
   // =========================
-/*  public getKitCount(): number {
-    return this.kitSet.size;
-  }
-
-  public getKitClaves(): string[] {
-    return Array.from(this.kitSet);
-  }*/
+  /*  public getKitCount(): number {
+      return this.kitSet.size;
+    }
+  
+    public getKitClaves(): string[] {
+      return Array.from(this.kitSet);
+    }*/
 
   /**
    * Carga por cluesimb, usa caché y consolida “expected-vs ∪ by-unidad”.
@@ -306,13 +306,25 @@ export class CpmService {
     for (const e of expected) {
       const clave = this.normClave(e.clave_cnis);
       if (!clave) continue;
+
       const cpmVal = Number(e.cpm ?? 0);
+      const kits = (e.kit_codigos ?? []).map(k => (k || '').trim().toUpperCase()).filter(Boolean);
+
       const prev = byClave.get(clave);
       if (!prev) {
-        byClave.set(clave, { cluesimb, clave_cnis: clave, cpm: cpmVal, en_kit: true });
+        byClave.set(clave, {
+          cluesimb, clave_cnis: clave, cpm: cpmVal, en_kit: true,
+          kit_codigos: kits.length ? Array.from(new Set(kits)) : undefined
+        });
       } else {
         prev.cpm = Math.max(prev.cpm, cpmVal);
         prev.en_kit = true;
+        // union de kits (sin duplicados)
+        if (kits.length) {
+          const set = new Set<string>(prev.kit_codigos ?? []);
+          for (const k of kits) set.add(k);
+          prev.kit_codigos = Array.from(set);
+        }
       }
     }
 
@@ -320,8 +332,10 @@ export class CpmService {
     for (const u of unit) {
       const clave = this.normClave(u.clave_cnis ?? u.clave);
       if (!clave) continue;
+
       const cpmVal = Number(u.cpm ?? 0);
       const prev = byClave.get(clave);
+
       if (!prev) {
         byClave.set(clave, { cluesimb, clave_cnis: clave, cpm: cpmVal, en_kit: false });
       } else {
@@ -334,17 +348,52 @@ export class CpmService {
 
   private rebuildIndexesForUnit(cluesimb: string, union: CpmUnionRow[]) { // 🆕
     const key = (cluesimb || '').trim().toUpperCase();
-    const kit = new Set<string>();
+
+    const kitClaves = new Set<string>();
     const idx = new Map<string, number>();
+    const kits = new Set<string>(); // 🆕
 
     for (const r of union) {
       const clave = this.normClave(r.clave_cnis);
-      if (r.en_kit) kit.add(clave);
+
+      if (r.en_kit) kitClaves.add(clave);
       idx.set(clave, Number(r.cpm || 0));
+
+      for (const k of (r.kit_codigos ?? [])) {
+        const kk = (k || '').trim().toUpperCase();
+        if (kk) kits.add(kk);
+      }
     }
 
-    this.kitSetByUnit.set(key, kit);
+    this.kitSetByUnit.set(key, kitClaves);
     this.cpmIndexByUnit.set(key, idx);
+    this.kitsByUnit.set(key, kits); // 🆕
   }
 
+  getKitCodigosFor(cluesimb: string): string[] {
+    const key = (cluesimb || '').trim().toUpperCase();
+    return Array.from(this.kitsByUnit.get(key) ?? new Set<string>()).sort();
+  }
+
+  filterUnionByKit(cluesimb: string, kitCodigo?: string): CpmUnionRow[] {
+    const key = (cluesimb || '').trim().toUpperCase();
+    const kit = (kitCodigo || '').trim().toUpperCase();
+    const rows = this.subjectForUnit(key).value ?? [];
+
+    if (!kit) return rows;
+    return rows.filter(r => (r.kit_codigos ?? []).includes(kit));
+  }
+
+  cpmsForKit(cluesimb: string, kitCodigo$: Observable<string>): Observable<CpmUnionRow[]> {
+    const key = (cluesimb || '').trim().toUpperCase();
+    return this.cpmsFor(key).pipe(
+      withLatestFrom(kitCodigo$),
+      map(([rows, kit]) => {
+        const k = (kit || '').trim().toUpperCase();
+        if (!k) return rows;
+        return rows.filter(r => (r.kit_codigos ?? []).includes(k));
+      }),
+      shareReplay(1)
+    );
+  }
 }

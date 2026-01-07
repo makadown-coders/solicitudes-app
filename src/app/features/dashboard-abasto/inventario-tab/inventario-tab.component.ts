@@ -99,7 +99,7 @@ export class InventarioTabComponent extends AbstractTabComponent implements Afte
     private almacenes = signal<Inventario[]>([]);    // inventario$ (almacenes)
     private hospitales = signal<Inventario[]>([]);   // suma de existencias$ por cada unidad
 
-    // Set de claves que están en CPM (de tu cpms$)
+    // Set de claves que están en CPM 
     private cpmsSet = signal<Set<string>>(new Set());
     // + signals
     private articulosMapa = signal<Record<string, { descripcion: string; presentacion?: string; categoria?: string | null }>>({});
@@ -202,15 +202,6 @@ export class InventarioTabComponent extends AbstractTabComponent implements Afte
                 this.hospitales.set(merged);
             });
         }
-
-        // 5) CPMS → set de claves con cantidad > 0 (considera los 'ESTATAL' que generas)
-        this.invSrv.cpms$.subscribe(cpms => {
-            const claves = new Set<string>();
-            for (const r of (cpms ?? [])) {
-                if (r && r.clave && r.cantidad > 0) claves.add(this.invSrv.normalizarClave(r.clave));
-            }
-            this.cpmsSet.set(claves);
-        });
 
         // 6) Artículos → mapa por clave { descripcion, presentacion }
         // TODO: Corregir la obtencion de articulo para que traiga campos descripcion y presentacion
@@ -334,7 +325,7 @@ export class InventarioTabComponent extends AbstractTabComponent implements Afte
 
     // 🔎 Mapeo a las 18 columnas + extras
     rows = computed<InventarioVistaRow[]>(() => {
-        const cpms = this.cpmsSet();
+        const cpms = new Set<string>(); // this.cpmsSet();
         const grupos = this.gruposMapa();
 
         const mapRow = (inv: Inventario, tipo: 'HOSPITAL' | 'ALMACEN'): InventarioVistaRow => {
@@ -367,7 +358,7 @@ export class InventarioTabComponent extends AbstractTabComponent implements Afte
             }
 
             const ordenDeSuministro = this.joinUnique(citas.map(x => x.orden));
-            const proveedorTexto = this.joinUnique(citas.map(x => x.proveedor));
+            // const proveedorTexto = this.joinUnique(citas.map(x => x.proveedor));
 
             const proveedorPrimero = (citas.find(x => !!x.proveedor)?.proveedor) ?? '';
             const prov = this.provSrv.findByNombre(proveedorPrimero);
@@ -390,7 +381,7 @@ export class InventarioTabComponent extends AbstractTabComponent implements Afte
                 descripcion: safeStr(inv.descripcion) || art.descripcion || null,
                 precioUnitario: precioUnitario,
                 valorTotal: (precioUnitario != null ? precioUnitario * dispAjustado : null),
-                insumoEnCPM: cpms.has(clave) ? 'SI' : 'NO',
+                insumoEnCPM: 'SI', // cpms.has(clave) ? 'SI' : 'NO',
                 estadoInsumo: 1,
                 inventarioDisponible: dispAjustado,
                 unidadMedida: art.presentacion ?? null,

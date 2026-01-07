@@ -17,6 +17,10 @@ import { NgFastToastComponent } from 'ng-fast-toast';
 import { CpmService } from '../../services/cpm.service';
 import { Unidadv2 } from '../../models';
 
+/**
+ * Componente de layout principal de la aplicación de solicitudes.
+ * OJO: No es del dashboard, es el layout general.
+ */
 @Component({
   selector: 'app-layout',
   imports: [

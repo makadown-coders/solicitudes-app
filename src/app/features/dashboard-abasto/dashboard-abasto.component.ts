@@ -76,7 +76,6 @@ export class DashboardAbastoComponent implements OnInit {
     }
     // ✅ Nuevo enfoque: dejar al servicio decidir si usa cache o backend
     this.inventarioService.initExistenciaAlmacenes();
-    this.inventarioService.initCPMS();
     this.inventarioService.initTodasExistencias();
   }
 
@@ -84,9 +83,7 @@ export class DashboardAbastoComponent implements OnInit {
   onRefresh() {
     this.citasService.clearCache();
 
-    // this.inventarioService.refrescarDatosInventario(false);
     this.inventarioService.refrescarExistenciaAlmacenesDesdePostgres();
-    this.inventarioService.refrescarDatosCPMS();
     for (const existencia of Object.values(Existencias)) {
       this.inventarioService.refrescarDatosExistencias(existencia);
     }

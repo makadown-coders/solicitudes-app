@@ -79,6 +79,15 @@
           Solo sin existencias (AZM/AZE/AZT)
         </label>
         -->
+                    <!-- Filtro por KIT -->
+                    <div *ngIf="kitOptions?.length" class="flex items-center gap-2">
+                        <label class="block text-xs text-gray-600">Filtrar por KIT</label>
+                        <select class="px-2 py-1 text-sm border rounded" [ngModel]="kitSeleccionado"
+                            (ngModelChange)="onKitSeleccionadoChange($event)">
+                            <option value="">Todos los kits</option>
+                            <option *ngFor="let k of kitOptions" [value]="k">{{ k }}</option>
+                        </select>
+                    </div>
 
                     <label class="inline-flex items-center gap-2 text-sm text-gray-700">
                         <input type="checkbox" [ngModel]="verPorAlmacen" (ngModelChange)="verPorAlmacen = $event" />
@@ -144,9 +153,10 @@
 
             <!-- Resumen -->
             <div class="mt-2 text-xs text-gray-600">
-                Total claves: <strong>{{ kitStats.total }}</strong> ·
-                Con CPM: <strong>{{ kitStats.conCpm }}</strong> ·
-                Sin CPM: <strong>{{ kitStats.sinCpm }}</strong> ·
+                  Total claves: <strong>{{ kitStats.conCpm }}</strong> ·
+              <!--  Total claves: <strong>{{ kitStats.total }}</strong> ·
+                 Con CPM: <strong>{{ kitStats.conCpm }}</strong> ·
+                Sin CPM: <strong>{{ kitStats.sinCpm }}</strong> · -->
                 Con existencias: <strong>{{ kitStats.conExist }}</strong> ·
                 Sin existencias: <strong>{{ kitStats.sinExist }}</strong> ·
                 Existencias totales: <strong>{{ kitStats.existTotal | number }}</strong>
