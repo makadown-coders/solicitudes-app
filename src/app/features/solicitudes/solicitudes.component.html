@@ -129,7 +129,7 @@
 
           @let todosMayorACero = todosLosArticulosConCantidadMayorACero();
 
-          @if (articulosSolicitados.length > 0 todosMayorACero) {
+          @if (articulosSolicitados.length > 0 && todosMayorACero) {
             <button (click)="mostrarModalExportar()"
               class="p-2 mt-4 ml-2 text-white bg-green-600 rounded hover:bg-green-700"
               [disabled]="modoEdicionIndex !== null || !todosMayorACero"

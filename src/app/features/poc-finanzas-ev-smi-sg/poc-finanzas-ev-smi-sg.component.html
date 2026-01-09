@@ -23,7 +23,7 @@
     (cluesSeleccionado)="actualizarUnidad($event)">
   </app-selector-clues>
 
-  @if (unidadSeleccionada) {
+  @if (unidadSeleccionada() != null) {
     <app-evaluador-smi-sg
       [unidad]="unidadSeleccionada()!">
     </app-evaluador-smi-sg>

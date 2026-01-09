@@ -97,7 +97,7 @@ export class SolicitudExcelExporter {
             .then(buffer => new Uint8Array(buffer));
 
         const imageId = workbook.addImage({
-            buffer: imgBuffer,
+            buffer: imgBuffer.buffer,
             extension: 'png',
         });
         worksheet!.getCell('C1').value = '';
