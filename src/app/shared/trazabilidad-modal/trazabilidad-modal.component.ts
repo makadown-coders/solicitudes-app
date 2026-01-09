@@ -3,7 +3,6 @@ import { Component, EventEmitter, Input, OnChanges, Output, computed, signal } f
 import { MovimientoTrazabilidad } from '../../models/movimiento-trazabilidad';
 import { TrazabilidadService } from '../../services/trazabilidad.service';
 import { CommonModule } from '@angular/common';
-import { firstValueFrom } from 'rxjs';
 import * as XLSX from 'xlsx';
 import { FactorUnidad } from '../../models/factor-unidad';
 
