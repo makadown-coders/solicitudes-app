@@ -9,7 +9,7 @@ import {
     ChangeDetectionStrategy,
     signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Cita } from '../../../models/Cita';
 import { FormsModule } from '@angular/forms';
 import { PeriodoFechasService } from '../../../shared/periodo-fechas.service';
@@ -28,11 +28,10 @@ import { ActivatedRoute } from '@angular/router';
     selector: 'app-proveedores',
     standalone: true,
     imports: [
-        CommonModule,
-        FormsModule,
-        PeriodoPickerDasboardComponent,
-        DetalleCitaModalComponent,
-    ],
+    FormsModule,
+    PeriodoPickerDasboardComponent,
+    DetalleCitaModalComponent
+],
     templateUrl: './proveedores.component.html',
     styleUrls: ['./proveedores.component.css'],
     changeDetection: ChangeDetectionStrategy.OnPush

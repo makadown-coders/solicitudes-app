@@ -1,5 +1,5 @@
 import { Component, ElementRef, EventEmitter, Input, OnInit, Output, QueryList, ViewChildren } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Unidad } from '../../models/articulo-solicitud';
 import { unidadesData } from '../../models/unidadesData';
@@ -10,7 +10,7 @@ import { HospitalIcon, LucideAngularModule } from 'lucide-angular';
 @Component({
   selector: 'app-selector-clues',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, FormsModule],
+  imports: [LucideAngularModule, FormsModule],
   templateUrl: './selector-clues.component.html',
 })
 export class SelectorCluesComponent implements OnInit {

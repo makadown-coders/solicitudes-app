@@ -1,88 +1,96 @@
 <!-- src/app/features/dashboard-abasto/inventario-critico/inventario-critico.component.html -->
- <!-- Componente obsoleto -->
+<!-- Componente obsoleto -->
 <div class="p-4">
-    <span>
-        <h2 class="text-xl font-semibold text-green-800">Claves con bajo cumplimiento en órdenes de suministro. </h2>
-        <small>Se ignoran suministros con estatus "No recibir"</small>
-    </span>
-    <!-- Filtros -->
-    <div class="flex flex-wrap items-end gap-4 mb-4">
-         <!-- Filtro ejercicio (año) -->
-        <div>
-            <label class="block mb-1 text-sm text-gray-500">Ejercicio</label>
-            <select [(ngModel)]="filtroEjercicio" (change)="aplicarFiltros()" class="px-2 py-1 w-64 border rounded">
-                <option value="">Todos</option>
-                <option *ngFor="let ejercicio of ejerciciosDisponibles" [value]="ejercicio">
-                    {{ ejercicio }}
-                </option>
-            </select>
-        </div>
+  <span>
+    <h2 class="text-xl font-semibold text-green-800">Claves con bajo cumplimiento en órdenes de suministro. </h2>
+    <small>Se ignoran suministros con estatus "No recibir"</small>
+  </span>
+  <!-- Filtros -->
+  <div class="flex flex-wrap items-end gap-4 mb-4">
+    <!-- Filtro ejercicio (año) -->
+    <div>
+      <label class="block mb-1 text-sm text-gray-500">Ejercicio</label>
+      <select [(ngModel)]="filtroEjercicio" (change)="aplicarFiltros()" class="px-2 py-1 w-64 border rounded">
+        <option value="">Todos</option>
+        @for (ejercicio of ejerciciosDisponibles; track ejercicio) {
+          <option [value]="ejercicio">
+            {{ ejercicio }}
+          </option>
+        }
+      </select>
+    </div>
 
-        <!-- Filtro texto -->
-        <div>
-            <label class="block mb-1 text-sm text-gray-500">Buscar insumo</label>
-            <input type="text" [(ngModel)]="filtroTexto" (input)="aplicarFiltros()"
-                class="px-2 py-1 w-64 border rounded" placeholder="Clave o descripción">
-        </div>
+    <!-- Filtro texto -->
+    <div>
+      <label class="block mb-1 text-sm text-gray-500">Buscar insumo</label>
+      <input type="text" [(ngModel)]="filtroTexto" (input)="aplicarFiltros()"
+        class="px-2 py-1 w-64 border rounded" placeholder="Clave o descripción">
+      </div>
 
-        <!-- Filtro unidad -->
-        <div>
-            <label class="block mb-1 text-sm text-gray-500">Unidad</label>
-            <select [(ngModel)]="filtroUnidad" (change)="aplicarFiltros()" class="px-2 py-1 w-64 border rounded">
-                <option value="">Todas</option>
-                <option *ngFor="let unidad of unidadesDisponibles" [value]="unidad">
-                    {{ unidad }}
-                </option>
-            </select>
-        </div>
+      <!-- Filtro unidad -->
+      <div>
+        <label class="block mb-1 text-sm text-gray-500">Unidad</label>
+        <select [(ngModel)]="filtroUnidad" (change)="aplicarFiltros()" class="px-2 py-1 w-64 border rounded">
+          <option value="">Todas</option>
+          @for (unidad of unidadesDisponibles; track unidad) {
+            <option [value]="unidad">
+              {{ unidad }}
+            </option>
+          }
+        </select>
+      </div>
 
-        <!-- Filtro por tipo de compra (campo [compra])-->
-        <div>
-            <label class="block mb-1 text-sm text-gray-500">Tipo de compra</label>
-            <select [(ngModel)]="filtroCompra" (change)="aplicarFiltros()" class="px-2 py-1 w-64 border rounded">
-                <option value="">Todos</option>
-                <option *ngFor="let compra of tiposCompra" [value]="compra">
-                    {{ compra }}
-                </option>
-            </select>
-        </div>
+      <!-- Filtro por tipo de compra (campo [compra])-->
+      <div>
+        <label class="block mb-1 text-sm text-gray-500">Tipo de compra</label>
+        <select [(ngModel)]="filtroCompra" (change)="aplicarFiltros()" class="px-2 py-1 w-64 border rounded">
+          <option value="">Todos</option>
+          @for (compra of tiposCompra; track compra) {
+            <option [value]="compra">
+              {{ compra }}
+            </option>
+          }
+        </select>
+      </div>
 
-        <div class="flex justify-end">
-            <button (click)="exportarExcel()"
-                class="px-4 py-1.5 text-white text-sm font-medium bg-green-600 hover:bg-green-700 rounded shadow">
-                📥 Exportar Excel
-            </button>
-        </div>
+      <div class="flex justify-end">
+        <button (click)="exportarExcel()"
+          class="px-4 py-1.5 text-white text-sm font-medium bg-green-600 hover:bg-green-700 rounded shadow">
+          📥 Exportar Excel
+        </button>
+      </div>
     </div>
     <table class="min-w-full text-sm text-left border">
-        <thead class="text-gray-600 bg-gray-100">
-            <tr>
-                <th class="px-2 py-1">Clave CNIS</th>
-                <th class="px-2 py-1">Descripción</th>
-                <th class="px-2 py-1">Emitidas</th>
-                <th class="px-2 py-1">Recibidas</th>
-                <th class="px-2 py-1">% Cumplido</th>
-                <th class="px-2 py-1">Nivel</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr *ngFor="let a of articulosFiltrados" class="cursor-pointer" (click)="abrirModal(a)">
-                <td class="px-2 py-1">{{ a.clave }}</td>
-                <td class="px-2 py-1">{{ a.descripcion }}</td>
-                <td class="px-2 py-1">{{ a.emitidas }}</td>
-                <td class="px-2 py-1">{{ a.recibidas }}</td>
-                <td class="px-2 py-1">{{ a.porcentaje | truncateDecimal:2}}%</td>
-                <td class="px-2 py-1">
+      <thead class="text-gray-600 bg-gray-100">
+        <tr>
+          <th class="px-2 py-1">Clave CNIS</th>
+          <th class="px-2 py-1">Descripción</th>
+          <th class="px-2 py-1">Emitidas</th>
+          <th class="px-2 py-1">Recibidas</th>
+          <th class="px-2 py-1">% Cumplido</th>
+          <th class="px-2 py-1">Nivel</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (a of articulosFiltrados; track a) {
+          <tr class="cursor-pointer" (click)="abrirModal(a)">
+            <td class="px-2 py-1">{{ a.clave }}</td>
+            <td class="px-2 py-1">{{ a.descripcion }}</td>
+            <td class="px-2 py-1">{{ a.emitidas }}</td>
+            <td class="px-2 py-1">{{ a.recibidas }}</td>
+            <td class="px-2 py-1">{{ a.porcentaje | truncateDecimal:2}}%</td>
+            <td class="px-2 py-1">
                     <span [ngClass]="{
             'text-red-600 font-bold': a.nivel === 'Crítico',
             'text-yellow-600 font-medium': a.nivel === 'Riesgo',
             'text-green-600': a.nivel === 'Estable'
           }">{{ a.nivel }}</span>
-                </td>
-            </tr>
-        </tbody>
+            </td>
+          </tr>
+        }
+      </tbody>
     </table>
     <app-insumo-detalle-modal [visible]="modalVisible()" [clave_cnis]="selectedClave()"
-        [descripcion]="selectedDescripcion()" [citas]="citasFiltradas" [cerrar]="cerrarModal">
+      [descripcion]="selectedDescripcion()" [citas]="citasFiltradas" [cerrar]="cerrarModal">
     </app-insumo-detalle-modal>
-</div>
+  </div>

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+
 import { Component, ChangeDetectionStrategy, signal, computed } from '@angular/core';
 import * as XLSX from 'xlsx';
 
@@ -31,7 +31,7 @@ type DuplicateGroup = {
 @Component({
     selector: 'app-validador-layout',
     standalone: true,
-    imports: [CommonModule],
+    imports: [],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './validador-layout.component.html',
 })

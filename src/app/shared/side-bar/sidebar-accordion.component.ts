@@ -1,12 +1,12 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { CommonModule } from '@angular/common';
+
 import { NavItem, NavGroup, NavLink } from '../../models/NavItem';
 
 @Component({
   selector: 'app-sidebar-accordion',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './sidebar-accordion.component.html',
 })

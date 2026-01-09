@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Kit, UnidadMedica } from '../../../models';
@@ -21,7 +21,7 @@ import { firstValueFrom } from 'rxjs';
 @Component({
   selector: 'app-admin-kits',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   templateUrl: './admin-kits.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

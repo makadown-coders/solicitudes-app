@@ -1,7 +1,7 @@
 
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, Input, OnDestroy, OnInit } from '@angular/core';
 import { Cita } from '../../../models/Cita';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { StorageVariables } from '../../../shared/storage-variables';
 import { DashboardService } from '../../../services/dashboard.service';
@@ -18,13 +18,10 @@ import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
 @Component({
     standalone: true,
     imports: [
-        CommonModule,
-        FormsModule,
-        ExistenciasXClaveComponent,
-        // ExistenciasXUnidadComponent,
-        // ExistenciasXGrupoComponent,
-        BalanceoSugerenciasComponent
-    ],
+    FormsModule,
+    ExistenciasXClaveComponent,
+    BalanceoSugerenciasComponent
+],
     selector: 'app-existencias',
     templateUrl: 'existencias.component.html',
 })

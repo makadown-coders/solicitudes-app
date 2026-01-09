@@ -1,6 +1,6 @@
 // src/app/shared/survey/survey-modal.component.ts
 import { Component, ChangeDetectionStrategy, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import {
     ReactiveFormsModule,
     FormBuilder,
@@ -17,7 +17,7 @@ import { environment } from '../../../environments/environment';
 @Component({
     selector: 'app-survey-modal',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule],
+    imports: [ReactiveFormsModule],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './survey-modal.component.html',
 })

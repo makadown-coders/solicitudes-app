@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, EventEmitter, Output, signal, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { UnidadesService } from '../../services/unidades.service';
 import { Unidadv2 } from '../../models';
@@ -7,7 +7,7 @@ import { Unidadv2 } from '../../models';
 @Component({
     selector: 'app-captura-clues-lite',
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [FormsModule],
     templateUrl: './captura-clues-lite.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush
 })

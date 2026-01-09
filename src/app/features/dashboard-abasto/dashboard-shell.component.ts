@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { CommonModule } from '@angular/common';
+
 import { ThemeService } from '../../services/theme.service';
 import { CitasService } from '../../services/citas.service';
 import { InventarioService } from '../../services/inventario.service';
@@ -10,7 +10,7 @@ import { SidebarAccordionComponent } from '../../shared/side-bar/sidebar-accordi
 @Component({
     selector: 'app-dashboard-shell',
     standalone: true,
-    imports: [CommonModule, RouterOutlet, SidebarAccordionComponent],
+    imports: [RouterOutlet, SidebarAccordionComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './dashboard-shell.component.html',
 })

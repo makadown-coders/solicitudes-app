@@ -1,9 +1,9 @@
-import { CommonModule } from '@angular/common';
+
 import { Component, OnInit } from '@angular/core';
 
 @Component({
     standalone: true,
-    imports: [CommonModule],
+    imports: [],
     selector: 'app-acerca',
     templateUrl: 'acerca.component.html'
 })

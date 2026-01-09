@@ -16,36 +16,38 @@
         <!-- Logo -->
         <img [src]="themeService.isDarkMode() ? 'imssb-logo-blanco.png' : 'imssb-logo.svg'" alt="IMSS Bienestar"
           class="ml-auto h-10 md:h-12" />
+        </div>
       </div>
-    </div>
 
 
-    <div class="mb-6 border-b border-gray-200">
-      <nav class="flex -mb-px space-x-6" aria-label="Tabs">
-        <button *ngFor="let tab of tabs" (click)="seleccionarTab(tab)" [class]="
+      <div class="mb-6 border-b border-gray-200">
+        <nav class="flex -mb-px space-x-6" aria-label="Tabs">
+          @for (tab of tabs; track tab) {
+<button (click)="seleccionarTab(tab)" [class]="
           'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm cursor-pointer ' +
           (activeTab === tab
             ? 'border-green-800 text-green-800 active-tab'
             : 'border-transparent text-gray-500 hover:text-gray-700  hover:border-gray-300 inactive-tab')
         ">
-          {{ tab }}
-        </button>
-      </nav>
-    </div>
-    <div>
-      <div [hidden]="activeTab !== 'Resumen'" class="cursor-pointer">
-        <app-resumen></app-resumen>
+              {{ tab }}
+            </button>
+          }
+        </nav>
       </div>
-      <div [hidden]="activeTab !== 'Análisis de Abasto'" class="cursor-pointer">
-        <app-existencias [isActive]="activeTab === 'Análisis de Abasto'"></app-existencias>
-      </div>
-      <div [hidden]="activeTab !== 'Citas Completadas'" class="cursor-pointer">
-        <app-proveedores [isActive]="activeTab === 'Citas Completadas'"></app-proveedores>
-      </div>
-      <div [hidden]="activeTab !== 'Citas pendientes'" class="cursor-pointer">
-        <app-citas-pendientes [isActive]="activeTab === 'Citas pendientes'"></app-citas-pendientes>
-      </div>
-      <!-- <div [hidden]="activeTab !== 'Cumplimiento Claves'" class="cursor-pointer">
+      <div>
+        <div [hidden]="activeTab !== 'Resumen'" class="cursor-pointer">
+          <app-resumen></app-resumen>
+        </div>
+        <div [hidden]="activeTab !== 'Análisis de Abasto'" class="cursor-pointer">
+          <app-existencias [isActive]="activeTab === 'Análisis de Abasto'"></app-existencias>
+        </div>
+        <div [hidden]="activeTab !== 'Citas Completadas'" class="cursor-pointer">
+          <app-proveedores [isActive]="activeTab === 'Citas Completadas'"></app-proveedores>
+        </div>
+        <div [hidden]="activeTab !== 'Citas pendientes'" class="cursor-pointer">
+          <app-citas-pendientes [isActive]="activeTab === 'Citas pendientes'"></app-citas-pendientes>
+        </div>
+        <!-- <div [hidden]="activeTab !== 'Cumplimiento Claves'" class="cursor-pointer">
         <app-inventario-critico></app-inventario-critico>
       </div> -->
       <div [hidden]="activeTab !== 'Resumen Citas'" class="cursor-pointer">

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, HostListener, Input, OnChanges, computed, inject, signal } from '@angular/core';
 import { Cita } from '../../../models/Cita';
-import { NgIf, NgFor, DatePipe, UpperCasePipe } from '@angular/common';
+import { DatePipe, UpperCasePipe } from '@angular/common';
 import { PeriodoFechasService } from '../../../shared/periodo-fechas.service';
 import { TruncateDecimalPipe } from '../../../shared/truncate-decimal.pipe';
 import { MaxLengthPipe } from '../../../shared/max-length.pipe';
@@ -17,8 +17,7 @@ import { ExcelService } from '../../../services/excel.service';
 @Component({
     selector: 'app-insumo-detalle-modal',
     standalone: true,
-    imports: [NgIf, NgFor, DatePipe, UpperCasePipe, TruncateDecimalPipe,
-        MaxLengthPipe, CitasPorInsumoModalComponent],
+    imports: [DatePipe, UpperCasePipe, TruncateDecimalPipe, MaxLengthPipe, CitasPorInsumoModalComponent],
     templateUrl: './insumo-detalle-modal.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush
 })

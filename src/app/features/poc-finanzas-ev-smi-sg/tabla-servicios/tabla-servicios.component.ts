@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { EvaluacionServicio } from '../../../models/evaluacion-servicio';
 import { ServicioEvaluado, Unidad } from '../../../models/articulo-solicitud';
@@ -8,7 +8,7 @@ import { StorageVariables } from '../../../shared/storage-variables';
 @Component({
   selector: 'app-tabla-servicios',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './tabla-servicios.component.html',
   styleUrl: './tabla-servicios.component.css'
 })

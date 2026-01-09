@@ -1,5 +1,5 @@
 // src/app/features/dashboard-abasto/dashboard-abasto.component.ts
-import { CommonModule } from '@angular/common';
+
 import { ChangeDetectionStrategy, Component, inject, OnChanges, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -23,19 +23,7 @@ import { AcercaComponent } from './acerca/acerca.component';
 
 @Component({
   selector: 'app-dashboard-abasto',
-  imports: [CommonModule,
-    FormsModule,
-    ResumenComponent,
-    RouterModule,
-    ProveedoresComponent,
-    CitasPendientesComponent,
-    ResumenCitasComponent,
-    // InventarioCriticoComponent,
-    ExistenciasComponent,
-    InventarioTabComponent,
-    RdlSComponent,
-    AcercaComponent
-  ],
+  imports: [FormsModule, ResumenComponent, RouterModule, ProveedoresComponent, CitasPendientesComponent, ResumenCitasComponent, ExistenciasComponent, InventarioTabComponent, RdlSComponent, AcercaComponent],
   templateUrl: './dashboard-abasto.component.html',
   styleUrl: './dashboard-abasto.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush

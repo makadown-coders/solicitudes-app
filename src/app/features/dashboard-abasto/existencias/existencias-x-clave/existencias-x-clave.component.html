@@ -5,193 +5,224 @@
   <div class="flex flex-col gap-4 w-full md:w-1/2">
     <!-- Chip clave seleccionada -->
     <div class="flex-1">
-      <label *ngIf="!claveConfirmada" class="block mb-1 text-sm font-medium text-gray-700">Buscar clave:</label>
+      @if (!claveConfirmada) {
+        <label class="block mb-1 text-sm font-medium text-gray-700">Buscar clave:</label>
+      }
 
       <!-- Input visible si NO hay clave confirmada -->
-      <div *ngIf="!claveConfirmada" class="relative dark:bg-gray-900">
-        <input id="EXC_claveInput" type="text" [(ngModel)]="claveBusqueda" (input)="searchSubject.next(claveBusqueda)"
-          (keydown)="onInputKeyDown($event)" placeholder="Buscar clave (mínimo 3 caracteres)"
-          class="px-3 py-2 w-full border-gray-300 rounded-md shadow-sm dark:border-gray-900 border focus:ring focus:outline-none" />
-
-        <ul *ngIf="autocompleteResults.length"
-          class="overflow-auto z-10 absolute top-12 left-0 right-0 max-h-52 shadow-md dark:bg-gray-800 dark:text-gray-950 border rounded">
-          <li *ngFor="let item of autocompleteResults; let i = index" [class.bg-green-600]="i === selectedIndex"
-            (click)="selectClave(item)" class="p-2 cursor-pointer hover:bg-green-500 dark:text-gray-900">
-            {{ item.clave }} - {{ item.descripcion }} ({{ item.presentacion || item.unidadMedida || 'Sin unidad' }})
-          </li>
-          <li *ngIf="moreResults && autocompleteResults.length < totalResults"
-            class="p-2 text-sm text-gray-500 dark:text-gray-100">
-            Mostrando {{ autocompleteResults.length }} de {{ totalResults }} resultados...
-          </li>
-        </ul>
+      @if (!claveConfirmada) {
+        <div class="relative dark:bg-gray-900">
+          <input id="EXC_claveInput" type="text" [(ngModel)]="claveBusqueda" (input)="searchSubject.next(claveBusqueda)"
+            (keydown)="onInputKeyDown($event)" placeholder="Buscar clave (mínimo 3 caracteres)"
+            class="px-3 py-2 w-full border-gray-300 rounded-md shadow-sm dark:border-gray-900 border focus:ring focus:outline-none" />
+            @if (autocompleteResults.length) {
+              <ul
+                class="overflow-auto z-10 absolute top-12 left-0 right-0 max-h-52 shadow-md dark:bg-gray-800 dark:text-gray-950 border rounded">
+                @for (item of autocompleteResults; track item; let i = $index) {
+                  <li [class.bg-green-600]="i === selectedIndex"
+                    (click)="selectClave(item)" class="p-2 cursor-pointer hover:bg-green-500 dark:text-gray-900">
+                    {{ item.clave }} - {{ item.descripcion }} ({{ item.presentacion || item.unidadMedida || 'Sin unidad' }})
+                  </li>
+                }
+                @if (moreResults && autocompleteResults.length < totalResults) {
+                  <li
+                    class="p-2 text-sm text-gray-500 dark:text-gray-100">
+                    Mostrando {{ autocompleteResults.length }} de {{ totalResults }} resultados...
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+        @if (claveConfirmada) {
+          <div class="flex items-start gap-3 px-3 py-2 border-green-200 rounded-md border">
+            <lucide-icon [img]="pillIcon" class="mt-1 w-5 h-5"></lucide-icon>
+            <div class="flex-1 text-sm">
+              <p class="font-semibold">{{ claveFiltrada }}</p>
+              <p class="">
+                {{ (descripcion.length > 250) ? (descripcion | slice: 0:240) + ' [...]' : descripcion }}
+              </p>
+              <p class="text-sm">{{ unidad }}</p>
+              <button (click)="reiniciarBusquedaClave()"
+                class="text-sm text-green-600 cursor-pointer underline hover:text-green-800">
+                Cambiar
+              </button>
+            </div>
+            <div class="flex-1 text-sm">
+              @let esControlado = claveEsControlado(claveFiltrada);
+              @if (esControlado) {
+                <p class="text-red-700"> Medicamento Controlado </p>
+              }
+              <p class="text-sm"> <strong>Clasif. VEN:</strong> {{ clasificacion }}</p>
+              @if (citaParaDescripcionDeClave)
+                {
+                <p class="text-sm">
+                  <strong>Tipo de Insumo:</strong> {{ citaParaDescripcionDeClave.tipo_de_insumo }}
+                </p>
+                <p class="text-sm">
+                  <strong> Grupo Terapéutico: </strong> {{citaParaDescripcionDeClave.grupo_terapeutico }}
+                </p>
+                <p class="text-sm">
+                  <strong> Tipo de Red: </strong>{{ citaParaDescripcionDeClave.tipo_de_red }}
+                </p>
+              }
+            </div>
+          </div>
+        }
       </div>
-      <div *ngIf="claveConfirmada" class="flex items-start gap-3 px-3 py-2 border-green-200 rounded-md border">
-        <lucide-icon [img]="pillIcon" class="mt-1 w-5 h-5"></lucide-icon>
-        <div class="flex-1 text-sm">
-          <p class="font-semibold">{{ claveFiltrada }}</p>
-          <p class="">
-            {{ (descripcion.length > 250) ? (descripcion | slice: 0:240) + ' [...]' : descripcion }}
-          </p>
-          <p class="text-sm">{{ unidad }}</p>
-          <button (click)="reiniciarBusquedaClave()"
-            class="text-sm text-green-600 cursor-pointer underline hover:text-green-800">
-            Cambiar
-          </button>
+
+      @if (loadingClave()) {
+        <div class="my-2 w-full">
+          <div class="p-3 mb-2 text-sm font-semibold">Espere un momento. Cargando información…</div>
         </div>
-        <div class="flex-1 text-sm">
-          @let esControlado = claveEsControlado(claveFiltrada);
-          <p *ngIf="esControlado" class="text-red-700"> Medicamento Controlado </p>
-          <p class="text-sm"> <strong>Clasif. VEN:</strong> {{ clasificacion }}</p>
-          @if (citaParaDescripcionDeClave)
-          {
-          <p class="text-sm">
-            <strong>Tipo de Insumo:</strong> {{ citaParaDescripcionDeClave.tipo_de_insumo }}
-          </p>
-          <p class="text-sm">
-            <strong> Grupo Terapéutico: </strong> {{citaParaDescripcionDeClave.grupo_terapeutico }}
-          </p>
-          <p class="text-sm">
-            <strong> Tipo de Red: </strong>{{ citaParaDescripcionDeClave.tipo_de_red }}
-          </p>
-          }
-        </div>
-      </div>
-    </div>
+      }
 
-    <div *ngIf="loadingClave()" class="my-2 w-full">
-      <div class="p-3 mb-2 text-sm font-semibold">Espere un momento. Cargando información…</div>
-    </div>
-
-    <!-- Cards órdenes halladas -->
-    <div *ngIf="claveFiltrada && this.citasHalladasPorClave.length > 0" class="flex-1 flex flex-col gap-4">
-      <div class="overflow-auto p-4 h-full border rounded shadow">
-        <h3 class="mb-2 text-base font-semibold"> Últimas recepciones / citas pendientes</h3>
-        <div class="overflow-auto pr-2 max-h-[600px]">
-
-          <div class="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-2">
-            <!-- Aquí va cada card -->
-            <section *ngFor="let cita of citasHalladasPorClave; let i = index"
-              class="flex flex-col gap-2 p-3 rounded-lg border shadow">
-              <!-- Cabecera con icono y orden -->
-              <div class="flex items-center gap-3">
-                <lucide-icon *ngIf="!cita.fecha_recepcion_almacen" [img]="getIconoFecha(cita.fecha_limite_de_entrega)"
-                  [ngClass]="getColorClase(cita.fecha_limite_de_entrega)" class="flex-shrink-0 w-6 h-6">
-                </lucide-icon>
-                <lucide-icon *ngIf="cita.fecha_recepcion_almacen" [img]="circleCheck"
-                  class="flex-shrink-0 w-6 h-6 text-green-600"></lucide-icon>
-
-                <div>
-                  <p class="font-bold text-xs"> {{ (i+1) + ')' }} #{{ cita.orden_de_suministro }}</p>
-                  <p class="text-xs">Contrato: {{ cita.contrato }}</p>
-                </div>
+      <!-- Cards órdenes halladas -->
+      @if (claveFiltrada && this.citasHalladasPorClave.length > 0) {
+        <div class="flex-1 flex flex-col gap-4">
+          <div class="overflow-auto p-4 h-full border rounded shadow">
+            <h3 class="mb-2 text-base font-semibold"> Últimas recepciones / citas pendientes</h3>
+            <div class="overflow-auto pr-2 max-h-[600px]">
+              <div class="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-2">
+                <!-- Aquí va cada card -->
+                @for (cita of citasHalladasPorClave; track cita; let i = $index) {
+                  <section
+                    class="flex flex-col gap-2 p-3 rounded-lg border shadow">
+                    <!-- Cabecera con icono y orden -->
+                    <div class="flex items-center gap-3">
+                      @if (!cita.fecha_recepcion_almacen) {
+                        <lucide-icon [img]="getIconoFecha(cita.fecha_limite_de_entrega)"
+                          [ngClass]="getColorClase(cita.fecha_limite_de_entrega)" class="flex-shrink-0 w-6 h-6">
+                        </lucide-icon>
+                      }
+                      @if (cita.fecha_recepcion_almacen) {
+                        <lucide-icon [img]="circleCheck"
+                        class="flex-shrink-0 w-6 h-6 text-green-600"></lucide-icon>
+                      }
+                      <div>
+                        <p class="font-bold text-xs"> {{ (i+1) + ')' }} #{{ cita.orden_de_suministro }}</p>
+                        <p class="text-xs">Contrato: {{ cita.contrato }}</p>
+                      </div>
+                    </div>
+                    <!-- Info principal -->
+                    <div class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-1">
+                      <div><span class="font-medium">Proc.:</span> {{ cita.procedimiento }}</div>
+                      <div><span class="font-medium">Tipo entrega:</span> {{ cita.tipo_de_entrega }}</div>
+                      <div><span class="font-medium">Unidad:</span> {{ cita.unidad }}</div>
+                      <div><span class="font-medium">Fte/Fmto:</span> {{ cita.fte_fmto }}</div>
+                      <div><span class="font-medium">Compra:</span> {{ cita.compra }}</div>
+                      <div><span class="font-medium">Pzas emitidas:</span> {{ cita.no_de_piezas_emitidas }}</div>
+                    </div>
+                    <!-- Fechas destacadas -->
+                    <div class="flex flex-wrap gap-2 mt-2">
+                      <span class="px-2 py-1 text-xs border rounded">
+                        Emisión: {{ cita.fecha_emision | date:'dd/MM/yyyy' }}
+                      </span>
+                      @if (cita.fecha_recepcion_almacen) {
+                        <span
+                          class="px-2 py-1 text-xs font-extrabold bg-green-400 border rounded">
+                          Entregado: {{ cita.fecha_recepcion_almacen | date:'dd/MM/yyyy' }}
+                        </span>
+                      }
+                      @if (!cita.fecha_recepcion_almacen) {
+                        <span class="px-2 py-1 text-xs border rounded"
+                          [ngClass]="getColorClase(cita.fecha_limite_de_entrega)">
+                          Límite: {{ cita.fecha_limite_de_entrega | date:'dd/MM/yyyy' }}
+                        </span>
+                      }
+                      @if (cita.fecha_de_cita && cita.estatus !== 'Completo') {
+                        <span class="px-2 py-1 text-xs border rounded"
+                          [ngClass]="getColorClase(cita.fecha_de_cita)">
+                          Cita: {{ cita.fecha_de_cita | date:'dd/MM/yyyy' }}
+                        </span>
+                      }
+                    </div>
+                  </section>
+                }
               </div>
-
-              <!-- Info principal -->
-              <div class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-1">
-                <div><span class="font-medium">Proc.:</span> {{ cita.procedimiento }}</div>
-                <div><span class="font-medium">Tipo entrega:</span> {{ cita.tipo_de_entrega }}</div>
-                <div><span class="font-medium">Unidad:</span> {{ cita.unidad }}</div>
-                <div><span class="font-medium">Fte/Fmto:</span> {{ cita.fte_fmto }}</div>
-                <div><span class="font-medium">Compra:</span> {{ cita.compra }}</div>
-                <div><span class="font-medium">Pzas emitidas:</span> {{ cita.no_de_piezas_emitidas }}</div>
-              </div>
-              <!-- Fechas destacadas -->
-              <div class="flex flex-wrap gap-2 mt-2">
-                <span class="px-2 py-1 text-xs border rounded">
-                  Emisión: {{ cita.fecha_emision | date:'dd/MM/yyyy' }}
-                </span>
-                <span *ngIf="cita.fecha_recepcion_almacen"
-                  class="px-2 py-1 text-xs font-extrabold bg-green-400 border rounded">
-                  Entregado: {{ cita.fecha_recepcion_almacen | date:'dd/MM/yyyy' }}
-                </span>
-                <span *ngIf="!cita.fecha_recepcion_almacen" class="px-2 py-1 text-xs border rounded"
-                  [ngClass]="getColorClase(cita.fecha_limite_de_entrega)">
-                  Límite: {{ cita.fecha_limite_de_entrega | date:'dd/MM/yyyy' }}
-                </span>
-                <span *ngIf="cita.fecha_de_cita && cita.estatus !== 'Completo'" class="px-2 py-1 text-xs border rounded"
-                  [ngClass]="getColorClase(cita.fecha_de_cita)">
-                  Cita: {{ cita.fecha_de_cita | date:'dd/MM/yyyy' }}
-                </span>
-              </div>
-            </section>
+            </div>
           </div>
         </div>
-      </div>
+      }
     </div>
-  </div>
 
-  <!-- Columna derecha -->
-  <div class="flex flex-col gap-1 w-full md:w-1/2">
-    <div *ngIf="claveFiltrada">
-      <!-- Sección por almacén -->
-      <div *ngFor="let almacen of datosAgrupados" class="flex items-center mb-2 border rounded">
-        @let totalExistencia = totalExistenciaEnAlmacen(almacen.almacen);
-        <h2 class="ml-2 mb-1 text-base font-bold text-green-800">{{ almacen.almacen | titlecase }}</h2>
-        <span class="cursor-pointer" [title]="'Ver trazabilidad de almacén ' + almacen.almacen"
-          (click)="abrirTrazabilidad(claveFiltrada, almacen.cluesimb, -1, descripcion, totalExistencia)">
-          🔍
-        </span>
-        <p class="mb-2 text-sm text-center">Existencia en Almacén:
-          <span class="font-semibold">{{ totalExistencia }}</span>
-        </p>
-
-        <!-- Tabla por unidad -->
-        <table class="overflow-hidden w-full text-sm shadow-sm border rounded">
-          <thead class="border-b">
-            <tr>
-              <th class="px-2 py-1 text-left"></th>
-              <th class="px-2 py-1 text-left">Unidad</th>
-              <th class="px-2 py-1 text-right">CPM</th>
-              <th class="px-2 py-1 text-right">Exist.</th>
-              <th class="px-2 py-1 text-right">Repo</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let unidad of almacen.unidades" class="border-t">
-              <td class="text-right">
-                <button [title]="'Ver trazabilidad de ' + unidad.unidad"
-                  (click)="abrirTrazabilidad(claveFiltrada, unidad.cluesimb, unidad.clave.cpm, descripcion, unidad.clave.existencia)"
-                  class="cursor-pointer">
-                  🔍
-                </button>
-              </td>
-              <td class="px-2 py-1">{{ unidad.unidad }}</td>
-              <td class="px-2 py-1 text-right">{{ unidad.clave.cpm }}</td>
-              <!-- Existencia base con tooltip mostrando dispensación -->
-              @let tooltip = getTooltipExistencia(unidad);
-              <td class="px-2 py-1 text-right" [title]="tooltip">
-                {{ unidad.clave.existencia }} {{ tooltip.length > 1 ? 'ℹ️' : '' }}
-              </td>
-              <td class="px-2 py-1 text-right" [ngClass]="{ 'text-red-700 font-bold': unidad.clave.reposicion > 0 }">
-                {{ unidad.clave.reposicion }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <!-- Nota sobre base vs dispensación -->
-    <div *ngIf="mostrarNotaFactor"
-      class="mt-3 p-3 w-full text-xs text-gray-700 bg-green-50/60 border-gray-300 rounded border dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700">
-      <div class="flex items-center gap-2 mb-1">
-        <span class="inline-flex items-center py-[2px] font-semibold text-white">
-          ℹ️
-        </span>
-        <span class="font-semibold text-green-800 dark:text-yellow-400">¿Qué estoy viendo?</span>
-      </div>
-
-      <p class="mb-2 leading-snug">
-        Algunas cantidades mostradas en <strong>Exist.</strong> para <strong>unidades médicas</strong> están en
-        <u>base</u> (sin factor de conversión). Si esta clave se dispensa con otra presentación,
-        pasa el mouse para ver el <em>tooltip</em> con la existencia en dispensación o abre la trazabilidad (🔍).
-      </p>
-
-      <ul class="ml-5 list-disc space-y-1">
-        <li>Los <strong>almacenes</strong> no aplican factor de conversión.</li>
-        <li>En <strong>trazabilidad</strong> verás ambos: movimientos y saldo aplicando la presentación cuando
+    <!-- Columna derecha -->
+    <div class="flex flex-col gap-1 w-full md:w-1/2">
+      @if (claveFiltrada) {
+        <div>
+          <!-- Sección por almacén -->
+          @for (almacen of datosAgrupados; track almacen) {
+            <div class="flex items-center mb-2 border rounded">
+              @let totalExistencia = totalExistenciaEnAlmacen(almacen.almacen);
+              <h2 class="ml-2 mb-1 text-base font-bold text-green-800">{{ almacen.almacen | titlecase }}</h2>
+              <span class="cursor-pointer" [title]="'Ver trazabilidad de almacén ' + almacen.almacen"
+                (click)="abrirTrazabilidad(claveFiltrada, almacen.cluesimb, -1, descripcion, totalExistencia)">
+                🔍
+              </span>
+              <p class="mb-2 text-sm text-center">Existencia en Almacén:
+                <span class="font-semibold">{{ totalExistencia }}</span>
+              </p>
+              <!-- Tabla por unidad -->
+              <table class="overflow-hidden w-full text-sm shadow-sm border rounded">
+                <thead class="border-b">
+                  <tr>
+                    <th class="px-2 py-1 text-left"></th>
+                    <th class="px-2 py-1 text-left">Unidad</th>
+                    <th class="px-2 py-1 text-right">CPM</th>
+                    <th class="px-2 py-1 text-right">Exist.</th>
+                    <th class="px-2 py-1 text-right">Repo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (unidad of almacen.unidades; track unidad) {
+                    <tr class="border-t">
+                      <td class="text-right">
+                        <button [title]="'Ver trazabilidad de ' + unidad.unidad"
+                          (click)="abrirTrazabilidad(claveFiltrada, unidad.cluesimb, unidad.clave.cpm, descripcion, unidad.clave.existencia)"
+                          class="cursor-pointer">
+                          🔍
+                        </button>
+                      </td>
+                      <td class="px-2 py-1">{{ unidad.unidad }}</td>
+                      <td class="px-2 py-1 text-right">{{ unidad.clave.cpm }}</td>
+                      <!-- Existencia base con tooltip mostrando dispensación -->
+                      @let tooltip = getTooltipExistencia(unidad);
+                      <td class="px-2 py-1 text-right" [title]="tooltip">
+                        {{ unidad.clave.existencia }} {{ tooltip.length > 1 ? 'ℹ️' : '' }}
+                      </td>
+                      <td class="px-2 py-1 text-right" [ngClass]="{ 'text-red-700 font-bold': unidad.clave.reposicion > 0 }">
+                        {{ unidad.clave.reposicion }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+      <!-- Nota sobre base vs dispensación -->
+      @if (mostrarNotaFactor) {
+        <div
+          class="mt-3 p-3 w-full text-xs text-gray-700 bg-green-50/60 border-gray-300 rounded border dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="inline-flex items-center py-[2px] font-semibold text-white">
+              ℹ️
+            </span>
+            <span class="font-semibold text-green-800 dark:text-yellow-400">¿Qué estoy viendo?</span>
+          </div>
+          <p class="mb-2 leading-snug">
+            Algunas cantidades mostradas en <strong>Exist.</strong> para <strong>unidades médicas</strong> están en
+            <u>base</u> (sin factor de conversión). Si esta clave se dispensa con otra presentación,
+            pasa el mouse para ver el <em>tooltip</em> con la existencia en dispensación o abre la trazabilidad (🔍).
+          </p>
+          <ul class="ml-5 list-disc space-y-1">
+            <li>Los <strong>almacenes</strong> no aplican factor de conversión.</li>
+            <li>En <strong>trazabilidad</strong> verás ambos: movimientos y saldo aplicando la presentación cuando
           corresponda.</li>
-      </ul>
-    </div>
+        </ul>
+      </div>
+    }
   </div>
 
 </div>

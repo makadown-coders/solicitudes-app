@@ -1,108 +1,118 @@
 <!-- src/app/features/dashboard-abasto/proveedores/proveedores.component.html -->
 <!-- Mensaje de error -->
-<div *ngIf="errorMsg" class="mb-3 p-3 text-sm text-red-800 bg-red-50 border-red-300 rounded border">
+@if (errorMsg) {
+  <div class="mb-3 p-3 text-sm text-red-800 bg-red-50 border-red-300 rounded border">
     {{ errorMsg }}
-</div>
+  </div>
+}
 
 <!-- Loader simple -->
-<div *ngIf="loading" class="mb-3 text-sm text-gray-600">
+@if (loading) {
+  <div class="mb-3 text-sm text-gray-600">
     Cargando citas de proveedores...
-</div>
+  </div>
+}
 <div class="p-6 mb-6 min-h-[560px] space-y-6">
-    <h2 class="mb-4 text-2xl font-bold text-green-800">Proveedores y Entregas</h2>
+  <h2 class="mb-4 text-2xl font-bold text-green-800">Proveedores y Entregas</h2>
 
-    <!-- Filtros mejorados con distribución flexible -->
-    <div class="flex flex-wrap items-center gap-4">
+  <!-- Filtros mejorados con distribución flexible -->
+  <div class="flex flex-wrap items-center gap-4">
 
-        <!-- Input de búsqueda -->
-        <div class="min-w-[270px]">
-            <label class="block mb-1 text-sm font-medium text-gray-700">Búsqueda</label>
-            <input type="text" placeholder="Buscar proveedor/clave/descripción..." [(ngModel)]="filtroBusqueda"
-                (input)="onBusqueda()" (keydown)="onBusqueda()"
-                class="flex-1 px-4 py-2 min-w-[440px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
-        </div>
+    <!-- Input de búsqueda -->
+    <div class="min-w-[270px]">
+      <label class="block mb-1 text-sm font-medium text-gray-700">Búsqueda</label>
+      <input type="text" placeholder="Buscar proveedor/clave/descripción..." [(ngModel)]="filtroBusqueda"
+        (input)="onBusqueda()" (keydown)="onBusqueda()"
+        class="flex-1 px-4 py-2 min-w-[440px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+      </div>
 
-        <!-- Picker de periodo -->
-        <div class="min-w-[270px]">
-            <app-periodo-picker-dashboard [fechaInicio]="fechaInicio" [fechaFin]="fechaFin"
-                [titulo]="'Fecha de Recepción'"
-                (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)">
-            </app-periodo-picker-dashboard>
-        </div>
+      <!-- Picker de periodo -->
+      <div class="min-w-[270px]">
+        <app-periodo-picker-dashboard [fechaInicio]="fechaInicio" [fechaFin]="fechaFin"
+          [titulo]="'Fecha de Recepción'"
+          (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)">
+        </app-periodo-picker-dashboard>
+      </div>
 
-        <!-- Select de unidad -->
-        <div class="min-w-[270px]">
-            <label class="block mb-1 text-sm font-medium text-gray-700">Unidad</label>
-            <select [(ngModel)]="filtroUnidad" (change)="onBusqueda()"
-                class="flex-1 px-4 py-2 min-w-[220px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option value="">Todas las unidades</option>
-                <option *ngFor="let unidad of unidadesUnicas" [value]="unidad">{{ unidad }}</option>
-            </select>
-        </div>
+      <!-- Select de unidad -->
+      <div class="min-w-[270px]">
+        <label class="block mb-1 text-sm font-medium text-gray-700">Unidad</label>
+        <select [(ngModel)]="filtroUnidad" (change)="onBusqueda()"
+          class="flex-1 px-4 py-2 min-w-[220px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+          <option value="">Todas las unidades</option>
+          @for (unidad of unidadesUnicas; track unidad) {
+            <option [value]="unidad">{{ unidad }}</option>
+          }
+        </select>
+      </div>
 
-        <!-- Select de tipo de compra -->
-        <div class="min-w-[270px]">
-            <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de compra</label>
-            <select [(ngModel)]="filtroCompra" (change)="onBusqueda()"
-                class="flex-1 px-4 py-2 min-w-[270px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option value="">Todos</option>
-                <option *ngFor="let compra of tiposCompra" [value]="compra">{{ compra }}</option>
-            </select>
-        </div>
+      <!-- Select de tipo de compra -->
+      <div class="min-w-[270px]">
+        <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de compra</label>
+        <select [(ngModel)]="filtroCompra" (change)="onBusqueda()"
+          class="flex-1 px-4 py-2 min-w-[270px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+          <option value="">Todos</option>
+          @for (compra of tiposCompra; track compra) {
+            <option [value]="compra">{{ compra }}</option>
+          }
+        </select>
+      </div>
 
-        <!-- Etiqueta resumen -->
-        <div class="min-w-[180px] text-sm text-gray-600 text-right">
-            {{ proveedoresAgrupados().length }} proveedor(es).
-        </div>
+      <!-- Etiqueta resumen -->
+      <div class="min-w-[180px] text-sm text-gray-600 text-right">
+        {{ proveedoresAgrupados().length }} proveedor(es).
+      </div>
     </div>
 
 
     <!-- Acordeones -->
-    <div *ngFor="let grupo of proveedoresAgrupados(); let i = index" class="mb-4 shadow-sm border rounded scroll-mt-24"
+    @for (grupo of proveedoresAgrupados(); track grupo; let i = $index) {
+      <div class="mb-4 shadow-sm border rounded scroll-mt-24"
         #grupoRef>
         <button type="button" (click)="toggleProveedor(grupo.proveedor, i)"
-            class="p-4 w-full text-left font-semibold text-green-900 bg-green-100 hover:bg-green-200 transition">
-            @let totalPiezasPorProveedor = getTotalPiezasPorProveedor(grupo.citas);
-
-            {{ grupo.proveedor }} — Total: {{ totalPiezasPorProveedor }} piezas
+          class="p-4 w-full text-left font-semibold text-green-900 bg-green-100 hover:bg-green-200 transition">
+          @let totalPiezasPorProveedor = getTotalPiezasPorProveedor(grupo.citas);
+          {{ grupo.proveedor }} — Total: {{ totalPiezasPorProveedor }} piezas
         </button>
-
         <div [hidden]="proveedorExpandido !== grupo.proveedor" class="bg-white">
-            <table class="min-w-full text-sm">
-                <thead class="text-left bg-gray-50">
-                    <tr>
-                        <th class="p-2 border">Orden</th>
-                        <th class="p-2 border">CLUES</th>
-                        <th class="p-2 border">Unidad</th>
-                        <th class="p-2 border">Tipo de compra</th>
-                        <th class="p-2 border">Clave CNIS</th>
-                        <th class="p-2 border">Descripción</th>
-                        <th class="p-2 border">Piezas</th>
-                        <th class="p-2 border">Fecha recepción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="let cita of grupo.citas" (click)="abrirModalDetalle(cita)"
-                        class="border-t cursor-pointer hover:bg-gray-100 renglon-info">
-                        <td class="p-2 border">{{ cita.orden_de_suministro }}</td>
-                        <td class="p-2 border">{{ cita.clues_destino }}</td>
-                        <td class="p-2 border">{{ cita.unidad }}</td>
-                        <td class="p-2 border">{{ cita.compra }}</td>
-                        <td class="p-2 border">{{ cita.clave_cnis }}</td>
-                        <td class="p-2 border">{{ cita.descripcion }}</td>
-                        <td class="p-2 text-right border">{{ cita.pzas_recibidas_por_la_entidad || 0 }}</td>
-                        <td class="p-2 border">{{ cita.fecha_recepcion_almacen }}</td>
-                    </tr>
-                </tbody>
-            </table>
+          <table class="min-w-full text-sm">
+            <thead class="text-left bg-gray-50">
+              <tr>
+                <th class="p-2 border">Orden</th>
+                <th class="p-2 border">CLUES</th>
+                <th class="p-2 border">Unidad</th>
+                <th class="p-2 border">Tipo de compra</th>
+                <th class="p-2 border">Clave CNIS</th>
+                <th class="p-2 border">Descripción</th>
+                <th class="p-2 border">Piezas</th>
+                <th class="p-2 border">Fecha recepción</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (cita of grupo.citas; track cita) {
+                <tr (click)="abrirModalDetalle(cita)"
+                  class="border-t cursor-pointer hover:bg-gray-100 renglon-info">
+                  <td class="p-2 border">{{ cita.orden_de_suministro }}</td>
+                  <td class="p-2 border">{{ cita.clues_destino }}</td>
+                  <td class="p-2 border">{{ cita.unidad }}</td>
+                  <td class="p-2 border">{{ cita.compra }}</td>
+                  <td class="p-2 border">{{ cita.clave_cnis }}</td>
+                  <td class="p-2 border">{{ cita.descripcion }}</td>
+                  <td class="p-2 text-right border">{{ cita.pzas_recibidas_por_la_entidad || 0 }}</td>
+                  <td class="p-2 border">{{ cita.fecha_recepcion_almacen }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
-    </div>
+      </div>
+    }
     <!-- Agregar un espacio en blanco al final para dar espacio al footer -->
     <div class="mb-40">
-        <!-- separador -->
-        <hr>
+      <!-- separador -->
+      <hr>
+      </div>
     </div>
-</div>
 
-<app-detalle-cita-modal [visible]="mostrarModalDetalle" [cita]="citaSeleccionada" (cerrar)="cerrarModalDetalle()">
-</app-detalle-cita-modal>
+    <app-detalle-cita-modal [visible]="mostrarModalDetalle" [cita]="citaSeleccionada" (cerrar)="cerrarModalDetalle()">
+    </app-detalle-cita-modal>

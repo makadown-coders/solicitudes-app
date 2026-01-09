@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { HttpClient } from '@angular/common/http';
 
 // Usa SheetJS (xlsx). Si ya lo tienes instalado, perfecto.
@@ -32,7 +32,7 @@ type BatchPayload = {
 @Component({
     selector: 'app-carga-cpm-kits',
     standalone: true,
-    imports: [CommonModule],
+    imports: [],
     templateUrl: './carga-cpm-kits.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })

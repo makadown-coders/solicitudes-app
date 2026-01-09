@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, HostListener, Input } from '@angular/core';
-import { NgIf, NgFor, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Cita } from '../../../models/Cita';
 
 /**
@@ -12,7 +12,7 @@ import { Cita } from '../../../models/Cita';
 @Component({
   selector: 'app-citas-por-insumo-modal',
   standalone: true,
-  imports: [NgIf, NgFor, DatePipe],
+  imports: [DatePipe],
   templateUrl: './citas-por-insumo-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
