@@ -4,7 +4,7 @@ import { SolicitudesConfigComponent } from './features/solicitudes-config/solici
 
 export const routes: Routes = [
   {
-    path: 'dashboard-abasto',
+    path: 'dashboard-abasto-v2',
     loadComponent: () => import('./features/dashboard-abasto/dashboard-abasto.component')
       .then(m => m.DashboardAbastoComponent)
   },
@@ -85,7 +85,7 @@ export const routes: Routes = [
 
   // Nueva versión del dashboard de abasto
   {
-    path: 'dashboard-abasto-v2',
+    path: 'dashboard-abasto',
     loadComponent: () => import('./features/dashboard-abasto/dashboard-shell.component')
       .then(m => m.DashboardShellComponent),
     children: [
