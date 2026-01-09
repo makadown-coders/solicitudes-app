@@ -8,24 +8,28 @@ Aplicación **Angular (standalone + signals, zoneless, OnPush)** para capturar y
 
 ## ✨ Características clave
 
-- **Arquitectura moderna**: Angular 19+, **standalone components**, **signals**, **ChangeDetectionStrategy.OnPush**, **zoneless**.
+- **Arquitectura moderna**: Angular 21+, **standalone components**, **signals**, **ChangeDetectionStrategy.OnPush**, **zoneless**.
 - **Solicitudes**:
   - Captura tipo todo-list.
   - **Autocomplete enriquecido** (muestra existencias por unidad y banderas `_enKit`, `_cpm`).
 - **KIT modal (`app-kit-modal`)**:
   - Inputs: `cluesimb`, `tituloUnidad`, `mostrarUnidadEnTitulo`, `inventarioDisponible`, `existingClaves`, `defaultQtyNoCpm`.
   - Outputs: `addToSolicitud(ArticuloSolicitud[])`, `close()`.
+  - **Filtro por KIT** (dropdown) cuando existen códigos disponibles.
   - **Columnas dinámicas** por toggles: **AZM/AZE/AZT**, **Exist. unidad**, **Cant. sugerida**.
+  - **Meses de cobertura** para recalcular el reorden sugerido.
   - **Copiar/CSV** exportan **exactamente lo visible** (mismas columnas/orden).
   - Tooltip de **descripción (130 chars)** en la clave.
-  - Botón **“Seleccionar…”** cambia a **“Selec. cant. sug. > 0”** cuando está visible “Existencias de la unidad”.
+  - Botón **“Seleccionar con CPM”** cambia a **“Selec. cant. sug. > 0”** cuando está visible “Existencias de la unidad”.
   - **Reglas de cantidad** al agregar: usa **CPM > 0**, si no **`reordenSug`**, si no **`defaultQtyNoCpm`** (y **nunca 0**).
 - **Servicios**:
-  - `ExistenciasTempService`: `GET /existencias-temp/by-unidad?cluesimb=...`, **cache diario en memoria** hasta medianoche local.
+  - `ExistenciasTempService`: `GET /existencias-temp/by-unidad?cluesimb=...`, `POST /existencias-temp/init`, `POST /existencias-temp/batch`; **cache diario en memoria** hasta medianoche local.
   - `CpmService`: estado **por unidad**; métodos:  
-    `ensureForCluesimb(cluesimb)`, `cpmsFor(cluesimb)`, `cpmsForImport(cluesimb)`,  
-    `getCpmForClave(clave, cluesimb?)`, `isClaveInKit(clave, cluesimb?)`, `getKitCountFor(cluesimb)`;  
+    `ensureForCluesimb(cluesimb)`, `cpmsFor(cluesimb)`, `cpmsForImport(cluesimb)`, `cpmsForKit(cluesimb, kitCodigo$)`,  
+    `getCpmForClave(clave, cluesimb?)`, `isClaveInKit(clave, cluesimb?)`, `getKitCountFor(cluesimb)`, `getKitCodigosFor(cluesimb)`;  
     mantiene API **legacy** (`cpms$`) para compatibilidad.
+  - `FeatureFlagsService`: `GET /solicitudes-config/effective`, `GET /solicitudes-config/allowlist-unidades`, `PATCH /solicitudes-config`.
+  - `TrazabilidadService`: `GET /trazabilidad`, `GET /trazabilidad/all-factores-conversion`, `GET /factores/factor` (legacy).
 - **Robustez**:
   - Getter `cluesimbActual` **defensivo** para evitar warnings de Angular.
   - **Bugs resueltos**:
@@ -43,19 +47,22 @@ src/
       solicitudes/
         solicitudes.component.ts
         solicitudes.component.html
+        kit-modal/
+          kit-modal.component.ts
+          kit-modal.component.html
+        cpm-modal/
+          cpm-modal.component.ts
+          cpm-modal.component.html
       ... (otros módulos/tabs si aplica)
     services/
       existencias-temp.service.ts
       cpm.service.ts
+      feature-flags.service.ts
+      trazabilidad.service.ts
     models/
       ArticuloSolicitud.ts
       CpmUnionRow.ts
       CpmExpectedRow.ts
-    shared/
-      app-kit-modal/
-        app-kit-modal.component.ts
-        app-kit-modal.component.html
-        app-kit-modal.component.css
   environments/
     environment.ts        # usa NG_APP_API_URL (ver .env)
 styles.css                # Tailwind, utilidades y estilos globales
@@ -66,10 +73,14 @@ styles.css                # Tailwind, utilidades y estilos globales
 ## 🔌 Integraciones de backend usadas
 
 - **Artículos (SQLite)**: `GET /api/articulos?q=...`
+- **Artículos (mapa completo)**: `GET /api/articulos/all`
 - **CPMs por unidad**: `GET /api/cpms/by-unidad?cluesimb=...`
+- **CPMs esperados vs. unidad**: `GET /api/cpms/expected-vs?cluesimb=...`
 - **Existencias temporales**: `GET /api/existencias-temp/by-unidad?cluesimb=...`
-- (Opcional en UI) **Trazabilidad**: `GET /api/trazabilidad?clave=...&cluesimb=...`
-- (Opcional) **Feature flags**: `GET /api/solicitudes-config/effective?cluesimb=...&nivel=...`
+- **Trazabilidad**: `GET /api/trazabilidad?clave=...&cluesimb=...`
+- **Factores de conversión**: `GET /api/trazabilidad/all-factores-conversion`, `GET /api/factores/factor?clave=...&clues=...`
+- **Feature flags**: `GET /api/solicitudes-config/effective?cluesimb=...&nivel=...`
+- **Allowlist de unidades**: `GET /api/solicitudes-config/allowlist-unidades`
 
 > **`environment.apiUrl`** debe apuntar al host del backend (ver sección de entorno).
 
@@ -166,8 +177,10 @@ npm run build
    - Existencia de la unidad (si está disponible).
    - `_enKit` y `_cpm` para priorizar coincidencias útiles.
 3. **Abrir KIT modal**:
-   - Usa toggles para mostrar/ocultar **AZM/AZE/AZT**, **Exist. unidad**, **Cant. sugerida**.
-   - Botón **“Seleccionar…”** se convierte en **“Selec. cant. sug. > 0”** si está visible “Exist. unidad”.
+   - Usa filtros y toggles para mostrar/ocultar **AZM/AZE/AZT**, **Exist. unidad**, **Cant. sugerida**.
+   - Puedes filtrar por **código de KIT** si hay más de uno disponible.
+   - Ajusta **meses de cobertura** para recalcular la **cantidad sugerida**.
+   - Botón **“Seleccionar con CPM”** se convierte en **“Selec. cant. sug. > 0”** si está visible “Exist. unidad”.
    - **Copiar** o **CSV** → exportan **exactamente lo que ves**: mismas columnas y orden.
 4. **Agregar al carrito/tabla**:
    - La cantidad se calcula con la regla: **CPM > reordenSug > defaultQtyNoCpm** (y se fuerza **≥ 1**).
@@ -179,6 +192,7 @@ npm run build
 - **Cache diario** hasta medianoche local para **existencias** (reduce latencia y carga del backend).
 - **Estado por unidad (`cluesimb`)** en `CpmService` para aislar tabs/rutas y evitar “estado compartido fantasma”.
 - **Compatibilidad**: se mantiene `cpms$` (legacy) para evitar refactors bruscos en componentes no migrados.
+- **Precarga de factores de conversión** en `TrazabilidadService` para evitar latencia y múltiples llamadas al backend.
 
 ---
 
