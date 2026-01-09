@@ -1,5 +1,5 @@
 <!-- src/app/features/dashboard-abasto/citas-pendientes/citas-pendientes.component.html -->
-<div class="p-6 space-y-6">
+<div class="p-6 min-h-[560px] space-y-6">
   <h2 class="text-xl font-bold text-green-800">Órdenes Pendientes o Incompletas</h2>
 
   <!-- Filtros -->
@@ -11,6 +11,13 @@
       <input type="text" [(ngModel)]="filtroBusqueda" (ngModelChange)="actualizarAgrupacion()"
         placeholder="Buscar orden, proveedor, CNIS, descripción"
         class="flex-1 px-4 py-2 min-w-[440px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+    </div>
+
+    <!-- Picker de periodo -->
+    <div class="min-w-[270px]">
+      <app-periodo-picker-dashboard [fechaInicio]="fechaInicio" [fechaFin]="fechaFin" [titulo]="'Fecha de Cita'"
+        (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)">
+      </app-periodo-picker-dashboard>
     </div>
 
     <!-- Select de unidad -->
@@ -33,14 +40,6 @@
       </select>
     </div>
 
-    <!-- Picker de periodo -->
-    <div class="min-w-[270px]">
-      <app-periodo-picker-dashboard [fechaInicio]="fechaInicio" [fechaFin]="fechaFin" [titulo]="'Fecha de Cita'"
-        (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)">
-      </app-periodo-picker-dashboard>
-    </div>
-
-
     <div class="mt-6 min-w-[180px] text-sm">
       <input type="checkbox" [(ngModel)]="incluirFechasNulas" (change)="actualizarAgrupacion()" id="toggleFechasNulas"
         class="ml-6 h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500" />
@@ -50,8 +49,7 @@
 
   <!-- Mini estadísticas -->
   <div class="flex flex-col gap-4 mt-6 md:flex-row">
-    <div class="p-4 w-full text-yellow-900 bg-yellow-100 rounded shadow md:w-1/2"
-    [ngClass]="{
+    <div class="p-4 w-full text-yellow-900 bg-yellow-100 rounded shadow md:w-1/2" [ngClass]="{
             'text-red-600 bg-red-100 font-bold': citasEntregaAtrasadas.length > 100,
             'text-yellow-600 bg-yellow-100 font-medium': citasEntregaAtrasadas.length > 10 && citasEntregaAtrasadas.length <=100,
             'text-yellow-900 bg-green-100': citasEntregaAtrasadas.length >= 0 && citasEntregaAtrasadas.length <=10
@@ -63,8 +61,7 @@
       <h3 class="font-semibold">Órdenes vigentes sin agendar</h3>
       <p class="text-2xl">{{ citasSinAgendar.length }}</p>
     </div>
-    <div class="p-4 w-full text-yellow-900 bg-yellow-100 rounded shadow md:w-1/2"
-    [ngClass]="{
+    <div class="p-4 w-full text-yellow-900 bg-yellow-100 rounded shadow md:w-1/2" [ngClass]="{
             'text-red-600 bg-red-100 font-bold': citasInminentes.length > 100,
             'text-yellow-600 bg-yellow-100 font-medium': citasInminentes.length > 10 && citasEntregaAtrasadas.length <=100,
             'text-yellow-900 bg-green-100': citasInminentes.length >= 0 && citasInminentes.length <=10
@@ -72,7 +69,7 @@
       <h3 class="font-semibold">Órdenes con fecha límite/cita inminente</h3>
       <p class="text-2xl">{{ citasInminentes.length }}</p>
     </div>
-     <div class="p-4 w-full text-red-900 bg-red-100 rounded shadow md:w-1/2">
+    <div class="p-4 w-full text-red-900 bg-red-100 rounded shadow md:w-1/2">
       <h3 class="font-semibold">Citas agendadas sin recepción</h3>
       <p class="text-2xl">{{ citasAgendadasSinRecepcion.length }}</p>
     </div>
@@ -110,19 +107,20 @@
             <td class="p-2 border">
               @if (this.citasInminentes.includes(cita))
               {
-                <span class="text-green-800 font-bold">
-                  🚨🚨 {{ cita.orden_de_suministro }} 🚨🚨
+              <span class="text-green-800 font-bold">
+                🚨🚨 {{ cita.orden_de_suministro }} 🚨🚨
               </span>
               }
               @else {
-                {{ cita.orden_de_suministro }} 
+              {{ cita.orden_de_suministro }}
               }
-              </td>
+            </td>
             <td class="p-2 border">{{ cita.proveedor }}</td>
             <td class="p-2 border">{{ cita.clues_destino }}</td>
             <td class="p-2 border">{{ cita.clave_cnis }}</td>
             <td class="p-2 border" title="{{ cita.descripcion }}">
-              {{ cita.descripcion ? ((cita.descripcion.length > 50) ? (cita.descripcion | slice: 0:30) + ' [...]' : cita.descripcion
+              {{ cita.descripcion ? ((cita.descripcion.length > 50) ? (cita.descripcion | slice: 0:30) + ' [...]' :
+              cita.descripcion
               ) : '—' }}
             </td>
             <td class="p-2 border">{{ cita.compra }}</td>

@@ -52,8 +52,12 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
     periodoFormateado: string = '';
     proveedorExpandido: string | null = null;
 
-    fechaInicio: Date = new Date(new Date().getFullYear(), 0, 1); // 1 enero año actual
+    // fechaInicio: Date = new Date(new Date().getFullYear(), 0, 1); // 1 enero año actual
     fechaFin: Date = new Date(); // hoy
+    // fechaInicio es fechaFin menos 90 días por defecto
+    fechaInicio: Date = new Date(
+        this.fechaFin.getTime() - 90 * 24 * 60 * 60 * 1000
+    );
 
     citaSeleccionada: Cita | null = null;
     mostrarModalDetalle = false;

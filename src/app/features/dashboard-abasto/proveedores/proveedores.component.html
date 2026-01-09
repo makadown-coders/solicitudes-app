@@ -8,7 +8,7 @@
 <div *ngIf="loading" class="mb-3 text-sm text-gray-600">
     Cargando citas de proveedores...
 </div>
-<div class="p-6 mb-6 space-y-6">
+<div class="p-6 mb-6 min-h-[560px] space-y-6">
     <h2 class="mb-4 text-2xl font-bold text-green-800">Proveedores y Entregas</h2>
 
     <!-- Filtros mejorados con distribución flexible -->
@@ -20,6 +20,14 @@
             <input type="text" placeholder="Buscar proveedor/clave/descripción..." [(ngModel)]="filtroBusqueda"
                 (input)="onBusqueda()" (keydown)="onBusqueda()"
                 class="flex-1 px-4 py-2 min-w-[440px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+        </div>
+
+        <!-- Picker de periodo -->
+        <div class="min-w-[270px]">
+            <app-periodo-picker-dashboard [fechaInicio]="fechaInicio" [fechaFin]="fechaFin"
+                [titulo]="'Fecha de Recepción'"
+                (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)">
+            </app-periodo-picker-dashboard>
         </div>
 
         <!-- Select de unidad -->
@@ -40,14 +48,6 @@
                 <option value="">Todos</option>
                 <option *ngFor="let compra of tiposCompra" [value]="compra">{{ compra }}</option>
             </select>
-        </div>
-
-        <!-- Picker de periodo -->
-        <div class="min-w-[270px]">
-            <app-periodo-picker-dashboard [fechaInicio]="fechaInicio" [fechaFin]="fechaFin"
-                [titulo]="'Fecha de Recepción'"
-                (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)">
-            </app-periodo-picker-dashboard>
         </div>
 
         <!-- Etiqueta resumen -->
