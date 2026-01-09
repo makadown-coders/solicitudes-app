@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import { Articulo, UnidadExistente } from '../../../../models/articulo-solicitud';
 import { hospitalesData } from '../../../../models/hospitalesData';
 import * as LZString from 'lz-string';
-import { Subject } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { DashboardService } from '../../../../services/dashboard.service';
 import { Inventario, InventarioDisponibles } from '../../../../models/Inventario';
 import { StorageSolicitudService } from '../../../../services/storage-solicitud.service';
@@ -20,8 +20,12 @@ import { ArticulosService } from '../../../../services/articulos.service';
 import { ChartConfiguration, ChartOptions, ChartType } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { ExcelService } from '../../../../services/excel.service';
+import { InventarioService } from '../../../../services/inventario.service';
 
 
+/**
+ * @deprecated se optó por lo que contiene inventario-tab.component.ts
+ */
 @Component({
     standalone: true,
     imports: [CommonModule,
@@ -32,15 +36,14 @@ import { ExcelService } from '../../../../services/excel.service';
     selector: 'app-existencias-x-unidad',
     templateUrl: 'existencias-x-unidad.component.html'
 })
-
 export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy {
     @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
     @Input() cpms: CPMS[] = [];
-    @Input() citas: Cita[] = [];
 
     unidades: UnidadExistente[] = hospitalesData;
     dashboardService = inject(DashboardService);
     articulosService = inject(ArticulosService);
+    inventarioService = inject(InventarioService);
     storageService = inject(StorageSolicitudService);
     inventario: Inventario[] = [];
     onDestroy$ = new Subject<void>();
@@ -184,7 +187,11 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
         }
     }
 
-    seleccionarUnidad(unidad: UnidadExistente) {
+    seleccionarUnidad(unidad: UnidadExistente, vieneDeNgOnInit: boolean = false) {
+        console.log('***********************************************************************************************');
+        console.log('******************************** inicio seleccionarUnidad() ***********************************');
+        console.log('Unidad seleccionada:', unidad);
+        console.log('***********************************************************************************************');
         this.unidadSeleccionada = unidad;
         this.unidadBusqueda = unidad.nombre;
         this.unidadConfirmada = true;
@@ -194,38 +201,45 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_FILTRO_UNIDAD,
             JSON.stringify(unidad));
 
-        // console.log('( seleccionarUnidad() ) this.data.cpms tamanio', this.cpms.map(item => item.clave).length);
-        this.cpmsElegidos = [...this.cpms.filter(cpms =>
-            cpms.cluesimb.toLocaleLowerCase() === unidad.cluesimb.toLocaleLowerCase())];
-        // ordenar this.cpmsElegidos por clave
-        this.cpmsElegidos.sort((a, b) => a.clave.localeCompare(b.clave));
-        // guardar this.cpmsElegidos en localStorage DASH_ABASTO_EXISTENCIAS_EXU_CPMS_ELEGIDOS
-        localStorage.setItem(
-            StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_CPMS_ELEGIDOS,
-            JSON.stringify(this.cpmsElegidos));
-        // cargar existenciaUnidadesElegidas de this.existenciaUnidades
-        this.existenciaUnidadesElegidas = this.existenciaUnidades.get(unidad.key) || [];
-        // console.log('this.existenciaUnidadesElegidas', this.existenciaUnidadesElegidas);
-        /* si this.existenciaUnidadesElegidas no tiene el resumen estatal 
-            lo agregamos a this.existenciaUnidadesElegidas y a this.existenciaUnidades con esa key */
-        if (this.existenciaUnidadesElegidas.length === 0) {
-            // para crear el resumen estatal "peino" todas las keys de this.existenciaUnidades y acumulo cada clave en this.existenciaUnidadesElegidas
-            this.existenciaUnidadesElegidas = [...this.existenciaUnidades.values()].reduce((acc, val) => [...acc, ...val], []);
-            this.existenciaUnidades.set('ESTATAL', this.existenciaUnidadesElegidas);
+        if (!vieneDeNgOnInit) {
+            console.log('( seleccionarUnidad() ) this.data.cpms tamanio', this.cpms.map(item => item.clave).length);
+            this.cpmsElegidos = [...this.cpms.filter(cpms =>
+                cpms.cluesimb.toLocaleLowerCase() === unidad.cluesimb.toLocaleLowerCase())];
+            console.log('this.cpmsElegidos', this.cpmsElegidos);
+            // ordenar this.cpmsElegidos por clave
+            this.cpmsElegidos.sort((a, b) => a.clave.localeCompare(b.clave));
+            // guardar this.cpmsElegidos en localStorage DASH_ABASTO_EXISTENCIAS_EXU_CPMS_ELEGIDOS
+            localStorage.setItem(
+                StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_CPMS_ELEGIDOS,
+                JSON.stringify(this.cpmsElegidos));
+
+            // cargar existenciaUnidadesElegidas de this.existenciaUnidades
+            this.existenciaUnidadesElegidas = this.existenciaUnidades.get(unidad.key) || [];
+            console.log('this.existenciaUnidadesElegidas', this.existenciaUnidadesElegidas);
+            /* si this.existenciaUnidadesElegidas no tiene el resumen estatal 
+                lo agregamos a this.existenciaUnidadesElegidas y a this.existenciaUnidades con esa key */
+            if (this.existenciaUnidadesElegidas.length === 0) {
+                // para crear el resumen estatal "peino" todas las keys de this.existenciaUnidades y acumulo cada clave en this.existenciaUnidadesElegidas
+                this.existenciaUnidadesElegidas = [...this.existenciaUnidades.values()].reduce((acc, val) => [...acc, ...val], []);
+                this.existenciaUnidades.set('ESTATAL', this.existenciaUnidadesElegidas);
+            }
+
+            // comprimir this.existenciaUnidadesElegidas y
+            // guardar this.existenciaUnidadesElegidas en localStorage DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS
+            const existenciaUnidadesElegidasString = JSON.stringify(this.existenciaUnidadesElegidas);
+            const existenciaUnidadesElegidasComprimido = LZString.compress(existenciaUnidadesElegidasString);
+            localStorage.setItem(
+                StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS,
+                existenciaUnidadesElegidasComprimido);
+            console.log('Guardando existenciaUnidadesElegidas en localStorage', this.existenciaUnidadesElegidas.length, 'items.');
+            console.log('***********************************************************************************************');
+            console.log('*********************************** fin seleccionarUnidad() ***********************************');
+            console.log('***********************************************************************************************');
         }
-
-
-        // comprimir this.existenciaUnidadesElegidas y
-        // guardar this.existenciaUnidadesElegidas en localStorage DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS
-        const existenciaUnidadesElegidasString = JSON.stringify(this.existenciaUnidadesElegidas);
-        const existenciaUnidadesElegidasComprimido = LZString.compress(existenciaUnidadesElegidasString);
-        localStorage.setItem(
-            StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS,
-            JSON.stringify(existenciaUnidadesElegidasComprimido));
-
     }
 
     reiniciarBusquedaUnidad() {
+        console.log('Reiniciando búsqueda de unidad en existencias x unidad');
         this.unidadConfirmada = false;
         this.unidadSeleccionada = null;
         this.unidadBusqueda = '';
@@ -242,28 +256,46 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
     ngOnInit() {
         const guardada = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_FILTRO_UNIDAD);
         if (guardada) {
+            console.log('Cargando unidad guardada de existencias x unidad');
             this.unidadSeleccionada = JSON.parse(guardada) as UnidadExistente;
             this.unidadBusqueda = this.unidadSeleccionada.nombre;
             this.unidadConfirmada = true;
             // obtener de localStorage DASH_ABASTO_EXISTENCIAS_EXU_CPMS_ELEGIDOS y guardar en this.cpmsElegidos
             const cpmsElegidosGuardados = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_CPMS_ELEGIDOS);
             if (cpmsElegidosGuardados) {
+                console.log('Cargando cpmsElegidos guardados de existencias x unidad');
                 this.cpmsElegidos = JSON.parse(cpmsElegidosGuardados) as CPMS[];
+                console.log('this.cpmsElegidos', this.cpmsElegidos);
             }
             // obtener de localstorage DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS y guardar en this.existenciaUnidadesElegidas
             const comprimidoUnidadesElegidasGuardadas = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_UNIDADES_ELEGIDAS);
             if (comprimidoUnidadesElegidasGuardadas) {
-                // descomprimir
+                console.log('Cargando existenciaUnidadesElegidas guardadas de existencias x unidad');
+                console.log('comprimidoUnidadesElegidasGuardadas', comprimidoUnidadesElegidasGuardadas);
+                // descomprimir 
+                // ESTA PARTE NO FUNCIONA!!! NO SE PORQUE, 
+                // PUEDO VER EL COMPRIMIDO PERO NO LOGRO DESCOMPRIMIRLO, ANTES SI PODIA 
                 const unidadesElegidasGuardadas = LZString.decompress(comprimidoUnidadesElegidasGuardadas);
+                console.log('unidadesElegidasGuardadas', unidadesElegidasGuardadas);
                 this.existenciaUnidadesElegidas = JSON.parse(unidadesElegidasGuardadas) as Inventario[];
+                console.log('this.existenciaUnidadesElegidas', this.existenciaUnidadesElegidas);
             }
             // obtener DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP de localstorage y guardar en this.articulosMap
             this.cargarArticulosMapDeLocalStorage();
-            this.seleccionarUnidad(this.unidadSeleccionada);
+            this.seleccionarUnidad(this.unidadSeleccionada, true);
         }
-        if (this.inventario.length === 0) {
-            this.inventario = this.storageService.getInventarioFromLocalStorage();
-        }
+        this.inventarioService.inventario$
+            .pipe(takeUntil(this.onDestroy$))
+            .subscribe({
+                next: (data) => {
+                   // console.log('🔄 ExistenciasXUnidadComponent - inventario$ emitió nuevo valor con', data.length, 'items');
+                    this.inventario = [...data];
+                    this.cdRef.detectChanges();
+                },
+                error: (error) => {
+                    console.error('Error al obtener el inventario:', error);
+                }
+            });
 
         // suscribirse a buscarArticulosv2 si DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP de localstorage no existe
         if (localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP) === null) {
@@ -412,7 +444,7 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
         const resumen = this.resumenCPMs();
         const disponibles = resumen.totalClaveDisponibles;
         const faltantes = this.cpmsElegidos.length - disponibles;
-        const totalPiezasDisponibles = resumen.totalPiezasDisponibles;        
+        const totalPiezasDisponibles = resumen.totalPiezasDisponibles;
 
         // Formato anónimo requerido
         const existenciasData = this.cpmsElegidos.map((cpm, index) => {
@@ -421,10 +453,10 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             const unidad = this.obtenerUnidad(cpm.clave);
             const existenciaTotal = this.disponibles(cpm.clave);
             const existenciaAlmacenes = this.obtenerExistenciaAlmacenes(cpm.clave);
-            const puntoReorden = Math.max(cpm.cantidad - existenciaTotal - 
-                            existenciaAlmacenes.existenciasAZE - existenciaAlmacenes.existenciasAZM - 
-                            existenciaAlmacenes.existenciasAZT,
-                 0);
+            const puntoReorden = Math.max(cpm.cantidad - existenciaTotal -
+                existenciaAlmacenes.existenciasAZE - existenciaAlmacenes.existenciasAZM -
+                existenciaAlmacenes.existenciasAZT,
+                0);
             const gpo = this.claveGrupos.find(grupo => grupo.clave === cpm.clave)?.gpo ?? '';
             const grupoTerapeutico = this.claveGrupos.find(grupo => grupo.clave === cpm.clave)?.grupoTerapeutico ?? '';
 
@@ -443,20 +475,16 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
                 puntoReorden
             };
         });
-        console.log('unidadBusqueda', this.unidadBusqueda);
+        // console.log('unidadBusqueda', this.unidadBusqueda);
         // convertir las vocales mayúsculas con acentos a vocales mayusculas sin acentos
         const unidadBusquedaSinAcentos = this.unidadBusqueda?.replace(/[áéí]/g, 'a').replace(/[é]/g, 'e').replace(/[í]/g, 'i').replace(/[ó]/g, 'o').replace(/[ú]/g, 'u');
         this.excelService.exportarExcelExistenciasUnidadConTemplate(
-            'template_abasto.xlsx',
+            'template_abasto.xlsx', /* 'template_abasto_citas.xlsx', */
             `ExistenciasXUnidad_${this.unidadSeleccionada?.nombre}_${new Date().toISOString().slice(0, 10)}.xlsx`,
             existenciasData,
             disponibles,
             faltantes,
-            totalPiezasDisponibles,
-            this.unidadBusqueda === 'ESTATAL' || this.unidadBusqueda === 'Baja California' ? 
-                    this.citas : 
-                    this.citas.filter(cita => 
-                        cita.unidad.replace(/[áéí]/g, 'a').replace(/[é]/g, 'e').replace(/[í]/g, 'i').replace(/[ó]/g, 'o').replace(/[ú]/g, 'u').toLocaleUpperCase() === unidadBusquedaSinAcentos.toLocaleUpperCase())
+            totalPiezasDisponibles
         );
     }
 }

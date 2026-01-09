@@ -1,7 +1,17 @@
+// src/app/services/inventario.service.ts
 import * as LZString from 'lz-string';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject,
+         catchError,
+         defer,
+         finalize,
+         map,
+         Observable,
+         shareReplay,
+         tap,
+         of
+       } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { PeriodoFechasService } from '../shared/periodo-fechas.service';
 import { ExcelService } from './excel.service';
@@ -11,6 +21,13 @@ import { CPMSFull, InventarioFull } from '../models/ElementosBase64';
 import { ClaveGrupo, CPMS } from '../models/CPMS';
 import { StorageSolicitudService } from './storage-solicitud.service';
 import { TemporalExistenciaRow } from '../models/temporal-existencia-row.model';
+import { CitaSlimByClaveLote, CitaSlimExistencia } from '../models/cita-slim-inventario.model';
+
+// helper compartido
+function cleanLote(l?: string | null) {
+  if (!l) return '';
+  return l.replace(/[\/'']/g, '').slice(0, 20).trim();
+}
 
 @Injectable({
   providedIn: 'root'
@@ -21,15 +38,16 @@ export class InventarioService {
   public inventario$: Observable<Inventario[]> = this.inventarioSubject.asObservable();
   private fechaService = inject(PeriodoFechasService);
   private excelService = inject(ExcelService);
-  private cpmsSubject = new BehaviorSubject<CPMS[]>([]);
-  public cpms$: Observable<CPMS[]> = this.cpmsSubject.asObservable();
+  // ========================= CPMS Legacy, en vías de deprecación =========================
+  // private cpmsSubject = new BehaviorSubject<CPMS[]>([]);
+  // public cpms$: Observable<CPMS[]> = this.cpmsSubject.asObservable();
 
   private claveGruposSubject = new BehaviorSubject<ClaveGrupo[]>([]);
   public claveGrupos$: Observable<ClaveGrupo[]> = this.claveGruposSubject.asObservable();
 
   // TODO: Desacoplar esto de Dashboard para meterlo en CPMService
-  private cpmsCluesActualSubject = new BehaviorSubject<CPMS[]>([]);
-  public cpmsCluesActual$: Observable<CPMS[]> = this.cpmsCluesActualSubject.asObservable();
+  // private cpmsCluesActualSubject = new BehaviorSubject<CPMS[]>([]);
+  // public cpmsCluesActual$: Observable<CPMS[]> = this.cpmsCluesActualSubject.asObservable();
 
   // crear un booleano para avisar que se está cargando el CPMS
   private cargandoCPMSBehaviorSubject = new BehaviorSubject<boolean>(false);
@@ -44,6 +62,13 @@ export class InventarioService {
   private existenciasSubject: Map<Existencias, BehaviorSubject<Inventario[]>> = new Map<Existencias, BehaviorSubject<Inventario[]>>();
   public existencias$: Map<Existencias, Observable<Inventario[]>> = new Map<Existencias, Observable<Inventario[]>>();
 
+  private _citasByClaveLote = signal<Map<string, CitaSlimByClaveLote[]>>(new Map());
+  citasByClaveLote = this._citasByClaveLote.asReadonly();
+
+  private slimInFlight$?: Observable<Map<string, CitaSlimByClaveLote[]>>;
+  private slimLoadedAt = 0;
+  private readonly SLIM_TTL_MS = 30 * 60 * 1000; // 30 min (ajústalo)
+  private readonly TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
 
   constructor(private http: HttpClient) {
     // Inicializar mapa de existencias
@@ -53,75 +78,64 @@ export class InventarioService {
     }
   }
 
+  private isExpired(tsStr: string | null): boolean {
+    if (!tsStr) return true;
+    const ts = Date.parse(tsStr);
+    if (Number.isNaN(ts)) return true;
+    return (Date.now() - ts) > this.TTL_MS;
+  }  
+
   /**
-   * Metodo para refrescar los datos de CPMS (mediante power automate)
-   * En vias de deprecacion para usar backend.
+   * Refresca existencias de ALMACENES desde Postgres (tmp_existencias + v_unidad_medica_detalle)
+   * y lo guarda en localStorage (SOLICITUD_INVENTARIO) + emite por inventario$.
    */
-  refrescarDatosCPMS() {
-    //    console.info('🔄 InventarioService.refrescarDatosCPMS() - Actualizando CPMS...');
-    this.cargandoCPMSBehaviorSubject.next(true);
-    // purgar todo el localStorage
-    this.limpiarCPMS();
-    const url = environment.apiUrl + '/cpms';
-    this.http.get<CPMSFull>(url).subscribe({
-      next: (response: CPMSFull) => {
-        const arrayBuffer = this.excelService.base64ToArrayBuffer(response.cpms);
-        let cpms: CPMS[] = [];
-        let claveGrupos: ClaveGrupo[] = [];
-        [cpms, claveGrupos] = this.excelService.procesarArchivoCPMS(arrayBuffer);
+  refrescarExistenciaAlmacenesDesdePostgres(skipLoader = true): void {
+    this.cargandoInventarioBehaviorSubject.next(true);
 
-        // console.info('✅ InventarioService.refrescarDatosCPMS() - CPMS tamanio original', cpms.length);
-        // 0-1) Procesar los cpms para que excluya claves que tienen cantidad cero en todas las unidades 
-        if (cpms && cpms.length > 0) {
-          let resumenEstatal = this.agregarResumenEstatal(cpms);
-          // crear un arreglo de claves en resumenEstatal que tienen CPM total > 0
-          const clavesConCpmTotal = resumenEstatal.filter(item => item.cantidad > 0).map(item => item.clave);
-          //          console.info('🧹 Filtrando CPMS...');
-          // filtrar this.existenciasTabInfo.cpms para mantener solo las claves que tienen CPM total > 0
-          let cpmsFiltrados: CPMS[] = [];
-          for (let i = 0; i < clavesConCpmTotal.length; i++) {
-            const clave = clavesConCpmTotal[i];
-            const cpm = cpms.filter(item => item.clave === clave && item.cantidad > 0);
-            if (cpm) {
-              cpmsFiltrados = [...cpmsFiltrados, ...cpm];
-            }
-          }
-          // filtrar en claveGrupos para que muestre lo que hay tambien en cpmsFiltrados
-          claveGrupos = claveGrupos.filter(item => clavesConCpmTotal.includes(item.clave));
+    const url = environment.apiUrl + '/existencias-temp/almacenes-full';
 
+    this.http.get<{ ok: boolean; rows: TemporalExistenciaRow[] }>(
+      url,
+      skipLoader ? { headers: { 'X-Skip-Loader': '1' } } : {}
+    ).subscribe({
+      next: res => {
+        const rows = res.rows ?? [];
 
-          //          console.log('cpmsFiltrados tamanio', cpmsFiltrados.filter(item => item.cantidad > 0).map(item => item.clave).length);
-          // agregando resumen estatal por si se ofrece
-          resumenEstatal = resumenEstatal.filter(item => clavesConCpmTotal.includes(item.clave));
-          // console.log('resumenEstatal tamanio', resumenEstatal.filter(item => item.cantidad > 0).map(item => item.clave).length);
+        // Mapeo TemporalExistenciaRow -> Inventario
+        const inventario: Inventario[] = rows.map(r => {
+          const i = new Inventario();
+          i.clave = r.clave_cnis;
+          i.partida = ''; // no viene, lo podemos enriquecer luego si hace falta
+          i.descripcion = ''; // se puede enriquecer con ArticulosService después
+          i.disponible = r.existencia;
+          i.almacen = (r.alias_sas ?? '').toUpperCase(); // o r.alias_sas / r.cluessa / lo que prefieras
+          i.comprometidos = 0;
+          i.lote = r.lote || '';
+          i.caducidad = r.fecha_caducidad as any;
+          i.fuente = ''; //(r.fuente ?? '').toUpperCase();
+          i.fecha_entrada = null;
+          return i;
+        });
 
-          cpms = [];
+        const inventarioNormalizado = this.normalizarClavesInventario(inventario);
 
-          cpms = [...resumenEstatal, ...cpmsFiltrados];
-          // console.log('cpms tamanio', cpms.map(item => item.clave).length);
-
-          // 1) Serializar y comprimir
-          const raw = JSON.stringify(cpms);
-          // console.log('InventarioService.refrescarDatosCPMS() - raw un pedazo', raw.substring(0, 10));
-          const compressed = LZString.compress(raw);
-          try {
-            // console.log('InventarioService.refrescarDatosCPMS() - comprimiendo');
-            localStorage.setItem(StorageVariables.SOLICITUD_CPMS, compressed);
-            localStorage.setItem(StorageVariables.SOLICITUD_CLAVEGRUPOS, JSON.stringify(claveGrupos));
-          } catch {
-            console.warn('😱 InventarioService.refrescarDatosCPMS() - localStorage lleno, omitiendo guardado');
-          }
-
+        // Serializar + comprimir
+        const raw = JSON.stringify(inventarioNormalizado);
+        const compressed = LZString.compress(raw);
+        try {
+          localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO, compressed);
+          localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO_TS, new Date().toISOString());
+        } catch {
+          console.warn('😱 InventarioService.refrescarDatosInventarioDesdePostgres() - localStorage lleno, omitiendo guardado');
         }
-        // 2) Emitir        
-        this.cpmsSubject.next(cpms as CPMS[]);
-        this.claveGruposSubject.next(claveGrupos as ClaveGrupo[]);
-        this.cargandoCPMSBehaviorSubject.next(false);
-        //        console.info('✅ InventarioService.refrescarDatosCPMS() - FINALIZADO');
+
+        this.inventarioSubject.next(inventarioNormalizado as Inventario[]);
+        this.cargandoInventarioBehaviorSubject.next(false);
       },
-      error: (err) => {
-        this.cargandoCPMSBehaviorSubject.next(false);
-        console.error('❌ InventarioService.refrescarDatosCPMS() - Error al cargar CPMS:', err);
+      error: err => {
+        console.error('❌ InventarioService.refrescarDatosInventarioDesdePostgres() - Error al cargar datos:', err);
+        this.inventarioSubject.next([]);
+        this.cargandoInventarioBehaviorSubject.next(false);
       }
     });
   }
@@ -145,27 +159,16 @@ export class InventarioService {
     return registrosEstatales;
   }
 
-  emitirCPMS(cpms: CPMS[]) {
-    this.cpmsSubject.next(cpms);
-  }
-
-  emitirCPMSCluesActual(cpms: CPMS[]) {
-    this.cpmsCluesActualSubject.next(cpms);
-  }
-
   emitirInventario(inventario: Inventario[]) {
     // console.info('📦 InventarioService.emitirInventario()', inventario);
     this.inventarioSubject.next(inventario);
   }
 
   limpiarCPMS() {
-    //    console.info('🧹 Limpiando CPMS...');
     localStorage.removeItem(StorageVariables.SOLICITUD_CPMS);
-    this.cpmsSubject.next([]);
-  }
-
-  cargarCPMSdesdeLocalStorage() {
-    this.cpmsSubject.next(new StorageSolicitudService().getCPMSFromLocalStorage());
+    localStorage.removeItem(StorageVariables.SOLICITUD_CLAVEGRUPOS);
+    localStorage.removeItem(StorageVariables.SOLICITUD_CPMS_TS); // ⬅ limpiar timestamp
+    // this.cpmsSubject.next([]);
   }
 
   /**
@@ -173,15 +176,17 @@ export class InventarioService {
    * En vias de deprecacion para usar backend.
    * Obtiene existencias de los 3 almacenes AZM, AZT y AZE
    */
-  refrescarDatosInventario(): void {
+  refrescarDatosInventario(skipLoader = true): void {
     //    console.info('🔄 InventarioService.refrescarDatosInventario() - Actualizando datos de inventario temporal...');
     this.cargandoInventarioBehaviorSubject.next(true);
     // purgar todo el localStorage
     this.limpiarInventario();
     const url = this.apiUrl;
-    this.http.get<InventarioFull>(url).subscribe({
+    this.http.get<InventarioFull>(url, skipLoader ? {
+      headers: { 'X-Skip-Loader': '1' }
+    } : {}).subscribe({
       next: (response: InventarioFull) => {
-
+        // console.log('🔄 InventarioService.refrescarDatosInventario() - response recibido');
         const inventario = this.obtenerInventarioDeBase64(response.inventario);
         const inventarioNormalizado = this.normalizarClavesInventario(inventario);
 
@@ -190,6 +195,7 @@ export class InventarioService {
         const compressed = LZString.compress(raw);
         try {
           localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO, compressed);
+          localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO_TS, new Date().toISOString());
         } catch {
           console.warn('😱 InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
         }
@@ -258,7 +264,7 @@ export class InventarioService {
       });
     } else {
       // caso especial de San Felipe, que usa otro endpoint y otro modelo
-      this.http.get<{ rows: TemporalExistenciaRow[]}>(url).subscribe({
+      this.http.get<{ rows: TemporalExistenciaRow[] }>(url).subscribe({
         next: (res) => {
           const response = res.rows;
           if (!response || response.length === 0) {
@@ -277,7 +283,6 @@ export class InventarioService {
             nuevoRegistro.lote = item.lote || '';
             nuevoRegistro.caducidad = item.fecha_caducidad as string;
             nuevoRegistro.fecha_entrada = null;
-            nuevoRegistro.disponible = item.existencia;
             return nuevoRegistro;
           });
           const inventarioNormalizado = this.normalizarClavesInventario(inventario);
@@ -309,6 +314,8 @@ export class InventarioService {
     const compressed = LZString.compress(raw);
     try {
       localStorage.setItem(existencia, compressed);
+      // ⬇⏱ timestamp específico de esta existencia
+      localStorage.setItem(`TS_${existencia}`, new Date().toISOString());
     } catch {
       console.warn('😱 InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
     }
@@ -393,24 +400,18 @@ export class InventarioService {
   private limpiarInventario() {
     // console.info('🧹 Limpiando inventario...');
     localStorage.removeItem(StorageVariables.SOLICITUD_INVENTARIO);
+    localStorage.removeItem(StorageVariables.SOLICITUD_INVENTARIO_TS); // ⬅ limpiar timestamp
     this.inventarioSubject.next([]);
   }
 
   private limpiarExistencias(existencia: Existencias) {
     localStorage.removeItem(existencia);
+    localStorage.removeItem(`TS_${existencia}`); // ⬅ limpiar timestamp
   }
 
   private normalizarClavesInventario(inventario: Inventario[]): Inventario[] {
-    const prefijos10 = ['060', '533', '535', '513', '537', '080', '070'];
     return inventario.map(item => {
-      const claveSinPuntos = item.clave.replace(/\./g, '');
-      if (claveSinPuntos.length === 12 &&
-        prefijos10.includes(claveSinPuntos.substring(0, 3)) &&
-        claveSinPuntos.endsWith('00')) {
-        // Convertir 12 dígitos a 10, manteniendo formato con puntos
-        const clave10 = claveSinPuntos.substring(0, 10);
-        item.clave = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
-      }
+      item.clave = this.normalizarClave(item.clave);
       return item;
     });
   }
@@ -428,6 +429,149 @@ export class InventarioService {
       normalizado = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
     }
     return normalizado;
+  }
+
+  loadCitasSlimIfNeeded() {
+    this.ensureCitasSlim$().subscribe();
+  }
+
+  private isSlimFresh(): boolean {
+    return (Date.now() - this.slimLoadedAt) < this.SLIM_TTL_MS;
+  }
+
+  ensureCitasSlim$(): Observable<Map<string, CitaSlimByClaveLote[]>> {
+    // 1) si el cache está fresco, regresa inmediato (sin pegarle al backend)
+    const current = this._citasByClaveLote();
+    if (current.size > 0 && this.isSlimFresh()) return of(current);
+
+    // 2) si ya hay una petición en vuelo, reusa la misma
+    if (this.slimInFlight$) return this.slimInFlight$;
+
+    // 3) si no hay, crea UNA y compártela
+    const url = environment.apiUrl + '/citas/slim-existencia';
+
+    // console.log('🚀 Cargando slim existencias desde backend...');
+    this.slimInFlight$ = defer(() =>
+      this.http.get<{ ok: boolean; rows: CitaSlimExistencia[] }>(url)
+    ).pipe(
+      map((res:any) => {
+        // console.log('✅ Slim respuesta:', res.data);
+        return this.buildSlimMap(res.data.rows ?? []);
+      }),
+      tap(mp => {
+        this._citasByClaveLote.set(mp);
+        this.slimLoadedAt = Date.now();
+      }),
+      // si falla, no revientes: deja cache como esté y suelta inFlight
+      catchError(err => {
+        console.error('Error cargando slim inventario:', err);
+        return of(this._citasByClaveLote());
+      }),
+      finalize(() => {
+        this.slimInFlight$ = undefined;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false })
+    );
+
+    return this.slimInFlight$;
+  }
+
+  /**
+   * Convierte una lista de CitaSlimExistencia en un Map de clave-lote a CitaSlimByClaveLote[].
+   *
+   * La clave del Map es una concatenación de la clave de la cita y el lote, separados por '__'.
+   * El valor asociado a cada clave es un array de CitaSlimByClaveLote.
+   * Cada CitaSlimByClaveLote tiene los campos precio, orden, fte y proveedor de la cita original.
+   *
+   * @param rows La lista de CitaSlimExistencia a convertir
+   * @returns El Map de clave-lote a CitaSlimByClaveLote[]
+   */
+  private buildSlimMap(rows: CitaSlimExistencia[]): Map<string, CitaSlimByClaveLote[]> {
+    const mp = new Map<string, CitaSlimByClaveLote[]>();
+    // console.log('🔍 buildSlimMap - procesando', rows.length, 'registros de citas slim');
+
+    for (const r of rows ?? []) {
+      const clave = this.normalizarClave(r.clave_cnis);
+      const lote = cleanLote(r.lote);
+      if (!clave || !lote) continue;
+
+      const key = `${clave}__${lote}`;
+      const item: CitaSlimByClaveLote = {
+        precio: r.precio_unitario,
+        orden: r.orden_de_suministro,
+        fte: r.fte_fmto,
+        proveedor: r.proveedor,
+      };
+
+      const arr = mp.get(key);
+      if (arr) arr.push(item);
+      else mp.set(key, [item]);
+    }
+
+    return mp;
+  }
+
+  /** Fuerza recargar desde el backend (para el botón Actualizar) */
+  refreshCitasSlim() {
+    this.slimLoadedAt = 0;
+    this._citasByClaveLote.set(new Map());
+    this.ensureCitasSlim$().subscribe();
+  }
+
+  initExistenciaAlmacenes(): void {
+    const comprimido = localStorage.getItem(StorageVariables.SOLICITUD_INVENTARIO);
+    let inventario: Inventario[] = [];
+
+    if (comprimido) {
+      const raw = LZString.decompress(comprimido);
+      inventario = raw ? JSON.parse(raw) : [];
+    }
+
+    // Emitimos lo que haya en cache, aunque esté viejo, para que la UI pinte algo rápido
+    this.inventarioSubject.next(inventario);
+
+    const tsStr = localStorage.getItem(StorageVariables.SOLICITUD_INVENTARIO_TS);
+    const expired = this.isExpired(tsStr);
+    const noData = !inventario || inventario.length === 0;
+
+    if (noData || expired) {
+      // ⏱ sin datos o expirado → pegamos al nuevo endpoint PG
+      this.refrescarExistenciaAlmacenesDesdePostgres();
+    } else {
+      // console.info('✅ initInventario(): usando inventario de almacenes desde localStorage (vigente)');
+    }
+  }  
+
+  /**
+ * Inicializa existencias de UNA unidad:
+ * - Emite lo que haya en localStorage (si existe)
+ * - Si no hay datos o están vencidos → llama a refrescarDatosExistencias(existencia)
+ */
+  initExistencia(existencia: Existencias): void {
+    const comprimido = localStorage.getItem(existencia);
+    let inventario: Inventario[] = [];
+
+    if (comprimido) {
+      const raw = LZString.decompress(comprimido);
+      inventario = raw ? JSON.parse(raw) : [];
+    }
+
+    this.existenciasSubject.get(existencia)!.next(inventario);
+
+    const tsStr = localStorage.getItem(`TS_${existencia}`);
+    const expired = this.isExpired(tsStr);
+    const noData = !inventario || inventario.length === 0;
+
+    if (noData || expired) {
+      this.refrescarDatosExistencias(existencia);
+    }
+  }
+
+  /** Inicializa TODAS las existencias (se usa en DashboardAbasto) */
+  initTodasExistencias(): void {
+    for (const existencia of Object.values(Existencias)) {
+      this.initExistencia(existencia as Existencias);
+    }
   }
 
 }

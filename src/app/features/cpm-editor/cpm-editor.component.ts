@@ -48,7 +48,7 @@ export class CpmEditorComponent {
 
     private async loadArtMapIfNeeded() {
         if (this.artMapLoaded) return;
-        const mapa = await firstValueFrom(this.articulos.getArticulosMapaFromLocal());
+        const mapa = await firstValueFrom(this.articulos.getArticulosMapa());
         this.artMap = new Map<string, any>(Object.entries(mapa));
         this.artMapLoaded = true;
     }

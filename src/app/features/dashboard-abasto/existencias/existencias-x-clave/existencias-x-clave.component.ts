@@ -19,10 +19,21 @@ import { CircleAlertIcon, CircleCheckIcon, LucideAngularModule, LucidePill, Octa
 import { Cita } from '../../../../models/Cita';
 import { StorageSolicitudService } from '../../../../services/storage-solicitud.service';
 import { controlados } from '../../../../models/controlados';
-import { CPMS } from '../../../../models/CPMS';
 import { TrazabilidadModalComponent } from '../../../../shared/trazabilidad-modal/trazabilidad-modal.component';
 import { TrazabilidadService } from '../../../../services/trazabilidad.service';
 import { FactorUnidad } from '../../../../models/factor-unidad';
+import { CitasService } from '../../../../services/citas.service';
+import { AbstractTabComponent } from '../../../../shared/abstract-tab.component';
+import { ActivatedRoute } from '@angular/router';
+import { CpmService } from '../../../../services/cpm.service';
+
+// TODO: por optimizar esto jalando del backend
+const ALMACENES_JURIS: Record<string, { nombre: string; cluesimb: string }> = {
+    mexicali: { nombre: 'ALMACÉN DE MEXICALI', cluesimb: 'BCIMB001405' },
+    tijuana: { nombre: 'ALMACEN TIJUANA', cluesimb: 'BCIMB001335' },
+    ensenada: { nombre: 'ALMACEN ENSENADA', cluesimb: 'BCIMB001340' },
+};
+const JURISDICCION_ALMACENES = ['mexicali', 'tijuana', 'ensenada'];
 
 /**
  * Componente para mostrar las existencias por clave.
@@ -34,14 +45,15 @@ import { FactorUnidad } from '../../../../models/factor-unidad';
     templateUrl: './existencias-x-clave.component.html',
     imports: [CommonModule, FormsModule, LucideAngularModule, TrazabilidadModalComponent],
 })
-export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy {
+export class ExistenciasXClaveComponent extends AbstractTabComponent implements OnInit, OnDestroy {
+    mostradoPorPrimeraVez = false;
     private onDestroy$ = new Subject<void>();
     // arriba en la clase
     mostrarNotaFactor = false;
 
-    @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
-    @Input() cpms: CPMS[] = [];
-    @Input() citas: Cita[] = [];
+    @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();    
+    citasService = inject(CitasService);
+    citas: Cita[] = []
 
     pillIcon = LucidePill;
     triangleAlert = TriangleAlertIcon;
@@ -49,7 +61,6 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     circleAlert = CircleAlertIcon;
     truck = TruckIcon;
     circleCheck = CircleCheckIcon
-    //citasFull: Cita[] = [];
     citasHalladasPorClave: Cita[] = [];
     /**
      * Cita para la descripcion de la clave
@@ -78,6 +89,7 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     articulosService = inject(ArticulosService);
     inventarioService = inject(InventarioService);
     storageService = inject(StorageSolicitudService);
+    private cpmService = inject(CpmService);
 
     // para cuando se abra este componente como si fuera modal dialog
     @Input() clavePreseleccionada: string | null = null;
@@ -92,97 +104,31 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
 
     // al principio del componente
     // factorConv = { en_dispensacion: false, cantidad_fc: 1 };
-    private factorMap = new Map<string, FactorUnidad>(); // key = `${clave}|${cluesimb}`
+    factorMap = new Map<string, FactorUnidad>(); // key = `${clave}|${cluesimb}`
 
     // Variable para loading mientras se busca toda la info sobre la clave
     loadingClave = signal(false);
 
-    // helper
-    /*private aplicarFactorBase(cantidad: number): number {
-        if (!this.factorConv.en_dispensacion || this.factorConv.cantidad_fc <= 1) return cantidad;
-        return Math.round(cantidad / this.factorConv.cantidad_fc); // base
-    }*/
-
-    constructor() {
+    constructor(activatedRoute: ActivatedRoute) {
+        super();
+        if (activatedRoute.snapshot.url[0].path === 'xclave') {
+            // contenido de existencias.component... pero como aqui no es subtab, se reusa.
+            this.inventarioService.existencias$.forEach((value, key) => {
+                value.pipe(takeUntil(this.onDestroy$)).subscribe({
+                    next: (data: Inventario[]) => {
+                        // console.log('Cargando existencias de unidad', key);
+                        this.existenciaUnidades.set(key, data as Inventario[]);
+                    }
+                });
+            });
+            this.isActive = true;
+        }
     }
-
-    ngOnChanges(changes: SimpleChanges): void {
-
-    }
-
 
     ngOnInit(): void {
         // console.log('ExistenciasXClaveComponent ngOnInit');
-        try {
-            if (this.clavePreseleccionada) {
-                this.articulosService.buscarArticulos(this.clavePreseleccionada).subscribe({
-                    next: (data) => {
-                        const item = data.resultados.find(a => a.clave === this.clavePreseleccionada);
-                        if (item) {
-                            this.selectClave(item, true);
-                        }
-                    },
-                    error: (err) => {
-                        console.warn('⚠️ Error buscando clave en modal:', err);
-                    }
-                });
-            } else {
-                const articulo = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE);
-                // console.log('ExistenciasXClaveComponent - cargando info desde localstorage', articulo);
-                if (articulo && articulo.includes('{')) {
-                    // console.log('ExistenciasXClaveComponent - cargando más info desde localstorage...');
-                    this.claveConfirmada = true;
-                    const item = JSON.parse(articulo) as Articulo;
-                    this.claveBusqueda = item.clave;
-                    // this.buscarFactor();
-                    this.claveFiltrada = item.clave;
-                    this.descripcion = item.descripcion;
-                    this.unidad = item.presentacion ?? '';
-                    const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
-                    this.clasificacion = clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
-                    // obtener de DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE
-                    const citasls = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE);
-                    if (citasls) {
-                        this.citasHalladasPorClave = JSON.parse(citasls) as Cita[];
-                    }
-                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES
-                    const exc = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES);
-                    if (exc) {
-                        this.existenciaAlmacenes = JSON.parse(exc) as InventarioDisponibles;
-                    }
-
-                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS
-                    const exc2 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS);
-                    if (exc2) {
-                        this.datosAgrupados = JSON.parse(exc2) as AlmacenClaveResumen[];
-                    }
-
-                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE
-                    const exc3 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE);
-                    if (exc3 && exc3.includes('{')) {
-                        this.citaParaDescripcionDeClave = JSON.parse(exc3) as Cita;
-                    }
-                }
-
-                this.searchSubject.pipe(debounceTime(400), takeUntil(this.onDestroy$))
-                    .subscribe(texto => {
-                        if (texto.length > 2) {
-                            this.buscarArticulosConFallback(texto);
-                        } else {
-                            this.autocompleteResults = [];
-                            this.selectedIndex = -1;
-                            this.moreResults = false;
-                            this.totalResults = 0;
-                        }
-                    });
-            }
-
-            if (this.inventario.length === 0) {
-                this.inventario = this.storageService.getInventarioFromLocalStorage();
-                // console.log('ExistenciasXClaveComponent - this.inventario len', this.inventario.length);
-            }
-        } catch (error) {
-            console.error(error);
+        if (this.isActive && !this.mostradoPorPrimeraVez) {
+            this.onTabActivated();
         }
     }
 
@@ -258,27 +204,11 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         }
     }
 
-    /*async buscarFactor() {
-        // 🔹 cargar factor de conversión después de fijar la clave
-        try {
-            const resp = await firstValueFrom(this.trazabilidadService.getFactorConversion(this.claveBusqueda));
-            if (resp) {
-                this.factorConv = resp;
-            } else {
-                this.factorConv = { en_dispensacion: false, cantidad_fc: 1 };
-            }
-            this.cdRef.detectChanges();
-        } catch {
-            this.factorConv = { en_dispensacion: false, cantidad_fc: 1 };
-        }
-    }*/
     private async getFactor(clave: string, cluesimb: string): Promise<FactorUnidad> {
         const key = `${clave}|${cluesimb}`;
         const cached = this.factorMap.get(key);
         if (cached) return cached;
 
-        // Si tu servicio regresa Observable, descomenta firstValueFrom:
-        // const resp = await firstValueFrom(this.trazabilidadService.getFactorConversionPorUnidad(clave, cluesimb));
         const resp = await this.trazabilidadService.getFactorConversionPorUnidad(clave, cluesimb);
 
         const factor: FactorUnidad = {
@@ -303,7 +233,6 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         this.datosAgrupados = [];
         this.citasHalladasPorClave = [];
         this.mostrarNotaFactor = false;
-        // this.factorConv = { en_dispensacion: false, cantidad_fc: 1 };
         localStorage.removeItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE);
     }
 
@@ -340,36 +269,76 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
     }
 
     async filtrarClave(skipLocalStorage = false) {
-        if (this.cpms.length === 0) {
+        /*if (this.cpms.length === 0) {
             this.cpms = [...this.storageService.getCPMSFromLocalStorage()];
-        }
+        }*/
 
         const clave = this.claveBusqueda.trim().toUpperCase();
         this.claveFiltrada = clave;
         this.datosAgrupados = [];
         this.mostrarNotaFactor = false;
         if (!clave) return;
-        // TODO: por optimizar esto jalando del backend
-        const ALMACENES_JURIS: Record<string, { nombre: string; cluesimb: string }> = {
-            mexicali: { nombre: 'ALMACÉN DE MEXICALI', cluesimb: 'BCIMB001405' },
-            tijuana: { nombre: 'ALMACEN TIJUANA', cluesimb: 'BCIMB001335' },
-            ensenada: { nombre: 'ALMACEN ENSENADA', cluesimb: 'BCIMB001340' },
-        };
-        const jurisdiccionAlmacenes = ['mexicali', 'tijuana', 'ensenada'];
-
         const agrupadoPorAlmacen = new Map<string, UnidadClaveResumen[]>();
+        const hospitalesPorJurisdiccion = new Map<string, typeof hospitalesData>();
+        const cluesMap = new Map<string, string>();
 
-        for (const municipio of jurisdiccionAlmacenes) {
-            const hospitalesDeJurisdiccion = hospitalesData
-                .filter(h => h.jurisdiccion.toLocaleLowerCase() === municipio);
+        for (const hospital of hospitalesData) {
+            const jurisdiccion = hospital.jurisdiccion.toLocaleLowerCase();
+            if (!hospitalesPorJurisdiccion.has(jurisdiccion)) {
+                hospitalesPorJurisdiccion.set(jurisdiccion, []);
+            }
+            hospitalesPorJurisdiccion.get(jurisdiccion)!.push(hospital);
+            cluesMap.set(hospital.key, hospital.cluesimb);
+        }
+        const cluesList = [
+            cluesMap.get('HGTKT'),  // Tecate
+            cluesMap.get('HMITIJ'),
+            cluesMap.get('HGTZE'),
+            cluesMap.get('HGTIJ'),
+            cluesMap.get('HGPR'),
+            cluesMap.get('HGMXL'),
+            cluesMap.get('HMIMXL'),
+            cluesMap.get('UOMXL'),
+            cluesMap.get('HGSF'),
+            cluesMap.get('HGENS'),
+        ].filter((x): x is string => !!x);
+
+        const cpmsPorUnidad = new Map<string, number>();
+        // asegurar que el cache por unidad esté cargado (in-flight + shareReplay ya lo hace eficiente)
+        // y llenar cpmsPorUnidad
+        await Promise.all(
+            cluesList.map(async cluesimb => {
+                const cpms = await firstValueFrom(this.cpmService.cpmsFor(cluesimb))
+                for (const cpm of cpms) {
+                    if (cpm.clave_cnis === clave) {
+                        cpmsPorUnidad.set(cpm.cluesimb, cpm.cpm ?? 0);
+                    }
+                }
+                return ;
+            })
+        );
+
+        const sumExistenciaPorClave = (items?: Inventario[]) => {
+            if (!items) return 0;
+            let total = 0;
+            for (const item of items) {
+                if (item.clave === clave) {
+                    total += (item.disponible - item.comprometidos);
+                }
+            }
+            return total;
+        };
+        const factorTasks: Promise<void>[] = [];
+
+        for (const municipio of JURISDICCION_ALMACENES) {
+            const hospitalesDeJurisdiccion = hospitalesPorJurisdiccion.get(municipio) ?? [];
+            const unidadesResumen: UnidadClaveResumen[] = [];
+            agrupadoPorAlmacen.set(municipio, unidadesResumen);
 
             for (const hospital of hospitalesDeJurisdiccion) {
                 const hospitalClues = hospital.cluesimb;
 
-                // existencia DISP cruda de la unidad
-                const existenciasInsumo = this.existenciaUnidades
-                    .get(hospital.key)
-                    ?.filter(i => i.clave === clave);
+                const existenciaDisp = sumExistenciaPorClave(this.existenciaUnidades.get(hospital.key));
 
                 const unidadResumen: UnidadClaveResumen = {
                     unidad: hospital?.nombre ?? hospitalClues,
@@ -378,39 +347,41 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
                     clave: { cpm: 0, existencia: 0, reposicion: 0 },
                 } as any;
 
-                // CPM
-                const cpmEntry = this.cpms.find(c => c.clave === clave && c.cluesimb === hospitalClues);
-                const cpm = cpmEntry?.cantidad ?? 0;
+                const cpm = cpmsPorUnidad.get(hospitalClues) ?? 0;
                 unidadResumen.clave.cpm = cpm;
+                unidadResumen.clave.existencia = existenciaDisp;
 
-                if (existenciasInsumo) {
-                    for (const i of existenciasInsumo) {
-                        unidadResumen.clave.existencia += (i.disponible - i.comprometidos);
-                    }
+                const factorTask = this.getFactor(clave, hospitalClues).then((factor) => {
+                    const enDisp = !!factor.en_dispensacion;
+                    const fc = factor.cantidad_fc;
+
+                    const existenciaBase = enDisp && fc > 1
+                        ? Math.floor(existenciaDisp / fc)
+                        : existenciaDisp;
+
+                    unidadResumen.clave.existencia = existenciaBase;
+                    unidadResumen.clave.reposicion = cpm > existenciaBase ? (cpm - existenciaBase) : 0;
+                    (unidadResumen as any)._existenciaDisp = existenciaDisp;
+                });
+                factorTasks.push(factorTask);
+
+                unidadesResumen.push(unidadResumen);
+            }
+            // calcular existencia de almacen
+            const imssb = ALMACENES_JURIS[municipio]?.cluesimb;
+            if (imssb) {
+                const existenciaDisp = sumExistenciaPorClave(this.existenciaUnidades.get(imssb));
+                if (municipio.toLocaleLowerCase().includes('mexicali') && this.existenciaAlmacenes) {
+                    this.existenciaAlmacenes.existenciasAZM = existenciaDisp;
+                } else if (municipio.toLocaleLowerCase().includes('ensenada') && this.existenciaAlmacenes) {
+                    this.existenciaAlmacenes.existenciasAZE = existenciaDisp;
+                } else if (municipio.toLocaleLowerCase().includes('tijuana') && this.existenciaAlmacenes) {
+                    this.existenciaAlmacenes.existenciasAZT = existenciaDisp;
                 }
-                const existenciaDisp = unidadResumen.clave.existencia;
-
-                // FC por unidad (CLUES)
-                const factor = await this.getFactor(clave, hospitalClues);
-                const enDisp = !!factor.en_dispensacion;
-                const fc = factor.cantidad_fc;
-
-                const existenciaBase = enDisp && fc > 1
-                    ? Math.round(existenciaDisp / fc)
-                    : existenciaDisp;
-
-                unidadResumen.clave.existencia = existenciaBase;
-                unidadResumen.clave.reposicion = cpm > existenciaBase ? (cpm - existenciaBase) : 0;
-
-                // guarda DISP cruda para tooltip
-                (unidadResumen as any)._existenciaDisp = existenciaDisp;
-
-                if (!agrupadoPorAlmacen.has(municipio)) {
-                    agrupadoPorAlmacen.set(municipio, []);
-                }
-                agrupadoPorAlmacen.get(municipio)!.push(unidadResumen);
             }
         }
+
+        await Promise.all(factorTasks);
 
         // Construir estructura final
         this.datosAgrupados = Array.from(agrupadoPorAlmacen.entries()).map(([municipio, unidades]) => {
@@ -419,17 +390,17 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         });
 
         // Nota “¿Qué estoy viendo?”
-        this.mostrarNotaFactor = Array.from(this.factorMap.entries())
-            .some(([key, f]) =>
-                key.startsWith(`${this.claveFiltrada}|`) &&
-                f.en_dispensacion === 1 &&
-                (f.cantidad_fc ?? 1) > 1
-            );
+        this.mostrarQueEstoyViendo();
 
         if (!skipLocalStorage) {
             localStorage.setItem(
                 StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS,
                 JSON.stringify(this.datosAgrupados)
+            );
+            // meter this.factorMap en DASH_ABASTO_EXISTENCIAS_EXC_FACTOR_MAP
+            localStorage.setItem(
+                StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_FACTOR_MAP,
+                JSON.stringify([...this.factorMap])
             );
         }
 
@@ -437,39 +408,90 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         this.buscarExistenciasDeClave(skipLocalStorage);
     }
 
+    private mostrarQueEstoyViendo() {
+        this.mostrarNotaFactor = Array.from(this.factorMap.entries())
+            .some(([key, f]) => key.startsWith(`${this.claveFiltrada}|`) &&
+                f.en_dispensacion === 1 &&
+                (f.cantidad_fc ?? 1) > 1
+            );
+    }
+
     /**
      * Busca las citas de un insumo en la variable que contiene todas las citas
      */
-    buscarExistenciasDeClave(skipLocalStorage = false) {
+    /**
+   * Busca las citas de un insumo en backend (30d recientes) y pendientes.
+   */
+    async buscarExistenciasDeClave(skipLocalStorage = false) {
         const hoy = new Date();
-        const hace30dias = new Date(hoy);
-        hace30dias.setDate(hoy.getDate() - 30);
+        // const hace90dias = new Date(hoy); hace90dias.setDate(hoy.getDate() - 90);
 
-        this.citaParaDescripcionDeClave = this.citas.find(c => c.clave_cnis === this.claveFiltrada)!;
+        // si quieres pasar el rango de “Recepción lista” tal cual desde el periodo activo, puedes
+        // usar el PeriodoPicker del tab Resumen; aquí, por simplicidad, no forzamos esos dates.
+        try {
+            const resp = await firstValueFrom(
+                this.citasService.getCitasPorClaveXClave({
+                    clave: this.claveFiltrada,
+                    // desde: this.toISO(this.fechaInicio)  // si decides pasar fechas del picker
+                    // hasta: this.toISO(this.fechaFin),
+                    windowDays: 365,
+                    incluyeNoRecibidas: true,
+                    limit: 10 // ultimos 10
+                })
+            );
 
-        this.citasHalladasPorClave = this.citas.filter(c => {
-            const esClave = c.clave_cnis === this.claveFiltrada;
+            const rows = resp?.rows ?? [];
+            this.citasHalladasPorClave = rows as Cita[];
+            this.citasHalladasPorClave.forEach(cita => {
+                if (!cita.fecha_recepcion_almacen) {
+                    cita.fecha_recepcion_almacen = this.obtenerFechaRecepcion(cita);
+                }
+            });
+            this.citaParaDescripcionDeClave = (resp?.ref ?? rows[0] ?? null) as Cita | null;
 
-            const fechaLimite = c.fecha_limite_de_entrega
-                ? new Date(c.fecha_limite_de_entrega)
-                : null;
+        } catch (err) {
+            console.warn('⚠️ Backend /xclave no disponible, usando filtro local', err);
+            // ⬇️  fallback local: tu lógica original
+            /*
+            this.citaParaDescripcionDeClave = this.citas.find(c => c.clave_cnis === this.claveFiltrada)!;
+            this.citasHalladasPorClave = this.citas.filter(c => {
+                const esClave = c.clave_cnis === this.claveFiltrada;
 
-            const fechaValida = fechaLimite &&
-                (fechaLimite >= hoy || fechaLimite >= hace30dias);
+                const fechaLimite = c.fecha_limite_de_entrega
+                    ? new Date(c.fecha_limite_de_entrega)
+                    : null;
 
-            // si se recibio recientemente o si fecha_recepcion_almacen es null
-            const recibidoRecientementeONoSeHaRecibido = c.fecha_recepcion_almacen
-                ? new Date(c.fecha_recepcion_almacen) >= hace30dias
-                : true;
+                const fechaValida = !!fechaLimite && (fechaLimite >= hoy || fechaLimite >= hace90dias);
 
-            return esClave && fechaValida && recibidoRecientementeONoSeHaRecibido;
-        });
+                const recibidoRecientementeONoSeHaRecibido = c.fecha_recepcion_almacen
+                    ? new Date(c.fecha_recepcion_almacen) >= hace90dias
+                    : true;
+
+                return esClave && fechaValida && recibidoRecientementeONoSeHaRecibido;
+            });
+            */
+        }
 
         if (!skipLocalStorage) {
             localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE, JSON.stringify(this.citasHalladasPorClave));
-            localStorage.setItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE, JSON.stringify(this.citaParaDescripcionDeClave));
+            if (this.citaParaDescripcionDeClave) {
+                localStorage.setItem(
+                    StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE,
+                    JSON.stringify(this.citaParaDescripcionDeClave)
+                );
+            }
         }
         this.cdRef.detectChanges();
+    }
+
+    obtenerFechaRecepcion(cita: Cita): string | null {
+        if (!cita.fecha_recepcion_almacen) {
+            if (cita.fecha_recepcion_lista && cita.fecha_recepcion_lista.length > 0) {
+                // obtener la primer fecha
+                return cita.fecha_recepcion_lista[0];
+            }
+        }
+        return cita.fecha_recepcion_almacen;
     }
 
     totalExistenciaEnAlmacen(almacen: string): number {
@@ -574,5 +596,106 @@ export class ExistenciasXClaveComponent implements OnInit, OnChanges, OnDestroy 
         }
 
         return '—';
+    }
+
+    cargaOnTabActivated(): void {
+        try {
+            if (this.clavePreseleccionada) {
+                console.log('ExistenciasXClaveComponent - sin clave preseleccionada.');
+                this.articulosService.buscarArticulos(this.clavePreseleccionada).subscribe({
+                    next: (data) => {
+                        const item = data.resultados.find(a => a.clave === this.clavePreseleccionada);
+                        if (item) {
+                            this.selectClave(item, true);
+                        }
+                    },
+                    error: (err) => {
+                        console.warn('⚠️ Error buscando clave en modal:', err);
+                    }
+                });
+            } else {
+                const articulo = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_FILTRO_CLAVE);
+                // console.log('ExistenciasXClaveComponent - intentando carga de info desde localstorage', articulo);
+                if (articulo && articulo.includes('{')) {
+                    // console.log('ExistenciasXClaveComponent - cargando más info desde localstorage...');
+                    this.claveConfirmada = true;
+                    const item = JSON.parse(articulo) as Articulo;
+                    this.claveBusqueda = item.clave;
+                    // this.buscarFactor();
+                    this.claveFiltrada = item.clave;
+                    this.descripcion = item.descripcion;
+                    this.unidad = item.presentacion ?? '';
+                    const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
+                    this.clasificacion = clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
+                    // obtener de DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE
+                    const citasls = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE);
+                    if (citasls) {
+                        this.citasHalladasPorClave = JSON.parse(citasls) as Cita[];
+                    }
+                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES
+                    const exc = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES);
+                    if (exc) {
+                        this.existenciaAlmacenes = JSON.parse(exc) as InventarioDisponibles;
+                    }
+
+                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS
+                    const exc2 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS);
+                    if (exc2) {
+                        this.datosAgrupados = JSON.parse(exc2) as AlmacenClaveResumen[];
+                    }
+
+                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE
+                    const exc3 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE);
+                    if (exc3 && exc3.includes('{')) {
+                        this.citaParaDescripcionDeClave = JSON.parse(exc3) as Cita;
+                    }
+
+                    // obtener de DASH_ABASTO_EXISTENCIAS_EXC_FACTOR_MAP para this.factorMap
+                    const exc4 = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXC_FACTOR_MAP);
+                    if (exc4) {
+                        const mapEntries: [string, FactorUnidad][] = JSON.parse(exc4);
+                        this.factorMap = new Map(mapEntries);
+                        this.mostrarQueEstoyViendo();
+                    }
+                }
+
+                this.searchSubject.pipe(debounceTime(400), takeUntil(this.onDestroy$))
+                    .subscribe(texto => {
+                        if (texto.length > 2) {
+                            this.buscarArticulosConFallback(texto);
+                        } else {
+                            this.autocompleteResults = [];
+                            this.selectedIndex = -1;
+                            this.moreResults = false;
+                            this.totalResults = 0;
+                        }
+                    });
+            }
+
+            this.inventarioService.inventario$
+                .pipe(takeUntil(this.onDestroy$))
+                .subscribe({
+                    next: (data) => {
+                        if (!data || data.length === 0) return;
+                        this.inventario = [...data];
+                        this.cdRef.detectChanges();
+                    },
+                    error: (error) => {
+                        console.error('Error al obtener el inventario:', error);
+                    }
+                });
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    protected override onTabActivated(): void {
+        if (!this.mostradoPorPrimeraVez) {
+            this.cargaOnTabActivated();
+            this.mostradoPorPrimeraVez = true;
+        }
+    }
+    protected override onTabDeactivated(): void {
+        // no es necesario hacer algo
     }
 }

@@ -1,105 +1,67 @@
 <!-- src/app/features/dashboard-abasto/dashboard-abasto.component.html -->
-<!-- Loading overlay -->
-<div *ngIf="isLoading()" id="loader"
-  class="z-50 fixed inset-0 flex items-center justify-center bg-white bg-opacity-80 dark:bg-gray-800">
-  <div class="flex flex-col items-center space-y-4">
-    <!-- Spinner -->
-    <div class="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-    <!-- Texto -->
-    <p class="text-lg font-semibold text-gray-700 dark:text-gray-200">Cargando citas, CPMs y existencias...</p>
-  </div>
-</div>
 <div class="mx-auto px-4 w-full max-w-[1450px]">
-
-  <div class="p-6" [class.opacity-50]="isLoading()">
+  <div class="p-6">
     <!-- Header con botón de refrescar -->
     <div class="flex justify-between items-center mb-4 dark:bg-black">
       <h1 class="text-2xl font-bold">Dashboard Abasto (Ordenes de Suministro)</h1>
       <div class="flex items-center ml-auto">
-        <button (click)="themeService.toggleTheme()" [disabled]="isLoading()"
-          class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] rounded disabled:opacity-50 boton-modo">
+        <button (click)="themeService.toggleTheme()"
+          class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] cursor-pointer rounded disabled:opacity-50 boton-modo">
           {{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}
         </button>
-        <button (click)="onRefresh()" [disabled]="isLoading()"
-          class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] rounded disabled:opacity-50 boton-refrescar">
+        <button (click)="onRefresh()"
+          class="px-3 py-1 ml-4 mr-4 text-white bg-[#006341] cursor-pointer rounded disabled:opacity-50 boton-refrescar">
           🔄 Refrescar datos
         </button>
         <!-- Logo -->
         <img [src]="themeService.isDarkMode() ? 'imssb-logo-blanco.png' : 'imssb-logo.svg'" alt="IMSS Bienestar"
           class="ml-auto h-10 md:h-12" />
-      </div>
-    </div>
-
-
-    <div class="mb-6 border-b border-gray-200">
-      <nav class="flex -mb-px space-x-6" aria-label="Tabs">
-        <button *ngFor="let tab of tabs" (click)="seleccionarTab(tab)" [class]="
-          'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ' +
-          (activeTab === tab
-            ? 'border-green-800 text-green-800 active-tab'
-            : 'border-transparent text-gray-500 hover:text-gray-700  hover:border-gray-300 inactive-tab')
-        ">
-          {{ tab }}
-        </button>
-      </nav>
-    </div>
-    <div *ngIf="!isLoading()">
-      <div [hidden]="activeTab !== 'Resumen'">
-        <app-resumen [citas]="citas"></app-resumen>
-      </div>
-      <div [hidden]="activeTab !== 'Existencias (CPM)'">
-        <app-existencias [citas]="citas"></app-existencias>
-      </div>
-      <div [hidden]="activeTab !== 'Citas Completadas'">
-        <app-proveedores [citas]="citas"></app-proveedores>
-      </div>
-      <div [hidden]="activeTab !== 'Citas pendientes'">
-        <app-citas-pendientes [citas]="citas"></app-citas-pendientes>
-      </div>
-      <div [hidden]="activeTab !== 'Cumplimiento Claves'">
-        <app-inventario-critico [citas]="citas"></app-inventario-critico>
-      </div>
-      <div [hidden]="activeTab !== 'Entregas pendientes'">
-        <app-resumen-citas [citas]="citas"></app-resumen-citas>
-      </div>
-      <div [hidden]="activeTab !== 'Existencias (beta)'">
-        <app-inventario-tab></app-inventario-tab>
-      </div>
-      <div [hidden]="activeTab !== 'RdlS'">
-        <app-rdls></app-rdls>
-      </div>
-      <div [hidden]="activeTab !== 'Acerca de'" class="p-6">
-        @let anio = anioActual();
-        <div class="mx-auto max-w-2xl text-center">
-          <h2 class="mb-2 text-3xl font-bold text-green-800">📊 Dashboard Abasto</h2>
-          <p class="mb-6 text-gray-500 text-base">Versión {{ anio }}</p>
-
-          <div class="p-6 text-left bg-green-50 border-green-200 rounded-lg shadow-sm border">
-            <h3 class="mb-5 text-xl font-semibold text-green-700 text-center">Créditos</h3>
-            <div class="space-y-4">
-              <div>
-                <p class="font-semibold text-gray-800">Coordinador Institucional del Proyecto</p>
-                <p class="text-gray-600">Lic. Héctor Manuel Avelar Morales</p>
-              </div>
-              <div>
-                <p class="font-semibold text-gray-800">Referente Técnico-Operativo <span
-                    class="text-sm text-gray-500">(Lineamientos de Abasto)</span></p>
-                <p class="text-gray-600">Lic. Elia Del Carmen Rojas Villalas / Lic. Abril Núñez Madrid</p>
-              </div>
-              <div>
-                <p class="font-semibold text-gray-800">Diseño y Desarrollo Tecnológico</p>
-                <p class="text-gray-600">Ing. Mario Arturo Serrano Flores / Ing. Marciano Aguirre Esquer</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-6 text-sm text-gray-500">
-            &copy; {{ anio }} IMSS Bienestar - Baja California
-          </div>
         </div>
       </div>
 
 
+      <div class="mb-6 border-b border-gray-200">
+        <nav class="flex -mb-px space-x-6" aria-label="Tabs">
+          @for (tab of tabs; track tab) {
+<button (click)="seleccionarTab(tab)" [class]="
+          'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm cursor-pointer ' +
+          (activeTab === tab
+            ? 'border-green-800 text-green-800 active-tab'
+            : 'border-transparent text-gray-500 hover:text-gray-700  hover:border-gray-300 inactive-tab')
+        ">
+              {{ tab }}
+            </button>
+          }
+        </nav>
+      </div>
+      <div>
+        <div [hidden]="activeTab !== 'Resumen'" class="cursor-pointer">
+          <app-resumen></app-resumen>
+        </div>
+        <div [hidden]="activeTab !== 'Análisis de Abasto'" class="cursor-pointer">
+          <app-existencias [isActive]="activeTab === 'Análisis de Abasto'"></app-existencias>
+        </div>
+        <div [hidden]="activeTab !== 'Citas Completadas'" class="cursor-pointer">
+          <app-proveedores [isActive]="activeTab === 'Citas Completadas'"></app-proveedores>
+        </div>
+        <div [hidden]="activeTab !== 'Citas pendientes'" class="cursor-pointer">
+          <app-citas-pendientes [isActive]="activeTab === 'Citas pendientes'"></app-citas-pendientes>
+        </div>
+        <!-- <div [hidden]="activeTab !== 'Cumplimiento Claves'" class="cursor-pointer">
+        <app-inventario-critico></app-inventario-critico>
+      </div> -->
+      <div [hidden]="activeTab !== 'Resumen Citas'" class="cursor-pointer">
+        <app-resumen-citas [isActive]="activeTab === 'Resumen Citas'"></app-resumen-citas>
+      </div>
+      <div [hidden]="activeTab !== 'Existencias (beta)'" class="cursor-pointer">
+        <app-inventario-tab [isActive]="activeTab === 'Existencias (beta)'"></app-inventario-tab>
+      </div>
+      <div [hidden]="activeTab !== 'RdlS'" class="cursor-pointer">
+        <app-rdls [isActive]="activeTab === 'RdlS'"></app-rdls>
+      </div>
+      <div [hidden]="activeTab !== 'Acerca de'" class="p-6 cursor-pointer">
+        <app-acerca></app-acerca>
+      </div>
     </div>
   </div>
 </div>

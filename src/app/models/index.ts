@@ -1,6 +1,6 @@
 // crear archivo indice para todas las exportaciones de models
 
-export * from './articulo-solicitud';
+    export * from './articulo-solicitud';
 export * from './proveedor';
 export * from './PaginacionCitas';
 export * from './movimiento-trazabilidad';
@@ -29,3 +29,8 @@ export * from './unidadesData';
 export * from './clasificador-ven';
 export * from './clasificacion-medicamento';
 export * from './clasificacionMedicamentosData';
+export * from './Kit';
+export * from './KitCreateDto';
+export * from './KitUpdateDto';
+export * from './KitRow';
+export * from './UnidadMedica';

@@ -1,39 +1,45 @@
-<div class="p-6 space-y-6">
-  <!-- Header: Título + Rango de Fechas -->
+<!-- src/app/features/dashboard-abasto/resumen/resumen.component.html -->
+<div class="space-y-6">
   <div class="flex flex-col justify-between items-center gap-4 mb-6 md:flex-row">
     <h2 class="text-2xl font-semibold tracking-tight text-green-800">
       Resumen general de recepción
     </h2>
+  </div>
+  <!-- Header: Título + Rango de Fechas -->
+  <div class="flex flex-col justify-between items-center gap-4 mb-6 md:flex-row">
     <!-- Filtros -->
     <div class="flex flex-wrap items-center gap-4">
       <!-- Anio -->
       <div class="form-group">
         <label class="block mb-1 text-sm font-medium text-gray-700">Año</label>
-        <ng-select id="RESUMEN_anio" class="w-48" [items]="aniosDisponibles" [multiple]="true" bindLabel="Año" bindValue="value"
-          [(ngModel)]="filtrosSeleccionados.anios" placeholder="Seleccione..." (change)="calcularDatos()">
+        <ng-select id="RESUMEN_anio" class="w-48" [items]="aniosDisponibles" [multiple]="true" bindLabel="Año"
+          bindValue="value" [(ngModel)]="filtrosSeleccionados.anios" placeholder="Seleccione..."
+          (change)="onFiltrosChanged()">
         </ng-select>
       </div>
       <!-- Estatus -->
       <div class="form-group">
         <label class="block mb-1 text-sm font-medium text-gray-700">Estatus</label>
         <ng-select id="RESUMEN_estatus" class="w-48 custom-ngselect" [items]="estatusDisponibles" [multiple]="true"
-          [(ngModel)]="filtrosSeleccionados.estatus" placeholder="Seleccione..." (change)="calcularDatos()">
+          [(ngModel)]="filtrosSeleccionados.estatus" placeholder="Seleccione..." (change)="onFiltrosChanged()">
         </ng-select>
       </div>
 
       <!-- Tipo de Entrega -->
       <div class="form-group">
         <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de Entrega</label>
-        <ng-select id="RESUMEN_tipoEntrega" class="w-64 custom-ngselect" [items]="tipoEntregaDisponibles" [multiple]="true"
-          [(ngModel)]="filtrosSeleccionados.tipoEntrega" placeholder="Seleccione..." (change)="calcularDatos()">
+        <ng-select id="RESUMEN_tipoEntrega" class="w-64 custom-ngselect" [items]="tipoEntregaDisponibles"
+          [multiple]="true" [(ngModel)]="filtrosSeleccionados.tipoEntrega" placeholder="Seleccione..."
+          (change)="onFiltrosChanged()">
         </ng-select>
       </div>
 
       <!-- Tipo de compra -->
       <div class="form-group">
         <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de compra</label>
-        <ng-select id="RESUMEN_tipoCompra" class="w-64 custom-ngselect" [items]="tiposCompraDisponibles" [multiple]="true"
-          [(ngModel)]="filtrosSeleccionados.tipoCompra" placeholder="Seleccione..." (change)="calcularDatos()">
+        <ng-select id="RESUMEN_tipoCompra" class="w-64 custom-ngselect" [items]="tiposCompraDisponibles"
+          [multiple]="true" [(ngModel)]="filtrosSeleccionados.tipoCompra" placeholder="Seleccione..."
+          (change)="onFiltrosChanged()">
         </ng-select>
       </div>
     </div>
@@ -44,52 +50,30 @@
 
   <!-- Filtros + KPIs -->
   <div class="flex flex-col flex-wrap items-center gap-4 mb-6 lg:flex-row">
-    <!-- KPIs -->
-
-    <div class="p-4 w-48 bg-white rounded-lg shadow-sm border kpi-card">
-      <div class="text-sm text-gray-500 kpi-card-text">Total piezas recibidas</div>
-      <div class="text-2xl font-bold text-green-700 kpi-card-total-piezas">{{ totalPiezas | number }}</div>
-    </div>
-
-    <div class="p-4 w-48 bg-white rounded-lg shadow-sm border kpi-card">
-      <div class="text-sm text-gray-500 kpi-card-text">Órdenes distintas</div>
-      <div class="text-2xl font-bold text-yellow-600">{{ totalOrdenes | number }}</div>
-    </div>
-
-    <div class="p-4 w-48 bg-white rounded-lg shadow-sm border kpi-card">
-      <div class="text-sm text-gray-500 kpi-card-text">Receptores</div>
-      <div class="text-2xl font-bold text-blue-600">{{ totalHospitales | number }}</div>
-    </div>
-
-    <!-- Órdenes completas / incompletas -->
-    <div class="p-4 w-60 bg-white rounded-lg shadow-sm border kpi-card">
-      <div class="text-sm text-gray-500 kpi-card-text">Completas / incompletas</div>
-      <div class="text-xl font-semibold" title="Órdenes completas / incompletas">
-        {{ totalOrdenesCompletas }} / <span class="text-red-600">{{ totalOrdenesIncompletas }}</span>
+    <!-- 🔹 KPIs DEL SERVER -->
+    @if (kpisServer; as K) {
+      <div class="flex flex-wrap items-center gap-4 mb-4">
+        <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
+          <div class="text-sm text-gray-500">Piezas Emitidas (server)</div>
+          <div class="text-2xl font-bold text-green-700">{{ K.emitidas | number }}</div>
+        </div>
+        <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
+          <div class="text-sm text-gray-500">Piezas Recibidas (server)</div>
+          <div class="text-2xl font-bold text-green-700">{{ K.recibidas | number }}</div>
+        </div>
+        <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
+          <div class="text-sm text-gray-500">% Cumplimiento (server)</div>
+          <div class="text-2xl font-bold">
+            {{ K.cumplimiento_pct == null ? '—' : (K.cumplimiento_pct | number:'1.0-2') + '%' }}
+          </div>
+        </div>
+        <div class="p-4 w-48 bg-white rounded-lg shadow-sm border">
+          <div class="text-sm text-gray-500">Total Órdenes (server)</div>
+          <div class="text-2xl font-bold text-yellow-700">{{ K.ordenes | number }}</div>
+        </div>
       </div>
-    </div>
-
-    <!-- % Piezas emitidas vs recibidas -->
-    <div class="p-4 bg-white rounded-lg shadow-sm border kpi-card">
-      <div class="text-sm text-gray-500 kpi-card-text">% Piezas recibidas vs emitidas</div>
-      <div class="text-xl font-semibold"
-        title="Piezas recibidas: {{ totalPiezasRecibidas }} Piezas emitidas: {{ totalPiezasEmitidas }}">
-        {{ porcentajeRecibidoVsEmitido | number: '1.0-1' }}%
-      </div>
-    </div>
-
-    <!-- Cumplimiento -->
-    <div class="p-4 bg-white rounded-lg shadow-sm border kpi-card">
-      <div class="text-sm text-gray-500 kpi-card-text">Cumplimiento de plazos</div>
-      <div class="text-xl font-semibold"
-        title="A tiempo: {{ totalEntregasEnFecha }} A destiempo: {{ totalEntregasAtrasadas }} ">
-        {{ porcentajeCumplimiento | number: '1.0-1' }}%
-      </div>
-    </div>
-
+    }
   </div>
-
-
   <!-- Gráficas -->
   <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
     <div class="p-4 bg-white rounded-lg shadow-sm border">
@@ -126,13 +110,15 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let proveedor of topProveedoresIncumplidos; let i = index">
-            <td class="py-1 renglon-info">{{ i + 1 }}</td>            
-            <td class="py-1 font-medium renglon-info">{{ proveedor.nombre }}</td>
-            <td class="py-1 renglon-info">{{ proveedor.total }}</td>
-            <td class="py-1 text-red-600">{{ proveedor.atrasos }}</td>
-            <td class="py-1 renglon-info">{{ proveedor.porcentaje | number: '1.0-1' }}%</td>
-          </tr>
+          @for (proveedor of topProveedoresIncumplidos; track proveedor; let i = $index) {
+            <tr>
+              <td class="py-1 renglon-info">{{ i + 1 }}</td>
+              <td class="py-1 font-medium renglon-info">{{ proveedor.nombre }}</td>
+              <td class="py-1 renglon-info">{{ proveedor.total }}</td>
+              <td class="py-1 text-red-600">{{ proveedor.atrasos }}</td>
+              <td class="py-1 renglon-info">{{ proveedor.porcentaje | number: '1.0-1' }}%</td>
+            </tr>
+          }
         </tbody>
       </table>
     </div>
@@ -153,14 +139,16 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let proveedor of topProveedoresCumplidos; let i = index">
-            <td class="py-1 renglon-info">{{ i + 1 }}</td>
-            <td class="py-1 font-medium renglon-info">{{ proveedor.nombre }}</td>
-            <td class="py-1 renglon-info">{{ proveedor.total }}</td>
-            <td class="py-1 text-green-600">{{ proveedor.aTiempo }}</td>
-            <td class="py-1 renglon-info">{{ proveedor.porcentaje | number: '1.0-1' }}%</td>
-            <td class="py-1 renglon-info">{{ proveedor.tiempoPromedioEntrega | number: '1.0' }} días</td>
-          </tr>
+          @for (proveedor of topProveedoresCumplidos; track proveedor; let i = $index) {
+            <tr>
+              <td class="py-1 renglon-info">{{ i + 1 }}</td>
+              <td class="py-1 font-medium renglon-info">{{ proveedor.nombre }}</td>
+              <td class="py-1 renglon-info">{{ proveedor.total }}</td>
+              <td class="py-1 text-green-600">{{ proveedor.aTiempo }}</td>
+              <td class="py-1 renglon-info">{{ proveedor.porcentaje | number: '1.0-1' }}%</td>
+              <td class="py-1 renglon-info">{{ proveedor.tiempoPromedioEntrega | number: '1.0' }} días</td>
+            </tr>
+          }
         </tbody>
       </table>
     </div>
@@ -176,11 +164,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let proveedor of topTiemposPromedioEntregaProveedor; let i = index">
-            <td class="py-1 renglon-info">{{ i + 1 }}</td>
-            <td class="py-1 font-medium renglon-info">{{ proveedor.proveedor }}</td>
-            <td class="py-1 renglon-info">{{ convertMilliseconds(proveedor.promedio).days }} días</td>
-          </tr>
+          @for (proveedor of topTiemposPromedioEntregaProveedor; track proveedor; let i = $index) {
+            <tr>
+              <td class="py-1 renglon-info">{{ i + 1 }}</td>
+              <td class="py-1 font-medium renglon-info">{{ proveedor.proveedor }}</td>
+              <td class="py-1 renglon-info">{{ convertMilliseconds(proveedor.promedio).days }} días</td>
+            </tr>
+          }
         </tbody>
       </table>
     </div>

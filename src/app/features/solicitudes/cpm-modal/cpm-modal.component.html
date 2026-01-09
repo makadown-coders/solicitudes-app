@@ -1,171 +1,189 @@
 <div class="z-[100] fixed inset-0 grid place-items-center bg-black/50">
-    <div class="relative p-4 w-[min(96vw,1100px)] bg-white rounded-2xl border-gray-200 shadow-xl border sm:p-6">
-        <!-- Busy bar -->
-        <div *ngIf="busy()" class="progress indeterminate">
-            <div class="bar"></div>
-        </div>
+  <div class="relative p-4 w-[min(96vw,1100px)] bg-white rounded-2xl border-gray-200 shadow-xl border sm:p-6">
+    <!-- Busy bar -->
+    @if (busy()) {
+      <div class="progress indeterminate">
+        <div class="bar"></div>
+      </div>
+    }
 
-        <!-- Header -->
-        <div class="flex items-center justify-between gap-3 mb-3">
-            <div class="flex items-center gap-2">
-                <div class="grid place-items-center h-9 w-9 text-emerald-700 bg-emerald-100 rounded-full">📊</div>
-                <div>
-                    <h3 class="text-lg font-semibold text-emerald-700">
-                        Claves con CPM {{ mostrarUnidadEnTitulo ? ('de ' + (tituloUnidad || cluesimb)) : '' }}
-                    </h3>
-                    <p class="text-xs text-gray-500">Selecciona y agrega con cobertura mensual y (opcional) existencias.
-                    </p>
+    <!-- Header -->
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <div class="flex items-center gap-2">
+        <div class="grid place-items-center h-9 w-9 text-emerald-700 bg-emerald-100 rounded-full">📊</div>
+        <div>
+          <h3 class="text-lg font-semibold text-emerald-700">
+            Claves con CPM {{ mostrarUnidadEnTitulo ? ('de ' + (tituloUnidad || cluesimb)) : '' }}
+          </h3>
+          <p class="text-xs text-gray-500">Selecciona y agrega con cobertura mensual y (opcional) existencias.
+          </p>
+        </div>
+      </div>
+      <button class="grid place-items-center h-8 w-8 text-gray-500 rounded-full hover:bg-gray-100"
+      (click)="close.emit()">×</button>
+    </div>
+
+    <!-- Loader inicial -->
+    @if (loading()) {
+      <div class="p-2 space-y-3 sm:p-3">
+        <div class="h-6 w-64 skeleton"></div>
+        <div class="flex flex-wrap gap-2">
+          <div class="h-8 w-36 skeleton"></div>
+          <div class="h-8 w-44 skeleton"></div>
+          <div class="h-8 w-44 skeleton"></div>
+        </div>
+        <div class="overflow-auto mt-2 max-h-[65vh] border rounded">
+          <table class="w-full text-sm">
+            <thead class="sticky top-0 bg-gray-50">
+              <tr>
+                <th class="px-2 py-1 border-b">Clave</th>
+                <th class="px-2 py-1 border-b">Descripción</th>
+                <th class="px-2 py-1 border-b">CPM</th>
+                <th class="px-2 py-1 border-b">Exist.</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (_ of skeletonRows; track _) {
+                <tr class="odd:bg-white even:bg-gray-50">
+                  <td class="px-2 py-2 border-b">
+                    <div class="h-4 w-28 skeleton"></div>
+                  </td>
+                  <td class="px-2 py-2 border-b">
+                    <div class="h-4 w-64 skeleton"></div>
+                  </td>
+                  <td class="px-2 py-2 border-b">
+                    <div class="h-4 w-10 skeleton"></div>
+                  </td>
+                  <td class="px-2 py-2 border-b">
+                    <div class="h-4 w-12 skeleton"></div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- Contenido -->
+    @if (!loading()) {
+      <!-- Controles -->
+      <div class="flex flex-wrap items-end gap-3 mb-3">
+        <label class="text-sm text-gray-700">
+          Cobertura (meses)
+          <input type="number" min="1" step="1" class="ml-2 px-2 py-1 w-20 border rounded"
+            [ngModel]="mesesCobertura()" (ngModelChange)="setMesesCobertura($event)" />
+          </label>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" [ngModel]="showExistUnidad()"
+              (ngModelChange)="onToggleExistUnidad($event)" />
+              Ver existencias de la unidad
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" [disabled]="eligibleVisibleCount() === 0"
+                (change)="seleccionarTodoToggle($event)" />
+                Seleccionar visibles con cantidad sugerida &gt; 0
+              </label>
+              <div class="flex items-center gap-2 ml-auto">
+                <input class="px-2 py-1 w-56 text-sm border rounded" type="text"
+                  placeholder="Buscar clave/desc/pres..." [ngModel]="filterText()"
+                  (ngModelChange)="filterText.set($event)" />
+                  <button class="px-3 py-2 bg-gray-100 rounded border hover:bg-gray-200"
+                  (click)="copyVisible()">Copiar visibles</button>
+                  <button class="px-3 py-2 bg-gray-100 rounded border hover:bg-gray-200"
+                  (click)="exportCsvVisible()">CSV visibles</button>
+                  <button class="px-3 py-2 text-white bg-emerald-600 rounded" (click)="agregarSeleccion()">Agregar
+                  Seleccion ({{ selectionCount() }})</button>
                 </div>
-            </div>
-            <button class="grid place-items-center h-8 w-8 text-gray-500 rounded-full hover:bg-gray-100"
-                (click)="close.emit()">×</button>
-        </div>
-
-        <!-- Loader inicial -->
-        <div *ngIf="loading()" class="p-2 space-y-3 sm:p-3">
-            <div class="h-6 w-64 skeleton"></div>
-            <div class="flex flex-wrap gap-2">
-                <div class="h-8 w-36 skeleton"></div>
-                <div class="h-8 w-44 skeleton"></div>
-                <div class="h-8 w-44 skeleton"></div>
-            </div>
-            <div class="overflow-auto mt-2 max-h-[65vh] border rounded">
-                <table class="w-full text-sm">
-                    <thead class="sticky top-0 bg-gray-50">
-                        <tr>
-                            <th class="px-2 py-1 border-b">Clave</th>
-                            <th class="px-2 py-1 border-b">Descripción</th>
-                            <th class="px-2 py-1 border-b">CPM</th>
-                            <th class="px-2 py-1 border-b">Exist.</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let _ of skeletonRows" class="odd:bg-white even:bg-gray-50">
-                            <td class="px-2 py-2 border-b">
-                                <div class="h-4 w-28 skeleton"></div>
-                            </td>
-                            <td class="px-2 py-2 border-b">
-                                <div class="h-4 w-64 skeleton"></div>
-                            </td>
-                            <td class="px-2 py-2 border-b">
-                                <div class="h-4 w-10 skeleton"></div>
-                            </td>
-                            <td class="px-2 py-2 border-b">
-                                <div class="h-4 w-12 skeleton"></div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Contenido -->
-        <ng-container *ngIf="!loading()">
-            <!-- Controles -->
-            <div class="flex flex-wrap items-end gap-3 mb-3">
-                <label class="text-sm text-gray-700">
-                    Cobertura (meses)
-                    <input type="number" min="1" step="1" class="ml-2 px-2 py-1 w-20 border rounded"
-                        [ngModel]="mesesCobertura()" (ngModelChange)="setMesesCobertura($event)" />
-                </label>
-
-                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                    <input type="checkbox" [ngModel]="showExistUnidad()"
-                        (ngModelChange)="onToggleExistUnidad($event)" />
-                    Ver existencias de la unidad
-                </label>
-                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                    <input type="checkbox" [disabled]="eligibleVisibleCount() === 0"
-                        (change)="seleccionarTodoToggle($event)" />
-                    Seleccionar visibles con cantidad sugerida &gt; 0
-                </label>
-
-                <div class="flex items-center gap-2 ml-auto">
-                    <input class="px-2 py-1 w-56 text-sm border rounded" type="text"
-                        placeholder="Buscar clave/desc/pres..." [ngModel]="filterText()"
-                        (ngModelChange)="filterText.set($event)" />
-
-                    <button class="px-3 py-2 bg-gray-100 rounded border hover:bg-gray-200"
-                        (click)="copyVisible()">Copiar visibles</button>
-                    <button class="px-3 py-2 bg-gray-100 rounded border hover:bg-gray-200"
-                        (click)="exportCsvVisible()">CSV visibles</button>
-
-                    <button class="px-3 py-2 text-white bg-emerald-600 rounded" (click)="agregarSeleccion()">Agregar
-                        Seleccion ({{ selectionCount() }})</button>
-                </div>
-
-            </div>
-
-            <div class="mb-2 text-xs text-gray-600">
+              </div>
+              <div class="mb-2 text-xs text-gray-600">
                 Total claves: <span class="font-medium">{{ totalClaves() }}</span>
                 · Con existencias: <span class="font-medium">{{ conExistencias() }}</span>
                 · Sin existencias: <span class="font-medium">{{ sinExistencias() }}</span>
                 · Existencias totales: <span class="font-medium">{{ fmt(existenciasTotales()) }}</span>
-            </div>
-            <!-- Tabla -->
-            <div class="overflow-auto max-h-[65vh] border rounded">
+              </div>
+              <!-- Tabla -->
+              <div class="overflow-auto max-h-[65vh] border rounded">
                 <table class="sticky-head w-full text-sm compact zebra">
-                    <thead>
-                        <tr>
-                            <th class="px-2 py-1 w-8 border-b">
-
-                                <input type="checkbox" #master [checked]="allFilteredSelected()"
-                                    [indeterminate]="someFilteredSelected()" [disabled]="eligibleVisibleCount() === 0"
-                                    (change)="toggleMasterSelection(master.checked)" />
-
-                            </th>
-                            <th class="px-2 py-1 text-left border-b">Clave / Descripción</th>
-                            <th class="px-2 py-1 text-left border-b">Exist. unidad</th>
-                            <th class="px-2 py-1 text-left border-b">CPM</th>
-                            <th *ngIf="hasAlmacenExist()" class="px-2 py-1 text-left border-b">AZM</th>
-                            <th *ngIf="hasAlmacenExist()" class="px-2 py-1 text-left border-b">AZE</th>
-                            <th *ngIf="hasAlmacenExist()" class="px-2 py-1 text-left border-b">AZT</th>
-                            <th class="px-2 py-1 text-left border-b">Cant. sugerida</th>
-                        </tr>
+                  <thead>
+                    <tr>
+                      <th class="px-2 py-1 w-8 border-b">
+                        <input type="checkbox" #master [checked]="allFilteredSelected()"
+                          [indeterminate]="someFilteredSelected()" [disabled]="eligibleVisibleCount() === 0"
+                          (change)="toggleMasterSelection(master.checked)" />
+                        </th>
+                        <th class="px-2 py-1 text-left border-b">Clave / Descripción</th>
+                        <th class="px-2 py-1 text-left border-b">Exist. unidad</th>
+                        <th class="px-2 py-1 text-left border-b">CPM</th>
+                        @if (hasAlmacenExist()) {
+                          <th class="px-2 py-1 text-left border-b">AZM</th>
+                        }
+                        @if (hasAlmacenExist()) {
+                          <th class="px-2 py-1 text-left border-b">AZE</th>
+                        }
+                        @if (hasAlmacenExist()) {
+                          <th class="px-2 py-1 text-left border-b">AZT</th>
+                        }
+                        <th class="px-2 py-1 text-left border-b">Cant. sugerida</th>
+                      </tr>
                     </thead>
                     <tbody>
-                        <ng-container *ngIf="rowsFiltered() as filteredRows">
-                            <tr *ngFor="let r of filteredRows; trackBy: trackByClave">
-                                <td class="px-2 py-1 border-b">
-                                    <input type="checkbox" [checked]="r._sel"
-                                        (change)="seleccionarUnoToggle(r.clave, $event)" />
-                                </td>
-                                <td class="px-2 py-1 border-b">
-                                    <div class="font-mono">{{ r.clave }}</div>
-                                    <div class="desc" [title]="r.descripcion || ''">{{ r.descripcion || '—' }}</div>
-                                    <div class="pres" *ngIf="r.presentacion" [title]="r.presentacion">{{ r.presentacion
-                                        }}</div>
-                                </td>
-                                <td class="px-2 py-1 border-b">{{ showExistUnidad() ? (r.exist ?? '—') : '—' }}</td>
-                                <td class="px-2 py-1 border-b">{{ r.cpm || 0 }}</td>
-                                <td *ngIf="hasAlmacenExist()" class="px-2 py-1 border-b">{{ r.azm || 0 }}</td>
-                                <td *ngIf="hasAlmacenExist()" class="px-2 py-1 border-b">{{ r.aze || 0 }}</td>
-                                <td *ngIf="hasAlmacenExist()" class="px-2 py-1 border-b">{{ r.azt || 0 }}</td>
-                                @let sugerenciado = sugerencia(r);
-                                <td class="px-2 py-1 font-semibold border-b">
-                                    <span
-                                        [class]="(sugerenciado || 0) > 0 ? 'text-amber-700 font-semibold' : 'text-gray-500'">
-                                        {{ (sugerenciado || 0) | number }}
-                                    </span>
-                                </td>
+                      @if (rowsFiltered(); as filteredRows) {
+                        @for (r of filteredRows; track trackByClave($index, r)) {
+                          <tr>
+                            <td class="px-2 py-1 border-b">
+                              <input type="checkbox" [checked]="r._sel"
+                                (change)="seleccionarUnoToggle(r.clave, $event)" />
+                              </td>
+                              <td class="px-2 py-1 border-b">
+                                <div class="font-mono">{{ r.clave }}</div>
+                                <div class="desc" [title]="r.descripcion || ''">{{ r.descripcion || '—' }}</div>
+                                @if (r.presentacion) {
+                                  <div class="pres" [title]="r.presentacion">{{ r.presentacion
+                                  }}</div>
+                                }
+                              </td>
+                              <td class="px-2 py-1 border-b">{{ showExistUnidad() ? (r.exist ?? '—') : '—' }}</td>
+                              <td class="px-2 py-1 border-b">{{ r.cpm || 0 }}</td>
+                              @if (hasAlmacenExist()) {
+                                <td class="px-2 py-1 border-b">{{ r.azm || 0 }}</td>
+                              }
+                              @if (hasAlmacenExist()) {
+                                <td class="px-2 py-1 border-b">{{ r.aze || 0 }}</td>
+                              }
+                              @if (hasAlmacenExist()) {
+                                <td class="px-2 py-1 border-b">{{ r.azt || 0 }}</td>
+                              }
+                              @let sugerenciado = sugerencia(r);
+                              <td class="px-2 py-1 font-semibold border-b">
+                                <span
+                                  [class]="(sugerenciado || 0) > 0 ? 'text-amber-700 font-semibold' : 'text-gray-500'">
+                                  {{ (sugerenciado || 0) | number }}
+                                </span>
+                              </td>
                             </tr>
-                            <tr *ngIf="filteredRows.length === 0">
-                                <td [attr.colspan]="4 + (hasUnidadExist()?1:0) + (hasAlmacenExist()?3:0)" class="empty">
-                                    Sin resultados.
-                                </td>
+                          }
+                          @if (filteredRows.length === 0) {
+                            <tr>
+                              <td [attr.colspan]="4 + (hasUnidadExist()?1:0) + (hasAlmacenExist()?3:0)" class="empty">
+                                Sin resultados.
+                              </td>
                             </tr>
-                        </ng-container>
-                    </tbody>
-                </table>
+                          }
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="mt-2 text-xs text-gray-500">
+                    ⚙️ Las existencias de los almacenes AZM/AZE/AZT mostradas son de apoyo referencial y pueden cambiar
+                    durante el día.
+                  </p>
+                  @if (showExistUnidad()) {
+                    <p class="mt-1 text-xs text-gray-500">
+                      🏥 Las existencias por <em>unidad</em> (y el reorden sugerido) se calculan con base en datos temporales
+                      cargados recientemente.
+                    </p>
+                  }
+                }
+              </div>
             </div>
-            <p class="mt-2 text-xs text-gray-500">
-                ⚙️ Las existencias de los almacenes AZM/AZE/AZT mostradas son de apoyo referencial y pueden cambiar
-                durante el día.
-            </p>
-            <p *ngIf="showExistUnidad()" class="mt-1 text-xs text-gray-500">
-                🏥 Las existencias por <em>unidad</em> (y el reorden sugerido) se calculan con base en datos temporales
-                cargados recientemente.
-            </p>
-        </ng-container>
-    </div>
-</div>

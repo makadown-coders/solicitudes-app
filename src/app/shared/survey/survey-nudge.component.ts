@@ -1,12 +1,12 @@
 // src/app/shared/survey/survey-nudge.component.ts
 import { Component, OnDestroy, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { SurveyService } from '../../services/survey.service';
 
 @Component({
   selector: 'app-survey-nudge',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './survey-nudge.component.html',
 })

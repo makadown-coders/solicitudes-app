@@ -9,32 +9,40 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let row of evaluacionesCapturadas" >
-        <td class="px-4 py-2 border">{{ row.nombre }}</td>
-        <td class="px-4 py-2 border">
-          <!-- Estatus -->
-          <select [(ngModel)]="row.estatusContratacion" (ngModelChange)="guardarEnLocalStorage()"
-            class="px-2 py-1 w-full border rounded">
-            <option *ngFor="let e of estatusOpciones" [value]="e">{{ e }}</option>
-          </select>
-        </td>
-        <td class="px-4 py-2 border">
-          <!-- Contrata -->
-          <select [(ngModel)]="row.inicialesContrata" (ngModelChange)="guardarEnLocalStorage()"
-            class="px-2 py-1 w-full border rounded" [disabled]="deshabilitarCampos(row)">
-            <option value="">--</option>
-            <option *ngFor="let c of contratantes" [value]="c">{{ c }}</option>
-          </select>
-        </td>
-        <td class="px-4 py-2 border">
-          <!-- Evaluación -->
-          <select [(ngModel)]="row.evaluacionCalidad" (ngModelChange)="guardarEnLocalStorage()"
-            class="px-2 py-1 w-full border rounded" [disabled]="deshabilitarCampos(row)">
-            <option value="">--</option>
-            <option *ngFor="let ev of evaluaciones" [value]="ev">{{ ev }}</option>
-          </select>
-        </td>
-      </tr>
+      @for (row of evaluacionesCapturadas; track row) {
+        <tr >
+          <td class="px-4 py-2 border">{{ row.nombre }}</td>
+          <td class="px-4 py-2 border">
+            <!-- Estatus -->
+            <select [(ngModel)]="row.estatusContratacion" (ngModelChange)="guardarEnLocalStorage()"
+              class="px-2 py-1 w-full border rounded">
+              @for (e of estatusOpciones; track e) {
+                <option [value]="e">{{ e }}</option>
+              }
+            </select>
+          </td>
+          <td class="px-4 py-2 border">
+            <!-- Contrata -->
+            <select [(ngModel)]="row.inicialesContrata" (ngModelChange)="guardarEnLocalStorage()"
+              class="px-2 py-1 w-full border rounded" [disabled]="deshabilitarCampos(row)">
+              <option value="">--</option>
+              @for (c of contratantes; track c) {
+                <option [value]="c">{{ c }}</option>
+              }
+            </select>
+          </td>
+          <td class="px-4 py-2 border">
+            <!-- Evaluación -->
+            <select [(ngModel)]="row.evaluacionCalidad" (ngModelChange)="guardarEnLocalStorage()"
+              class="px-2 py-1 w-full border rounded" [disabled]="deshabilitarCampos(row)">
+              <option value="">--</option>
+              @for (ev of evaluaciones; track ev) {
+                <option [value]="ev">{{ ev }}</option>
+              }
+            </select>
+          </td>
+        </tr>
+      }
     </tbody>
   </table>
 </div>

@@ -1,11 +1,18 @@
 import { ChangeDetectionStrategy, Component, HostListener, Input } from '@angular/core';
-import { NgIf, NgFor, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Cita } from '../../../models/Cita';
 
+/**
+ * @deprecated
+ * Este componente quedó en desuso a partir de NOV-2025.
+ * Fue reemplazado conceptualmente por otros tabs del dashboard.
+ * Si necesitas revivirlo, consulta el diseño original con el equipo de Abasto además que 
+ * tiene pendiente adaptarlo a la nueva arquitectura.
+ */
 @Component({
   selector: 'app-citas-por-insumo-modal',
   standalone: true,
-  imports: [NgIf, NgFor, DatePipe],
+  imports: [DatePipe],
   templateUrl: './citas-por-insumo-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

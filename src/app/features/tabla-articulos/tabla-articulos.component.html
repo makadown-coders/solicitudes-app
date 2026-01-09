@@ -2,133 +2,137 @@
 <h2 class="font-bold text-green-800">Artículos capturados</h2>
 
 <table class="mt-2 w-full text-sm">
-    <thead class="text-white bg-green-600">
-        <tr>
-            <th class="p-2">#</th>
-            <th class="p-2">Clave</th>
-            <th class="hidden md:table-cell">KIT</th>
-            <th class="hidden p-2 xl:table-cell">Clasificacion</th>
-            <th class="hidden p-2 lg:table-cell">Descripción</th>
-            <th class="hidden p-2 xl:table-cell">Unidad</th>
-            <th class="p-2">Solic.</th>
-            <th class="p-2">CPM</th>
-            <th class="p-2">Exist. AZM </th>
-            <th class="p-2">Exist. AZT </th>
-            <th class="p-2">Exist. AZE </th>
-            <th class="p-2 text-center">Acciones</th>
+  <thead class="text-white bg-green-600">
+    <tr>
+      <th class="p-2">#</th>
+      <th class="p-2">Clave</th>
+      <th class="hidden md:table-cell">KIT</th>
+      <th class="hidden p-2 xl:table-cell">Clasificacion</th>
+      <th class="hidden p-2 lg:table-cell">Descripción</th>
+      <th class="hidden p-2 xl:table-cell">Unidad</th>
+      <th class="p-2">Solic.</th>
+      <th class="p-2">CPM</th>
+      <th class="p-2">Exist. AZM </th>
+      <th class="p-2">Exist. AZT </th>
+      <th class="p-2">Exist. AZE </th>
+      <th class="p-2 text-center">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (articulo of articulosSolicitados; track articulo.clave; let i = $index)
+      {
+      <tr class="border-b transition-all duration-300 ease-in-out" [class.bg-yellow-100]="modoEdicionIndex === i"
+        [class.opacity-50]="modoEdicionIndex !== null && modoEdicionIndex !== i"
+        [class.animate-pulse]="modoEdicionIndex !== i && articulo.cantidad <= 0"
+        [class.bg-red-950!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
+        [class.text-gray-100!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
+        [class.text-xl.font-semibold.text-center.border.rounded]="modoEdicionIndex !== i && articulo.cantidad <= 0">
+
+        <td class="p-2 w-[1%] text-center font-semibold text-gray-700 whitespace-nowrap">{{ i + 1 }}</td>
+
+
+        @let existencia = buscarEnInventario(articulo.clave);
+
+        @let existenciaCPM = buscarCPM(articulo.clave);
+        @let existenciaAZT = existencia ? existencia.existenciasAZT : 0;
+        @let existenciaAZE = existencia ? existencia.existenciasAZE : 0;
+        @let existenciaAZM = existencia ? existencia.existenciasAZM : 0;
+
+        <td class="p-2" [attr.title]="articulo.descripcion">
+          <div class="flex items-center justify-left gap-1">
+            <span class="font-semibold">{{ articulo.clave }}</span>
+            <!-- Icono de advertencia cuando cantidad > CPM -->
+            @if (existenciaCPM > 0 && articulo.cantidad > existenciaCPM) {
+              <span class="relative flex"
+                [attr.title]="'Cantidad solicitada excede el CPM estimado (' + existenciaCPM + ')'">
+                <span
+                class="absolute inline-flex h-full w-full bg-red-400 rounded-full opacity-75 animate-ping"></span>
+                <lucide-angular [img]="triangleAlertIcon" class="w-4 h-4 text-red-800"></lucide-angular>
+              </span>
+            }
+
+            <!-- Icono de advertencia cuando cantidad < CPM -->
+            @if (existenciaCPM > 0 && articulo.cantidad < existenciaCPM) {
+              <lucide-angular [img]="alertCircle" class="w-4 h-4 text-yellow-500"
+                [attr.title]="'Cantidad solicitada es menor al CPM estimado (' + existenciaCPM + ')'">
+              </lucide-angular>
+            }
+
+            <!-- Icono de información cuando CPM es 0 -->
+            @if (existenciaCPM === 0) {
+              <lucide-angular [img]="infoIcon" class="w-4 h-4 text-blue-800"
+                title="Sin datos de consumo promedio mensual para este insumo">
+              </lucide-angular>
+            }
+          </div>
+        </td>
+        <td class="hidden p-2 text-center md:table-cell">
+          @if (enKit(articulo.clave)) {
+            <span
+              class="inline-block px-2 py-0.5 text-xs text-emerald-800 bg-emerald-100 rounded">
+              ✓
+            </span>
+          }
+        </td>
+        <td class="overflow-hidden hidden p-2 max-w-[100px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell"
+        [attr.title]="clasificacion(articulo.clave)">{{ clasificacion(articulo.clave) }}</td>
+        <td class="overflow-hidden hidden p-2 max-w-[250px] text-ellipsis whitespace-pre-wrap break-words sm:whitespace-normal lg:table-cell"
+          [attr.title]="articulo.descripcion">
+          {{ ( articulo.descripcion | slice : 0:195 ) + (articulo.descripcion.length > 195 ? ' [...]' : '') }}
+        </td>
+        <td class="overflow-hidden hidden p-2 max-w-[150px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell"
+          [attr.title]="articulo.unidadMedida">{{
+        articulo.unidadMedida }}</td>
+
+        <td class="p-2">
+          @if (modoEdicionIndex === i) {
+            <div class="relative inline-block w-24">
+              <input type="number" [(ngModel)]="cantidadTemporal" (keydown)="soloEnteroPositivo($event)"
+                (keydown.enter)="onEnterCantidad(i, $event)"
+                (blur)="normalizarCantidadEnInput()" min="1" max="99999"
+                [class.border-red-500]="esCantidadInvalida()" [class.animate-pulse]="esCantidadInvalida()"
+                class="px-2 py-1 w-full text-center transition-all duration-300 border rounded" />
+                <!-- Popup de error -->
+                @if (esCantidadInvalida()) {
+                  <div
+                    class="z-10 absolute left-1/2 top-full mt-1 px-3 py-1 min-w-[180px] text-white text-xs text-center bg-red-600 shadow-lg transform -translate-x-1/2 rounded">
+                    Debe ser un número entre 1 y 99999
+                  </div>
+                }
+              </div>
+            } @else {
+              {{ articulo.cantidad }}
+            }
+          </td>
+
+          <th class="p-2"> {{ existenciaCPM }} </th>
+          <th class="p-2"> {{ existenciaAZM }} </th>
+          <th class="p-2"> {{ existenciaAZT }} </th>
+          <th class="p-2"> {{ existenciaAZE }} </th>
+          <td class="p-2 text-center">
+            @if (modoEdicionIndex === i) {
+              <button (click)="mandarConfirmacion(i)" title="Guardar"
+                class="mx-1 text-green-600 cursor-pointer hover:text-green-800"
+                [disabled]="esCantidadInvalida()">
+                ✅
+              </button>
+              <button (click)="cancelar.emit()" title="Cancelar"
+                class="mx-1 text-gray-600 cursor-pointer hover:text-gray-800">
+                ❌
+              </button>
+            } @else {
+              <button (click)="editar.emit(i)" class="mx-1 text-blue-600 cursor-pointer hover:text-blue-800"
+                title="Editar" [disabled]="modoEdicionIndex !== null">
+                ✏️
+              </button>
+              <button (click)="eliminar.emit(i)" class="mx-1 text-red-600 cursor-pointer hover:text-red-800"
+                title="Eliminar" [disabled]="modoEdicionIndex !== null">
+                🗑️
+              </button>
+            }
+
+          </td>
         </tr>
-    </thead>
-    <tbody>
-        @for (articulo of articulosSolicitados; track articulo.clave; let i = $index)
-        {
-        <tr class="border-b transition-all duration-300 ease-in-out" [class.bg-yellow-100]="modoEdicionIndex === i"
-            [class.opacity-50]="modoEdicionIndex !== null && modoEdicionIndex !== i"
-            [class.animate-pulse]="modoEdicionIndex !== i && articulo.cantidad <= 0"
-            [class.bg-red-950!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
-            [class.text-gray-100!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
-            [class.text-xl.font-semibold.text-center.border.rounded]="modoEdicionIndex !== i && articulo.cantidad <= 0">
-
-            <td class="p-2 w-[1%] text-center font-semibold text-gray-700 whitespace-nowrap">{{ i + 1 }}</td>
-
-
-            @let existencia = buscarEnInventario(articulo.clave);
-
-            @let existenciaCPM = buscarCPM(articulo.clave);
-            @let existenciaAZT = existencia ? existencia.existenciasAZT : 0;
-            @let existenciaAZE = existencia ? existencia.existenciasAZE : 0;
-            @let existenciaAZM = existencia ? existencia.existenciasAZM : 0;
-
-            <td class="p-2" [attr.title]="articulo.descripcion">
-                <div class="flex items-center justify-left gap-1">
-                    <span class="font-semibold">{{ articulo.clave }}</span>
-                    <!-- Icono de advertencia cuando cantidad > CPM -->
-                    <ng-container *ngIf="existenciaCPM > 0 && articulo.cantidad > existenciaCPM">
-                        <span class="relative flex"
-                            [attr.title]="'Cantidad solicitada excede el CPM estimado (' + existenciaCPM + ')'">
-                            <span
-                                class="absolute inline-flex h-full w-full bg-red-400 rounded-full opacity-75 animate-ping"></span>
-                            <lucide-angular [img]="triangleAlertIcon" class="w-4 h-4 text-red-800"></lucide-angular>
-                        </span>
-                    </ng-container>
-
-                    <!-- Icono de advertencia cuando cantidad < CPM -->
-                    <ng-container *ngIf="existenciaCPM > 0 && articulo.cantidad < existenciaCPM">
-                        <lucide-angular [img]="alertCircle" class="w-4 h-4 text-yellow-500"
-                            [attr.title]="'Cantidad solicitada es menor al CPM estimado (' + existenciaCPM + ')'">
-                        </lucide-angular>
-                    </ng-container>
-
-                    <!-- Icono de información cuando CPM es 0 -->
-                    <ng-container *ngIf="existenciaCPM === 0">
-                        <lucide-angular [img]="infoIcon" class="w-4 h-4 text-blue-800"
-                            title="Sin datos de consumo promedio mensual para este insumo">
-                        </lucide-angular>
-                    </ng-container>
-                </div>
-            </td>
-            <td class="hidden p-2 text-center md:table-cell">
-                <span *ngIf="enKit(articulo.clave)"
-                    class="inline-block px-2 py-0.5 text-xs text-emerald-800 bg-emerald-100 rounded">
-                    ✓
-                </span>
-            </td>
-            <td class="overflow-hidden hidden p-2 max-w-[100px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell"
-                [attr.title]="clasificacion(articulo.clave)">{{ clasificacion(articulo.clave) }}</td>
-            <td class="overflow-hidden hidden p-2 max-w-[250px] text-ellipsis whitespace-pre-wrap break-words sm:whitespace-normal lg:table-cell"
-                [attr.title]="articulo.descripcion">
-                {{ ( articulo.descripcion | slice : 0:195 ) + (articulo.descripcion.length > 195 ? ' [...]' : '') }}
-            </td>
-            <td class="overflow-hidden hidden p-2 max-w-[150px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell"
-                [attr.title]="articulo.unidadMedida">{{
-                articulo.unidadMedida }}</td>
-
-            <td class="p-2">
-                <ng-container *ngIf="modoEdicionIndex === i; else cantidadNormal">
-                    <div class="relative inline-block w-24">
-                        <input type="number" [(ngModel)]="cantidadTemporal" min="1" max="99999"
-                            [class.border-red-500]="esCantidadInvalida()" [class.animate-pulse]="esCantidadInvalida()"
-                            class="px-2 py-1 w-full text-center transition-all duration-300 border rounded" />
-                        <!-- Popup de error -->
-                        <div *ngIf="esCantidadInvalida()"
-                            class="z-10 absolute left-1/2 top-full mt-1 px-3 py-1 min-w-[180px] text-white text-xs text-center bg-red-600 shadow-lg transform -translate-x-1/2 rounded">
-                            Debe ser un número entre 1 y 99999
-                        </div>
-                    </div>
-                </ng-container>
-                <ng-template #cantidadNormal>
-                    {{ articulo.cantidad }}
-                </ng-template>
-            </td>
-
-            <th class="p-2"> {{ existenciaCPM }} </th>
-            <th class="p-2"> {{ existenciaAZM }} </th>
-            <th class="p-2"> {{ existenciaAZT }} </th>
-            <th class="p-2"> {{ existenciaAZE }} </th>
-            <td class="p-2 text-center">
-                <ng-container *ngIf="modoEdicionIndex === i; else accionesNormales">
-                    <button (click)="mandarConfirmacion(i)" title="Guardar"
-                        class="mx-1 text-green-600 cursor-pointer hover:text-green-800"
-                        [disabled]="esCantidadInvalida()">
-                        ✅
-                    </button>
-                    <button (click)="cancelar.emit()" title="Cancelar"
-                        class="mx-1 text-gray-600 cursor-pointer hover:text-gray-800">
-                        ❌
-                    </button>
-                </ng-container>
-
-                <ng-template #accionesNormales>
-                    <button (click)="editar.emit(i)" class="mx-1 text-blue-600 cursor-pointer hover:text-blue-800"
-                        title="Editar" [disabled]="modoEdicionIndex !== null">
-                        ✏️
-                    </button>
-                    <button (click)="eliminar.emit(i)" class="mx-1 text-red-600 cursor-pointer hover:text-red-800"
-                        title="Eliminar" [disabled]="modoEdicionIndex !== null">
-                        🗑️
-                    </button>
-                </ng-template>
-            </td>
-        </tr>
-        }
+      }
     </tbody>
-</table>
+  </table>

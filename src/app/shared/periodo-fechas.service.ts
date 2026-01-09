@@ -164,4 +164,37 @@ export class PeriodoFechasService {
     return s < t || e < t;
   }
 
+  toDateOrNull(value: any): Date | null {
+    if (!value) return null;
+
+    // Ya es Date
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value === 'string') {
+      const s = value.trim();
+      if (!s) return null;
+
+      // 🧠 Caso 1: viene como ISO con T y Z → usar Date nativa
+      if (s.includes('T')) {
+        const d = new Date(s);
+        if (isNaN(d.getTime())) return null;
+
+        // Opcional: normalizar a “solo fecha”, para evitar off-by-one por huso horario
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      }
+
+      // 🧠 Caso 2: viene como 'YYYY-MM-DD' o similar “local”
+      // aquí sí tiene sentido usar tu fechasService
+      const d = this.parseLocalDate(s);
+      if (d && !isNaN(d.getTime())) return d;
+
+      // fallback final
+      const d2 = new Date(s);
+      return isNaN(d2.getTime()) ? null : d2;
+    }
+    return null;
+  }
+
 }

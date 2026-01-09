@@ -16,6 +16,10 @@ import { ExcelService } from '../../../../services/excel.service';
 import { LucideAngularModule, SheetIcon } from 'lucide-angular';
 import { ArticulosService } from '../../../../services/articulos.service';
 
+/**
+ * @deprecated 
+ * Se analizará su posible eliminación en futuras versiones.
+ */
 @Component({
     selector: 'app-existencias-x-grupo',
     standalone: true,

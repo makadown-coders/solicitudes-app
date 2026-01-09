@@ -15,6 +15,7 @@ import { InventarioDisponibles } from '../../../models/Inventario';
 import { CpmRowLite } from '../../../models/CpmExpectedRow';
 import { KitRow } from '../../../models/KitRow';
 import { ColKey } from '../../../models/ColKey';
+import { TrazabilidadService } from '../../../services/trazabilidad.service';
 
 
 @Component({
@@ -52,6 +53,7 @@ export class KitModalComponent implements OnInit {
     private invSvc = inject(InventarioService);
     private toast = inject(NgFastToastService);
     private cdRef = inject(ChangeDetectorRef);
+    private trazabilidadService = inject(TrazabilidadService);
 
     // ===== Estado interno =====
     // UI switches
@@ -66,6 +68,10 @@ export class KitModalComponent implements OnInit {
     // datos y stats
     kitRows: KitRow[] = [];
     kitStats = { total: 0, conCpm: 0, sinCpm: 0, conExist: 0, sinExist: 0, existTotal: 0 };
+
+    // ===== Filtro por KIT (nuevo) =====
+    kitOptions: string[] = [];
+    kitSeleccionado: string = ''; // '' = Todos
 
     // selección
     private selectedSet = new Set<string>(); // claves normalizadas
@@ -99,9 +105,11 @@ export class KitModalComponent implements OnInit {
         const clues = (this.cluesimb || '').trim().toUpperCase();
         if (clues) {
             try { await firstValueFrom(this.cpmService.ensureForCluesimb(clues)); } catch { /* noop */ }
+            // Cargar lista de kits disponibles para esta unidad (para dropdown)
+            this.kitOptions = this.cpmService.getKitCodigosFor(clues) ?? [];
         }
 
-        await this.ensureDescripcionIndex();        
+        await this.ensureDescripcionIndex();
         await this.loadKit();             // construye filas CPM + AZM/AZE/AZT
         this.loadExistenciasForUnit();    // mezcla existencias por unidad + reorden        
     }
@@ -109,14 +117,20 @@ export class KitModalComponent implements OnInit {
     // ===== Construcción de filas del KIT =====
     private async loadKit() {
         try {
-            const rows = await firstValueFrom(this.cpmService.cpms$ as any);
-            const kit = (rows as any[])
+            const clues = (this.cluesimb || '').trim().toUpperCase();
+            const rows = await firstValueFrom(this.cpmService.cpmsFor(clues));
+
+            const kit = rows
                 .filter(r => r.en_kit)
+                .filter(r => {
+                    if (!this.kitSeleccionado) return true;
+                    const kits = (r.kit_codigos ?? []).map(x => (x || '').trim().toUpperCase());
+                    return kits.includes(this.kitSeleccionado.trim().toUpperCase());
+                })
                 .map(r => {
                     const clave = String(r.clave_cnis || '').toUpperCase();
                     const cpm = Number(r.cpm || 0);
 
-                    // 2) Trae existencias desde tu índice local (invIndex)
                     const inv = this.invIndex.get(clave);
                     const azm = inv?.existenciasAZM ?? 0;
                     const aze = inv?.existenciasAZE ?? 0;
@@ -127,20 +141,18 @@ export class KitModalComponent implements OnInit {
                 })
                 .sort((a, b) => a.clave.localeCompare(b.clave));
 
-            // Estadísticas preliminares (antes de existencias por unidad)
-            const conCpm = 0; //kit.filter(r => +r.cpm > 0).length;
-            const conExist = 0; //kit.filter(r => +r.total > 0).length;
-            const existTotal = 0; // kit.reduce((acc, r) => (+acc) + (+r.total), 0);
-
             this.kitRows = kit;
-            this.kitStats = {
-                total: kit.length,
-                conCpm,
-                sinCpm: 0, // kit.length - conCpm,
-                conExist,
-                sinExist: 0, // kit.length - conExist,
-                existTotal
-            };
+            // Si ya tengo existencias por unidad, reinyéctalas sin re-fetch
+            if (this.hasUnidadExistencias && this.existUnidadIndex.size > 0) {
+                // reset stats antes de recomputar
+                this.kitStats.total = this.kitRows.length;
+                this.kitStats.conCpm = 0;
+                this.kitStats.sinCpm = 0;
+                this.kitStats.conExist = 0;
+                this.kitStats.sinExist = 0;
+                this.kitStats.existTotal = 0;
+                this.mergeExistenciasIntoKit();
+            }
             this.cdRef.markForCheck();
         } catch {
             this.toast.warn({ title: 'Sin datos', content: 'No fue posible cargar el KIT de la unidad.', duration: 5 });
@@ -166,11 +178,19 @@ export class KitModalComponent implements OnInit {
         this.kitStats.sinExist = 0;
         this.kitStats.existTotal = 0;
         this.existSvc.byUnidad(clues).subscribe({
-            next: (rows: ExistUnidadRow[]) => {
+            next: async (rows: ExistUnidadRow[]) => {
                 this.existUnidadIndex.clear();
                 for (const r of rows) {
                     const k = this.normClave(r.clave_cnis);
-                    this.existUnidadIndex.set(k, Number(r.existencia_total) || 0);
+                    // obteniendo factor de conversion
+                    const factor = await this.trazabilidadService
+                        .getFactorConversionPorUnidad(r.clave_cnis, this.cluesimb);
+                    if (factor && factor.cantidad_fc > 0 && r.existencia_total > 0) {
+                        const existenciaConvertida = (r.existencia_total) / factor.cantidad_fc;
+                        this.existUnidadIndex.set(k, Math.floor(existenciaConvertida));
+                    } else {
+                        this.existUnidadIndex.set(k, Number(r.existencia_total) || 0);
+                    }
                 }
                 this.hasUnidadExistencias = this.existUnidadIndex.size > 0;
                 this.mergeExistenciasIntoKit();
@@ -466,5 +486,17 @@ export class KitModalComponent implements OnInit {
 
             if (ok) this.selectedSet.add(this.normClave(r.clave));
         }
+    }
+
+    async onKitSeleccionadoChange(v: string) {
+        this.kitSeleccionado = v;
+        this.clearSelection();
+        this.busy = true;
+        this.cdRef.markForCheck();
+
+        await this.loadKit();
+
+        this.busy = false;
+        this.cdRef.markForCheck();
     }
 }

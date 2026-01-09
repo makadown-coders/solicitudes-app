@@ -27,6 +27,8 @@ import { ExistenciasTempService } from '../../services/existencias-temp.service'
 import { KitModalComponent } from './kit-modal/kit-modal.component';
 import { CpmUnionRow } from '../../models/CpmUnionRow';
 import { CpmModalComponent } from './cpm-modal/cpm-modal.component';
+import { FactorUnidad } from '../../models';
+import { TrazabilidadService } from '../../services/trazabilidad.service';
 
 
 @Component({
@@ -76,6 +78,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   articulosService = inject(ArticulosService);
   excelService = inject(ExcelService);
   toast = inject(NgFastToastService);
+  trazabilidadService = inject(TrazabilidadService);
 
   @ViewChildren('resultItem') resultItems!: QueryList<ElementRef>;
   @ViewChild('inputClave') inputClaveRef!: ElementRef<HTMLInputElement>;
@@ -256,7 +259,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         existenciasAZM: 0,
         existenciasAZE: 0,
         existenciasAZT: 0
-      }
+      };
       const inventarioItem = this.inventario.filter(item => item.clave === clave);
       inventarioItem.forEach(item => {
         if (item.almacen.toLowerCase().includes('almacen estatal zona mexicali') ||
@@ -748,8 +751,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       const cluesimbActual = this.datosClues?.hospital?.cluesimb;
 
       if (cluesimbActual) {
-        try { 
-          await firstValueFrom(this.cpmService.ensureForCluesimb(cluesimbActual)); 
+        try {
+          await firstValueFrom(this.cpmService.ensureForCluesimb(cluesimbActual));
           this.loadExistenciasUnidad(cluesimbActual);
         } catch { }
       }
@@ -964,9 +967,19 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   private loadExistenciasUnidad(cluesimb: string) {
     if (!cluesimb) { this.existUnidadIndex.clear(); return; }
 
-    this.existTemp.byUnidad(cluesimb).subscribe(rows => {
+    this.existTemp.byUnidad(cluesimb).subscribe(async rows => {
       const idx = new Map<string, number>();
-      for (const r of rows) idx.set(r.clave_cnis, r.existencia_total ?? 0);
+      for (const r of rows) {
+        // obteniendo factor de conversion
+        const factor = await this.trazabilidadService
+          .getFactorConversionPorUnidad(r.clave_cnis, cluesimb);
+        if (factor && factor.cantidad_fc > 0 && r.existencia_total > 0) {
+          const existenciaConvertida = (r.existencia_total) / factor.cantidad_fc;
+          idx.set(r.clave_cnis, Math.floor(existenciaConvertida));
+        } else {
+          idx.set(r.clave_cnis, r.existencia_total ?? 0);
+        }
+      }
       this.existUnidadIndex = idx;
 
       // Enriquecer el autocomplete actual (si ya hay resultados en pantalla)
@@ -981,10 +994,10 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   /*************************************************************************************/
   /*************************************************************************************/
   kitModalVisible = false;
-  cpmModalVisible = false;  
+  cpmModalVisible = false;
 
   /** PARA MODAL DE CLAVES POR CPM */
-  abrirCpmModal(){
+  abrirCpmModal() {
     // forzar recarga de this.datosClues de localstorageService porque este componente no lo recarga
     this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
     this.cpmModalVisible = true;
@@ -1031,4 +1044,29 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   /*************************************************************************************/
   /*************************************************************************************/
   /*************************************************************************************/
+
+  /**
+ * Maneja Enter en los inputs del formulario de captura.
+ * Si el formulario es válido, no hay edición activa y no hay autocomplete abierto,
+ * dispara agregarArticulo().
+ */
+  onFormularioEnter(event?: Event) {
+    const keyboardEvent = event as KeyboardEvent | undefined;
+
+    keyboardEvent?.preventDefault();
+    keyboardEvent?.stopPropagation();
+
+    // No hacer nada si el formulario no está listo
+    if (!this.formularioValido) return;
+
+    // No permitir mientras se edita un renglón
+    if (this.modoEdicionIndex !== null) return;
+
+    // Si sigue abierto el autocomplete, que primero se seleccione la clave
+    if (this.autocompleteResults?.length) return;
+
+    // Disparar alta
+    void this.agregarArticulo();
+  }
+
 }

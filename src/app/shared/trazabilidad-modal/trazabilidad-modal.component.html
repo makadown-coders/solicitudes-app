@@ -1,163 +1,172 @@
-<div *ngIf="visible" class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-  <div
-    class="overflow-y-auto p-6 max-w-6xl w-full max-h-[90vh] bg-white rounded-xl border-custom-default shadow-xl dark:bg-gray-900 border">
-    
-    <!-- Header del modal -->
-    <div class="flex items-start justify-between gap-4 mb-4">
-      <div>
-        <h2 class="text-xl font-bold text-green-800 dark:text-yellow-400">
-          🔎 Trazabilidad: {{ clave }} — {{ cluesimb }}
-        </h2>
-        <p class="mt-1 text-m font-extrabold text-gray-600 dark:text-gray-300">
-          {{ movimientos().length ? movimientos()[0].nombre_unidad : '' }}
-        </p>
-        <p *ngIf="descripcionArticulo" class="mt-0.5 text-xs text-gray-500 italic dark:text-gray-400">
-          {{ descripcionArticulo }}
-        </p>
+@if (visible) {
+  <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div
+      class="overflow-y-auto p-6 max-w-6xl w-full max-h-[90vh] bg-white rounded-xl border-custom-default shadow-xl dark:bg-gray-900 border">
+      <!-- Header del modal -->
+      <div class="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h2 class="text-xl font-bold text-green-800 dark:text-yellow-400">
+            🔎 Trazabilidad: {{ clave }} — {{ cluesimb }} (EN CONSTRUCCION)
+          </h2>
+          <p class="mt-1 text-m font-extrabold text-gray-600 dark:text-gray-300">
+            {{ movimientos().length ? movimientos()[0].nombre_unidad : '' }}
+          </p>
+          @if (descripcionArticulo) {
+            <p class="mt-0.5 text-xs text-gray-500 italic dark:text-gray-400">
+              {{ descripcionArticulo }}
+            </p>
+          }
+        </div>
+        <!-- Botones -->
+        <div class="flex items-center gap-2">
+          @if (movimientos().length) {
+            <button (click)="exportarExcel()"
+              class="px-3 py-1.5 text-sm font-medium text-white bg-green-600 cursor-pointer rounded hover:bg-green-700">
+              ⬇️ Exportar
+            </button>
+          }
+          <button (click)="cerrar()"
+            class="px-3 py-1.5 text-sm font-bold text-red-600 border-red-200 cursor-pointer border rounded hover:bg-red-50">
+            × Cerrar
+          </button>
+        </div>
       </div>
-
-      <!-- Botones -->
-      <div class="flex items-center gap-2">
-        <button *ngIf="movimientos().length" (click)="exportarExcel()"
-          class="px-3 py-1.5 text-sm font-medium text-white bg-green-600 cursor-pointer rounded hover:bg-green-700">
-          ⬇️ Exportar
-        </button>
-        <button (click)="cerrar()"
-          class="px-3 py-1.5 text-sm font-bold text-red-600 border-red-200 cursor-pointer border rounded hover:bg-red-50">
-          × Cerrar
-        </button>
-      </div>
-    </div>
-
-    <!-- Loading -->
-    <div *ngIf="loading()" class="my-4 text-center text-gray-600 dark:text-gray-300">
-      Cargando movimientos...
-    </div>
-
-    <!-- No hay movimientos -->
-    <div *ngIf="!loading() && movimientos().length === 0" class="my-4 text-center text-gray-600 dark:text-gray-300">
-      No se encontraron movimientos para esta clave.
-    </div>
-
-    <!-- Table -->
-    <div *ngIf="!loading()" class="overflow-x-auto border-custom-default rounded-lg border">
-      <table class="min-w-full text-sm text-gray-800 table-auto dark:text-white">
-        <thead class="text-left bg-green-100 dark:bg-green-800">
-          <tr>
-            <th class="px-4 py-2">Fecha</th>
-            <th class="px-4 py-2">Lote</th>
-            <th class="px-4 py-2">Caducidad</th>
-            <th class="px-4 py-2">Recibe / Entrega</th>
-            <th class="px-4 py-2 text-right">Entradas</th>
-            <th class="px-4 py-2 text-right">Salidas</th>
-            <th class="px-4 py-2 text-right">Saldo</th>
-          </tr>
-        </thead>
-        @let hoy = fechaDeHoy();
-        <tbody>
-          <!-- OJO: ahora iteramos movimientosConSaldo() -->
-          <tr *ngFor="let mov of movimientosConSaldo()">
-            <td class="px-4 py-2 border">{{ mov.fecha | date:'dd/MM/yyyy' }}</td>
-            <td class="px-4 py-2 border">{{ mov.lote || '—' }}</td>
-            <!-- si mov.fecha_caducidad es menor que el dia de hoy
-              se muestra la fecha de caducidad en rojo bold -->            
-            <td class="px-4 py-2 border">
-              @let fechaCaducidad =  fechaDeString(mov.fecha_caducidad);
-              <span [ngClass]="mov.fecha_caducidad && fechaCaducidad && fechaCaducidad < hoy ? 'font-bold text-red-600 dark:text-red-400' : ''">
-              {{ mov.fecha_caducidad ? (mov.fecha_caducidad | date:'dd/MM/yyyy') : '—' }}
-              </span>
-            </td>
-            <td class="px-4 py-2 border">{{ 
-              mov.proveedor + (mov.observaciones ? ' ('+ mov.observaciones + ')' : '')
-            }}</td>
-
-            <!-- Entradas (entrada + traspaso) -->
-            <td class="px-4 py-2 text-right border">
-              {{ mov.entradas | number:'1.0-0' }}
-            </td>
-
-            <!-- Salidas -->
-            <td class="px-4 py-2 text-right border">
-              {{ mov.salidas | number:'1.0-0' }}
-            </td>
-
-            <!-- Saldo acumulado -->
-            <td class="px-4 py-2 text-right font-semibold border">
-              {{ mov.saldo | number:'1.0-0' }}
-            </td>
-          </tr>
-        </tbody>
-
-        <tfoot>
-          <tr class="bg-green-50 dark:bg-green-900">
-            <td colspan="4" class="px-4 py-2 font-bold text-right">Saldo total</td>
-            <td class="px-4 py-2 text-right font-bold">
-              {{ totales().entradas | number:'1.0-0' }}
-            </td>
-            <td class="px-4 py-2 text-right font-bold">
-              {{ totales().salidas | number:'1.0-0' }}
-            </td>
-            <td class="px-4 py-2 text-right font-extrabold">
-              {{ totales().saldo | number:'1.0-0' }}
-            </td>
-          </tr>
-          <tr class="bg-green-50 dark:bg-green-900" 
-            *ngIf="totales().saldo !== existenciaReal">
-            <!-- Si existenciaReal es diferente a totales().saldo,
-             mostrar una leyenda diciendo algo como "El saldo mostrado puede ser diferente al de la existencia real debido a factores como existencias comprometidas o insumos caducados" -->
-            <td colspan="7" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300">
-              El saldo mostrado podría no reflejar la existencia real, ya que no considera existencias comprometidas o insumos caducados.
-            </td>
-          </tr>
-
-
-          <!-- Resumen comparativo (CPM / FC / Saldo base) -->
-          <tr *ngIf="(cpmBase ?? -1) > -1">
-            <td colspan="7" class="px-4 py-3 bg-green-50 dark:bg-green-900">
-              <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <!-- CPM base -->
-                <div class="p-3 bg-white rounded-md border-custom-default dark:bg-gray-800">
-                  <p class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-300">CPM
-                    {{ factor().en_dispensacion ? '(base)' : '' }}</p>
-                  <p class="mt-1 text-xl font-bold text-green-700 dark:text-yellow-400">
-                    {{ cpmBase | number:'1.0-0' }}
-                  </p>
-                </div>
-
-                <!-- Factor de conversión (solo si aplica) -->
-                <div *ngIf="factor().en_dispensacion && factor().cantidad_fc > 1"
-                  class="p-3 bg-white rounded-md border-custom-default dark:bg-gray-800">
-                  <p class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-300">
-                    Factor de conversión
-                  </p>
-                  <p class="mt-1 text-xl font-bold text-green-700 dark:text-yellow-400">
-                    ×{{ factor().cantidad_fc | number:'1.0-0' }}
-                  </p>
-                  <p class="mt-1 text-xs text-gray-600 italic dark:text-gray-300">
-                    Entradas/traspasos mostrados en “dispensación”
-                  </p>
-                </div>
-
-                <!-- Saldo base (sin factor) -->
-                <div *ngIf="factor().en_dispensacion"
-                  class="p-3 bg-white rounded-md border-custom-default dark:bg-gray-800">
-                  <p class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-300">
-                    Saldo (base, sin dispensación)
-                  </p>
-                  <p class="mt-1 text-xl font-bold text-green-700 dark:text-yellow-400">
-                    {{
-                    (factor().cantidad_fc > 1
-                    ? (totales().saldo / factor().cantidad_fc)
-                    : totales().saldo)
-                    | number:'1.0-0'
-                    }}
-                  </p>
-                </div>
-              </div>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+      <!-- Loading -->
+      @if (loading()) {
+        <div class="my-4 text-center text-gray-600 dark:text-gray-300">
+          Cargando movimientos...
+        </div>
+      }
+      <!-- No hay movimientos -->
+      @if (!loading() && movimientos().length === 0) {
+        <div class="my-4 text-center text-gray-600 dark:text-gray-300">
+          No se encontraron movimientos para esta clave.
+        </div>
+      }
+      <!-- Table -->
+      @if (!loading()) {
+        <div class="overflow-x-auto border-custom-default rounded-lg border">
+          <table class="min-w-full text-sm text-gray-800 table-auto dark:text-white">
+            <thead class="text-left bg-green-100 dark:bg-green-800">
+              <tr>
+                <th class="px-4 py-2">Fecha</th>
+                <th class="px-4 py-2">Lote</th>
+                <th class="px-4 py-2">Caducidad</th>
+                <th class="px-4 py-2">Recibe / Entrega</th>
+                <th class="px-4 py-2 text-right">Entradas</th>
+                <th class="px-4 py-2 text-right">Salidas</th>
+                <th class="px-4 py-2 text-right">Saldo</th>
+              </tr>
+            </thead>
+            @let hoy = fechaDeHoy();
+            <tbody>
+              <!-- OJO: ahora iteramos movimientosConSaldo() -->
+              @for (mov of movimientosConSaldo(); track mov) {
+                <tr>
+                  <td class="px-4 py-2 border">{{ mov.fecha | date:'dd/MM/yyyy' }}</td>
+                  <td class="px-4 py-2 border">{{ mov.lote || '—' }}</td>
+                  <!-- si mov.fecha_caducidad es menor que el dia de hoy
+                  se muestra la fecha de caducidad en rojo bold -->
+                  <td class="px-4 py-2 border">
+                    @let fechaCaducidad =  fechaDeString(mov.fecha_caducidad);
+                    <span [ngClass]="mov.fecha_caducidad && fechaCaducidad && fechaCaducidad < hoy ? 'font-bold text-red-600 dark:text-red-400' : ''">
+                      {{ mov.fecha_caducidad ? (mov.fecha_caducidad | date:'dd/MM/yyyy') : '—' }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-2 border">{{
+                    mov.proveedor + (mov.observaciones ? ' ('+ mov.observaciones + ')' : '')
+                  }}</td>
+                  <!-- Entradas (entrada + traspaso) -->
+                  <td class="px-4 py-2 text-right border">
+                    {{ mov.entradas | number:'1.0-0' }}
+                  </td>
+                  <!-- Salidas -->
+                  <td class="px-4 py-2 text-right border">
+                    {{ mov.salidas | number:'1.0-0' }}
+                  </td>
+                  <!-- Saldo acumulado -->
+                  <td class="px-4 py-2 text-right font-semibold border">
+                    {{ mov.saldo | number:'1.0-0' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="bg-green-50 dark:bg-green-900">
+                <td colspan="4" class="px-4 py-2 font-bold text-right">Saldo total</td>
+                <td class="px-4 py-2 text-right font-bold">
+                  {{ totales().entradas | number:'1.0-0' }}
+                </td>
+                <td class="px-4 py-2 text-right font-bold">
+                  {{ totales().salidas | number:'1.0-0' }}
+                </td>
+                <td class="px-4 py-2 text-right font-extrabold">
+                  {{ totales().saldo | number:'1.0-0' }}
+                </td>
+              </tr>
+              @if (totales().saldo !== existenciaReal) {
+                <tr class="bg-green-50 dark:bg-green-900"
+                  >
+                  <!-- Si existenciaReal es diferente a totales().saldo,
+                  mostrar una leyenda diciendo algo como "El saldo mostrado puede ser diferente al de la existencia real debido a factores como existencias comprometidas o insumos caducados" -->
+                  <td colspan="7" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                    El saldo mostrado podría no reflejar la existencia real, ya que no considera existencias comprometidas o insumos caducados.
+                  </td>
+                </tr>
+              }
+              <!-- Resumen comparativo (CPM / FC / Saldo base) -->
+              @if (cpmBase > -1) {
+                <tr>
+                  <td colspan="7" class="px-4 py-3 bg-green-50 dark:bg-green-900">
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <!-- CPM base -->
+                      <div class="p-3 bg-white rounded-md border-custom-default dark:bg-gray-800">
+                        <p class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-300">CPM
+                        {{ factor().en_dispensacion ? '(base)' : '' }}</p>
+                        <p class="mt-1 text-xl font-bold text-green-700 dark:text-yellow-400">
+                          {{ cpmBase | number:'1.0-0' }}
+                        </p>
+                      </div>
+                      <!-- Factor de conversión (solo si aplica) -->
+                      @if (factor().en_dispensacion && factor().cantidad_fc > 1) {
+                        <div
+                          class="p-3 bg-white rounded-md border-custom-default dark:bg-gray-800">
+                          <p class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-300">
+                            Factor de conversión
+                          </p>
+                          <p class="mt-1 text-xl font-bold text-green-700 dark:text-yellow-400">
+                            ×{{ factor().cantidad_fc | number:'1.0-0' }}
+                          </p>
+                          <p class="mt-1 text-xs text-gray-600 italic dark:text-gray-300">
+                            Entradas/traspasos mostrados en “dispensación”
+                          </p>
+                        </div>
+                      }
+                      <!-- Saldo base (sin factor) -->
+                      @if (factor().en_dispensacion) {
+                        <div
+                          class="p-3 bg-white rounded-md border-custom-default dark:bg-gray-800">
+                          <p class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-300">
+                            Saldo (base, sin dispensación)
+                          </p>
+                          <p class="mt-1 text-xl font-bold text-green-700 dark:text-yellow-400">
+                            {{
+                            (factor().cantidad_fc > 1
+                            ? (totales().saldo / factor().cantidad_fc)
+                            : totales().saldo)
+                            | number:'1.0-0'
+                            }}
+                          </p>
+                        </div>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tfoot>
+          </table>
+        </div>
+      }
     </div>
   </div>
-</div>
+}

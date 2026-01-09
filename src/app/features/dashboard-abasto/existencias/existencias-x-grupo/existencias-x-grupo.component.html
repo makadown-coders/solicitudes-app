@@ -5,6 +5,11 @@
     <ng-select [items]="gruposDisponibles" bindLabel="" [clearable]="true" placeholder="Buscar y seleccionar grupo..."
       [(ngModel)]="grupoSeleccionado" (change)="onGrupoChange($event)">
     </ng-select>
+    <!-- TEXTO TEMPORAL -->
+    <div class="mr-5 text-xs text-gray-600 space-y-1">
+        Proceso en fase de optimización.
+    </div>
+    <!-- TEXTO TEMPORAL -->
   </div>
 
   <div class="flex justify-end mt-4" *ngIf="resumenXGrupo.length > 0">

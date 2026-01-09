@@ -9,116 +9,140 @@
     <div class="toolbar-actions">
       <input class="px-3 py-2 w-56 border rounded" type="text" placeholder="Filtrar por clave o descripción…"
         [ngModel]="filterText()" (ngModelChange)="filterText.set($event)" />
-      <button class="px-3 py-2 text-white bg-blue-600 rounded disabled:opacity-60" (click)="saveAllChunked(150)"
-        [disabled]="saving() || dirtyCount()===0">
-        Guardar todo ({{ dirtyCount() }})
-      </button>
-      <button class="px-3 py-2 text-white bg-emerald-600 rounded" (click)="addRow()">
-        Agregar clave
-      </button>
+        <button class="px-3 py-2 text-white bg-blue-600 rounded disabled:opacity-60" (click)="saveAllChunked(150)"
+          [disabled]="saving() || dirtyCount()===0">
+          Guardar todo ({{ dirtyCount() }})
+        </button>
+        <button class="px-3 py-2 text-white bg-emerald-600 rounded" (click)="addRow()">
+          Agregar clave
+        </button>
+      </div>
     </div>
-  </div>
-  <!-- Progress (indeterminada) -->
-  <div *ngIf="loading() || (saving() && saveProgress() === 0)" class="progress indeterminate">
-    <div class="bar"></div>
-  </div>
-  <!-- Progress (determinada) -->
-  <div *ngIf="saving() && saveProgress() > 0" class="progress">
-    <div class="bar" [style.width.%]="saveProgress()"></div>
-  </div>
+    <!-- Progress (indeterminada) -->
+    @if (loading() || (saving() && saveProgress() === 0)) {
+      <div class="progress indeterminate">
+        <div class="bar"></div>
+      </div>
+    }
+    <!-- Progress (determinada) -->
+    @if (saving() && saveProgress() > 0) {
+      <div class="progress">
+        <div class="bar" [style.width.%]="saveProgress()"></div>
+      </div>
+    }
 
-  <div *ngIf="message()" class="mb-2 text-emerald-700 text-sm">{{ message() }}</div>
-  <div *ngIf="error()" class="mb-2 text-red-600 text-sm">{{ error() }}</div>
+    @if (message()) {
+      <div class="mb-2 text-emerald-700 text-sm">{{ message() }}</div>
+    }
+    @if (error()) {
+      <div class="mb-2 text-red-600 text-sm">{{ error() }}</div>
+    }
 
-  <div class="overflow-x-auto border rounded">
-    <table class="sticky-head min-w-full text-sm compact zebra">
-      <thead>
-        <tr *ngIf="loading()">
-          <td colspan="4" class="p-3">
-            <div class="mb-2 h-4 text-center skeleton">Cargando CPMS....</div>
-            <div class="mb-2 h-4 text-center skeleton">Espere un momento</div>
-          </td>
-        </tr>
-        <tr *ngIf="!loading()">
-          <th class="p-2 text-left border-b">Clave CNIS</th>
-          <th class="p-2 text-left border-b">CPM</th>
-          <th class="p-2 text-left border-b">
-            <button type="button" class="underline" (click)="openFuenteInfo()">Fuente</button>
-          </th>
-          <th class="p-2 w-32 border-b"></th>
-        </tr>
-      </thead>
-      <tbody *ngIf="!loading()">
-        <tr *ngFor="let r of rowsFiltered(); let i = index; trackBy: trackByClave" [class.bg-yellow-50]="r._dirty"
-          [class.bg-red-50]="r._invalid">
-          <td class="p-2 border-b">
-            <div class="font-medium">{{ r.clave_cnis }}</div>
-            <div class="desc" [title]="r.descripcion || ''">
-              {{ r.descripcion || '—' }}
-            </div>
-            <div class="pres" *ngIf="r.presentacion" [title]="r.presentacion">
-              {{ r.presentacion }}
-            </div>
-          </td>
-          <td class="p-2 border-b">
-            <input type="number" min="0" step="1" class="px-2 py-1 w-28 border rounded" [ngModel]="r.cpm"
-              (ngModelChange)="onRowCpmChange(i, $event)" />
-          </td>
-          <td class="p-2 border-b">
-            <div class="flex items-center gap-2">
-              <span [ngClass]="chipClass(r.fuente)">{{ r.fuente }}</span>
-              <select class="px-2 py-1 border rounded" [ngModel]="r.fuente"
-                (ngModelChange)="onRowFuenteChangeConfirm(i, $event)">
-                <option value="manual">manual</option>
-                <option value="historico">historico</option>
-                <option value="import">import</option>
-              </select>
-            </div>
-          </td>
-          <td class="p-2 text-right border-b">
-            <button class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 border" (click)="saveRow(i)"
-              [disabled]="saving() || r._invalid">
-              Guardar
-            </button>
-          </td>
-        </tr>
-        <tr *ngIf="rowsFiltered().length === 0">
-          <td colspan="4" class="empty">Sin datos. Carga una unidad.</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <div *ngIf="dirtyCount() > 0"
-    class="fixed bottom-4 right-4 flex items-center gap-2 px-3 py-2 bg-white border rounded shadow">
-    <span class="text-sm text-gray-700">Cambios sin guardar: {{ dirtyCount() }}</span>
-    <button class="px-3 py-2 text-white bg-blue-600 rounded disabled:opacity-60" (click)="saveAllChunked(150)"
-      [disabled]="saving() || dirtyCount()===0">
-      Guardar todo ({{ dirtyCount() }})
-    </button>
-  </div>
-</div>
+    <div class="overflow-x-auto border rounded">
+      <table class="sticky-head min-w-full text-sm compact zebra">
+        <thead>
+          @if (loading()) {
+            <tr>
+              <td colspan="4" class="p-3">
+                <div class="mb-2 h-4 text-center skeleton">Cargando CPMS....</div>
+                <div class="mb-2 h-4 text-center skeleton">Espere un momento</div>
+              </td>
+            </tr>
+          }
+          @if (!loading()) {
+            <tr>
+              <th class="p-2 text-left border-b">Clave CNIS</th>
+              <th class="p-2 text-left border-b">CPM</th>
+              <th class="p-2 text-left border-b">
+                <button type="button" class="underline" (click)="openFuenteInfo()">Fuente</button>
+              </th>
+              <th class="p-2 w-32 border-b"></th>
+            </tr>
+          }
+        </thead>
+        @if (!loading()) {
+          <tbody>
+            @for (r of rowsFiltered(); track trackByClave(i, r); let i = $index) {
+              <tr [class.bg-yellow-50]="r._dirty"
+                [class.bg-red-50]="r._invalid">
+                <td class="p-2 border-b">
+                  <div class="font-medium">{{ r.clave_cnis }}</div>
+                  <div class="desc" [title]="r.descripcion || ''">
+                    {{ r.descripcion || '—' }}
+                  </div>
+                  @if (r.presentacion) {
+                    <div class="pres" [title]="r.presentacion">
+                      {{ r.presentacion }}
+                    </div>
+                  }
+                </td>
+                <td class="p-2 border-b">
+                  <input type="number" min="0" step="1" class="px-2 py-1 w-28 border rounded" [ngModel]="r.cpm"
+                    (ngModelChange)="onRowCpmChange(i, $event)" />
+                  </td>
+                  <td class="p-2 border-b">
+                    <div class="flex items-center gap-2">
+                      <span [ngClass]="chipClass(r.fuente)">{{ r.fuente }}</span>
+                      <select class="px-2 py-1 border rounded" [ngModel]="r.fuente"
+                        (ngModelChange)="onRowFuenteChangeConfirm(i, $event)">
+                        <option value="manual">manual</option>
+                        <option value="historico">historico</option>
+                        <option value="import">import</option>
+                      </select>
+                    </div>
+                  </td>
+                  <td class="p-2 text-right border-b">
+                    <button class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 border" (click)="saveRow(i)"
+                      [disabled]="saving() || r._invalid">
+                      Guardar
+                    </button>
+                  </td>
+                </tr>
+              }
+              @if (rowsFiltered().length === 0) {
+                <tr>
+                  <td colspan="4" class="empty">Sin datos. Carga una unidad.</td>
+                </tr>
+              }
+            </tbody>
+          }
+        </table>
+      </div>
+      @if (dirtyCount() > 0) {
+        <div
+          class="fixed bottom-4 right-4 flex items-center gap-2 px-3 py-2 bg-white border rounded shadow">
+          <span class="text-sm text-gray-700">Cambios sin guardar: {{ dirtyCount() }}</span>
+          <button class="px-3 py-2 text-white bg-blue-600 rounded disabled:opacity-60" (click)="saveAllChunked(150)"
+            [disabled]="saving() || dirtyCount()===0">
+            Guardar todo ({{ dirtyCount() }})
+          </button>
+        </div>
+      }
+    </div>
 
-<div *ngIf="showFuenteDialog" class="z-50 fixed inset-0 flex items-center justify-center bg-black/30">
-  <div class="p-4 w-full max-w-md bg-white rounded-lg shadow">
-    <h2 class="mb-2 text-lg font-semibold">¿Qué es “Fuente”?</h2>
-    <p class="mb-3 text-sm text-gray-700">
-      “Fuente” indica el origen del valor CPM actual:
-    </p>
-    <ul class="pl-5 mb-4 text-sm text-gray-700 list-disc space-y-1">
-      <li class="mb-1"><span class="chip chip-manual">manual</span> — fijado por criterio técnico; suele
-        <strong>congelarse</strong>
-        ante recalculos.
-      </li>
-      <li class="mb-1"><span class="chip chip-historico">historico</span> — cálculo con consumo previo;
-        <strong>actualizable</strong>
-        automáticamente.
-      </li>
-      <li class="mb-1"><span class="chip chip-import">import</span> — cargado desde plantilla/externo; tratamos como
+    @if (showFuenteDialog) {
+      <div class="z-50 fixed inset-0 flex items-center justify-center bg-black/30">
+        <div class="p-4 w-full max-w-md bg-white rounded-lg shadow">
+          <h2 class="mb-2 text-lg font-semibold">¿Qué es “Fuente”?</h2>
+          <p class="mb-3 text-sm text-gray-700">
+            “Fuente” indica el origen del valor CPM actual:
+          </p>
+          <ul class="pl-5 mb-4 text-sm text-gray-700 list-disc space-y-1">
+            <li class="mb-1"><span class="chip chip-manual">manual</span> — fijado por criterio técnico; suele
+            <strong>congelarse</strong>
+            ante recalculos.
+          </li>
+          <li class="mb-1"><span class="chip chip-historico">historico</span> — cálculo con consumo previo;
+          <strong>actualizable</strong>
+          automáticamente.
+        </li>
+        <li class="mb-1"><span class="chip chip-import">import</span> — cargado desde plantilla/externo; tratamos como
         “oficial
-        externo”.</li>
+      externo”.</li>
     </ul>
     <div class="text-right">
       <button class="px-3 py-1 border rounded" type="button" (click)="closeFuenteInfo()">Entendido</button>
     </div>
   </div>
 </div>
+}

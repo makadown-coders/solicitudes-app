@@ -1,37 +1,41 @@
 <div class="p-6 mx-auto max-w-4xl space-y-6">
-    <h1 class="text-2xl font-bold text-green-800">📦 Carga de citas </h1>
+  <h1 class="text-2xl font-bold text-green-800">📦 Carga de citas </h1>
 
-    <label class="flex items-center gap-2 text-sm">
-        <input type="checkbox" [(ngModel)]="resetTable" />
-        Limpiar tabla antes de subir (TRUNCATE)
+  <label class="flex items-center gap-2 text-sm">
+    <input type="checkbox" [(ngModel)]="resetTable" />
+    Limpiar tabla antes de subir (TRUNCATE)
+  </label>
+
+  <!-- Citas -->
+  <div class="p-5 bg-white rounded-lg shadow border">
+    <h2 class="text-lg font-semibold">🏥 (ABASTO ONEDRIVE)</h2>
+    <hr class="my-2" />
+    <input type="file" multiple accept=".xls,.xlsx" id="fileCitas" class="hidden" (change)="onFilesCitas($event)" />
+    <label for="fileCitas" class="px-4 py-2 text-white bg-emerald-600 cursor-pointer rounded hover:bg-emerald-700">
+      Seleccionar archivo(s)
     </label>
+    @if (fileNameCitas) {
+      <p class="mt-2 text-xs italic">{{ fileNameCitas }} seleccionado(s)</p>
+    }
+  </div>
 
-    <!-- Citas -->
-    <div class="p-5 bg-white rounded-lg shadow border">
-        <h2 class="text-lg font-semibold">🏥 (ABASTO ONEDRIVE)</h2>
-        <hr class="my-2" />
-        <input type="file" multiple accept=".xls,.xlsx" id="fileCitas" class="hidden" (change)="onFilesCitas($event)" />
-        <label for="fileCitas" class="px-4 py-2 text-white bg-emerald-600 cursor-pointer rounded hover:bg-emerald-700">
-            Seleccionar archivo(s)
-        </label>
-        <p class="mt-2 text-xs italic" *ngIf="fileNameCitas">{{ fileNameCitas }} seleccionado(s)</p>
-    </div>
+  <div class="flex justify-end">
+    <button (click)="subir()" [disabled]="!canUpload || isUploading"
+      class="px-6 py-2 text-white font-semibold bg-green-700 rounded-lg cursor-pointer shadow hover:bg-green-800 disabled:opacity-50">
+      ⬆️ Subir citas
+    </button>
+  </div>
 
-    <div class="flex justify-end">
-        <button (click)="subir()" [disabled]="!canUpload || isUploading"
-            class="px-6 py-2 text-white font-semibold bg-green-700 rounded-lg cursor-pointer shadow hover:bg-green-800 disabled:opacity-50">
-            ⬆️ Subir existencias
-        </button>
-    </div>
-
-    <!-- Overlay de progreso -->
-    <div *ngIf="isUploading" class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="p-6 w-96 text-center bg-white rounded-lg shadow-lg">
-            <h2 class="mb-4 text-lg font-semibold">Subiendo datos...</h2>
-            <div class="overflow-hidden w-full h-4 bg-gray-200 rounded-full">
-                <div class="h-4 bg-emerald-600" [style.width.%]="progress"></div>
-            </div>
-            <p class="mt-3 text-sm text-gray-600">{{ progress | number:'1.0-0' }}%</p>
+  <!-- Overlay de progreso -->
+  @if (isUploading) {
+    <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="p-6 w-96 text-center bg-white rounded-lg shadow-lg">
+        <h2 class="mb-4 text-lg font-semibold">Subiendo datos...</h2>
+        <div class="overflow-hidden w-full h-4 bg-gray-200 rounded-full">
+          <div class="h-4 bg-emerald-600" [style.width.%]="progress"></div>
         </div>
+        <p class="mt-3 text-sm text-gray-600">{{ progress | number:'1.0-0' }}%</p>
+      </div>
     </div>
+  }
 </div>

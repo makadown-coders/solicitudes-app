@@ -10,6 +10,7 @@ export const enum StorageVariables {
     DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE = 'dash_abasto_existencias_citas_x_clave',
     DASH_ABASTO_EXISTENCIAS_EXC_ALMACENES = 'dash_abasto_existencias_exc_almacenes',
     DASH_ABASTO_EXISTENCIAS_EXC_DATOS_AGRUPADOS = 'dash_abasto_existencias_exc_datos_agrupados',
+    DASH_ABASTO_EXISTENCIAS_EXC_FACTOR_MAP = 'dash_abasto_existencias_exc_factor_map',
     DASH_ABASTO_EXISTENCIAS_EXC_CITA_PARA_DESCRIPCION_DE_CLAVE = 'dash_abasto_existencias_exc_cita_para_descripcion_de_clave',
     // Dashboard Abasto tab Existencias > Existencias x Unidad
     DASH_ABASTO_EXISTENCIAS_EXU_FILTRO_UNIDAD = 'dash_abasto_existencias_filtro_unidad',
@@ -43,7 +44,7 @@ export const enum StorageVariables {
     DASH_ABASTO_INV_FILTRO_TEXTO = 'dash_abasto_inv_filtro_texto',
     DASH_ABASTO_INV_FILTRO_UNIDAD = 'dash_abasto_inv_filtro_unidad',
     DASH_ABASTO_INV_FILTRO_COMPRAS = 'dash_abasto_inv_filtro_compras',
-    // Dashboard Abasto tab Entregas pendientes
+    // Dashboard Abasto tab Resumen Citas
     DASH_ABASTO_RESUMENCITAS_FILTRO_COMPRA = 'dash_abasto_resumen_citas_filtro_compra',
     DASH_ABASTO_RESUMENCITAS_RANGO = 'dash_abasto_resumen_citas_rango',
     // POC Finanzas – Evaluación SMI/SG
@@ -62,6 +63,8 @@ export const enum StorageVariables {
     SOLICITUD_ACTIVE_TAB_SEGUNDO_NIVEL = 'activeTab',
     SOLICITUD_CPMS = 'cpms',
     SOLICITUD_CLAVEGRUPOS = 'clavegrupos',
+    SOLICITUD_CPMS_TS = 'SOLICITUD_CPMS_TS',
+    SOLICITUD_INVENTARIO_TS = 'SOLICITUD_INVENTARIO_TS',
     // variables usadas tanto en solicitudes como en dashboard abasto
     // se refieren al nombre del endpoint en /api/inventario
     EXISTENCIA_HGENS = 'HGENS', 
@@ -89,3 +92,6 @@ export enum Existencias {
     HGTZE = 'HGTZE',
     HGSF = 'HGSF'
 }
+
+// helper para armar key de timestamp de existencias
+export const tsKeyExistencia = (existencia: Existencias) => `TS_${existencia}`;

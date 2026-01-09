@@ -22,6 +22,8 @@ export class Cita {
   fecha_limite_de_entrega: Date;
   pzas_recibidas_por_la_entidad: number | null;
   fecha_recepcion_almacen: string | null;
+  fecha_recepcion_lista: string[] | null;
+  fecha_recepcion_min: string | null;
   numero_de_remision: string;
   lote: string;
   caducidad: string | null;
@@ -71,3 +73,6 @@ export interface CitaRow {
   30?: string | Date | null; // fechaCita
  // 31?: string; // observacion
 }
+
+
+

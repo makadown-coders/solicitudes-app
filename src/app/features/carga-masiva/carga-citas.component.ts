@@ -153,7 +153,9 @@ export class CargaCitasComponent {
             nuevoRegistro.procedimiento = procedimiento;
             nuevoRegistro.tipo_de_entrega = tipoEntrega;
             nuevoRegistro.clues_destino = cluesDestino;
-            nuevoRegistro.unidad = unidad;
+            nuevoRegistro.unidad = unidad.trim().length > 0 ? unidad : 
+                ( this.unidadesService.findByCluessa(cluesDestino)?.nombre || 
+                  this.unidadesService.findByCluesimb(cluesDestino)?.nombre || '');
             nuevoRegistro.fte_fmto = fuenteFinanciamiento;
             nuevoRegistro.proveedor = (proveedor + '').trim().toLocaleUpperCase();
             nuevoRegistro.clave_cnis = claveCNIS;
@@ -183,36 +185,6 @@ export class CargaCitasComponent {
 
             citasRetorno.push(nuevoRegistro);
         }
-        /*
-
-       for (const r of rows) {
-           const claveRaw = r[0];
-           if (this.isHeaderish(claveRaw)) continue;
-           const clave = this.inv.normalizarClave((claveRaw ?? '').toString().toUpperCase());
-           if (!clave) continue;
-
-           const disponible = this.toNum(r[3]);
-           const comprometido = this.toNum(r[6]);
-           let existencia = disponible - comprometido;
-           if (existencia < 0) existencia = 0;
-
-           const alias = (r[4] ?? '').toString().trim();
-           const lote = (r[7] ?? null)?.toString().trim() || null;
-           const fCad = this.formatFecha(r[8]);
-
-           // +++ resolver cluesimb desde alias_sas
-           const cluesimb = alias ? (this.unidadesService.getCluesimbFor(alias) || null) : null;
-
-           out.push({
-               fuente: 'SAS',
-               alias_sas: alias || null,
-               cluesimb,
-               clave_cnis: clave,
-               lote,
-               fecha_caducidad: fCad,
-               existencia
-           });
-       }*/
         return citasRetorno;
     }
 
@@ -245,46 +217,13 @@ export class CargaCitasComponent {
 
             await uploadBatches(this.citasASubir);
 
-            alert(`✅ Existencias cargadas. Registros: ${total}`);
+            alert(`✅ Citas cargadas. Registros: ${total}`);
         } catch (e) {
             console.error(e);
-            alert('❌ Error durante la carga de existencias');
+            alert('❌ Error durante la carga de Citas');
         } finally {
             this.isUploading = false;
             this.progress = 0;
         }
-    }
-
-    // ---------- helpers ----------
-    private toNum(v: any): number {
-        if (v == null || v === '') return 0;
-        if (typeof v === 'number') return v;
-        const s = String(v).replace(/[, ]/g, '');
-        const n = Number(s);
-        return isFinite(n) ? n : 0;
-    }
-
-    private isHeaderish(x: any): boolean {
-        if (x == null) return true;
-        const s = String(x).toLowerCase();
-        return s.includes('clave') || s.includes('código') || s.includes('codigo');
-    }
-
-    private formatFecha(value: any): string | null {
-        if (!value) return null;
-        if (typeof value === 'number') {
-            const d = XLSX.SSF.parse_date_code(value);
-            if (!d) return null;
-            const js = new Date(d.y, d.m - 1, d.d);
-            return js.toISOString().split('T')[0];
-        }
-        if (typeof value === 'string') {
-            const clean = value.trim();
-            const m1 = clean.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-            if (m1) return `${m1[3]}-${m1[2]}-${m1[1]}`;
-            const dt = new Date(clean);
-            return isNaN(dt.getTime()) ? null : dt.toISOString().split('T')[0];
-        }
-        return null;
     }
 }

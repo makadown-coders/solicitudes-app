@@ -1,4 +1,5 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+// src/app/features/dashboard-abasto/resumen-citas/resumen-citas.component.ts
+import { Component, effect, inject, Input, OnChanges, OnInit, signal, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Cita } from '../../../models/Cita';
 import { PeriodoFechasService } from '../../../shared/periodo-fechas.service';
@@ -6,6 +7,11 @@ import { StorageVariables } from '../../../shared/storage-variables';
 import { PeriodoPickerDasboardComponent } from '../../../shared/periodo-picker/periodo-picker-dashboard.component';
 import { FormsModule } from '@angular/forms';
 import { DetalleOrdenesModalComponent } from '../../../shared/detalle-ordenes-modal/detalle-ordenes-modal.component';
+import { CitaQueryResponse } from '../../../models/CitaQueryResponse';
+import { CitasService } from '../../../services/citas.service';
+import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
+import { ActivatedRoute } from '@angular/router';
+
 
 @Component({
     selector: 'app-resumen-citas',
@@ -18,14 +24,16 @@ import { DetalleOrdenesModalComponent } from '../../../shared/detalle-ordenes-mo
     templateUrl: './resumen-citas.component.html',
     styleUrls: ['./resumen-citas.component.css']
 })
-export class ResumenCitasComponent implements OnInit, OnChanges {
-    @Input() citas: Cita[] = [];
+export class ResumenCitasComponent extends AbstractTabComponent implements OnInit {
+    mostradoPorPrimeraVez = false;
+    citas = signal<Cita[]>([]);
 
     // Variables de control
     filtroCompra = '';
     tiposCompra: string[] = [];
-    fechaInicio: Date = new Date(Date.now());
-    fechaFin: Date = new Date(Date.now() + 1);
+    // fecha de inicio es Hoy - 15 dias
+    fechaInicio: Date = new Date(Date.now() - (5 * 24 * 60 * 60 * 1000));
+    fechaFin: Date = new Date(Date.now() + (15 * 24 * 60 * 60 * 1000));
     diasRango: string[] = [];
 
     datosAgrupados: {
@@ -41,14 +49,18 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
     detalleVisible = false;
     ordenesSeleccionadas: Cita[] = [];
 
+    loading = signal<boolean>(false);
+    errorMsg: string | null = null;
+    private citasService = inject(CitasService);
+
     abrirDetalleOrdenes(tipoEntrega: string, unidad: string) {
 
-        this.ordenesSeleccionadas = this.citas
+        this.ordenesSeleccionadas = this.citas()
             .filter(c =>
                 c.tipo_de_entrega === tipoEntrega &&
                 c.unidad === unidad &&
-                this.diasRango.includes(c.fecha_de_cita + '') 
-             ); // opcional según lógica
+                this.diasRango.includes(c.fecha_de_cita + '')
+            ); // opcional según lógica
         // filtrar si tengo elegido tipo de compra
         if (this.filtroCompra) {
             this.ordenesSeleccionadas = this.ordenesSeleccionadas.filter(c => c.compra === this.filtroCompra);
@@ -60,28 +72,25 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
         this.detalleVisible = false;
     }
 
+    constructor(private fechasService: PeriodoFechasService, activatedRoute: ActivatedRoute) {
+        super();
+        effect(() => {
+            const citas = this.citas();
+            if (!citas.length) return;
 
-    constructor(private fechasService: PeriodoFechasService) { }
+            this.generarDiasDelRango();
+            this.recalcularAgrupacion();
+        });
 
-    /**
-     * Triggereado cuando se cambian las citas
-     * @param changes 
-     */
-    ngOnChanges(changes: SimpleChanges): void {
-        if (!changes['citas']) return;
-
-        this.inicializarFechas();
-        this.recalcularAgrupacion();
+        if (activatedRoute.snapshot.url[0].path === 'resumen-citas') {
+            this.isActive = true;
+        }
     }
 
     ngOnInit(): void {
-        
-        const set = new Set<string>();
-        this.citas.forEach(c => {
-            if (c.compra) set.add(c.compra);
-        });
-        this.tiposCompra = Array.from(set).sort();
-
+        if (!this.mostradoPorPrimeraVez && this.isActive) {
+            this.onTabActivated();
+        }
     }
 
     inicializarFechas() {
@@ -93,7 +102,7 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
             this.fechaFin = new Date(parsed.fin);
         } else {
             // Calcular desde última fecha de cita menos 30 días
-            const fechasValidas = this.citas
+            const fechasValidas = this.citas()
                 .map(c => c.fecha_de_cita)
                 .filter(f => f !== null);
 
@@ -104,7 +113,8 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
             }, fechasValidas[0]!);
 
             // Convertir última fecha en objeto Date para poder manipular
-            this.fechaInicio = this.parseFechaLocal(ultimaFecha + '');
+            // this.fechaInicio = this.parseFechaLocal(ultimaFecha + '');
+            this.fechaInicio = this.fechasService.toDateOrNull(ultimaFecha!)!;
             this.fechaFin = new Date(this.fechaInicio);
             this.fechaInicio.setDate(this.fechaInicio.getDate() - 10);
 
@@ -113,22 +123,23 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
                 fin: this.fechaFin
             }));
         }
-
         this.generarDiasDelRango();
     }
 
     generarDiasDelRango() {
         const diasUnicos = new Set<string>();
 
-        (this.citas as Cita[]).forEach(c => {
+        (this.citas() as Cita[]).forEach(c => {
             if (c.fecha_de_cita !== null) {
-                const fechaCita = this.parseFechaLocal(c.fecha_de_cita + '');
-                if (fechaCita >= this.fechaInicio &&
-                    fechaCita <= this.fechaFin) {
+                const fechaCita = this.fechasService.toDateOrNull(c.fecha_de_cita);
+                // const fechaCita = this.parseFechaLocal(c.fecha_de_cita + '');
+                if (fechaCita! >= this.fechaInicio &&
+                    fechaCita! <= this.fechaFin) {
                     diasUnicos.add(c.fecha_de_cita + '');
                 }
             }
         });
+
         this.diasRango = Array.from(diasUnicos).sort((a, b) => {
             const da = new Date(a.split('/').reverse().join('-'));
             const db = new Date(b.split('/').reverse().join('-'));
@@ -138,11 +149,6 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
 
     formatFecha(date: Date): string {
         return date.toISOString ? date.toISOString().split('T')[0] : '';
-    }
-
-    parseFechaLocal(fechaStr: string): Date {
-        const [year, month, day] = fechaStr.split('-').map(Number);
-        return new Date(year, month - 1, day); // Mes comienza en 0
     }
 
     obtenerConteo(fila: any) {
@@ -155,17 +161,10 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
         const agrupados = new Map<string, Map<string, { [fecha: string]: number }>>();
 
         const citasFiltradas = this.filtroCompra && this.filtroCompra !== '' ?
-            [... this.citas.filter(c => c.compra === this.filtroCompra)] :
-            [...this.citas];
+            [... this.citas().filter(c => c.compra === this.filtroCompra)] :
+            [...this.citas()];
 
         for (const cita of citasFiltradas) {
-
-            if (!cita.fecha_de_cita) continue;
-
-            const fechaCita = this.parseFechaLocal(cita.fecha_de_cita + '');
-            // instanceof Date ? this.formatFecha(cita.fecha_de_cita) : null;           
-
-            if (new Date(fechaCita) < this.fechaInicio || new Date(fechaCita) > this.fechaFin) continue;
 
             const tipoEntrega = cita.tipo_de_entrega || 'Sin tipo';
             const unidad = cita.unidad || 'Sin unidad';
@@ -205,13 +204,15 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
         this.fechaInicio = inicio;
         this.fechaFin = fin;
 
-        this.generarDiasDelRango();
-        this.recalcularAgrupacion();
+        // this.generarDiasDelRango();
+        // this.recalcularAgrupacion();
 
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify({
             inicio: this.fechaInicio,
             fin: this.fechaFin
         }));
+
+        this.cargarCitasDesdeBackend();
     }
 
     obtenerTotalPorDia(dia: string): number {
@@ -270,5 +271,74 @@ export class ResumenCitasComponent implements OnInit, OnChanges {
             .reduce((sum, d) => sum + this.obtenerConteo(d), 0);
     }
 
+    // ============================================================
+    //         CARGA BACKEND + SIGNAL
+    // ============================================================
+    private toYmd(d: Date) {
+        return d.toISOString().slice(0, 10);
+    }
+
+    private cargarCitasDesdeBackend(
+        cargandoDesdeNgOnInit = false,
+        forceRefresh = false
+    ) {
+        this.loading.set(true);
+        this.errorMsg = null;
+
+        this.citasService.searchCitasCached(
+            {
+                // include_pendientes: '1',
+                recibido: 'false',
+                limit: 20000,
+            },
+            { forceRefresh }
+        ).subscribe({
+            next: (resp: CitaQueryResponse) => {
+
+                const citasFiltradasPorFechaDesdeHasta = (resp.data ?? []).filter(cita => {
+                    if (!cita.fecha_de_cita) return false;
+                    // fecha de cita tiene un formato ej. "2024-12-16T08:00:00.000Z"
+                    const fechaCita = this.fechasService.toDateOrNull(cita.fecha_de_cita);
+                    return fechaCita! >= this.fechaInicio && fechaCita! <= this.fechaFin;
+                });
+
+                this.citas.set(citasFiltradasPorFechaDesdeHasta ?? []);
+                this.loading.set(false);
+                this.procesarCitas();
+                // this.generarDiasDelRango();
+            },
+            error: err => {
+                this.loading.set(false);
+                this.errorMsg = 'Error al obtener citas desde backend';
+                this.citas.set([]);
+            }
+        });
+    }
+
+    // ============================================================
+    //         PROCESAMIENTOS Y AGRUPACIONES
+    // ============================================================
+    procesarCitas() {
+        const lista = this.citas();
+
+        const citasPendientes = [...lista];
+
+        this.tiposCompra = Array.from(
+            new Set(citasPendientes.map(c => c.compra ?? 'Desconocido'))
+        ).sort();
+    }
+
+    protected override onTabActivated(): void {
+        if (!this.mostradoPorPrimeraVez) {
+            const set = new Set<string>();
+            this.tiposCompra = Array.from(set).sort();
+            this.inicializarFechas();
+            this.cargarCitasDesdeBackend(true);
+            this.mostradoPorPrimeraVez = true;
+        }
+    }
+    protected override onTabDeactivated(): void {
+        // No action needed
+    }
 
 }

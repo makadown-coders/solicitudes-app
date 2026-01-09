@@ -166,3 +166,5 @@ export type UnidadDetalle = {
   estratoUnidad: string | null;
   nivelAtencion: string | null;
 };
+
+
