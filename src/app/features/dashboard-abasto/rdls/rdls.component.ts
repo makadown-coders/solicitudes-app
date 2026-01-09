@@ -361,7 +361,7 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
           }
           idx.set(k, (idx.get(k) || 0) + disp);
         }
-        const rows = this.rows().slice();
+        const rows = this.filteredRows(); //this.rows(); // .slice();
         for (const r of rows) {
           const keyNorm = this.inventario.normalizarClave(r.clave);
           const val = idx.get(keyNorm) ?? 0;
@@ -441,7 +441,11 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
     this.rows.set(rows);
   }
 
-  async exportarExcelRdlS(todo: boolean = true) {
+  async exportarExcelRdlS(todo: boolean = true) {    
+
+    this.hydrateConCpms().then(() => {});
+    this.hydrateConExistenciasHospitales();
+
     // 1) filas a exportar (todo lo filtrado o solo la página)
     const rows = todo ? this.filteredRows() : this.pageSlice();
 
