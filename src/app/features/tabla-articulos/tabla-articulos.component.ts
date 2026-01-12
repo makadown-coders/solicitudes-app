@@ -44,6 +44,7 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
   @Output() cancelar = new EventEmitter<void>();
   @Output() editar = new EventEmitter<number>();
   @Output() eliminar = new EventEmitter<number>();
+  @Output() CPMsPorUnidadActualizado = new EventEmitter<CPMS[]>();
 
   sanitizer = inject(DomSanitizer);
   storageSolicitudService = inject(StorageSolicitudService);
@@ -118,6 +119,7 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
             for (const r of this.cpmsDeCluesActual) {
               this.cpmIndex.set(this.normClave(r.clave), Number(r.cantidad) || 0);
             }
+            this.CPMsPorUnidadActualizado.emit(this.cpmsDeCluesActual);
             this.cdRef.detectChanges();
           });
       }

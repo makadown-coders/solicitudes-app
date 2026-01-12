@@ -1069,4 +1069,11 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     void this.agregarArticulo();
   }
 
+  /**
+   * Actualiza la lista de CPMS por unidad desde el componente hijo.
+   * @param $event 
+   */
+  actualizarCPMsPorUnidad($event: CPMS[]) {
+    this.cpmsDeCluesActual = $event;
+  }
 }
