@@ -1,9 +1,9 @@
 // src/app/services/unidades.service.ts
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, map, Observable } from 'rxjs';
+import { BehaviorSubject, map, Observable, shareReplay } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { Unidad, Unidadv2, UnidadFromApi } from '../models/articulo-solicitud';
+import { Unidad, Unidadv2, UnidadFromApi, UnidadExistente } from '../models/articulo-solicitud';
 import { UnidadMedica } from '../models';
 
 
@@ -15,6 +15,8 @@ export class UnidadesService {
   // ⬇️ corrige el tipo del cache: era Unidad[], pero realmente cargas Unidadv2[]
   private unidadesSubject = new BehaviorSubject<Unidadv2[]>([]);
   public unidades$: Observable<Unidadv2[]> = this.unidadesSubject.asObservable();
+
+  private primerNivel$?: Observable<UnidadExistente[]>;
 
   // índices para búsquedas rápidas
   private byCluesimb = new Map<string, Unidadv2>();
@@ -91,7 +93,7 @@ export class UnidadesService {
     if (this.unidadesSignal().length) return; // ya cargado
     this.http.get<UnidadMedica[]>(this.apiUrl)
       .subscribe({
-        next: rows => {          
+        next: rows => {
           this.unidadesSignal.set(rows ?? []);
         },
         error: err => console.error('Error cargando unidades:', err),
@@ -170,5 +172,25 @@ export class UnidadesService {
   getCluesimbByCluessa(cluessa?: string): string | null {
     const u = this.findByCluessa(cluessa);
     return u?.cluesimb ?? null;
+  }
+
+  /**
+   * Devuelve una lista de unidades de primer nivel (CLUES IMB) que estén
+   * en la base de datos. La respuesta se almacena en cache para evitar
+   * peticiones innecesarias a la API.
+   *
+   * @returns Observable<UnidadExistente[]> que devuelve la lista de unidades
+   */
+  loadPrimerNivel(): Observable<UnidadExistente[]> {
+    if (this.primerNivel$) return this.primerNivel$;
+
+    this.primerNivel$ = this.http
+      .get<UnidadExistente[]>(`${this.apiUrl}/primer-nivel`,
+         { headers: { 'X-Skip-Loader': '1' } })
+      .pipe(
+        shareReplay(1)
+      );
+
+    return this.primerNivel$;
   }
 }

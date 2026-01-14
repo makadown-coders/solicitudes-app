@@ -1,0 +1,150 @@
+<!-- src/app/features/dashboard-abasto/rdls/rdls.component.html -->
+<div class="p-4 space-y-4 md:p-6">
+    <div class="flex items-center gap-3">
+        <h2 class="text-2xl font-semibold text-green-800">RdlS · Análisis Plan de Distribución (1er Nivel)</h2>
+        <span class="px-2 py-1 text-xs text-amber-800 bg-amber-100 rounded-lg">(beta)</span>
+        <!-- Bloque derecho: búsqueda + filtro Ruta de la Salud -->
+        <div class="flex flex-wrap items-center gap-2 ml-auto">
+            <!-- 🔍 Búsqueda -->
+            <div>
+                <input
+                    class="px-3 py-2 w-64 rounded-xl border-gray-300 border focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Buscar por clave/descripcion." [ngModel]="term()" (ngModelChange)="onBuscar($event)" />
+            </div>
+
+            <!-- 🔽 Select Ruta de la Salud -->
+            <div class="w-56">
+                <label for="kitRutaRdlS" class="sr-only">Ruta de la Salud</label>
+                <select id="kitRutaRdlS"
+                    class="block px-3 py-2 w-full text-sm text-gray-700 bg-white rounded-xl border-gray-300 border focus:outline-none focus:ring-2 focus:ring-green-500"
+                    [ngModel]="kitRutaSaludElegido()" (ngModelChange)="onKitRutaChange($event)">
+                    <option value="ALL">RdlS · todas las claves</option>
+                    @for (kit of kitsRuta(); track kit) {
+                    <option [ngValue]="kit">
+                        {{ kit }}
+                    </option>
+                    }
+                </select>
+            </div>
+
+            @if (loadingKitsRuta()) {
+            <span class="text-xs text-slate-500">
+                Cargando kits RdlS...
+            </span>
+            }
+        </div>
+
+    </div>
+    <!-- CONTENEDOR -->
+    <div class="relative rounded-xl border">
+
+        <div #gridScroll class="overflow-auto max-h-[60vh]">
+            @let visibles = unidadesVisibles();
+            <table #dataTable class="min-w-[1400px] w-full text-sm">
+                <thead #theadEl class="min-w-[1400px] w-full text-sm table-fixed">
+                    <tr>
+                        <th class="px-2 py-2">NO.</th>
+                        <th class="px-2 py-2">CLAVE</th>
+                        <th class="px-2 py-2">DESCRIPCIÓN</th>
+
+                        <!-- 🧱 Almacenes (fijo) -->
+                        <th class="px-2 py-2 text-right whitespace-nowrap">AZM</th>
+                        <th class="px-2 py-2 text-right whitespace-nowrap">AZE</th>
+                        <th class="px-2 py-2 text-right whitespace-nowrap">AZT</th>
+                        <th class="px-2 py-2 text-right whitespace-nowrap">TOTAL ALM</th>
+
+                        <th *ngFor="let u of visibles; trackBy: trackByClues"
+                            class="px-2 py-2 text-right whitespace-nowrap">
+                            {{ u.cluesimb }}
+                        </th>
+                        <th class="px-2 py-2 text-right">TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (r of pageSlice(); track r.clave) {
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-2 py-2 text-right border-b">{{ r.no }}</td>
+                        <td class="px-2 py-2 font-mono border-b">{{ r.clave }}</td>
+                        <td class="p-2 py-2 font-mono border-b" [attr.title]="r.descripcion || '—'">
+                            {{ r.descripcion ? ((r.descripcion.length > 50) ? (r.descripcion | slice: 0:30) + ' [...]' :
+                            r.descripcion
+                            ) : '—' }}
+                        </td>
+
+                        <td class="px-2 py-2 text-right border-b">{{ r.AZM ?? 0 }}</td>
+                        <td class="px-2 py-2 text-right border-b">{{ r.AZE ?? 0 }}</td>
+                        <td class="px-2 py-2 text-right border-b">{{ r.AZT ?? 0 }}</td>
+                        <td class="px-2 py-2 text-right font-semibold border-b">{{ r.totalAlmacenes ?? 0 }}</td>
+
+                        <!-- columnas dinámicas -->
+                        @for (u of visibles; track u.cluesimb) {
+                        <td class="px-2 py-2 w-20 text-right border-b">
+                            {{ ($any(r).__cpmByUnit?.[u.__k] ?? 0) }}
+                        </td>
+                        }
+
+                        <td class="px-2 py-2 text-right font-semibold border-b">
+                            {{ ($any(r).__totalCpmVisible ?? 0) }}
+                        </td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <!-- Footer / totales -->
+        <div class="flex justify-between items-center mt-2 text-sm text-gray-600">
+            <div>Total: {{ totalItems() | number }}</div>
+            <!-- (botones export si quieres aquí) -->
+            <div class="flex items-center gap-2">
+                <button class="px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg hover:bg-green-500 transition"
+                    (click)="exportarExcelRdlSPrimerNivel(true)">
+                    Exportar Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔽 Paginación (calcada del inventario-tab, adaptada a signals) -->
+    <div class="flex items-center justify-end gap-3">
+        <label class="text-sm">Filas por página</label>
+        <select [ngModel]="pageSize()" (ngModelChange)="pageSize.set($event); goTo(1)" class="px-2 py-1 border rounded">
+            <option [ngValue]="25">25</option>
+            <option [ngValue]="50">50</option>
+            <option [ngValue]="100">100</option>
+            <option [ngValue]="200">200</option>
+        </select>
+
+        <button
+            class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            (click)="goTo(1)" [disabled]="page()===1">«
+            Primera</button>
+
+        <button
+            class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            (click)="jump(-10)" [disabled]="page()===1">‹‹
+            -10</button>
+
+        <button
+            class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            (click)="prevPage()" [disabled]="page()===1">‹
+            Anterior</button>
+
+        <div class="text-sm">Página {{ page() }} de {{ totalPages() }}</div>
+
+        <button
+            class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            (click)="nextPage()" [disabled]="page()>=totalPages()">Siguiente ›</button>
+
+        <button
+            class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            (click)="jump(10)" [disabled]="page()>=totalPages()">+10 ››</button>
+
+        <button
+            class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            (click)="goTo(totalPages())" [disabled]="page()>=totalPages()">Última »</button>
+    </div>
+
+    <div class="text-xs text-gray-500">
+        PIEZAS = 1 (por ahora) · componente en fase beta ·
+    </div>
+</div>
