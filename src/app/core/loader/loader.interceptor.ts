@@ -32,7 +32,6 @@ export const loaderInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   if (cleanReq.url.includes('factor')) {
-    console.log('cleanReq.url', cleanReq.url);
     customMessage = 'Cargando factores de conversión para existencias... espere un momento';
   }
 
@@ -43,11 +42,10 @@ export const loaderInterceptor: HttpInterceptorFn = (req, next) => {
   // customizar mensaje dependiendo de la api llamada
   if (cleanReq.url.includes('inventario')) {
     // revisar si es inventario/HGENS o inventario/HGMXL, para cortar la url por el ultimo /
-
     customMessage = `Cargando existencias de ${piezasUrl[piezasUrl.length - 1]}`;
   }
 
-  if (cleanReq.url.includes('init?reset=true')) { 
+  if (cleanReq.url.includes('init?reset=true') || cleanReq.url.includes('batch')) {
     skip = true;
   }
 

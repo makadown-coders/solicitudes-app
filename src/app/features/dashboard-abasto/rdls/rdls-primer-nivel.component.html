@@ -139,7 +139,7 @@
             <!-- (botones export si quieres aquí) -->
             <div class="flex items-center gap-2">
                 <button [disabled]="excelDisabled()"
-                    class="px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg hover:bg-green-500 transition"
+                    class="px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg cursor-pointer hover:bg-green-500 transition disabled:opacity-50"
                     (click)="exportarExcelRdlSPrimerNivel(true)">
                     Exportar Concentrado Excel
                 </button>
@@ -188,6 +188,6 @@
     </div>
 
     <div class="text-xs text-gray-500">
-        PIEZAS = 1 (por ahora) · componente en fase beta ·
+        · componente en fase beta ·
     </div>
 </div>

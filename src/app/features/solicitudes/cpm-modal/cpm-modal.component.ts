@@ -10,19 +10,7 @@ import { InventarioDisponibles } from '../../../models';
 import { InventarioService } from '../../../services/inventario.service';
 import { NgFastToastService } from 'ng-fast-toast';
 import { TrazabilidadService } from '../../../services/trazabilidad.service';
-
-type Row = {
-  clave: string;
-  cpm: number;
-  exist?: number;
-  descripcion?: string;
-  presentacion?: string;
-  azm?: number;
-  aze?: number;
-  azt?: number;
-  // UI
-  _sel?: boolean;
-};
+import { Row } from '../Row';
 
 @Component({
   selector: 'app-cpm-modal',
