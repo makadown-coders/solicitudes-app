@@ -57,12 +57,12 @@ export const routes: Routes = [
     path: 'admin-kits',
     loadComponent: () => import('./features/kits/admin-kits/admin-kits.component')
       .then(m => m.AdminKitsComponent)
-  },/*
+  },
   {
     path: 'carga-masiva-kits',
     loadComponent: () => import('./features/kits/kits-import/kits-import.component')
       .then(m => m.KitsImportComponent)
-  },*/
+  },
   {
     path: 'carga-masiva-cpm-kits',
     loadComponent: () =>
@@ -143,7 +143,13 @@ export const routes: Routes = [
         path: 'rdls',
         loadComponent: () => import('./features/dashboard-abasto/rdls/rdls.component')
           .then(m => m.RdlSComponent),
-        title: 'Dashboard Abasto · RdlS'
+        title: 'RdlS'
+      },
+      {
+        path: 'rdls-primer-nivel',
+        loadComponent: () => import('./features/dashboard-abasto/rdls/rdls-primer-nivel.component')
+          .then(m => m.RdlsPrimerNivelComponent),
+        title: 'RdlS - Primer Nivel'
       },
       {
         path: 'acerca',

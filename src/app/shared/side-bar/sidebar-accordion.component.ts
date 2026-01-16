@@ -26,6 +26,7 @@ export class SidebarAccordionComponent {
     { type: 'group', id: 'existencias', label: 'Existencias', children: [
       { type: 'link', id: 'existencias-beta', label: 'Existencias (beta)', route: 'existencias' },
       { type: 'link', id: 'rdls', label: 'RdlS', route: 'rdls' },
+      { type: 'link', id: 'rdls-primer-nivel', label: 'RdlS (1er nivel)', route: 'rdls-primer-nivel' },
       { type: 'group', id: 'analisis', label: 'Análisis de Abasto', children: [
         { type: 'link', id: 'xclave', label: 'xClave', route: 'analisis/xclave' },
         { type: 'link', id: 'balanceo', label: 'Balanceo (beta)', route: 'analisis/balanceo' },

@@ -1,0 +1,193 @@
+<!-- src/app/features/dashboard-abasto/rdls/rdls.component.html -->
+<div class="p-4 space-y-4 md:p-6">
+    <div class="flex items-center gap-3">
+        <h2 class="text-2xl font-semibold text-green-800">RdlS (1er Nivel)</h2>
+        <span class="px-2 py-1 text-xs text-amber-800 bg-amber-100 rounded-lg">(beta)</span>
+        <!-- Bloque derecho: búsqueda + filtro Ruta de la Salud -->
+        <div class="flex flex-wrap items-center gap-2 ml-auto">
+            <!-- 🔍 Búsqueda -->
+            <div>
+                <input
+                    class="px-3 py-2 w-64 rounded-xl border-gray-300 border focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Buscar por clave/descripcion." [ngModel]="term()" (ngModelChange)="onBuscar($event)" />
+            </div>
+
+            <!-- 🔽 Select Ruta de la Salud -->
+            <div class="w-[420px]">
+                <ng-select id="kitsRuta" [items]="kitsRuta()" [multiple]="true" [searchable]="true"
+                    [ngModel]="selectedKits()" (ngModelChange)="onKitsChange($event)"
+                    placeholder="Selecciona kit(s) (mínimo 1)">
+                    <!-- <ng-template ng-multi-label-tmp let-items="items" let-clear="clear">
+                        <div class="flex flex-wrap gap-1">
+                            <span class="px-2 py-0.5 text-xs text-amber-800 bg-amber-100 rounded"
+                                *ngFor="let it of items | slice:0:3">
+                                {{ it }}
+                            </span>
+                            <span class="text-xs text-slate-500" *ngIf="items.length > 3">+{{ items.length - 3 }}
+                                más</span>
+                        </div>
+                    </ng-template> -->
+                </ng-select>
+            </div>
+
+            @if (loadingKitsRuta()) {
+            <span class="text-xs text-slate-500">
+                Cargando kits RdlS...
+            </span>
+            }
+
+            <div class="max-[1080px] min-[512px]">
+                <ng-select [items]="unidadesPrimerNivel()" bindLabel="nombre" [multiple]="true"
+                    [searchable]="true" [ngModel]="selectedUnits()" (change)="onUnitsChange($event)"
+                    placeholder="Selecciona unidad(es) (mínimo 1)">
+                    <ng-template ng-option-tmp let-item="item">
+                        <div class="text-sm">
+                            <div class="font-semibold">{{ item.nombre }}</div>
+                            <div class="text-xs text-slate-500">{{ item.cluesimb }} · {{ item.jurisdiccion }} · {{
+                                item.localidad }}</div>
+                        </div>
+                    </ng-template>
+                   <!-- <ng-template ng-multi-label-tmp let-items="items">
+                        <div class="flex flex-wrap gap-1">
+                            <span class="px-2 py-0.5 text-xs text-green-800 bg-green-100 rounded"
+                                *ngFor="let it of items | slice:0:2">
+                                {{ $any(it).cluesimb }}
+                            </span>
+                            <span class="text-xs text-slate-500" *ngIf="items.length > 2">+{{ items.length - 2 }}
+                                más</span>
+                        </div>
+                    </ng-template> -->
+                </ng-select>
+            </div>
+
+            @if (loadingUnidad()) {
+            <span class="text-xs text-slate-500">Cargando existencias...</span>
+            }
+
+        </div>
+    </div>
+
+    <!-- CONTENEDOR -->
+    <div class="relative rounded-xl border">
+
+        <div #gridScroll class="overflow-auto max-h-[60vh]">
+            @let visibles = unidadesVisibles();
+            <div *ngIf="!canRender()" class="p-6 text-center text-gray-500">
+                Sin datos. Elige al menos 1 kit y 1 unidad.
+            </div>
+            <table *ngIf="canRender()" #dataTable class="min-w-[700px] w-full text-sm">
+                <thead #theadEl class="min-w-[700px] w-full text-sm table-fixed">
+                    <tr>
+                        <th class="px-2 py-2">NO.</th>
+                        <th class="px-2 py-2">CLAVE</th>
+                        <th class="px-2 py-2">DESCRIPCIÓN</th>
+
+                        <!-- 🧱 Almacenes (fijo) -->
+                        <th class="px-2 py-2 text-right whitespace-nowrap">AZM</th>
+                        <th class="px-2 py-2 text-right whitespace-nowrap">AZE</th>
+                        <th class="px-2 py-2 text-right whitespace-nowrap">AZT</th>
+                        <th class="px-2 py-2 text-right whitespace-nowrap">TOTAL ALM</th>
+
+                        <th class="px-2 py-2 text-right">EXISTENCIA (Σ)</th>
+                        <th class="px-2 py-2 text-right">CPM (Σ)</th>
+                        <th class="px-2 py-2 text-right">REORDEN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (r of pageSlice(); track r.clave) {
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-2 py-2 text-right border-b">{{ r.no }}</td>
+                        <td class="px-2 py-2 font-mono border-b">{{ r.clave }}</td>
+                        <td class="p-2 py-2 font-mono border-b" [attr.title]="r.descripcion || '—'">
+                            {{ r.descripcion ? ((r.descripcion.length > 50) ? (r.descripcion | slice: 0:30) + ' [...]' :
+                            r.descripcion
+                            ) : '—' }}
+                        </td>
+
+                        <td class="px-2 py-2 font-mono text-right border-b">
+                            {{ almBuckets().get(norm.normClave(r.clave))?.AZM ?? 0 }}
+                        </td>
+                        <td class="px-2 py-2 font-mono text-right border-b">
+                            {{ almBuckets().get(norm.normClave(r.clave))?.AZE ?? 0 }}
+                        </td>
+                        <td class="px-2 py-2 font-mono text-right border-b">
+                            {{ almBuckets().get(norm.normClave(r.clave))?.AZT ?? 0 }}
+                        </td>
+                        <td class="px-2 py-2 text-right font-semibold border-b">
+                            {{
+                            (almBuckets().get(norm.normClave(r.clave))?.AZM ?? 0) +
+                            (almBuckets().get(norm.normClave(r.clave))?.AZE ?? 0) +
+                            (almBuckets().get(norm.normClave(r.clave))?.AZT ?? 0)
+                            }}
+                        </td>
+
+                        <td class="px-2 py-2 text-right border-b">{{ ($any(r).__existSum ?? 0) }}</td>
+                        <td class="px-2 py-2 text-right border-b">{{ ($any(r).__cpmSum ?? 0) }}</td>
+
+                        <td class="px-2 py-2 text-right font-semibold border-b"
+                            [class.text-amber-700]="($any(r).__reorden ?? 0) > 0">
+                            {{ ($any(r).__reorden ?? 0) }}
+                        </td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <!-- Footer / totales -->
+        <div *ngIf="canRender()" class="flex justify-between items-center mt-2 text-sm text-gray-600">
+            <div>Total: {{ totalItems() | number }}</div>
+            <!-- (botones export si quieres aquí) -->
+            <div class="flex items-center gap-2">
+                <button [disabled]="excelDisabled()"
+                    class="px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg cursor-pointer hover:bg-green-500 transition disabled:opacity-50"
+                    (click)="exportarExcelRdlSPrimerNivel(true)">
+                    Exportar Concentrado Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔽 Paginación (calcada del inventario-tab, adaptada a signals) -->
+    <div class="flex items-center justify-end gap-3">
+        <label class="text-sm">Filas por página</label>
+        <select [ngModel]="pageSize()" (ngModelChange)="pageSize.set($event); goTo(1)" class="px-2 py-1 border rounded">
+            <option [ngValue]="25">25</option>
+            <option [ngValue]="50">50</option>
+            <option [ngValue]="100">100</option>
+            <option [ngValue]="200">200</option>
+        </select>
+
+        <button
+            class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            (click)="goTo(1)" [disabled]="page()===1">«
+            Primera</button>
+
+        <button
+            class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            (click)="jump(-10)" [disabled]="page()===1">‹‹
+            -10</button>
+
+        <button
+            class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            (click)="prevPage()" [disabled]="page()===1">‹
+            Anterior</button>
+
+        <div class="text-sm">Página {{ page() }} de {{ totalPages() }}</div>
+
+        <button
+            class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            (click)="nextPage()" [disabled]="page()>=totalPages()">Siguiente ›</button>
+
+        <button
+            class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            (click)="jump(10)" [disabled]="page()>=totalPages()">+10 ››</button>
+
+        <button
+            class="px-2 py-1 text-sm text-white bg-green-600 border rounded enabled:hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            (click)="goTo(totalPages())" [disabled]="page()>=totalPages()">Última »</button>
+    </div>
+
+    <div class="text-xs text-gray-500">
+        · componente en fase beta ·
+    </div>
+</div>

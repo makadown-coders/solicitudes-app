@@ -217,7 +217,8 @@ export class KitModalComponent implements OnInit {
             const clave = this.normClave(r.clave);
             const exist = this.existUnidadIndex.get(clave) || 0;
             r.existUnidad = exist;
-            r.reordenSug = this.computeReorden(Number(r.cpm || 0), exist);
+            const cpmEff = this.getCpmEfectivo(r);
+            r.reordenSug = this.computeReorden(cpmEff, exist);
             // Estadísticas
             if ((Number(r.cpm) || 0) > 0) this.kitStats.conCpm++;
             else this.kitStats.sinCpm++;
@@ -499,4 +500,34 @@ export class KitModalComponent implements OnInit {
         this.busy = false;
         this.cdRef.markForCheck();
     }
+
+    setDefaultQtyNoCpm(v: any) {
+        const n = Math.floor(Number(v) || 0);
+        this.defaultQtyNoCpm = Math.max(0, n);
+
+        // Recalcula sugerencias si ya hay existencias cargadas
+        if (this.showUnidadExist && this.hasUnidadExistencias) {
+            this.recomputeReordenSug();
+        }
+
+        this.cdRef.markForCheck();
+    }
+
+    private getCpmEfectivo(r: any): number {
+        const cpmReal = Number(r.cpm || 0);
+        if (cpmReal > 0) return cpmReal;
+
+        const postizo = Number(this.defaultQtyNoCpm || 0);
+        return postizo > 0 ? postizo : 0;
+    }
+
+    private recomputeReordenSug() {
+        // OJO: NO toques existUnidad aquí, solo reordenSug
+        for (const r of this.kitRows) {
+            const exist = Number(r.existUnidad || 0);
+            const cpmEff = this.getCpmEfectivo(r);
+            r.reordenSug = this.computeReorden(cpmEff, exist);
+        }
+    }
+
 }
