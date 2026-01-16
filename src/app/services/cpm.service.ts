@@ -74,10 +74,63 @@ export class CpmService {
     } catch { return []; }
   }
 
-  private persistUnion(cluesimb: string, rows: CpmUnionRow[]) {
+  /*private persistUnion(cluesimb: string, rows: CpmUnionRow[]) {
     const { union, ts } = this.storageKeys(cluesimb);
     localStorage.setItem(union, JSON.stringify(rows));
     localStorage.setItem(ts, Date.now().toString());
+  }*/
+  private persistUnion(cluesimb: string, rows: CpmUnionRow[]) {
+    const { union, ts } = this.storageKeys(cluesimb);
+
+    const tryWrite = () => {
+      localStorage.setItem(union, JSON.stringify(rows));
+      localStorage.setItem(ts, Date.now().toString());
+    };
+
+    try {
+      tryWrite();
+    } catch (err: any) {
+      // Cuota llena -> intentamos limpieza rápida
+      if (err?.name === 'QuotaExceededError') {
+        this.evictOldCpmCache(); // 👈 agrega este helper abajo
+        try {
+          tryWrite();
+        } catch (err2) {
+          console.warn('[CPM] Sin espacio en localStorage, no se persistirá', cluesimb);
+          // Importante: NO lanzar error. Solo no persistir.
+        }
+        return;
+      }
+
+      // Otro error raro: no tires el flujo tampoco
+      console.warn('[CPM] persistUnion falló', cluesimb, err);
+    }
+  }
+
+  private evictOldCpmCache(keepNewest = 10) {
+    try {
+      // Junta todas las claves cpm:ts:*
+      const keys: { k: string; ts: number }[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i) || '';
+        if (!k.startsWith('cpm:ts:')) continue;
+        const ts = Number(localStorage.getItem(k) || 0);
+        keys.push({ k, ts });
+      }
+
+      // Ordena por mas nuevo
+      keys.sort((a, b) => b.ts - a.ts);
+
+      // Borra todo excepto los keepNewest
+      for (let i = keepNewest; i < keys.length; i++) {
+        const tsKey = keys[i].k;
+        const unit = tsKey.replace('cpm:ts:', '');
+        localStorage.removeItem(tsKey);
+        localStorage.removeItem(`cpm:union:${unit}`);
+      }
+    } catch {
+      // si storage está bloqueado o algo, no pasa nada
+    }
   }
 
   private shouldRefresh(cluesimb: string): boolean {

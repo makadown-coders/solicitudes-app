@@ -2,16 +2,17 @@
 import * as LZString from 'lz-string';
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { BehaviorSubject,
-         catchError,
-         defer,
-         finalize,
-         map,
-         Observable,
-         shareReplay,
-         tap,
-         of
-       } from 'rxjs';
+import {
+  BehaviorSubject,
+  catchError,
+  defer,
+  finalize,
+  map,
+  Observable,
+  shareReplay,
+  tap,
+  of
+} from 'rxjs';
 import { environment } from '../../environments/environment';
 import { PeriodoFechasService } from '../shared/periodo-fechas.service';
 import { ExcelService } from './excel.service';
@@ -22,6 +23,7 @@ import { ClaveGrupo, CPMS } from '../models/CPMS';
 import { StorageSolicitudService } from './storage-solicitud.service';
 import { TemporalExistenciaRow } from '../models/temporal-existencia-row.model';
 import { CitaSlimByClaveLote, CitaSlimExistencia } from '../models/cita-slim-inventario.model';
+import { UnidadesService } from './unidades.service';
 
 // helper compartido
 function cleanLote(l?: string | null) {
@@ -38,6 +40,7 @@ export class InventarioService {
   public inventario$: Observable<Inventario[]> = this.inventarioSubject.asObservable();
   private fechaService = inject(PeriodoFechasService);
   private excelService = inject(ExcelService);
+  private unidadesService = inject(UnidadesService);
   // ========================= CPMS Legacy, en vías de deprecación =========================
   // private cpmsSubject = new BehaviorSubject<CPMS[]>([]);
   // public cpms$: Observable<CPMS[]> = this.cpmsSubject.asObservable();
@@ -62,6 +65,8 @@ export class InventarioService {
   private existenciasSubject: Map<Existencias, BehaviorSubject<Inventario[]>> = new Map<Existencias, BehaviorSubject<Inventario[]>>();
   public existencias$: Map<Existencias, Observable<Inventario[]>> = new Map<Existencias, Observable<Inventario[]>>();
 
+  private existenciasByCluesimb = new Map<string, Observable<Inventario[]>>();
+
   private _citasByClaveLote = signal<Map<string, CitaSlimByClaveLote[]>>(new Map());
   citasByClaveLote = this._citasByClaveLote.asReadonly();
 
@@ -83,7 +88,7 @@ export class InventarioService {
     const ts = Date.parse(tsStr);
     if (Number.isNaN(ts)) return true;
     return (Date.now() - ts) > this.TTL_MS;
-  }  
+  }
 
   /**
    * Refresca existencias de ALMACENES desde Postgres (tmp_existencias + v_unidad_medica_detalle)
@@ -454,7 +459,7 @@ export class InventarioService {
     this.slimInFlight$ = defer(() =>
       this.http.get<{ ok: boolean; rows: CitaSlimExistencia[] }>(url)
     ).pipe(
-      map((res:any) => {
+      map((res: any) => {
         // console.log('✅ Slim respuesta:', res.data);
         return this.buildSlimMap(res.data.rows ?? []);
       }),
@@ -540,7 +545,7 @@ export class InventarioService {
     } else {
       // console.info('✅ initInventario(): usando inventario de almacenes desde localStorage (vigente)');
     }
-  }  
+  }
 
   /**
  * Inicializa existencias de UNA unidad:
@@ -572,6 +577,57 @@ export class InventarioService {
     for (const existencia of Object.values(Existencias)) {
       this.initExistencia(existencia as Existencias);
     }
+  }
+
+  public getExistenciasByCluesimb(cluesimb: string, opts?: { force?: boolean }): Observable<Inventario[]> {
+    const key = (cluesimb || '').trim().toUpperCase();
+    if (!key) return of([]);
+
+    if (!opts?.force) {
+      const cached$ = this.existenciasByCluesimb.get(key);
+      if (cached$) return cached$;
+    } else {
+      this.existenciasByCluesimb.delete(key);
+    }
+
+    const url = environment.apiUrl + `/existencias-temp/by-unidad-full?cluesimb=${encodeURIComponent(key)}`;
+
+    const req$ = this.http.get<{ rows: TemporalExistenciaRow[] }>(url, { headers: { 'X-Skip-Loader': '1' } }).pipe(
+      map((response) => {
+        // jalar nombre de unidad a partir de cluesimb
+        const nombreUnidad = this.getNombreUnidadFromCluesimb(key);
+        // crear variable inv y pasarle los valores correspondientes de TemporalExistenciaRow[].
+        // NO SE USA EXCEL NI DECODIFICAR 64 !!!!
+        const inv = response.rows.map(item => {
+          const nuevoRegistro: Inventario = new Inventario();
+          nuevoRegistro.clave = item.clave_cnis;
+          nuevoRegistro.partida = ''; // item.lote || '';
+          nuevoRegistro.descripcion = '';
+          nuevoRegistro.disponible = item.existencia;
+          nuevoRegistro.almacen = nombreUnidad || '';
+          nuevoRegistro.fuente = '';
+          nuevoRegistro.comprometidos = 0;
+          nuevoRegistro.lote = item.lote || '';
+          nuevoRegistro.caducidad = item.fecha_caducidad as string;
+          nuevoRegistro.fecha_entrada = null;
+          return nuevoRegistro;
+        });
+        const invNorm = this.normalizarClavesInventario(inv);
+        return invNorm;
+      }),
+      catchError((err) => {
+        console.error('❌ getExistenciasByCluesimb', key, err);
+        return of([]);
+      }),
+      shareReplay(1)
+    );
+
+    this.existenciasByCluesimb.set(key, req$);
+    return req$;
+  }
+
+  private getNombreUnidadFromCluesimb(cluesimb: string): string {
+    return this.unidadesService.findByCluesimb(cluesimb)?.nombre || '';
   }
 
 }
