@@ -42,10 +42,16 @@ export class TrazabilidadModalComponent implements OnChanges {
             .slice()
             .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
             .map(m => {
-                const esEntrada = m.tipo_movimiento === 'entrada' || m.tipo_movimiento === 'traspaso';
+                const esEntrada = m.tipo_movimiento === 'entrada' ||
+                    m.tipo_movimiento === 'traspaso' ||
+                    m.tipo_movimiento === 'faltante';
                 const entradas = esEntrada ? Number(m.cantidad || 0) : 0;
-                const salidas = m.tipo_movimiento === 'salida' ? Number(m.cantidad || 0) : 0;
-                saldo += entradas - salidas;
+                const salidas = (m.tipo_movimiento === 'salida') ? Number(m.cantidad || 0) : 0;
+                // no actualizo saldo si es faltante
+                if (m.tipo_movimiento !== 'faltante') {
+                    saldo += entradas - salidas;
+                }
+
                 return { ...m, entradas, salidas, saldo };
             });
     });
@@ -61,6 +67,7 @@ export class TrazabilidadModalComponent implements OnChanges {
         let entradas = 0;
         let salidas = 0;
         for (const m of arr) {
+            if (m.tipo_movimiento === 'faltante') continue;
             entradas += m.entradas || 0;
             salidas += m.salidas || 0;
         }
@@ -102,7 +109,7 @@ export class TrazabilidadModalComponent implements OnChanges {
             Fecha: m.fecha ? new Date(m.fecha).toISOString().slice(0, 10) : '',
             Lote: m.lote ?? '',
             Caducidad: m.fecha_caducidad ? new Date(m.fecha_caducidad).toISOString().slice(0, 10) : '',
-            'Recibe / Entrega': (m.proveedor + (m.observaciones ? ' ('+ m.observaciones + ')' : '')),
+            'Recibe / Entrega': (m.proveedor + (m.observaciones ? ' (' + m.observaciones + ')' : '')),
             Entradas: m.entradas ?? 0,
             Salidas: m.salidas ?? 0,
             Saldo: m.saldo ?? 0,
@@ -165,18 +172,18 @@ export class TrazabilidadModalComponent implements OnChanges {
         XLSX.writeFile(wb, filename);
     }
 
-    fechaDeHoy() : Date {
+    fechaDeHoy(): Date {
         return new Date();
     }
 
 
-    fechaDeString(fecha: string | null | undefined) : Date | null {
+    fechaDeString(fecha: string | null | undefined): Date | null {
         if (!fecha) return null;
         // la fecha recibida siempre tiene formato con timezone, ej.
         // 2025-03-31T07:00:00.000Z
         const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
         if (!regex.test(fecha)) return null;
-    
+
         //Quitar del string el timezone
         const fechaSinTimezone = fecha.split('T')[0];
         // Convertir a date usando los pedazos yyyy-mm-dd 
