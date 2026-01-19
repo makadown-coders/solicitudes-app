@@ -1,6 +1,6 @@
 // movimiento-trazabilidad.model.ts
 export interface MovimientoTrazabilidad {
-  tipo_movimiento: 'entrada' | 'traspaso' | 'salida';
+  tipo_movimiento: 'entrada' | 'traspaso' | 'salida' | 'faltante';
   fecha: string;
   clave_cnis: string;
   descripcion: string | null;

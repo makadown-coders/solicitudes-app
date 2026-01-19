@@ -71,7 +71,6 @@
     <div class="relative rounded-xl border">
 
         <div #gridScroll class="overflow-auto max-h-[60vh]">
-            @let visibles = unidadesVisibles();
             <div *ngIf="!canRender()" class="p-6 text-center text-gray-500">
                 Sin datos. Elige al menos 1 kit y 1 unidad.
             </div>
