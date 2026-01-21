@@ -82,7 +82,7 @@ export class CpmModalComponent {
         .map(r => ({ clave: r.clave_cnis, cpm: Number(r.cpm ?? 0) }));
 
       // 2) Enriquecer con mapa de artículos local
-      const mapa = await firstValueFrom(this.arts.getArticulosMapa());
+      const mapa = await firstValueFrom(this.arts.getArticulosMapa());      
       const enriched = rowsBase.map(r => {
         const meta = mapa?.[r.clave];
         return { ...r, descripcion: meta?.descripcion ?? '', presentacion: meta?.presentacion ?? '' };
@@ -130,10 +130,7 @@ export class CpmModalComponent {
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
-    })
-
-    // 3) Array<{ clave|clave_cnis, almacen|bodega|origen, existencia }>
-    console.log('getAlmacenesFor', clave, src);
+    });
 
     let azm = 0, aze = 0, azt = 0;
     for (const r of src) {
@@ -218,16 +215,16 @@ export class CpmModalComponent {
 
     let reordenEsTotalLocal = false;
     // Si activaron existencias, calcula reorden = max(CPM*meses - exist, 0)
-    if (this.hasUnidadExist() && (r.exist ?? 0) >= 0) {
+    //if (this.hasUnidadExist() && (r.exist ?? 0) >= 0) {
 
       // const totalCobertura = (cpm > 0 ? cpm : this.defaultQtyNoCpm) * meses;
       const totalCobertura = cpm * meses;
       const reorden = Math.max(0, Math.round(totalCobertura - (r.exist ?? 0)));
       if (reorden > 0) { base = reorden; fuente = 'reorden'; reordenEsTotalLocal = true; }
       else { base = 0; fuente = 'reorden'; reordenEsTotalLocal = true; }
-    } else {
+    /*} else {
       this.reordenEsTotal = false;
-    }
+    }*/
 
     const factor = 1; //(fuente === 'reorden' && this.reordenEsTotal) ? 1 : meses;
     const qty = Math.max(0, Math.round((Number(base) || 0) * factor));
@@ -315,7 +312,7 @@ export class CpmModalComponent {
   setMesesCobertura($event: number) {
     this.mesesCobertura.set(Math.max(1, Math.floor($event || 1)));
     // desmarca las que dejaron de requerir resurtido
-    this.toggleSelTodo(this.showExistUnidad());
+    this.toggleSelTodo(true/*this.showExistUnidad()*/);
   }
 
   seleccionarTodoToggle($event: Event) {
