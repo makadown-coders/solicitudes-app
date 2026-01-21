@@ -95,12 +95,14 @@
           Ver existencias en AZM/AZE/AZT
         </label>
         <!-- Existencias por unidad (si hay staging en tmp_existencias) -->
-        @if (hasUnidadExistencias) {
+
         <div class="flex items-center gap-3">
+          @if (hasUnidadExistencias) {
           <label class="inline-flex items-center gap-2 text-sm text-gray-700">
             <input type="checkbox" [ngModel]="showUnidadExist" (ngModelChange)="setShowUnidadExist($event)" />
             Ver existencias de la unidad
           </label>
+          }
           @if (showUnidadExist) {
           <div class="flex items-center gap-2">
             <label class="block text-xs text-gray-600">Meses de cobertura</label>
@@ -109,18 +111,18 @@
           </div>
           }
         </div>
-        }
+
         <button class="px-3 py-1.5 text-white text-sm bg-emerald-600 rounded hover:bg-emerald-700 disabled:opacity-60"
           [disabled]="selectionCount === 0" (click)="agregarSeleccionAKit()">
           Agregar a solicitud ({{ selectionCount }})
         </button>
-        <button class="px-3 py-1.5 text-sm rounded border" (click)="toggleMasOpciones()">
+       <!--  <button class="px-3 py-1.5 text-sm rounded border" (click)="toggleMasOpciones()">
           {{ mostrarMasOpciones ? 'Ocultar opciones' : 'Más opciones' }}
-        </button>
+        </button> -->
       </div>
     </div>
     <!-- Opciones avanzadas -->
-    @if (mostrarMasOpciones) {
+    <!-- @if (mostrarMasOpciones) { -->
     <div class="mt-2 p-2 bg-gray-50 rounded border">
       <div class="flex flex-wrap items-end gap-2">
         <div class="flex items-center gap-2">
@@ -144,16 +146,17 @@
           CSV</button>
       </div>
     </div>
-    }
+    <!-- } -->
     <!-- Resumen -->
     <div class="mt-2 text-xs text-gray-600">
-      Total claves: <strong>{{ kitStats.conCpm }}</strong> ·
-      <!--  Total claves: <strong>{{ kitStats.total }}</strong> ·
-                Con CPM: <strong>{{ kitStats.conCpm }}</strong> ·
-                Sin CPM: <strong>{{ kitStats.sinCpm }}</strong> · -->
+      Total claves: <strong>{{ kitStats.total }}</strong> ·
+      Con CPM: <strong>{{ kitStats.conCpm }}</strong> ·
+      Sin CPM: <strong>{{ kitStats.sinCpm }}</strong> ·
+      @if (hasUnidadExistencias) {
       Con existencias: <strong>{{ kitStats.conExist }}</strong> ·
       Sin existencias: <strong>{{ kitStats.sinExist }}</strong> ·
-      Existencias totales: <strong>{{ kitStats.existTotal | number }}</strong>
+      Existencias totales en unidad: <strong>{{ kitStats.existTotal | number }}</strong>
+      }
     </div>
     <!-- Tabla -->
     <div class="overflow-auto mt-3 max-h-[65vh] border rounded">
@@ -181,9 +184,9 @@
             }
             <th class="px-2 py-1 w-[6rem] text-right border-b">Total</th>
             <!-- Existencias por unidad + reorden -->
-            @if (showUnidadExist && hasUnidadExistencias) {
+            <!-- @if (showUnidadExist && hasUnidadExistencias) { -->
             <th class="px-2 py-1 w-[7rem] text-right border-b">Cant. sugerida a solicitar</th>
-            }
+           <!--  } -->
           </tr>
         </thead>
         <tbody>
@@ -224,13 +227,13 @@
               </span>
             </td>
             <!-- Existencias por unidad + reorden -->
-            @if (showUnidadExist && hasUnidadExistencias) {
+            <!-- @if (showUnidadExist && hasUnidadExistencias) { -->
             <td class="px-2 py-1 text-right border-b">
               <span [class]="(r.reordenSug || 0) > 0 ? 'text-amber-700 font-semibold' : 'text-gray-500'">
                 {{ (r.reordenSug || 0) | number }}
               </span>
             </td>
-            }
+            <!-- } -->
           </tr>
           }
           @if (!kitRows.length) {

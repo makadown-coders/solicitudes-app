@@ -143,7 +143,7 @@ export class KitModalComponent implements OnInit {
 
             this.kitRows = kit;
             // Si ya tengo existencias por unidad, reinyéctalas sin re-fetch
-            if (this.hasUnidadExistencias && this.existUnidadIndex.size > 0) {
+            //if (this.hasUnidadExistencias && this.existUnidadIndex.size > 0) {
                 // reset stats antes de recomputar
                 this.kitStats.total = this.kitRows.length;
                 this.kitStats.conCpm = 0;
@@ -152,7 +152,7 @@ export class KitModalComponent implements OnInit {
                 this.kitStats.sinExist = 0;
                 this.kitStats.existTotal = 0;
                 this.mergeExistenciasIntoKit();
-            }
+            //}
             this.cdRef.markForCheck();
         } catch {
             this.toast.warn({ title: 'Sin datos', content: 'No fue posible cargar el KIT de la unidad.', duration: 5 });
@@ -212,7 +212,13 @@ export class KitModalComponent implements OnInit {
         return Math.max(0, objetivo - (exist || 0));
     }
 
+
     private mergeExistenciasIntoKit() {
+        this.kitStats.conCpm = 0;
+        this.kitStats.sinCpm = 0;
+        this.kitStats.conExist = 0;
+        this.kitStats.sinExist = 0;
+        this.kitStats.existTotal = 0;
         for (const r of this.kitRows) {
             const clave = this.normClave(r.clave);
             const exist = this.existUnidadIndex.get(clave) || 0;
@@ -275,11 +281,11 @@ export class KitModalComponent implements OnInit {
             return;
         }
 
-        const mesesCobertura =
-            (this.showUnidadExist && this.hasUnidadExistencias) ?
+        const mesesCobertura = Math.max(1, Math.floor(this.mesesCobertura || 1));
+            /*(this.showUnidadExist && this.hasUnidadExistencias) ?
                 Math.max(1, Math.floor(this.mesesCobertura || 1))
                 :
-                1;
+                1;*/
 
         const existentes = new Set((this.existingClaves || []).map(c => this.normClave(c)));
         const nuevos: ArticuloSolicitud[] = [];
@@ -454,9 +460,10 @@ export class KitModalComponent implements OnInit {
         this.cdRef.markForCheck();
         this.busy = false;
     }
-    setMesesCobertura(n: number) {
+    setMesesCobertura(n: number) {        
         this.mesesCobertura = Math.max(1, Math.floor(n || 1));
-        if (this.hasUnidadExistencias) this.mergeExistenciasIntoKit();
+        // if (this.hasUnidadExistencias) 
+        this.mergeExistenciasIntoKit();
     }
 
     // === Filtro “virtual” (por ahora no hay filtros visibles) ===
@@ -506,9 +513,9 @@ export class KitModalComponent implements OnInit {
         this.defaultQtyNoCpm = Math.max(0, n);
 
         // Recalcula sugerencias si ya hay existencias cargadas
-        if (this.showUnidadExist && this.hasUnidadExistencias) {
+        //if (this.showUnidadExist && this.hasUnidadExistencias) {
             this.recomputeReordenSug();
-        }
+        //}
 
         this.cdRef.markForCheck();
     }

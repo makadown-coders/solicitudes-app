@@ -115,7 +115,7 @@ export class ArticulosService {
           for (const a of arr.resultados) {
             mapa[a.clave] = {
               descripcion: a.descripcion,
-              presentacion: a.unidadMedida ?? '',
+              presentacion: a.unidadMedida && a.unidadMedida !== '' ? a.unidadMedida : (a as any).presentacion ?? '',
               categoria: (a as any).categoria ?? null,
             };
           }
