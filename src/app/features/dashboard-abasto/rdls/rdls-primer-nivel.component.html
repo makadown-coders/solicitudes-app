@@ -1,7 +1,7 @@
 <!-- src/app/features/dashboard-abasto/rdls/rdls.component.html -->
-<div class="p-4 space-y-4 md:p-6">
+<div [class.disabled-overlay]="generandoExcel()" class="p-4 space-y-4 md:p-6">
     <div class="flex items-center gap-3">
-        <h2 class="text-2xl font-semibold text-green-800">RdlS (1er Nivel)</h2>
+        <h2 class="text-2xl font-semibold text-green-800"> RdlS (1er Nivel) </h2>
         <span class="px-2 py-1 text-xs text-amber-800 bg-amber-100 rounded-lg">(beta)</span>
         <!-- Bloque derecho: búsqueda + filtro Ruta de la Salud -->
         <div class="flex flex-wrap items-center gap-2 ml-auto">
@@ -137,10 +137,10 @@
             <div>Total: {{ totalItems() | number }}</div>
             <!-- (botones export si quieres aquí) -->
             <div class="flex items-center gap-2">
-                <button [disabled]="excelDisabled()"
+                <button [disabled]="excelDisabled()||generandoExcel()"
                     class="px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg cursor-pointer hover:bg-green-500 transition disabled:opacity-50"
                     (click)="exportarExcelRdlSPrimerNivel(true)">
-                    Exportar Concentrado Excel
+                    {{ mensajeBotonExcel() }}
                 </button>
             </div>
         </div>

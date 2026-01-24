@@ -32,6 +32,12 @@ export class SidebarAccordionComponent {
         { type: 'link', id: 'balanceo', label: 'Balanceo (beta)', route: 'analisis/balanceo' },
       ]},
     ]},
+     { type: 'group', id: 'solicitudes-unidades', label: 'Solicitudes', children: [
+      { type: 'link', id: 'solicitudes', label: 'Solicitudes', route: 'solicitudes' },
+      /*{ type: 'link', id: 'citas-pend', label: 'Citas Pendientes', route: 'citas-pendientes' },
+      { type: 'link', id: 'citas-comp', label: 'Citas Completadas', route: 'citas-completadas' },
+      { type: 'link', id: 'resumen-citas', label: 'Resumen Citas (beta)', route: 'resumen-citas' },*/
+    ]},
     { type: 'group', id: 'sistema', label: 'Sistema', children: [
       { type: 'link', id: 'about', label: 'Acerca de', route: 'acerca' },
     ]},

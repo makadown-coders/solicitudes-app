@@ -1,0 +1,391 @@
+<!-- src/app/features/dashboard-abasto/solicitudes/solicitudes-tab.component.html -->
+<div class="space-y-4">
+
+    <div class="flex flex-col items-center justify-between gap-2 md:flex-row">
+        <div>
+            <h2 class="text-2xl font-semibold tracking-tight text-green-800 dark:text-[#CBA135]">
+                Solicitudes (bitácora)
+            </h2>
+
+            <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Nota: esta información es de apoyo (derivada de exportaciones). No refleja al 100% la “realidad
+                operativa”.
+            </div>
+        </div>
+
+        <button (click)="cargar()"
+            class="px-3 py-2 text-white bg-[#006341] rounded-lg hover:opacity-90 disabled:opacity-50"
+            [disabled]="loading()">
+            🔄 Recargar
+        </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+            <label class="block text-xs text-slate-500 dark:text-slate-300">Desde</label>
+            <input type="date" class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+                [ngModel]="desde()" (ngModelChange)="desde.set($event)" />
+        </div>
+
+        <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+            <label class="block text-xs text-slate-500 dark:text-slate-300">Hasta</label>
+            <input type="date" class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+                [ngModel]="hasta()" (ngModelChange)="hasta.set($event)" />
+        </div>
+
+        <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c] md:col-span-2">
+            <label class="block text-xs text-slate-500 dark:text-slate-300">Filtro (cluesimb / periodo / tipo)</label>
+            <input class="mt-1 px-3 py-2 w-full rounded-lg border-custom-default border dark:bg-black"
+                placeholder="Ej. BCIMSS012345, ENE-2026, Medicamento, Ordinario…" [ngModel]="filtroTexto()"
+                (ngModelChange)="filtroTexto.set($event)" />
+            <!-- <div class="flex items-center gap-2 mt-2 text-sm">
+                <input type="checkbox" [ngModel]="soloUltimaPorUnidad()"
+                    (ngModelChange)="soloUltimaPorUnidad.set($event)" />
+                <span class="text-slate-600 dark:text-slate-300">Solo última por unidad</span>
+            </div> -->
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="flex flex-wrap gap-3">
+        <div class="p-4 w-52 bg-white rounded-lg border-custom-default shadow-sm border dark:bg-[#1a202c]">
+            <div class="text-sm text-gray-500 dark:text-slate-300">Solicitudes (vista)</div>
+            <div class="text-2xl font-bold text-green-700 dark:text-white">{{ totalSolicitudesEnVista() }}</div>
+        </div>
+        <div class="p-4 w-52 bg-white rounded-lg border-custom-default shadow-sm border dark:bg-[#1a202c]">
+            <div class="text-sm text-gray-500 dark:text-slate-300">Unidades (vista)</div>
+            <div class="text-2xl font-bold text-green-700 dark:text-white">{{ totalUnidadesEnVista() }}</div>
+        </div>
+    </div>
+
+    @if (errorMsg(); as err) {
+    <div class="p-3 text-sm text-red-700 bg-red-50 border-red-200 rounded-xl border">
+        {{ err }}
+    </div>
+    }
+
+    @if (loading()) {
+    <div class="p-3 text-sm text-slate-600 dark:text-slate-300">
+        Cargando solicitudes… 🧾
+    </div>
+    }
+
+    <!-- Tabla -->
+    <div class="overflow-auto bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
+        <table class="min-w-full text-sm">
+            <thead class="sticky top-0 bg-white border-b dark:bg-[#1a202c]">
+                <tr class="text-left text-slate-600 dark:text-slate-300">
+                    <th class="px-3 py-2">Fecha</th>
+                    <th class="px-3 py-2">CLUES</th>
+                    <th class="px-3 py-2">Tipo pedido</th>
+                    <th class="px-3 py-2">Tipo(s) insumo</th>
+                    <th class="px-3 py-2">Periodo</th>
+                    <th class="px-3 py-2 text-right">Renglones</th>
+                    <th class="px-3 py-2 text-right">Piezas</th>
+                    <th class="px-3 py-2"></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @for (r of rowsView(); track r.id) {
+                <tr class="border-b hover:bg-green-50 dark:hover:bg-black">
+                    <td class="px-3 py-2 whitespace-nowrap">{{ r.created_day }}</td>
+                    <td class="px-3 py-2 font-medium whitespace-nowrap">{{ r.cluesimb }} - {{
+                        getDescripcionUnidad(r.cluesimb) }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ r.tipo_pedido }}</td>
+                    <td class="px-3 py-2">{{ (r.tipos_insumo ?? []).join(' - ') }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ r.periodo_texto ?? '—' }}</td>
+                    <td class="px-3 py-2 text-right">{{ r.total_renglones }}</td>
+                    <td class="px-3 py-2 text-right">{{ r.total_piezas }}</td>
+                    <td class="px-3 py-2 text-right">
+                        <button class="px-3 py-1 text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90"
+                            (click)="abrirDetalle(r)">
+                            Ver detalle
+                        </button>
+                        <button class="px-3 py-1 text-white bg-blue-600 rounded-lg cursor-pointer hover:opacity-90"
+                            (click)="abrirMovimientosDesdeSolicitud(30, r)">
+                            Ver movtos (30d)
+                        </button>
+                    </td>
+                </tr>
+                }
+
+                @if (!loading() && rowsView().length === 0) {
+                <tr>
+                    <td colspan="8" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+                        Sin datos en el rango seleccionado.
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal detalle -->
+    @if (detalleVisible()) {
+    <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-30">
+        <div
+            class="overflow-y-auto relative p-6 w-full max-h-[90vh] max-w-[75vw] bg-white rounded-lg shadow-lg dark:bg-[#1a202c]">
+            <button (click)="cerrarDetalle()"
+                class="absolute top-3 right-3 text-gray-500 text-xl hover:text-gray-700">&times;</button>
+
+            @if (selectedHeader(); as H) {
+            <h3 class="mb-1 text-xl font-bold text-green-800 dark:text-[#CBA135]">
+                Detalle de solicitud
+            </h3>
+            <div class="mb-4 text-sm text-slate-600 dark:text-slate-300">
+                <span class="font-medium">{{ H.cluesimb }}</span> · {{ H.created_day }} · {{ H.tipo_pedido }}
+                · {{ (H.tipos_insumo ?? []).join(' - ') }}
+            </div>
+            }
+
+            @if (detalleLoading()) {
+            <div class="p-3 text-sm text-slate-600 dark:text-slate-300">Cargando detalle…</div>
+            }
+
+            @if (detalleError(); as derr) {
+            <div class="p-3 text-sm text-red-700 bg-red-50 border-red-200 rounded-xl border">
+                {{ derr }}
+            </div>
+            }
+
+            <!-- Comparativa Solicitud vs Entregas -->
+            <div class="mt-4 p-4 bg-slate-50 rounded-xl border-slate-200 border dark:border-slate-700 dark:bg-black/20">
+                <div class="flex flex-col gap-2 md:flex-row items-center justify-between">
+                    <div>
+                        <div class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            Comparativa (Solicitado vs Entregado)
+                        </div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">
+                            * Entregado = movimientos hacia la unidad en el rango mostrado.
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 text-xs">
+                        <span
+                            class="px-2 py-1 bg-white border-slate-200 rounded dark:bg-black border dark:border-slate-700">
+                            Solic: <b>{{ kpiSolicitado() }}</b>
+                        </span>
+                        <span
+                            class="px-2 py-1 bg-white border-slate-200 rounded dark:bg-black border dark:border-slate-700">
+                            Entr: <b>{{ kpiEntregado() }}</b>
+                        </span>
+                        <span
+                            class="px-2 py-1 bg-white border-slate-200 rounded dark:bg-black border dark:border-slate-700">
+                            Cobertura: <b>{{ kpiCoberturaPct() }}%</b>
+                        </span>
+                    </div>
+                </div>
+
+                @if (movResumenLoading()) {
+                <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">Cargando entregas…</div>
+                }
+
+                @if (movResumenError(); as err) {
+                <div class="mt-2 p-2 text-sm text-red-700 bg-red-50 rounded">{{ err }}</div>
+                }
+
+                <div class="overflow-auto mt-3 max-h-[35vh]">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left border-b">
+                                <th class="px-2 py-1">Clave</th>
+                                <th class="px-2 py-1">Descripción</th>
+                                <th class="px-2 py-1 text-right">Solicitado</th>
+                                <th class="px-2 py-1 text-right">Entregado</th>
+                                <th class="px-2 py-1 text-right">Faltante</th>
+                                <th class="px-2 py-1 text-right">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (r of comparativaView(); track r.clave) {
+                            <tr class="border-b hover:bg-slate-100 dark:hover:bg-black/30">
+                                <td class="px-2 py-1 font-medium">{{ r.clave }}</td>
+                                <td class="px-2 py-1">{{ r.descripcion }}</td>
+                                <td class="px-2 py-1 text-right">{{ r.solicitado }}</td>
+                                <td class="px-2 py-1 text-right">{{ r.entregado }}</td>
+                                <td class="px-2 py-1 text-right">{{ r.diferencia }}</td>
+                                <td class="px-2 py-1 text-right">{{ r.cumplimientoPct }}%</td>
+                            </tr>
+                            }
+
+                            @if (!movResumenLoading() && comparativaView().length === 0) {
+                            <tr>
+                                <td colspan="6" class="py-4 text-center text-slate-500">
+                                    Sin datos para comparar.
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-2 text-xs text-slate-500">
+                    Rango entregas: {{ movDesde() }} → {{ movHasta() }}
+                </div>
+            </div>
+
+
+            <div class="overflow-auto max-h-[70vh]">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-slate-600 border-b dark:text-slate-300">
+                            <th class="px-2 py-1">#</th>
+                            <th class="px-2 py-1">Clave</th>
+                            <th class="px-2 py-1">Descripción</th>
+                            <th class="px-2 py-1 text-right">Cantidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (d of detalle(); track d.clave; let i = $index) {
+                        <tr class="border-b">
+                            <td class="px-2 py-1">{{ i + 1 }}</td>
+                            <td class="px-2 py-1 font-medium">{{ d.clave }}</td>
+                            @let descripcion = getDescripcionArticulo(d.clave);
+                            <td class="px-2 py-1">{{ descripcion.length <= 150 ? descripcion : descripcion.slice(0, 150)
+                                    }}</td>
+                            <td class="px-2 py-1 text-right">{{ d.cantidad }}</td>
+                        </tr>
+                        }
+
+                        @if (!detalleLoading() && detalle().length === 0) {
+                        <tr>
+                            <td colspan="3" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+                                Sin renglones.
+                            </td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-end mt-4">
+                <button class="px-4 py-2 text-white bg-gray-600 rounded hover:bg-gray-700" (click)="cerrarDetalle()">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+    }
+</div>
+
+@if (movVisible()) {
+<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
+    <div class="overflow-auto relative p-6 w-full max-w-[80vw] max-h-[90vh] bg-white rounded-xl dark:bg-[#1a202c]">
+        <button class="absolute top-3 right-3 text-xl" (click)="movVisible.set(false)">✖</button>
+
+        <h3 class="text-xl font-semibold text-green-800 dark:text-[#CBA135]">
+            Movimientos hacia {{ selectedUnidad() }}
+        </h3>
+
+        <div class="mb-2 text-sm text-slate-600 dark:text-slate-300">
+            Rango: {{ movDesde() }} → {{ movHasta() }}
+        </div>
+
+        @if (movLoading()) {
+        <div class="p-3 text-sm">Cargando movimientos…</div>
+        }
+
+        @if (movError(); as err) {
+        <div class="p-3 text-sm text-red-700 bg-red-50 rounded">
+            {{ err }}
+        </div>
+        }
+
+        <!-- Resumen por clave -->
+        <div class="mt-3 p-3 bg-slate-50 rounded-lg border-slate-200 border dark:border-slate-700 dark:bg-black/20">
+            <div class="flex flex-col items-center justify-between gap-2 md:flex-row">
+                <div class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Resumen por clave (entregado)
+                </div>
+
+                <input class="px-3 py-2 w-full rounded-lg border-custom-default border dark:bg-black md:w-96"
+                    placeholder="Filtrar clave (ej. 010.000...)" [ngModel]="movFiltroClave()"
+                    (ngModelChange)="movFiltroClave.set(($event || '').toString().toUpperCase())" />
+            </div>
+
+            @if (movResumenLoading()) {
+            <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">Cargando resumen…</div>
+            }
+
+            @if (movResumenError(); as rerr) {
+            <div class="mt-2 p-2 text-sm text-red-700 bg-red-50 rounded">{{ rerr }}</div>
+            }
+
+            <div class="overflow-auto mt-2 max-h-[35vh]">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left border-b">
+                            <th class="px-2 py-1">Clave</th>
+                            <th class="px-2 py-1">Descripción</th>
+                            <th class="px-2 py-1 text-right">Entregado</th>
+                            <th class="px-2 py-1">Primer mov</th>
+                            <th class="px-2 py-1">Último mov</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (r of movResumenView(); track r.clave) {
+                        <tr class="border-b hover:bg-slate-100 dark:hover:bg-black/30">
+                            <td class="px-2 py-1 font-medium">{{ r.clave }}</td>
+                            <td class="px-2 py-1">{{ getDescripcionArticulo(r.clave) }}</td>
+                            <td class="px-2 py-1 text-right">{{ r.entregado_piezas }}</td>
+                            <td class="px-2 py-1">{{ r.primer_mov ?? '—' }}</td>
+                            <td class="px-2 py-1">{{ r.ultimo_mov ?? '—' }}</td>
+                        </tr>
+                        }
+
+                        @if (!movResumenLoading() && movResumenRows().length === 0) {
+                        <tr>
+                            <td colspan="5" class="py-4 text-center text-slate-500">
+                                Sin resumen en el rango.
+                            </td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <table class="mt-3 w-full text-sm">
+            <thead>
+                <tr class="text-left border-b">
+                    <th class="px-2 py-1">Fecha</th>
+                    <th class="px-2 py-1">Tipo</th>
+                    <th class="px-2 py-1">Clave</th>
+                    <th class="px-2 py-1">Descripción</th>
+                    <th class="px-2 py-1 text-right">Cantidad</th>
+                    <th class="px-2 py-1">Lote</th>
+                    <th class="px-2 py-1">Origen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (m of movRows(); track (m.clave_cnis + '|' + m.fecha_movimiento + '|' + (m.lote ?? '') + '|' +
+                m.cantidad)) {
+                <tr class="border-b">
+                    <td class="px-2 py-1">{{ m.fecha_movimiento }}</td>
+                    <td class="px-2 py-1">{{ m.tipo_movimiento }}</td>
+                    <td class="px-2 py-1">{{ m.clave_cnis }}</td>
+                    <td class="px-2 py-1">{{ getDescripcionArticulo(m.clave_cnis) }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.cantidad }}</td>
+                    <td class="px-2 py-1">{{ m.lote }}</td>
+                    <td class="px-2 py-1">{{ m.unidad_origen_texto }}</td>
+                </tr>
+                }
+                @if (!movLoading() && movRows().length === 0) {
+                <tr>
+                    <td colspan="5" class="py-6 text-center text-slate-500">
+                        Sin movimientos en el rango.
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="mt-3 text-xs text-slate-500">
+            * Información de apoyo. Puede no reflejar la entrega completa o final.
+        </div>
+    </div>
+</div>
+}

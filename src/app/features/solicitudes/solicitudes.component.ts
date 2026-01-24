@@ -29,6 +29,7 @@ import { CpmUnionRow } from '../../models/CpmUnionRow';
 import { CpmModalComponent } from './cpm-modal/cpm-modal.component';
 import { FactorUnidad } from '../../models';
 import { TrazabilidadService } from '../../services/trazabilidad.service';
+import { SolicitudesBitacoraService } from '../../services/solicitudes/solicitudes-bitacora.service';
 
 
 @Component({
@@ -79,6 +80,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   excelService = inject(ExcelService);
   toast = inject(NgFastToastService);
   trazabilidadService = inject(TrazabilidadService);
+  bitacoraService = inject(SolicitudesBitacoraService);
 
   @ViewChildren('resultItem') resultItems!: QueryList<ElementRef>;
   @ViewChild('inputClave') inputClaveRef!: ElementRef<HTMLInputElement>;
@@ -582,6 +584,18 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       fueraDeKit = items.filter(a => !this.cpmService.isClaveInKit(this.normClave(a.clave), this.cluesimbActual)).map(a => a.clave);
       items = enKit;
     }
+
+    // ✅ arma payload desde aquí (tienes datosClues, items y modoStandalone)
+    // Asegura tener datosClues fresco:
+    if (!this.modoStandalone) {
+      const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
+      if (cluesStr) this.datosClues = JSON.parse(cluesStr) as DatosClues;
+    }
+
+    const payload = this.bitacoraService.buildPayload(this.datosClues, items, this.modoStandalone);
+
+    // 🚀 best-effort: no bloquea el Excel
+    if (payload) void this.bitacoraService.registrar(payload);
 
     this.excelService.exportarExcelConTemplate(
       'template.xlsx',
