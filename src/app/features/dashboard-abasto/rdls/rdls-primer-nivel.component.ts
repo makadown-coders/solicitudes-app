@@ -32,6 +32,7 @@ import { UnidadesService } from '../../../services/unidades.service';
     standalone: true,
     imports: [CommonModule, FormsModule, NgSelectModule],
     templateUrl: './rdls-primer-nivel.component.html',
+    styleUrls: ['./rdls-primer-nivel.component.css'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RdlsPrimerNivelComponent extends AbstractTabComponent implements OnInit, OnDestroy {
@@ -52,6 +53,10 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
      */
     unidadElegida = signal<string>(''); // cluesimb
     loadingUnidad = signal<boolean>(false);
+    generandoExcel = signal<boolean>(false);
+    mensajeBotonExcel = computed(() => {
+        return this.generandoExcel() ? 'Generando Excel...' : 'Exportar Concentrado Excel';
+    });
 
     // idx por clave normalizada -> existencia disponible (sum)
     existIdx = signal<Map<string, number>>(new Map());
@@ -556,6 +561,7 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
     }
 
     async exportarExcelRdlSPrimerNivel(todo = true): Promise<void> {
+        this.generandoExcel.set(true);
         // 0) Debe haber kit y claves
         const setRutas = this.clavesRutasSalud();
         if (!setRutas || setRutas.size === 0) {
@@ -981,7 +987,7 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
         const now = new Date();
         const pad = (n: number) => String(n).padStart(2, '0');
         const filename = `RDLS_1ER_NIVEL_CONCENTRADO_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.xlsx`;
-
+        this.generandoExcel.set(false);
         await downloadWorkbook(wb, filename);
     }
 

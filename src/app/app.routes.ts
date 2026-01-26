@@ -152,6 +152,12 @@ export const routes: Routes = [
         title: 'RdlS - Primer Nivel'
       },
       {
+        path: 'solicitudes',
+        loadComponent: () => import('./features/dashboard-abasto/solicitudes/solicitudes-tab.component')
+          .then(m => m.SolicitudesTabComponent),
+        title: 'Dashboard Abasto · Solicitudes (bitácora)'
+      },
+      {
         path: 'acerca',
         loadComponent: () => import('./features/dashboard-abasto/acerca/acerca.component')
           .then(m => m.AcercaComponent),
