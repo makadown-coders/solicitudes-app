@@ -136,6 +136,24 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         return Math.max(0, Math.min(100, Math.round((ent / sol) * 100)));
     });
 
+    // --- MINI BALANCEADOR ---
+    miniBalVisible = signal(false);
+    miniBalLoading = signal(false);
+    miniBalError = signal<string | null>(null);
+
+    miniBalHeader = signal<BitacoraHeader | null>(null);
+
+    miniBalRows = signal<Array<{
+        clave: string;
+        descripcion: string;
+        solicitado: number;
+        existUnidad: number;
+        azm: number;
+        azt: number;
+        aze: number;
+        sugerencia: string;
+    }>>([]);
+
     constructor() {
         super();
         this.ensureUnidadesLoaded();
@@ -251,6 +269,27 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         }
     }
 
+    getRowsOrdenadoPorClave(): MovimientoRow[] {
+        const rows = this.movRows();
+        const copia = [...rows];
+        copia.sort((a, b) => (a.clave_cnis || '').localeCompare(b.clave_cnis || ''));
+        return copia;
+    }
+
+    getMovsResumenViewOrdenadoPorClave(): MovimientoResumenRow[] {
+        const rows = this.movResumenView();
+        const copia = [...rows];
+        copia.sort((a, b) => (a.clave || '').localeCompare(b.clave || ''));
+        return copia;
+    }
+
+    getComparativaViewOrdenadoPorClave(): ComparativaRow[] {
+        const rows = this.comparativaView();
+        const copia = [...rows];
+        copia.sort((a, b) => (a.clave || '').localeCompare(b.clave || ''));
+        return copia;
+    }
+
     cerrarDetalle() {
         this.detalleVisible.set(false);
         this.selectedHeader.set(null);
@@ -349,6 +388,107 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         this.movResumenRows.set([]);
         this.movResumenError.set(null);
         this.movFiltroClave.set('');
+    }
+
+    async abrirMiniBalanceador(h: BitacoraHeader) {
+        this.miniBalHeader.set(h);
+        this.miniBalVisible.set(true);
+        this.miniBalLoading.set(true);
+        this.miniBalError.set(null);
+        this.miniBalRows.set([]);
+
+        try {
+            // 1) pedir detalle (solicitado)
+            const det = await this.bitacora.detalle(h.id); // BitacoraDetalle[]
+            const claves = (det ?? []).map(x => (x.clave ?? '').toUpperCase()).filter(Boolean);
+
+            if (!claves.length) {
+                this.miniBalRows.set([]);
+                return;
+            }
+
+            // 2) pedir existencias: aquí es donde conectamos backend
+            // Recomendación: un endpoint único que reciba (cluesimb, claves[])
+            // y regrese { clave, existUnidad, azm, azt, aze }.
+            //
+            // const ex = await this.solicitudesBalanceService.getExistencias(h.cluesimb, claves);
+            // const exMap = new Map(ex.map(r => [r.clave, r]));
+
+            const exMap = new Map<string, any>(); // placeholder hasta conectar
+
+            // 3) armar filas enriquecidas
+            const unidad = this.unidadesService.findByCluesimb(h.cluesimb);
+            const pref = this.almacenPreferenteParaUnidad(unidad?.nombre ?? '', unidad?.jurisdiccion ?? '');
+
+            const rows = (det ?? []).map(d => {
+                const clave = (d.clave ?? '').toUpperCase();
+                const solicitado = Number(d.cantidad) || 0;
+
+                const ex = exMap.get(clave) ?? {};
+                const existUnidad = Number(ex.existUnidad) || 0;
+                const azm = Number(ex.azm) || 0;
+                const azt = Number(ex.azt) || 0;
+                const aze = Number(ex.aze) || 0;
+
+                const sugerencia = this.buildSugerenciaTexto({ pref, azm, azt, aze, existUnidad });
+
+                return {
+                    clave,
+                    descripcion: this.getDescripcionArticulo(clave),
+                    solicitado,
+                    existUnidad, azm, azt, aze,
+                    sugerencia
+                };
+            });
+
+            this.miniBalRows.set(rows);
+
+        } catch (e) {
+            this.miniBalError.set('No se pudo generar el mini-balanceador para esta solicitud.');
+        } finally {
+            this.miniBalLoading.set(false);
+        }
+    }
+
+    cerrarMiniBalanceador() {
+        this.miniBalVisible.set(false);
+        this.miniBalHeader.set(null);
+        this.miniBalRows.set([]);
+    }
+
+    private almacenPreferenteParaUnidad(nombreUnidad: string, jurisdiccion: string): 'AZT' | 'AZM' | 'AZE' {
+        const j = (jurisdiccion ?? '').toUpperCase();
+        const n = (nombreUnidad ?? '').toUpperCase();
+
+        if (j.includes('TIJUANA') || n.includes('TIJUANA') || n.includes('TECATE')) return 'AZT';
+        if (j.includes('MEXICALI') || n.includes('MEXICALI')) return 'AZM';
+        if (j.includes('ENSENADA') || n.includes('ENSENADA')) return 'AZE';
+
+        // fallback conservador
+        return 'AZT';
+    }
+
+    private buildSugerenciaTexto(x: { pref: 'AZT' | 'AZM' | 'AZE'; azm: number; azt: number; aze: number; existUnidad: number }): string {
+        const stockPref =
+            x.pref === 'AZT' ? x.azt :
+                x.pref === 'AZM' ? x.azm : x.aze;
+
+        if (stockPref > 0) {
+            return `Sugerencia: validar con ${x.pref} disponibilidad para considerar surtido (existencia ${x.pref} = ${stockPref}). La existencia no garantiza surtido; puede estar comprometida.`;
+        }
+
+        const otros = [
+            { k: 'AZT', v: x.azt },
+            { k: 'AZM', v: x.azm },
+            { k: 'AZE', v: x.aze },
+        ].filter(o => o.k !== x.pref && o.v > 0);
+
+        if (otros.length) {
+            const top = otros.map(o => `${o.k}=${o.v}`).join(', ');
+            return `Sugerencia: ${x.pref} sin existencia; revisar con otros almacenes (${top}) considerando prioridades y compromisos internos.`;
+        }
+
+        return `Sugerencia: sin existencias en almacenes; revisar alternativas (comprometidos, traspasos, compras) o validar catálogo/unidad.`;
     }
 
 }

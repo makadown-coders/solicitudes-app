@@ -17,6 +17,7 @@ export class UnidadesService {
   public unidades$: Observable<Unidadv2[]> = this.unidadesSubject.asObservable();
 
   private primerNivel$?: Observable<UnidadExistente[]>;
+  private todosLosNiveles$?: Observable<UnidadExistente[]>
 
   // índices para búsquedas rápidas
   private byCluesimb = new Map<string, Unidadv2>();
@@ -186,11 +187,31 @@ export class UnidadesService {
 
     this.primerNivel$ = this.http
       .get<UnidadExistente[]>(`${this.apiUrl}/primer-nivel`,
-         { headers: { 'X-Skip-Loader': '1' } })
+        { headers: { 'X-Skip-Loader': '1' } })
       .pipe(
         shareReplay(1)
       );
 
     return this.primerNivel$;
+  }
+
+  /**
+   * Devuelve una lista de unidades de TODOS! los niveles (CLUES IMB) que estén
+   * en la base de datos. La respuesta se almacena en cache para evitar
+   * peticiones innecesarias a la API.
+   *
+   * @returns Observable<UnidadExistente[]> que devuelve la lista de unidades
+   */
+  loadTodosLosNiveles(): Observable<UnidadExistente[]> {
+    if (this.todosLosNiveles$) return this.todosLosNiveles$;
+
+    this.todosLosNiveles$ = this.http
+      .get<UnidadExistente[]>(`${this.apiUrl}/todos-niveles`,
+        { headers: { 'X-Skip-Loader': '1' } })
+      .pipe(
+        shareReplay(1)
+      );
+
+    return this.todosLosNiveles$;
   }
 }
