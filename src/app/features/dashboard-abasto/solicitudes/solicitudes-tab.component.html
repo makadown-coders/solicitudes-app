@@ -100,16 +100,18 @@
                     <td class="px-3 py-2 text-right">{{ r.total_piezas }}</td>
                     <td class="px-3 py-2 text-right">
                         <button class="px-3 py-1 text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90"
-                            (click)="abrirDetalle(r)">
-                            Detalle
+                            [title]="'Detalle para ' + r.cluesimb + ' · ' + r.created_day" (click)="abrirDetalle(r)">
+                            🧾
                         </button>
                         <button class="px-3 py-1 text-white bg-blue-600 rounded-lg cursor-pointer hover:opacity-90"
+                            [title]="'Movimientos para ' + r.cluesimb + ' · ' + r.created_day"
                             (click)="abrirMovimientosDesdeSolicitud(30, r)">
-                            Movtos 30d
+                            🚚 30d
                         </button>
-                        <button class="px-3 py-1 text-white bg-[#CBA135] rounded-lg cursor-pointer hover:opacity-90" [title]="'Mini-balanceador para ' + r.cluesimb + ' · ' + r.created_day"
-                            (click)="abrirMiniBalanceador(r)">
-                            📦 
+                        <button class="px-3 py-1 text-white bg-[#CBA135] rounded-lg cursor-pointer hover:opacity-90"
+                            [title]="'Mini-balanceador para ' + r.cluesimb + ' · ' + r.created_day"
+                            (click)="abrirMiniBalanceo(r)">
+                            ⚖️
                         </button>
                     </td>
                 </tr>
@@ -281,10 +283,12 @@
 <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
     <div class="overflow-auto relative p-6 w-full max-w-[80vw] max-h-[90vh] bg-white rounded-xl dark:bg-[#1a202c]">
         <button class="absolute top-3 right-3 text-xl cursor-pointer" (click)="movVisible.set(false)">✖</button>
-
+        @if (selectedHeader(); as H) {
         <h3 class="text-xl font-semibold text-green-800 dark:text-[#CBA135]">
-            Movimientos hacia {{ selectedUnidad() }}
+            Movimientos hacia {{ selectedUnidad() }} - Pedido {{ H.tipo_pedido }}
+            · Tipo {{ (H.tipos_insumo ?? []).join(' - ') }}
         </h3>
+        }
 
         <div class="mb-2 text-sm text-slate-600 dark:text-slate-300">
             Rango: {{ movDesde() }} → {{ movHasta() }}
@@ -399,69 +403,77 @@
 </div>
 }
 
-@if (miniBalVisible()) {
+@if (miniVisible()) {
 <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
-    <div class="overflow-auto relative p-6 w-full max-w-[90vw] max-h-[92vh] bg-white rounded-xl dark:bg-[#1a202c]">
-        <button class="absolute top-3 right-3 text-xl" (click)="cerrarMiniBalanceador()">✖</button>
+    <div class="overflow-auto relative p-6 w-full max-w-[90vw] max-h-[90vh] bg-white rounded-xl dark:bg-[#1a202c]">
+        <button class="absolute top-3 right-3 text-xl" (click)="cerrarMiniBalanceo()">✖</button>
 
-        @if (miniBalHeader(); as H) {
+        @if (miniHeader(); as H) {
         <h3 class="text-xl font-semibold text-green-800 dark:text-[#CBA135]">
-            Mini-balanceador · {{ H.cluesimb }} · {{ H.created_day }}
+            Análisis · {{ selectedUnidad() }} - Pedido {{ H.tipo_pedido }}
+            · Tipo {{ (H.tipos_insumo ?? []).join(' - ') }} - Periodo {{ H.periodo_texto }}
         </h3>
+        <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            * Las sugerencias mostradas no representan una asignación automática de surtido ni sustituyen los procesos
+            oficiales de abasto.
+        </div>
+        <div class="mb-1 text-sm text-slate-600 dark:text-slate-300">
+            * Para mayor utilidad, se recomienda consultar este análisis en fechas cercanas a la generación de la
+            solicitud, debido a la naturaleza cambiante de las existencias.
+        </div>
         }
 
-        @if (miniBalLoading()) {
-        <div class="p-3 text-sm text-slate-600 dark:text-slate-300">Generando…</div>
+        @if (miniLoading()) {
+        <div class="p-3 text-sm">Construyendo balanceo...</div>
         }
 
-        @if (miniBalError(); as err) {
+        @if (miniError(); as err) {
         <div class="p-3 text-sm text-red-700 bg-red-50 rounded">
             {{ err }}
         </div>
         }
 
-        <div class="overflow-auto mt-3">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="text-left border-b">
-                        <th class="px-2 py-1">Clave</th>
-                        <th class="px-2 py-1">Descripción</th>
-                        <th class="px-2 py-1 text-right">Solicitado</th>
-                        <th class="px-2 py-1 text-right">Exist Unidad</th>
-                        <th class="px-2 py-1 text-right">Exist AZM</th>
-                        <th class="px-2 py-1 text-right">Exist AZT</th>
-                        <th class="px-2 py-1 text-right">Exist AZE</th>
-                        <th class="px-2 py-1">Sugerencia</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (r of miniBalRows(); track r.clave) {
-                    <tr class="border-b">
-                        <td class="px-2 py-1 font-medium">{{ r.clave }}</td>
-                        <td class="px-2 py-1">{{ r.descripcion }}</td>
-                        <td class="px-2 py-1 text-right">{{ r.solicitado }}</td>
-                        <td class="px-2 py-1 text-right">{{ r.existUnidad }}</td>
-                        <td class="px-2 py-1 text-right">{{ r.azm }}</td>
-                        <td class="px-2 py-1 text-right">{{ r.azt }}</td>
-                        <td class="px-2 py-1 text-right">{{ r.aze }}</td>
-                        <td class="px-2 py-1">{{ r.sugerencia }}</td>
-                    </tr>
-                    }
+        <table class="mt-3 w-full text-sm">
+            <thead>
+                <tr class="text-left border-b">
+                    <th class="px-2 py-1">Clave</th>
+                    <th class="px-2 py-1">Descripción</th>
+                    <th class="px-2 py-1 text-right">Solicitado</th>
+                    <th class="px-2 py-1 text-right">Exist. unidad</th>
+                    <th class="px-2 py-1 text-right">AZM</th>
+                    <th class="px-2 py-1 text-right">AZT</th>
+                    <th class="px-2 py-1 text-right">AZE</th>
+                    <th class="px-2 py-1 text-right">Sug.</th>
+                    <th class="px-2 py-1">Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (m of miniRows(); track m.clave) {
+                <tr class="align-top border-b">
+                    <td class="px-2 py-1 font-medium whitespace-nowrap">{{ m.clave }}</td>
+                    <td class="px-2 py-1 text-xs">{{ m.descripcion.length <= 100 ? m.descripcion :
+                            m.descripcion.slice(0, 150) }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.solicitado }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.existencia_unidad }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.AZM }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.AZT }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.AZE }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.faltante }}</td>
+                    <td class="px-2 py-1 text-slate-600 dark:text-slate-300">
+                        {{ m.sugerencia }}
+                    </td>
+                </tr>
+                }
 
-                    @if (!miniBalLoading() && miniBalRows().length === 0) {
-                    <tr>
-                        <td colspan="8" class="py-6 text-center text-slate-500">
-                            Sin datos.
-                        </td>
-                    </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-
-        <div class="mt-3 text-xs text-slate-500">
-            * Información de apoyo. Existencias pueden estar comprometidas y no garantizan surtido.
-        </div>
+                @if (!miniLoading() && miniRows().length === 0) {
+                <tr>
+                    <td colspan="8" class="py-6 text-center text-slate-500">
+                        Sin renglones para balancear.
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 }

@@ -12,6 +12,10 @@ import { SolicitudesMovimientosService } from '../../../services/solicitudes/sol
 import { MovimientoRow } from '../../../models/solicitudes/MovimientoRow';
 import { MovimientoResumenRow } from '../../../models/solicitudes/MovimientoResumenRow';
 import { ComparativaRow } from '../../../models/solicitudes/ComparativaRow';
+import { RdlsNormalizeService } from '../../../services/rdls/rdls-normalize.service';
+import { RdlsAlmacenesService } from '../../../services/rdls/rdls-almacenes.service';
+import { InventarioService } from '../../../services/inventario.service';
+import { MiniBalanceRow } from '../../../models/solicitudes/MiniBalanceRow';
 
 @Component({
     selector: 'app-solicitudes-tab',
@@ -23,6 +27,9 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
     private route = inject(ActivatedRoute);
     private bitacora = inject(SolicitudesBitacoraService);
     unidadesService = inject(UnidadesService);
+    private norm = inject(RdlsNormalizeService);
+    private almSrv = inject(RdlsAlmacenesService);
+    private inventario = inject(InventarioService);
     private unidadesLoaded = false;
 
     loading = signal(false);
@@ -136,26 +143,32 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         return Math.max(0, Math.min(100, Math.round((ent / sol) * 100)));
     });
 
-    // --- MINI BALANCEADOR ---
-    miniBalVisible = signal(false);
-    miniBalLoading = signal(false);
-    miniBalError = signal<string | null>(null);
+    // --- MINI BALANCEO ---
+    private jurisdiccionByClues = new Map<string, string>();
+    private jurisdiccionLoaded = false;
 
-    miniBalHeader = signal<BitacoraHeader | null>(null);
+    // buckets almacenes por clave
+    almBuckets = signal<Map<string, { AZM: number; AZE: number; AZT: number }>>(new Map());
 
-    miniBalRows = signal<Array<{
-        clave: string;
-        descripcion: string;
-        solicitado: number;
-        existUnidad: number;
-        azm: number;
-        azt: number;
-        aze: number;
-        sugerencia: string;
-    }>>([]);
+    // modal mini-balanceo
+    miniVisible = signal(false);
+    miniLoading = signal(false);
+    miniError = signal<string | null>(null);
+    miniRows = signal<MiniBalanceRow[]>([]);
+    miniHeader = signal<BitacoraHeader | null>(null);
 
     constructor() {
         super();
+        // 👇 esto ayuda a que RdlsAlmacenesService tenga inventario$ “vivo”
+        this.inventario.initExistenciaAlmacenes?.();
+
+        // buckets AZM/AZT/AZE (si llega vacío pero ya tenías algo, no lo pises)
+        this.almSrv.existenciasAlmacenesByClave$.subscribe(map => {
+            if (!map) return;
+            if (map.size === 0 && this.almBuckets().size > 0) return;
+            this.almBuckets.set(map);
+        });
+
         this.ensureUnidadesLoaded();
         this.loadArtMapIfNeeded();
 
@@ -330,6 +343,7 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
     async abrirMovimientosDesdeSolicitud(days = 30, row?: BitacoraHeader) {
         const h = row; // this.selectedHeader();
         if (!h) return;
+        this.selectedHeader.set(h);
 
         const desde = h.created_day;
         const d = new Date(desde);
@@ -390,105 +404,139 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         this.movFiltroClave.set('');
     }
 
-    async abrirMiniBalanceador(h: BitacoraHeader) {
-        this.miniBalHeader.set(h);
-        this.miniBalVisible.set(true);
-        this.miniBalLoading.set(true);
-        this.miniBalError.set(null);
-        this.miniBalRows.set([]);
+    private async ensureJurisdiccionesLoaded() {
+        if (this.jurisdiccionLoaded) return;
 
         try {
-            // 1) pedir detalle (solicitado)
-            const det = await this.bitacora.detalle(h.id); // BitacoraDetalle[]
-            const claves = (det ?? []).map(x => (x.clave ?? '').toUpperCase()).filter(Boolean);
+            const list = await firstValueFrom(this.unidadesService.loadTodosLosNiveles());
+            for (const u of (list ?? [])) {
+                const k = (u.cluesimb || '').trim().toUpperCase();
+                const j = (u.jurisdiccion || '').trim().toUpperCase();
+                if (k) this.jurisdiccionByClues.set(k, j);
+            }
+        } catch {
+            // si falla, no bloqueamos
+        } finally {
+            this.jurisdiccionLoaded = true;
+        }
+    }
 
-            if (!claves.length) {
-                this.miniBalRows.set([]);
-                return;
+    private getJurisdiccion(cluesimb: string): string {
+        const k = (cluesimb || '').trim().toUpperCase();
+        return this.jurisdiccionByClues.get(k) || '';
+    }
+
+    async abrirMiniBalanceo(row: BitacoraHeader) {
+        this.selectedHeader.set(row);
+        this.miniHeader.set(row);
+        this.miniVisible.set(true);
+        this.miniLoading.set(true);
+        this.miniError.set(null);
+        this.miniRows.set([]);
+
+        try {
+            await this.ensureJurisdiccionesLoaded();
+
+            // 1) detalle de la solicitud (claves + cantidad solicitada)
+            const det = await this.bitacora.detalle(row.id);
+            const detalle = (det ?? []).filter(x => !!x?.clave);
+
+            // 2) existencia en unidad (tmp_existencias via tu endpoint)
+            const invUnidad = await firstValueFrom(this.inventario.getExistenciasByCluesimb(row.cluesimb));
+            const existUnidadByClave = new Map<string, number>();
+            for (const it of (invUnidad ?? [])) {
+                const clave = String((it as any).clave ?? '').trim();
+                if (!clave) continue;
+                const disp = Number((it as any).disponible ?? 0);
+                existUnidadByClave.set(clave, (existUnidadByClave.get(clave) || 0) + Math.max(0, disp));
             }
 
-            // 2) pedir existencias: aquí es donde conectamos backend
-            // Recomendación: un endpoint único que reciba (cluesimb, claves[])
-            // y regrese { clave, existUnidad, azm, azt, aze }.
-            //
-            // const ex = await this.solicitudesBalanceService.getExistencias(h.cluesimb, claves);
-            // const exMap = new Map(ex.map(r => [r.clave, r]));
+            // 3) almacenes (AZM/AZT/AZE)
+            const alm = this.almBuckets();
+            const getAlm = (clave: string) => {
+                const b = alm.get(clave) ?? { AZM: 0, AZE: 0, AZT: 0 };
+                return {
+                    AZM: Number(b.AZM ?? 0),
+                    AZE: Number(b.AZE ?? 0),
+                    AZT: Number(b.AZT ?? 0),
+                };
+            };
 
-            const exMap = new Map<string, any>(); // placeholder hasta conectar
+            // 4) construir rows del modal
+            const j = this.getJurisdiccion(row.cluesimb); // TIJUANA/MEXICALI/ENSENADA
+            const out: MiniBalanceRow[] = detalle.map(d => {
+                const clave = String(d.clave ?? '').trim();
+                const solicitado = Number(d.cantidad ?? 0);
 
-            // 3) armar filas enriquecidas
-            const unidad = this.unidadesService.findByCluesimb(h.cluesimb);
-            const pref = this.almacenPreferenteParaUnidad(unidad?.nombre ?? '', unidad?.jurisdiccion ?? '');
+                const existencia_unidad = existUnidadByClave.get(clave) || 0;
+                const { AZM, AZE, AZT } = getAlm(clave);
+                const faltante = Math.max(0, (solicitado || 0) - (existencia_unidad || 0));
 
-            const rows = (det ?? []).map(d => {
-                const clave = (d.clave ?? '').toUpperCase();
-                const solicitado = Number(d.cantidad) || 0;
-
-                const ex = exMap.get(clave) ?? {};
-                const existUnidad = Number(ex.existUnidad) || 0;
-                const azm = Number(ex.azm) || 0;
-                const azt = Number(ex.azt) || 0;
-                const aze = Number(ex.aze) || 0;
-
-                const sugerencia = this.buildSugerenciaTexto({ pref, azm, azt, aze, existUnidad });
+                const sugerencia = this.buildSugerencia({
+                    jurisdiccion: j,
+                    solicitado,
+                    existencia_unidad,
+                    AZM, AZE, AZT
+                });
 
                 return {
                     clave,
                     descripcion: this.getDescripcionArticulo(clave),
                     solicitado,
-                    existUnidad, azm, azt, aze,
+                    existencia_unidad,
+                    AZM, AZT, AZE, faltante,
                     sugerencia
                 };
             });
 
-            this.miniBalRows.set(rows);
+            // orden por clave
+            out.sort((a, b) => (a.clave || '').localeCompare(b.clave || ''));
+            this.miniRows.set(out);
+            this.selectedUnidad.set(this.unidadesService.findByCluesimb(row.cluesimb)?.nombre ?? row.cluesimb);
 
         } catch (e) {
-            this.miniBalError.set('No se pudo generar el mini-balanceador para esta solicitud.');
+            this.miniError.set('No se pudo construir el mini-balanceo.');
         } finally {
-            this.miniBalLoading.set(false);
+            this.miniLoading.set(false);
         }
     }
 
-    cerrarMiniBalanceador() {
-        this.miniBalVisible.set(false);
-        this.miniBalHeader.set(null);
-        this.miniBalRows.set([]);
-    }
+    private buildSugerencia(x: {
+        jurisdiccion: string;
+        solicitado: number;
+        existencia_unidad: number;
+        AZM: number; AZE: number; AZT: number;
+    }): string {
+        const faltante = Math.max(0, (x.solicitado || 0) - (x.existencia_unidad || 0));
+        if (faltante <= 0) return 'Unidad con existencia suficiente (según datos internos).';
 
-    private almacenPreferenteParaUnidad(nombreUnidad: string, jurisdiccion: string): 'AZT' | 'AZM' | 'AZE' {
-        const j = (jurisdiccion ?? '').toUpperCase();
-        const n = (nombreUnidad ?? '').toUpperCase();
+        // preferencia por jurisdicción
+        const jur = (x.jurisdiccion || '').toUpperCase();
+        const pref = jur === 'TIJUANA' ? 'AZT' : jur === 'MEXICALI' ? 'AZM' : jur === 'ENSENADA' ? 'AZE' : '';
 
-        if (j.includes('TIJUANA') || n.includes('TIJUANA') || n.includes('TECATE')) return 'AZT';
-        if (j.includes('MEXICALI') || n.includes('MEXICALI')) return 'AZM';
-        if (j.includes('ENSENADA') || n.includes('ENSENADA')) return 'AZE';
+        const prefStock =
+            pref === 'AZT' ? x.AZT :
+                pref === 'AZM' ? x.AZM :
+                    pref === 'AZE' ? x.AZE : 0;
 
-        // fallback conservador
-        return 'AZT';
-    }
-
-    private buildSugerenciaTexto(x: { pref: 'AZT' | 'AZM' | 'AZE'; azm: number; azt: number; aze: number; existUnidad: number }): string {
-        const stockPref =
-            x.pref === 'AZT' ? x.azt :
-                x.pref === 'AZM' ? x.azm : x.aze;
-
-        if (stockPref > 0) {
-            return `Sugerencia: validar con ${x.pref} disponibilidad para considerar surtido (existencia ${x.pref} = ${stockPref}). La existencia no garantiza surtido; puede estar comprometida.`;
+        if (!pref) {
+            return `Faltante aprox: ${faltante}. Sugerencia: consultar almacén correspondiente y validar compromisos.`;
         }
 
-        const otros = [
-            { k: 'AZT', v: x.azt },
-            { k: 'AZM', v: x.azm },
-            { k: 'AZE', v: x.aze },
-        ].filter(o => o.k !== x.pref && o.v > 0);
-
-        if (otros.length) {
-            const top = otros.map(o => `${o.k}=${o.v}`).join(', ');
-            return `Sugerencia: ${x.pref} sin existencia; revisar con otros almacenes (${top}) considerando prioridades y compromisos internos.`;
+        if (prefStock > 0) {
+            return `Faltante aprox: ${faltante}. Sugerencia: preguntar a ${pref} por ~${faltante} (jurisdicción ${jur}). Validar si está comprometido.`;
         }
 
-        return `Sugerencia: sin existencias en almacenes; revisar alternativas (comprometidos, traspasos, compras) o validar catálogo/unidad.`;
+        // preferente sin stock reportado: solo texto consultivo
+        const otros = (pref === 'AZT') ? 'AZM/AZE' : (pref === 'AZM') ? 'AZT/AZE' : 'AZT/AZM';
+        return `Faltante aprox: ${faltante}. ${pref} sin existencia reportada; sugerencia: consultar ${pref} y, si aplica, preguntar también a ${otros}.`;
     }
 
+    cerrarMiniBalanceo() {
+        this.miniVisible.set(false);
+        this.miniHeader.set(null);
+        this.miniRows.set([]);
+        this.miniError.set(null);
+        this.selectedHeader.set(null);
+    }
 }

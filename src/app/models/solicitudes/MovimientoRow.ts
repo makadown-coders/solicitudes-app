@@ -12,3 +12,4 @@ export type MovimientoRow = {
   fecha_movimiento: string; // YYYY-MM-DD
   fecha_caducidad: string | null;
 };
+
