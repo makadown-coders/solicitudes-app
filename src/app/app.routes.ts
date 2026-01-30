@@ -69,6 +69,12 @@ export const routes: Routes = [
       import('./features/carga-masiva/carga-cpm-kits.component')
         .then(m => m.CargaCpmKitsComponent)
   },
+  {
+    path: 'carga-masiva-cpm-1er-nivel',
+    loadComponent: () =>
+      import('./features/carga-masiva/carga-cpms-1er-nivel.component')
+        .then(m => m.CargaCpms1erNivelComponent)
+  },
   { path: 'solicitudes-config', component: SolicitudesConfigComponent },
   {
     path: 'sacia',

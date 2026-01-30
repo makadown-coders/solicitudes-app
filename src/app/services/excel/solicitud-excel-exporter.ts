@@ -6,18 +6,20 @@ import {
     ensureExcelExtension
 } from './excel-utils';
 import { environment } from '../../../environments/environment';
-import { ArticuloSolicitud,
+import {
+    ArticuloSolicitud,
     InventarioDisponibles,
     CPMS,
     clasificacionMedicamentosData,
     ClasificadorVEN,
-    ClaveGrupo } from '../../models';
+    ClaveGrupo
+} from '../../models';
 import { DatosClues } from '../../models/datos-clues';
 import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
 import { StorageSolicitudService } from '../storage-solicitud.service';
 
 export class SolicitudExcelExporter {
-    constructor(private readonly solicitudService: StorageSolicitudService) {}
+    constructor(private readonly solicitudService: StorageSolicitudService) { }
 
     exportarExcelPrecarga(nombreArchivo: string, articulosSolicitados: ArticuloSolicitud[]) {
         articulosSolicitados.sort((a, b) => a.clave.localeCompare(b.clave));
@@ -259,5 +261,62 @@ export class SolicitudExcelExporter {
         });
 
         return [CPMs, clavesGrupos];
+    }
+
+    procesarArchivoCPMS1erNivel(buffer: ArrayBuffer): CPMS[] {
+        try {
+            const workbook = XLSX.read(buffer, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+            const CPMs: CPMS[] = [];
+            const claves: string[] = [];
+            let row = 2;
+            while (true) {
+                const celda = sheet[`A${row}`];
+                if (!celda || !celda.v) break;
+                const clave = celda.v.toString();
+                // si la clave[0] empieza con una letra, omitirlo
+                if (clave.length > 0 && !clave[0].match(/[A-Z]/)) {
+                    claves.push(celda.v.toString());
+                }
+                row++;
+            }
+            console.log('Claves detectadas:', claves, row);
+
+            const cluesimb: string[] = [];
+            const startCol = XLSX.utils.decode_col('B');
+            const endCol = XLSX.utils.decode_col('DJ');
+
+            for (let col = startCol; col <= endCol; col++) {
+                const colLetter = XLSX.utils.encode_col(col);
+                const celda = sheet[`${colLetter}1`];
+                console.log(`Leyendo celda ${colLetter}1:`, celda);
+                cluesimb.push(celda?.v?.toString() ?? '');
+            }
+            console.log('Clues detectadas:', cluesimb);
+
+            claves.forEach((clave, idxFila) => {
+                const fila = 2 + idxFila;
+
+                cluesimb.forEach((clue, idxCol) => {
+                    const colLetter = XLSX.utils.encode_col(startCol + idxCol);
+                    const celda = sheet[`${colLetter}${fila}`];
+                    const cantidad = celda?.v ? Number(celda.v) : 0;
+
+                    if (!(isNaN(cantidad) || cantidad <= 0)) {
+                        CPMs.push({
+                            clave,
+                            cluesimb: clue,
+                            cantidad: isNaN(cantidad) ? 0 : cantidad
+                        });
+                    }
+                });
+            });
+            console.log(CPMs);
+            return CPMs;
+        } catch (e) {
+            console.error('Error procesando archivo CPM 1er nivel:', e);
+            return [];
+        }
     }
 }

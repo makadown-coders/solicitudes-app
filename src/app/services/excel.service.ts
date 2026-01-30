@@ -88,6 +88,10 @@ export class ExcelService {
         return this.inventarioExporter.exportarDetalleCitasPorInsumo(nombreArchivo, registros);
     }
 
+    procesarArchivoCPMS1erNivel(buffer: ArrayBuffer): CPMS[] {
+        return this.solicitudExporter.procesarArchivoCPMS1erNivel(buffer);
+    }
+
     exportarExcelExistenciasUnidadConTemplate(
         templateUrl: string,
         nombreArchivo: string,

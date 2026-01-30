@@ -27,7 +27,7 @@ export const loaderInterceptor: HttpInterceptorFn = (req, next) => {
     customMessage = 'Ejecutando balanceo... espere un momento';
   }
 
-  if (cleanReq.url.includes('cpms')) {
+  if (cleanReq.url.includes('cpms') && cleanReq.method === 'GET') {
     customMessage = 'Cargando CPMs... espere un momento';
   }
 
