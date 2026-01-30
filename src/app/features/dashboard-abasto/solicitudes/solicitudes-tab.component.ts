@@ -49,11 +49,71 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
 
     movResumenLoading = signal(false);
     movResumenError = signal<string | null>(null);
-    movResumenRows = signal<MovimientoResumenRow[]>([]);
+    // movResumenRows = signal<MovimientoResumenRow[]>([]);
+    movResumenRows = computed<MovimientoResumenRow[]>(() => {
+        const base = this.movRowsBase();
+        const mp = new Map<string, MovimientoResumenRow>();
+
+        for (const r of base) {
+            const cluesimb = this.norm.normClave((r as any).cluesimb ?? this.selectedHeader()?.cluesimb ?? '');
+            const clave = this.norm.normClave((r as any).clave_cnis ?? '');
+            if (!clave) continue;
+
+            const fecha = ((r as any).fecha_movimiento ?? null) as string | null;
+            const cant = Number((r as any).cantidad ?? 0) || 0;
+
+            const curr = mp.get(clave) ?? {
+                cluesimb,
+                clave,
+                entregado_piezas: 0,
+                primer_mov: null,
+                ultimo_mov: null,
+            };
+
+            curr.entregado_piezas += cant;
+
+            // primer/último por comparación string YYYY-MM-DD (date)
+            if (fecha) {
+                if (!curr.primer_mov || fecha < curr.primer_mov) curr.primer_mov = fecha;
+                if (!curr.ultimo_mov || fecha > curr.ultimo_mov) curr.ultimo_mov = fecha;
+            }
+
+            mp.set(clave, curr);
+        }
+
+        return [...mp.values()].sort((a, b) => a.clave.localeCompare(b.clave));
+    });
+
+    // ✅ switches del modal 30d
+    movMostrarResumen = signal(false);              // default: detallado
+    movSoloClavesSolicitud = signal(false);         // default: no filtra por solicitud
+
+    // ✅ set de claves de la solicitud elegida (para filtrar)
+    movClavesSolicitud = signal<Set<string>>(new Set());
 
     // filtro sobre resumen (puedes reutilizar filtroTexto si quieres, pero mejor separar)
     movFiltroClave = signal('');
-    // ---------------- MOVIMIENTOS -----------------
+
+    movRowsBase = computed(() => {
+        const rows = this.movRows() ?? [];
+
+        const q = (this.movFiltroClave?.() ?? '').trim().toUpperCase();
+        const onlySolicitud = this.movSoloClavesSolicitud();
+        const set = this.movClavesSolicitud();
+
+        return rows.filter(r => {
+            const clave = this.norm.normClave((r as any).clave_cnis ?? '');
+            if (!clave) return false;
+
+            if (q && !clave.includes(q)) return false;
+
+            if (onlySolicitud && set.size > 0 && !set.has(clave)) return false;
+
+            return true;
+        });
+    });
+
+    // ---------------- / MOVIMIENTOS -----------------
 
     // rango editable
     movDesde = signal<string>('');
@@ -75,6 +135,10 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
     // modal detalle
     detalleVisible = signal(false);
     detalleLoading = signal(false);
+    /**
+     * Para mostrar solo el detalle o la comparativa en el modal detalle (el primer modal)
+     */
+    mostrarSoloDetalle = signal(false);
     detalleError = signal<string | null>(null);
     selectedHeader = signal<BitacoraHeader | null>(null);
     detalle = signal<BitacoraDetalle[]>([]);
@@ -256,6 +320,7 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         this.detalleLoading.set(true);
         this.detalleError.set(null);
         this.detalle.set([]);
+        this.calcularMovimientosClavesSolicitud(row);
 
         try {
             const det = await this.bitacora.detalle(row.id);
@@ -268,13 +333,19 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
             const hasta = d.toISOString().slice(0, 10);
 
             // carga solo el resumen (para comparativa)
-            await this.cargarResumenMovimientos(row.cluesimb, desde, hasta);
+            // await this.cargarResumenMovimientos(row.cluesimb, desde, hasta);
 
             // opcional: setea señales para mostrar el rango que se usó
             this.movDesde.set(desde);
             this.movHasta.set(hasta);
             this.selectedUnidad.set(this.unidadesService.findByCluesimb(row.cluesimb)?.nombre ?? row.cluesimb);
-
+            
+            const rows = await this.movService.listar({
+                cluesimb: row.cluesimb,
+                desde,
+                hasta
+            });
+            this.movRows.set(rows);
         } catch {
             this.detalleError.set('No se pudo cargar el detalle.');
         } finally {
@@ -283,7 +354,7 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
     }
 
     getRowsOrdenadoPorClave(): MovimientoRow[] {
-        const rows = this.movRows();
+        const rows = this.movRowsBase();
         const copia = [...rows];
         copia.sort((a, b) => (a.clave_cnis || '').localeCompare(b.clave_cnis || ''));
         return copia;
@@ -343,7 +414,9 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
     async abrirMovimientosDesdeSolicitud(days = 30, row?: BitacoraHeader) {
         const h = row; // this.selectedHeader();
         if (!h) return;
+
         this.selectedHeader.set(h);
+        this.resetMovUI();
 
         const desde = h.created_day;
         const d = new Date(desde);
@@ -352,8 +425,14 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
 
         this.movDesde.set(desde);
         this.movHasta.set(hasta);
+
         const unidad = this.unidadesService.findByCluesimb(h.cluesimb);
         this.selectedUnidad.set(unidad ? unidad.nombre : h.cluesimb);
+
+        // ✅ trae claves de la solicitud para el switch "solo claves"
+        await this.calcularMovimientosClavesSolicitud(h);
+
+        // abrir modal + cargar movimientos
 
         this.movVisible.set(true);
         this.movLoading.set(true);
@@ -367,7 +446,7 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
                 hasta
             });
             this.movRows.set(rows);
-            await this.cargarResumenMovimientos(h.cluesimb, desde, hasta);
+            // await this.cargarResumenMovimientos(h.cluesimb, desde, hasta);
         } catch {
             this.movError.set('No se pudieron cargar los movimientos.');
         } finally {
@@ -375,6 +454,17 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         }
     }
 
+    private async calcularMovimientosClavesSolicitud(h: BitacoraHeader) {
+        try {
+            const det = await this.bitacora.detalle(h.id);
+            const set = new Set((det ?? []).map(x => this.norm.normClave(x.clave ?? '')));
+            this.movClavesSolicitud.set(set);
+        } catch {
+            this.movClavesSolicitud.set(new Set());
+        }
+    }
+
+    /*
     async cargarResumenMovimientos(cluesimb: string, desde: string, hasta: string) {
         this.movResumenLoading.set(true);
         this.movResumenError.set(null);
@@ -393,13 +483,14 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
             this.movResumenLoading.set(false);
         }
     }
+    */
 
     cerrarMovimientos() {
         this.movVisible.set(false);
         this.movRows.set([]);
         this.movError.set(null);
 
-        this.movResumenRows.set([]);
+        //this.movResumenRows.set([]);
         this.movResumenError.set(null);
         this.movFiltroClave.set('');
     }
@@ -483,7 +574,7 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
                     clave,
                     descripcion: this.getDescripcionArticulo(clave),
                     solicitado,
-                    existencia_unidad,
+                    existencia_unidad, cpm: d.cpm || 0,
                     AZM, AZT, AZE, faltante,
                     sugerencia
                 };
@@ -538,5 +629,12 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         this.miniRows.set([]);
         this.miniError.set(null);
         this.selectedHeader.set(null);
+    }
+
+    private resetMovUI() {
+        this.movMostrarResumen.set(false);
+        this.movSoloClavesSolicitud.set(false);
+        this.movFiltroClave?.set?.('');
+        this.movClavesSolicitud.set(new Set());
     }
 }

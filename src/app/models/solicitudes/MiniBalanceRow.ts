@@ -4,6 +4,7 @@ export type MiniBalanceRow = {
   descripcion: string;
   solicitado: number;
   existencia_unidad: number;
+  cpm: number;
   AZM: number;
   AZT: number;
   AZE: number;
