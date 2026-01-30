@@ -1,7 +1,7 @@
 // src/app/services/solicitudes-bitacora.service.ts
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
 
@@ -29,6 +29,7 @@ export type BitacoraDetalle = {
   solicitud_id: string;
   clave: string;
   cantidad: number;
+  cpm: number;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -59,7 +60,31 @@ export class SolicitudesBitacoraService {
   async detalle(id: string): Promise<BitacoraDetalle[]> {
     return await firstValueFrom(
       this.http.get<BitacoraDetalle[]>(`${environment.apiUrl}/solicitudes/bitacora/${id}/detalle`)
+      .pipe(
+        // normalizar las claves para que no jalen '060. 
+        map((detalles: BitacoraDetalle[]) => {
+          return detalles.map(d => ({
+            ...d,
+            clave: this.normalizarClave(d.clave)
+          }));
+        })
+      )
     );
+  }
+
+  private normalizarClave(clave: string): string {
+    const prefijos10 = ['060', '533', '535', '513', '537', '080', '070'];
+    let normalizado = clave;
+
+    const claveSinPuntos = clave.replace(/\./g, '');
+    if (claveSinPuntos.length === 12 &&
+      prefijos10.includes(claveSinPuntos.substring(0, 3)) &&
+      claveSinPuntos.endsWith('00')) {
+      // Convertir 12 dígitos a 10, manteniendo formato con puntos
+      const clave10 = claveSinPuntos.substring(0, 10);
+      normalizado = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
+    }
+    return normalizado;
   }
 
   buildPayload(

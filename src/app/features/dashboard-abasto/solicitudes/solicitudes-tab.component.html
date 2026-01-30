@@ -76,6 +76,7 @@
         <table class="min-w-full text-sm">
             <thead class="sticky top-0 bg-white border-b dark:bg-[#1a202c]">
                 <tr class="text-left text-slate-600 dark:text-slate-300">
+                    <th class="px-3 py-2">#</th>
                     <th class="px-3 py-2">Fecha</th>
                     <th class="px-3 py-2">CLUES</th>
                     <th class="px-3 py-2">Tipo pedido</th>
@@ -90,6 +91,7 @@
             <tbody>
                 @for (r of rowsView(); track r.id) {
                 <tr class="border-b hover:bg-green-50 dark:hover:bg-black">
+                    <td class="px-3 py-2 whitespace-nowrap">{{ $index + 1 }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ r.created_day }}</td>
                     <td class="px-3 py-2 font-medium whitespace-nowrap">{{ r.cluesimb }} - {{
                         getDescripcionUnidad(r.cluesimb) }}</td>
@@ -100,12 +102,18 @@
                     <td class="px-3 py-2 text-right">{{ r.total_piezas }}</td>
                     <td class="px-3 py-2 text-right">
                         <button class="px-3 py-1 text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90"
-                            (click)="abrirDetalle(r)">
-                            Ver detalle
+                            [title]="'Detalle para ' + r.cluesimb + ' · ' + r.created_day" (click)="abrirDetalle(r)">
+                            🧾
                         </button>
                         <button class="px-3 py-1 text-white bg-blue-600 rounded-lg cursor-pointer hover:opacity-90"
+                            [title]="'Movimientos para ' + r.cluesimb + ' · ' + r.created_day + ' (30d)'"
                             (click)="abrirMovimientosDesdeSolicitud(30, r)">
-                            Ver movtos (30d)
+                            🚚
+                        </button>
+                        <button class="px-3 py-1 text-white bg-[#CBA135] rounded-lg cursor-pointer hover:opacity-90"
+                            [title]="'Mini-balanceador para ' + r.cluesimb + ' · ' + r.created_day"
+                            (click)="abrirMiniBalanceo(r)">
+                            ⚖️
                         </button>
                     </td>
                 </tr>
@@ -128,31 +136,47 @@
         <div
             class="overflow-y-auto relative p-6 w-full max-h-[90vh] max-w-[75vw] bg-white rounded-lg shadow-lg dark:bg-[#1a202c]">
             <button (click)="cerrarDetalle()"
-                class="absolute top-3 right-3 text-gray-500 text-xl hover:text-gray-700">&times;</button>
+                class="absolute top-3 right-3 text-gray-500 text-xl cursor-pointer hover:text-gray-700">&times;</button>
 
-            @if (selectedHeader(); as H) {
-            <h3 class="mb-1 text-xl font-bold text-green-800 dark:text-[#CBA135]">
-                Detalle de solicitud
-            </h3>
-            <div class="mb-4 text-sm text-slate-600 dark:text-slate-300">
-                <span class="font-medium">{{ H.cluesimb }}</span> · {{ H.created_day }} · {{ H.tipo_pedido }}
-                · {{ (H.tipos_insumo ?? []).join(' - ') }}
+            <div class="p-1">
+                <div class="flex justify-left items-center mb-4">
+
+                    @if (selectedHeader(); as H) {
+                    <h3 class="px-3 py-1 mr-4 text-xl font-bold text-green-800 dark:text-[#CBA135]">
+                        Detalle de solicitud
+                    </h3>
+                    <div class="px-3 py-1 text-sm text-slate-600 dark:text-slate-300">
+                        <span class="font-medium">{{ H.cluesimb }}</span> · {{ H.created_day }} · {{ H.tipo_pedido }}
+                        · {{ (H.tipos_insumo ?? []).join(' - ') }}
+                    </div>
+                    }
+
+                    @if (detalleLoading()) {
+                    <div class="p-3 text-sm text-slate-600 dark:text-slate-300">Cargando detalle…</div>
+                    }
+
+                    @if (detalleError(); as derr) {
+                    <div class="p-3 text-sm text-red-700 bg-red-50 border-red-200 rounded-xl border">
+                        {{ derr }}
+                    </div>
+                    }
+                    <div class="ml-auto mr-4 text-sm text-slate-600 dark:text-slate-300">Mostrar Comparativa
+                    </div>
+                    <div class="relative inline-block w-11 h-5">
+                        <input checked id="switch-component" type="checkbox"
+                            class="w-11 h-5 bg-slate-100 rounded-full transition-colors duration-300 appearance-none cursor-pointer peer checked:bg-slate-800"
+                            [ngModel]="!mostrarSoloDetalle()" (ngModelChange)="mostrarSoloDetalle.set(!$event)" />
+                        <label for="switch-component"
+                            class="absolute top-0 left-0 w-5 h-5 bg-white rounded-full border-slate-300 shadow-sm transition-transform duration-300 cursor-pointer border peer-checked:translate-x-6 peer-checked:border-slate-800">
+                        </label>
+                    </div>
+                </div>
             </div>
-            }
-
-            @if (detalleLoading()) {
-            <div class="p-3 text-sm text-slate-600 dark:text-slate-300">Cargando detalle…</div>
-            }
-
-            @if (detalleError(); as derr) {
-            <div class="p-3 text-sm text-red-700 bg-red-50 border-red-200 rounded-xl border">
-                {{ derr }}
-            </div>
-            }
 
             <!-- Comparativa Solicitud vs Entregas -->
-            <div class="mt-4 p-4 bg-slate-50 rounded-xl border-slate-200 border dark:border-slate-700 dark:bg-black/20">
-                <div class="flex flex-col gap-2 md:flex-row items-center justify-between">
+            <div *ngIf="!mostrarSoloDetalle()"
+                class="mt-4 p-4 bg-slate-50 rounded-xl border-slate-200 border dark:border-slate-700 dark:bg-black/20">
+                <div class="flex flex-col items-center justify-between gap-2 md:flex-row">
                     <div>
                         <div class="text-sm font-semibold text-slate-700 dark:text-slate-200">
                             Comparativa (Solicitado vs Entregado)
@@ -190,6 +214,7 @@
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="text-left border-b">
+                                <th class="px-2 py-1">#</th>
                                 <th class="px-2 py-1">Clave</th>
                                 <th class="px-2 py-1">Descripción</th>
                                 <th class="px-2 py-1 text-right">Solicitado</th>
@@ -199,10 +224,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @for (r of comparativaView(); track r.clave) {
-                            <tr class="border-b hover:bg-slate-100 dark:hover:bg-black/30">
+                            @let comparativa = getComparativaViewOrdenadoPorClave();
+                            @for (r of comparativa; track r.clave) {
+                                <!-- alternate row colors -->
+                            <tr class="border-b hover:bg-slate-100 dark:hover:bg-black/30">                                
+                                <td class="px-2 py-1">{{ $index + 1 }}</td>
                                 <td class="px-2 py-1 font-medium">{{ r.clave }}</td>
-                                <td class="px-2 py-1">{{ r.descripcion }}</td>
+                                <td class="px-2 py-1" [title]="r.descripcion" ]>{{ r.descripcion.length > 50 ?
+                                    r.descripcion.substr(0, 50) + '...' : r.descripcion }}</td>
                                 <td class="px-2 py-1 text-right">{{ r.solicitado }}</td>
                                 <td class="px-2 py-1 text-right">{{ r.entregado }}</td>
                                 <td class="px-2 py-1 text-right">{{ r.diferencia }}</td>
@@ -210,7 +239,7 @@
                             </tr>
                             }
 
-                            @if (!movResumenLoading() && comparativaView().length === 0) {
+                            @if (!movResumenLoading() && comparativa.length === 0) {
                             <tr>
                                 <td colspan="6" class="py-4 text-center text-slate-500">
                                     Sin datos para comparar.
@@ -222,46 +251,58 @@
                 </div>
 
                 <div class="mt-2 text-xs text-slate-500">
-                    Rango entregas: {{ movDesde() }} → {{ movHasta() }}
+                    Rango fechas de envios de almacenes hacia {{ selectedUnidad() }}: {{ movDesde() }} → {{ movHasta()
+                    }}
                 </div>
             </div>
 
 
-            <div class="overflow-auto max-h-[70vh]">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-slate-600 border-b dark:text-slate-300">
-                            <th class="px-2 py-1">#</th>
-                            <th class="px-2 py-1">Clave</th>
-                            <th class="px-2 py-1">Descripción</th>
-                            <th class="px-2 py-1 text-right">Cantidad</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (d of detalle(); track d.clave; let i = $index) {
-                        <tr class="border-b">
-                            <td class="px-2 py-1">{{ i + 1 }}</td>
-                            <td class="px-2 py-1 font-medium">{{ d.clave }}</td>
-                            @let descripcion = getDescripcionArticulo(d.clave);
-                            <td class="px-2 py-1">{{ descripcion.length <= 150 ? descripcion : descripcion.slice(0, 150)
-                                    }}</td>
-                            <td class="px-2 py-1 text-right">{{ d.cantidad }}</td>
-                        </tr>
-                        }
+            <div *ngIf="mostrarSoloDetalle()"
+                class="mt-4 p-4 bg-slate-50 rounded-xl border-slate-200 border dark:border-slate-700 dark:bg-black/20">
+                <div class="flex flex-col items-center justify-between gap-2 md:flex-row">
+                    <div>
+                        <div class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            Detalle de solicitud
+                        </div>
+                    </div>
+                </div>
+                <div class="overflow-auto mt-3 max-h-[35vh]">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-slate-600 border-b dark:text-slate-300">
+                                <th class="px-2 py-1">#</th>
+                                <th class="px-2 py-1">Clave</th>
+                                <th class="px-2 py-1">Descripción</th>
+                                <th class="px-2 py-1 text-right">Cantidad solicitada</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (d of detalle(); track d.clave; let i = $index) {
+                            <tr class="border-b">
+                                <td class="px-2 py-1">{{ i + 1 }}</td>
+                                <td class="px-2 py-1 font-medium">{{ d.clave }}</td>
+                                @let descripcion = getDescripcionArticulo(d.clave);
+                                <td class="px-2 py-1" [title]="descripcion">{{ descripcion.length <= 50 ? descripcion :
+                                        descripcion.slice(0, 50) + '...' }}</td>
+                                <td class="px-2 py-1 text-right">{{ d.cantidad }}</td>
+                            </tr>
+                            }
 
-                        @if (!detalleLoading() && detalle().length === 0) {
-                        <tr>
-                            <td colspan="3" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
-                                Sin renglones.
-                            </td>
-                        </tr>
-                        }
-                    </tbody>
-                </table>
+                            @if (!detalleLoading() && detalle().length === 0) {
+                            <tr>
+                                <td colspan="3" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+                                    Sin renglones.
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="flex justify-end mt-4">
-                <button class="px-4 py-2 text-white bg-gray-600 rounded hover:bg-gray-700" (click)="cerrarDetalle()">
+                <button class="px-4 py-2 text-white bg-gray-600 cursor-pointer rounded hover:bg-gray-700"
+                    (click)="cerrarDetalle()">
                     Cerrar
                 </button>
             </div>
@@ -273,11 +314,13 @@
 @if (movVisible()) {
 <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
     <div class="overflow-auto relative p-6 w-full max-w-[80vw] max-h-[90vh] bg-white rounded-xl dark:bg-[#1a202c]">
-        <button class="absolute top-3 right-3 text-xl" (click)="movVisible.set(false)">✖</button>
-
+        <button class="absolute top-3 right-3 text-xl cursor-pointer" (click)="movVisible.set(false)">✖</button>
+        @if (selectedHeader(); as H) {
         <h3 class="text-xl font-semibold text-green-800 dark:text-[#CBA135]">
-            Movimientos hacia {{ selectedUnidad() }}
+            Movimientos hacia {{ selectedUnidad() }} - Pedido {{ H.tipo_pedido }}
+            · Tipo {{ (H.tipos_insumo ?? []).join(' - ') }}
         </h3>
+        }
 
         <div class="mb-2 text-sm text-slate-600 dark:text-slate-300">
             Rango: {{ movDesde() }} → {{ movHasta() }}
@@ -303,6 +346,22 @@
                 <input class="px-3 py-2 w-full rounded-lg border-custom-default border dark:bg-black md:w-96"
                     placeholder="Filtrar clave (ej. 010.000...)" [ngModel]="movFiltroClave()"
                     (ngModelChange)="movFiltroClave.set(($event || '').toString().toUpperCase())" />
+
+                <div class="flex flex-wrap items-center gap-4 mt-3 text-sm">
+                    <!-- Switch A -->
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" [ngModel]="movMostrarResumen()"
+                            (ngModelChange)="movMostrarResumen.set($event)" />
+                        <span>Mostrar resumen por clave</span>
+                    </label>
+
+                    <!-- Switch B -->
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" [ngModel]="movSoloClavesSolicitud()"
+                            (ngModelChange)="movSoloClavesSolicitud.set($event)" />
+                        <span>Solo claves de la solicitud</span>
+                    </label>
+                </div>
             </div>
 
             @if (movResumenLoading()) {
@@ -312,45 +371,51 @@
             @if (movResumenError(); as rerr) {
             <div class="mt-2 p-2 text-sm text-red-700 bg-red-50 rounded">{{ rerr }}</div>
             }
-
-            <div class="overflow-auto mt-2 max-h-[35vh]">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left border-b">
-                            <th class="px-2 py-1">Clave</th>
-                            <th class="px-2 py-1">Descripción</th>
-                            <th class="px-2 py-1 text-right">Entregado</th>
-                            <th class="px-2 py-1">Primer mov</th>
-                            <th class="px-2 py-1">Último mov</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (r of movResumenView(); track r.clave) {
-                        <tr class="border-b hover:bg-slate-100 dark:hover:bg-black/30">
-                            <td class="px-2 py-1 font-medium">{{ r.clave }}</td>
-                            <td class="px-2 py-1">{{ getDescripcionArticulo(r.clave) }}</td>
-                            <td class="px-2 py-1 text-right">{{ r.entregado_piezas }}</td>
-                            <td class="px-2 py-1">{{ r.primer_mov ?? '—' }}</td>
-                            <td class="px-2 py-1">{{ r.ultimo_mov ?? '—' }}</td>
-                        </tr>
-                        }
-
-                        @if (!movResumenLoading() && movResumenRows().length === 0) {
-                        <tr>
-                            <td colspan="5" class="py-4 text-center text-slate-500">
-                                Sin resumen en el rango.
-                            </td>
-                        </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
         </div>
 
+        @if (movMostrarResumen()) {
+        <!-- ✅ TABLA RESUMEN -->
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-left border-b">
+                    <th class="px-2 py-1">#</th>
+                    <th class="px-2 py-1">Clave</th>
+                    <th class="px-2 py-1">Descripción</th>
+                    <th class="px-2 py-1 text-right">Entregado</th>
+                    <th class="px-2 py-1">Primer mov</th>
+                    <th class="px-2 py-1">Último mov</th>
+                </tr>
+            </thead>
+            <tbody>
+                @let movResumenView2 = getMovsResumenViewOrdenadoPorClave();
+                @for (r of movResumenView2; track (r.clave + '|' + $index); let i = $index) {
+                <tr class="border-b hover:bg-slate-100 dark:hover:bg-black/30">
+                    <td class="px-2 py-1">{{ $index + 1 }}</td>
+                    <td class="px-2 py-1 font-medium">{{ r.clave }}</td>
+                    @let descripcion = getDescripcionArticulo(r.clave);
+                    <td class="px-2 py-1">{{ descripcion.length > 50 ? descripcion.substr(0, 50) + '...' : descripcion
+                        }}</td>
+                    <td class="px-2 py-1 text-right">{{ r.entregado_piezas }}</td>
+                    <td class="px-2 py-1">{{ r.primer_mov ?? '—' }}</td>
+                    <td class="px-2 py-1">{{ r.ultimo_mov ?? '—' }}</td>
+                </tr>
+                }
 
+                @if (!movResumenLoading() && movResumenView2.length === 0) {
+                <tr>
+                    <td colspan="5" class="py-4 text-center text-slate-500">
+                        Sin resumen en el rango.
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
+        } @else {
+        <!-- ✅ TABLA DETALLADA (usa movRowsBase()) -->
         <table class="mt-3 w-full text-sm">
             <thead>
                 <tr class="text-left border-b">
+                    <th class="px-2 py-1">#</th>
                     <th class="px-2 py-1">Fecha</th>
                     <th class="px-2 py-1">Tipo</th>
                     <th class="px-2 py-1">Clave</th>
@@ -361,19 +426,22 @@
                 </tr>
             </thead>
             <tbody>
-                @for (m of movRows(); track (m.clave_cnis + '|' + m.fecha_movimiento + '|' + (m.lote ?? '') + '|' +
-                m.cantidad)) {
+                @let movRows2 = getRowsOrdenadoPorClave();
+                <!-- antes el track era  (m.clave_cnis + '|' + m.fecha_movimiento + '|' + (m.lote ?? '') + '|' + m.cantidad)  -->
+                @for (m of movRows2; track (m.clave_cnis + '|' + $index); let i = $index) {
                 <tr class="border-b">
+                    <td class="px-2 py-1">{{ $index + 1 }}</td>
                     <td class="px-2 py-1">{{ m.fecha_movimiento }}</td>
                     <td class="px-2 py-1">{{ m.tipo_movimiento }}</td>
                     <td class="px-2 py-1">{{ m.clave_cnis }}</td>
-                    <td class="px-2 py-1">{{ getDescripcionArticulo(m.clave_cnis) }}</td>
+                    @let descripcion = getDescripcionArticulo(m.clave_cnis);
+                    <td class="px-2 py-1">{{ descripcion.length > 50 ? descripcion.substr(0, 50) + '...' : descripcion }}</td>
                     <td class="px-2 py-1 text-right">{{ m.cantidad }}</td>
                     <td class="px-2 py-1">{{ m.lote }}</td>
                     <td class="px-2 py-1">{{ m.unidad_origen_texto }}</td>
                 </tr>
                 }
-                @if (!movLoading() && movRows().length === 0) {
+                @if (!movLoading() && movRows2.length === 0) {
                 <tr>
                     <td colspan="5" class="py-6 text-center text-slate-500">
                         Sin movimientos en el rango.
@@ -382,10 +450,89 @@
                 }
             </tbody>
         </table>
-
+        }
         <div class="mt-3 text-xs text-slate-500">
             * Información de apoyo. Puede no reflejar la entrega completa o final.
         </div>
+    </div>
+</div>
+}
+
+@if (miniVisible()) {
+<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
+    <div class="overflow-auto relative p-6 w-full max-w-[90vw] max-h-[90vh] bg-white rounded-xl dark:bg-[#1a202c]">
+        <button class="absolute top-3 right-3 text-xl" (click)="cerrarMiniBalanceo()">✖</button>
+
+        @if (miniHeader(); as H) {
+        <h3 class="text-xl font-semibold text-green-800 dark:text-[#CBA135]">
+            Análisis · {{ selectedUnidad() }} - Pedido {{ H.tipo_pedido }}
+            · Tipo {{ (H.tipos_insumo ?? []).join(' - ') }} - Periodo {{ H.periodo_texto }}
+        </h3>
+        <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            * Las sugerencias mostradas no representan una asignación automática de surtido ni sustituyen los procesos
+            oficiales de abasto.
+        </div>
+        <div class="mb-1 text-sm text-slate-600 dark:text-slate-300">
+            * Para mayor utilidad, se recomienda consultar este análisis en fechas cercanas a la generación de la
+            solicitud, debido a la naturaleza cambiante de las existencias.
+        </div>
+        }
+
+        @if (miniLoading()) {
+        <div class="p-3 text-sm">Construyendo balanceo...</div>
+        }
+
+        @if (miniError(); as err) {
+        <div class="p-3 text-sm text-red-700 bg-red-50 rounded">
+            {{ err }}
+        </div>
+        }
+
+        <table class="mt-3 w-full text-sm">
+            <thead>
+                <tr class="text-left border-b">
+                    <th class="px-2 py-1">#</th>
+                    <th class="px-2 py-1">Clave</th>
+                    <th class="px-2 py-1">Descripción</th>
+                    <th class="px-2 py-1 text-right">Solicitado</th>
+                    <th class="px-2 py-1 text-right">Exist. unidad</th>
+                    <th class="px-2 py-1 text-right">CPM</th>
+                    <th class="px-2 py-1 text-right">AZM</th>
+                    <th class="px-2 py-1 text-right">AZT</th>
+                    <th class="px-2 py-1 text-right">AZE</th>
+                    <th class="px-2 py-1 text-right">Sug.</th>
+                    <th class="px-2 py-1">Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (m of miniRows(); track (m.clave + '|' + $index); let i = $index) {
+                <tr class="align-top border-b">
+                    <td class="px-2 py-1 font-medium whitespace-nowrap">{{ $index + 1 }}</td>
+                    <td class="px-2 py-1 font-medium whitespace-nowrap">{{ m.clave }}</td>
+                    <td class="px-2 py-1 text-xs">{{ m.descripcion.length <= 100 ? m.descripcion :
+                            m.descripcion.slice(0, 150) }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.solicitado }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.existencia_unidad }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.cpm }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.AZM }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.AZT }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.AZE }}</td>
+                    <td class="px-2 py-1 text-right">{{ m.faltante }}</td>
+                    <td class="px-2 py-1 text-slate-600 dark:text-slate-300">
+                        {{ m.sugerencia }}
+                    </td>
+                </tr>
+                }
+
+                @if (!miniLoading() && miniRows().length === 0) {
+                <tr>
+                    <td colspan="8" class="py-6 text-center text-slate-500">
+                        Sin renglones para balancear.
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 }
