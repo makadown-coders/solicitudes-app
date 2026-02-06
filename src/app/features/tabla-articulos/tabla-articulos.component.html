@@ -6,7 +6,7 @@
     <tr>
       <th class="p-2">#</th>
       <th class="p-2">Clave</th>
-      <th class="hidden md:table-cell">KIT</th>
+      <!-- <th class="hidden md:table-cell">KIT</th> -->
       <th class="hidden p-2 xl:table-cell">Clasificacion</th>
       <th class="hidden p-2 lg:table-cell">Descripción</th>
       <th class="hidden p-2 xl:table-cell">Unidad</th>
@@ -66,14 +66,14 @@
             }
           </div>
         </td>
-        <td class="hidden p-2 text-center md:table-cell">
+        <!-- <td class="hidden p-2 text-center md:table-cell">
           @if (enKit(articulo.clave)) {
             <span
               class="inline-block px-2 py-0.5 text-xs text-emerald-800 bg-emerald-100 rounded">
               ✓
             </span>
           }
-        </td>
+        </td> -->
         <td class="overflow-hidden hidden p-2 max-w-[100px] text-ellipsis whitespace-nowrap sm:whitespace-normal xl:table-cell"
         [attr.title]="clasificacion(articulo.clave)">{{ clasificacion(articulo.clave) }}</td>
         <td class="overflow-hidden hidden p-2 max-w-[250px] text-ellipsis whitespace-pre-wrap break-words sm:whitespace-normal lg:table-cell"
