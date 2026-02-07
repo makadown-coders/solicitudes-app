@@ -24,6 +24,7 @@ import { StorageSolicitudService } from './storage-solicitud.service';
 import { TemporalExistenciaRow } from '../models/temporal-existencia-row.model';
 import { CitaSlimByClaveLote, CitaSlimExistencia } from '../models/cita-slim-inventario.model';
 import { UnidadesService } from './unidades.service';
+import { hospitalesData, UnidadExistente } from '../models';
 
 // helper compartido
 function cleanLote(l?: string | null) {
@@ -241,9 +242,15 @@ export class InventarioService {
 
   /**
    * Refresca datos de existencias de una unidad (aplica solo segundo nivel)
+   * LEGACY: en vías de deprecación para usar un endpoint específico por unidad que ya regresa datos normalizados (sin necesidad de pasar por Power Automate ni normalizaciones extra).
+   * Nueva versión: refrescarDatosExistencias(), que ya no usa Power Automate ni ExcelService, sino que pega directo a un endpoint que regresa datos normalizados.
+   * 
+   * En caso de emergencia, regresar a usar esta version. Ya que la nueva versión trae datos de 
+   * existencias de farmacias de los hospitales
+   * 
    * @param existencia 
    */
-  refrescarDatosExistencias(existencia: Existencias = Existencias.HGENS): void {
+  refrescarDatosExistenciasLegacy(existencia: Existencias = Existencias.HGENS): void {
     // console.info('🔄 InventarioService.refrescarDatosExistencias() - Actualizando existencias de ' + existencia + '...');
     // purgar todo el localStorage
     this.limpiarExistencias(existencia);
@@ -302,6 +309,65 @@ export class InventarioService {
         }
       });
     }
+  }
+
+  
+/**
+ * Refresca datos de existencias de una unidad.
+ * Nueva versión sin power automate.
+ * @param existencia Clave de la existencia a refrescar.
+ */
+  refrescarDatosExistencias(existencia: Existencias = Existencias.HGENS): void {
+    // purgar todo el localStorage
+    this.limpiarExistencias(existencia);
+
+    const url = this.generarURLParaExistencia(existencia);
+
+    // caso especial de San Felipe, que usa otro endpoint y otro modelo
+    this.http.get<{ rows: TemporalExistenciaRow[] }>(url).subscribe({
+      next: (res) => {
+        const response = res.rows;
+        if (!response || response.length === 0) {
+          this.existenciasSubject.get(existencia)!.next([]);
+          return;
+        }
+        const inventario: Inventario[] = response.map(item => {
+          const nuevoRegistro: Inventario = new Inventario();
+          nuevoRegistro.clave = item.clave_cnis;
+          nuevoRegistro.partida = ''; // item.lote || '';
+          nuevoRegistro.descripcion = '';
+          nuevoRegistro.disponible = item.existencia;
+          nuevoRegistro.almacen = (existencia === Existencias.HGSF) ? 
+                                    'HOSPITAL COMUNITARIO SAN FELIPE' : item.alias_sas!;
+          nuevoRegistro.fuente = '';
+          nuevoRegistro.comprometidos = 0;
+          nuevoRegistro.lote = item.lote || '';
+          nuevoRegistro.caducidad = item.fecha_caducidad as string;
+          nuevoRegistro.fecha_entrada = null;
+          return nuevoRegistro;
+        });
+        const inventarioNormalizado = this.normalizarClavesInventario(inventario);
+
+        // console.log('🔁 InventarioService.refrescarDatosExistencias() HGSF - Serializando y comprimiendo ' + inventarioNormalizado.length + ' registros.' );
+        // 1) Serializar y comprimir
+        this.serializarYComprimir(inventarioNormalizado, existencia);
+      },
+      error: (err) => {
+        console.error('❌ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
+        this.existenciasSubject.get(existencia)!.next([]);
+      }
+    });
+
+  }
+
+  private generarURLParaExistencia(existencia: Existencias = Existencias.HGENS): string {
+    let urlRetorno = '';
+    hospitalesData.forEach((hospital: UnidadExistente) => {
+      if (hospital.key === existencia) {
+        urlRetorno = environment.apiUrl + '/existencias-temp/by-unidad-full?cluesimb=' + hospital.cluesimb;
+      }
+    });
+    return urlRetorno;
   }
 
 
