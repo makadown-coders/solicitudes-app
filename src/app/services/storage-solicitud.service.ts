@@ -128,6 +128,10 @@ export class StorageSolicitudService {
         return [];
     }
 
+    /**
+     * @deprecated Ya no se usa.
+     * @returns 
+     */
     getClaveGruposFromLocalStorage(): ClaveGrupo[] {
         // obtener de StorageVariables.SOLICITUD_CLAVEGRUPOS (no esta comprimido)
         const raw = localStorage.getItem(StorageVariables.SOLICITUD_CLAVEGRUPOS);

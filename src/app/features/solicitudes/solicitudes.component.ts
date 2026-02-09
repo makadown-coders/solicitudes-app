@@ -781,7 +781,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       // 3) Detecta columnas
       let headers = Object.keys(datos[0]).map(h => h.toLowerCase().trim());
       let colClave = headers.find(h => h.includes('clave'));
-      let colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado') || h.includes('total'));
+      let colCantidad = headers.find(h => (h.includes('cantidad') || h.includes('solicitado') || h.includes('total')) &&
+        !h.includes('cantidad_propuesta'));
 
       if (!colClave) {
         if (datos.length < 8) {
@@ -790,7 +791,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         }
         headers = Object.values(datos[7]).map((h: any) => (h + '').toLowerCase().trim());
         colClave = headers.find(h => h.includes('clave'));
-        colCantidad = headers.find(h => h.includes('cantidad') || h.includes('solicitado') || h.includes('total'));
+        colCantidad = headers.find(h => (h.includes('cantidad') || h.includes('solicitado') || h.includes('total')) &&
+          !h.includes('cantidad_propuesta'));
         if (!colClave) {
           this.abrirModalInfo('Encabezado faltante', 'El archivo no contiene columna con clave CNIS o formato no es válido.');
           return;
@@ -807,12 +809,17 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         let fila: any = { ...renglon };
         if (usandoTemplate) fila = Object.values(fila);
 
-        let clave: string = ((!usandoTemplate ? fila[colClave!] : fila[2]) ?? '')
+        let clave: string = ((!usandoTemplate ? (fila[colClave!]||fila[colClave!.toLocaleUpperCase()]) : fila[2]) ?? '')
           .toString().trim().toUpperCase();
         if (!clave) continue;
 
         clave = this.inventarioService.normalizarClave(clave);
-        const cantidad = colCantidad ? parseInt(!usandoTemplate ? fila[colCantidad!] : fila[5]) || 0 : 0;
+        let cantidad = colCantidad ? parseInt(!usandoTemplate ? fila[colCantidad!] : fila[5]) || 0 : 0;
+
+        if (cantidad <= 0) {
+          cantidad = colCantidad ? parseInt(!usandoTemplate ? fila[colCantidad!.toLocaleUpperCase()] : fila[5]) || 0 : 0;
+          if (cantidad <= 0) continue;
+        }
 
         const existente = nuevos.find(a => a.clave === clave);
         if (existente) {
@@ -862,13 +869,13 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
       // 9) ÚNICO modal de resumen
       const lineas: string[] = [];
-      lineas.push(`✔ Importadas (distintas): ${this.articulosSolicitados.length}`);
-      lineas.push(`✔ En KIT: ${enKit}/${kitTotal || '¿?'}`);
+      lineas.push(`✔ Claves Importadas: ${this.articulosSolicitados.length}`);
+      /*lineas.push(`✔ En KIT: ${enKit}/${kitTotal || '¿?'}`);
       if (bloqueadas.length) {
         lineas.push(`⛔ Bloqueadas por bandera: ${bloqueadas.length}`);
       } else {
         lineas.push(`• Fuera de KIT: ${fueraKit}`);
-      }
+      }*/
       if (dupKeys.length > 0) lineas.push(`ℹ Duplicadas combinadas (${dupKeys.length}): ${dupPreview}`);
 
       this.abrirModalInfo('Importación completada', lineas.join('\n'));

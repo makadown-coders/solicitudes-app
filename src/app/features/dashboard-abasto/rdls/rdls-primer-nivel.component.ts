@@ -25,18 +25,20 @@ import { InventarioService } from '../../../services/inventario.service';
 import { KitsService } from '../../../services/kits.service';
 import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
 import { UnidadesService } from '../../../services/unidades.service';
+import { FileSpreadsheetIcon, LucideAngularModule } from 'lucide-angular';
 
 
 @Component({
     selector: 'app-rdls-primer-nivel',
     standalone: true,
-    imports: [CommonModule, FormsModule, NgSelectModule],
+    imports: [CommonModule, FormsModule, NgSelectModule, LucideAngularModule],
     templateUrl: './rdls-primer-nivel.component.html',
     styleUrls: ['./rdls-primer-nivel.component.css'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RdlsPrimerNivelComponent extends AbstractTabComponent implements OnInit, OnDestroy {
     mostradoPorPrimeraVez = false;
+    fileSpreadSheet = FileSpreadsheetIcon;
 
     private inventario = inject(InventarioService);
 
@@ -55,7 +57,11 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
     loadingUnidad = signal<boolean>(false);
     generandoExcel = signal<boolean>(false);
     mensajeBotonExcel = computed(() => {
-        return this.generandoExcel() ? 'Generando Excel...' : 'Exportar Concentrado Excel';
+        return this.generandoExcel() ? 'Generando Excel...' : 'Concentrado';
+    });
+
+    mensajeBotonExcel2 = computed(() => {
+        return this.generandoExcel() ? 'Generando Excel...' : 'Solo Unidades Elegidas';
     });
 
     // idx por clave normalizada -> existencia disponible (sum)
@@ -228,24 +234,6 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
                 await this.rebuildUniverseFromSelectedKits(kits);
             })();
         });
-
-        /* effect(() => {
-             console.log('effect: selectedUnits changed');
-             const units = this.selectedUnits();
-             console.log('selectedUnits:', units);
-             const kits = this.selectedKits();
-             console.log('clavesRutasSalud:', kits);
- 
-             if (!units.length || !kits.length) return;
- 
-             // también dar return si no unidades o si no hay kits seleccionados
-             if (units.length === 0) return;
- 
-             (async () => {
-                 // cada que cambian las unidades → reconstruye aggregados
-                 await this.rebuildAggregatesForSelectedUnits();
-             })();
-         });*/
     }
 
     private isHydrating = false;
@@ -254,11 +242,6 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
         this.unidadesSrv.loadPrimerNivel().subscribe(list => {
             const arr = (list ?? []).map(u => ({ ...u, __k: (u.cluesimb || '').trim().toUpperCase() })) as any;
             this.unidadesPrimerNivel.set(arr);
-
-            // ✅ default: al menos 1 unidad
-            /*if (!this.selectedUnits().length && arr.length) {
-                this.selectedUnits.set([arr[0]]);
-            }*/
         });
 
         if (this.mostradoPorPrimeraVez === false && this.isActive) {
@@ -573,7 +556,8 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
         const clavesExportNorm = Array.from(setRutas);
 
         // 2) Unidades a exportar
-        const unidades: UnidadExistente[] = this.unidadesVisibles(); // o this.unidadesPrimerNivel()
+        // si [todo] es true, exporta todo, si no, solo unidades seleccionadas (selectedUnits)
+        const unidades: UnidadExistente[] = todo ? this.unidadesVisibles() : this.selectedUnits();
         if (!unidades.length) return;
 
         // 3) Meta por clave desde rows ya construidas
@@ -640,15 +624,8 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
 
         for (const group of batches) {
             await Promise.allSettled(group.map(async (u) => {
-                let mostrarlo = false;
                 const clues = (u.cluesimb || '').trim().toUpperCase();
                 if (!clues) return;
-
-                if (clues === 'BCIMB001521') {
-                    // CHATGPT: AQUI SI ENTRA EL LOG!
-                    console.log('invocando cpmService.cpmsFor', clues);
-                    mostrarlo = true;
-                }
 
                 // CPM cache
                 let popo: any = null;
@@ -667,11 +644,6 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
                     // seguimos: existencias quedarán en 0
                 }
 
-                if (mostrarlo) {
-                    console.log('Items for', clues, items);
-                    console.log('clavesExportNorm', clavesExportNorm);
-                }
-
                 // idx existencia por clave (solo universo del kit)
                 const existMap = new Map<string, number>();
                 for (const it of (items ?? [])) {
@@ -685,9 +657,6 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
 
                 // agregados por unidad
                 let sumCpm = 0, sumExist = 0, faltantes = 0;
-                /*if (clues === 'BCIMB001521') {
-                    console.log('ExistMap for', clues, existMap);
-                }*/
 
                 for (const clave of clavesExportNorm) {
                     const meta = metaPorClave.get(clave);
@@ -726,7 +695,7 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
                     claves_en_kit: clavesExportNorm.length,
                     sum_cpm: sumCpm,
                     sum_existencia: sumExist,
-                    sum_delta: ((deltaRU >= 0) ? 0 : Math.abs(deltaRU)),
+                    sum_sug: ((deltaRU >= 0) ? 0 : Math.abs(deltaRU)),
                     claves_con_faltante: faltantes
                 });
             }));
@@ -769,7 +738,7 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
                 grupo_terapeutico: (meta as any)?.grupo_terapeutico ?? '',
                 sum_cpm: a.sumCpm,
                 sum_existencia: a.sumExist,
-                sum_delta: ((deltaRC(a) >= 0) ? 0 : Math.abs(deltaRC(a))),
+                sum_sug: ((deltaRC(a) >= 0) ? 0 : Math.abs(deltaRC(a))),
                 unidades_con_faltante: a.faltantes,
                 // ✅ nuevas columnas de almacenes (al final)
                 azm: almVals.AZM,
@@ -794,7 +763,7 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
             'tipo',
             'existencia',
             'cpm',
-            'delta',
+            'sug',
         ] as const;
 
         const addConcentradoSheet = (name: string, data: any[]) => {
@@ -805,13 +774,13 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
             ws.views = [{ state: 'frozen', ySplit: 1 }];
 
             for (const r of data) {
-                ws.addRow(CONC_HEADERS.map(h => r[h] ?? (h === 'existencia' || h === 'cpm' || h === 'delta' ? 0 : '')));
+                ws.addRow(CONC_HEADERS.map(h => r[h] ?? (h === 'existencia' || h === 'cpm' || h === 'sug' ? 0 : '')));
             }
 
             // Formato numérico
             const colExist = CONC_HEADERS.indexOf('existencia') + 1;
             const colCpm = CONC_HEADERS.indexOf('cpm') + 1;
-            const colDelta = CONC_HEADERS.indexOf('delta') + 1;
+            const colDelta = CONC_HEADERS.indexOf('sug') + 1;
             ws.getColumn(colExist).numFmt = '#,##0';
             ws.getColumn(colCpm).numFmt = '#,##0';
             ws.getColumn(colDelta).numFmt = '#,##0';
@@ -986,7 +955,10 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
         // 10) filename + download
         const now = new Date();
         const pad = (n: number) => String(n).padStart(2, '0');
-        const filename = `RDLS_1ER_NIVEL_CONCENTRADO_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.xlsx`;
+
+        const filename = todo ? 
+            `RDLS_1ER_NIVEL_CONCENTRADO_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.xlsx` :
+            `RDLS_1ER_NIVEL_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.xlsx`;
         this.generandoExcel.set(false);
         await downloadWorkbook(wb, filename);
     }

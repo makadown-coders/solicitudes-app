@@ -21,6 +21,14 @@ export class CpmEditorService {
   }
 
   upsertBatch(um: string, items: BatchItem[]) {
-    return this.http.post<{ ok: true; count: number }>(`${this.base}/batch`, { um, items });
+    return this.http.post<{ ok: true; count: number }>(`${this.base}/batch`, { um, items }, {
+      headers: { 'X-Skip-Loader': '1' }
+    });
+  }
+
+  initClues(cluesimb: string) {
+    return this.http.post<{ ok: true }>(`${this.base}/init-clues-cpm-reset?cluesimb=${cluesimb}`, {}, {
+      headers: { 'X-Skip-Loader': '1' }
+    });
   }
 }

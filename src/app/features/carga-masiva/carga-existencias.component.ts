@@ -175,9 +175,9 @@ export class CargaExistenciasComponent {
         return out;
     }
 
-    // SALUS INDICADORES
-    //   Unidades : [C] CLUES SSA (2), [E] clave (4), [F] cantidad (5)
-    // Hospitales : [B] CLUES SSA (1), [E] clave (3), [F] cantidad (4)
+    // SALUS INDICADORES (REPORTE MEGA FARMACIA SALUS)
+    //   Unidades : [C] CLUES IMB (2), [E] clave (4), [F] cantidad (5)
+    // Hospitales : [B] CLUES SSA (1), [D] clave (3), [E] pieza (cantidad) (4)
     // ... no hay lote ni caducidad
     private parseSALUSI(buf: ArrayBuffer): TempRow[] {
         const wb = XLSX.read(buf, { type: 'array' });
@@ -186,15 +186,15 @@ export class CargaExistenciasComponent {
         const out: TempRow[] = [];
 
         for (const r of rows) {
-            let claveRaw = r[4];            
+            let claveRaw = r[4]; // hacia columna E           
             if (this.isHeaderish(claveRaw)) continue;
-            let colClues = 2;
-            let colCant = 5;
+            let colClues = 2; // hacia columna C (CLUES IMB)
+            let colCant = 5; // hacia columna F
             // si claveRaw es un numero, cambiar los numeros de columnas
             if (!isNaN(claveRaw)) {
-                colClues = 1;
-                colCant = 4;
-                claveRaw = r[3];
+                colClues = 1; // hacia columna B (CLUES SSA)
+                colCant = 4; // hacia columna E
+                claveRaw = r[3]; // hacia columna D
             }
             const clave = this.inv.normalizarClave((claveRaw ?? '').toString().toUpperCase());
             if (!clave) continue;
@@ -202,9 +202,17 @@ export class CargaExistenciasComponent {
             const lote = null;
             const fCad = null;
             const cant = this.toNum(r[colCant]);
-            const cluessa = (r[colClues] ?? '').toString().trim().toUpperCase() || null;
 
-            const cluesimb = cluessa ? (this.unidadesService.getCluesimbByCluessa(cluessa) || null) : null;
+            let cluessa = null;
+            let cluesimb = null;
+
+            if (colClues === 1) {
+                cluessa = (r[colClues] ?? '').toString().trim().toUpperCase() || null;
+                cluesimb = cluessa ? (this.unidadesService.getCluesimbByCluessa(cluessa) || null) : null;
+            } else {
+                // cluessa ya no importa
+                cluesimb = (r[colClues] ?? '').toString().trim() || null;
+            }
 
             out.push({
                 fuente: 'SALUS', //'SALUS_INDICADORES',
@@ -227,6 +235,18 @@ export class CargaExistenciasComponent {
         this.progress = 0;
 
         try {
+            // 0) antes de comenzar, validar que salusIRows no tenga [clave_cnis + cluesimb] alguna 
+            // contenidas en sasRows o salusRows (evitar confusión de fuentes)
+            const clavesEnSASySALUS = new Set<string>();
+            for (const r of [...this.sasRows, ...this.salusRows]) {
+                if (r.cluesimb) {
+                    clavesEnSASySALUS.add(`${r.clave_cnis}||${r.cluesimb}`);
+                }
+            }
+            // para salusIRows, si alguna [clave_cnis+cluesimb] está en clavesEnSASySALUS, 
+            // la excluimos de la carga (no se mezclan fuentes)
+            this.salusIRows = this.salusIRows.filter(r => !clavesEnSASySALUS.has(`${r.clave_cnis}||${r.cluesimb}`));
+
             // 1) reset (TRUNCATE)
             await firstValueFrom(this.svc.init(this.resetTable));
 
