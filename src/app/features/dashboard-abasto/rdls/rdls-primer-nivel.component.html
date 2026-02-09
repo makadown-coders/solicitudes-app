@@ -136,11 +136,18 @@
         <div *ngIf="canRender()" class="flex justify-between items-center mt-2 text-sm text-gray-600">
             <div>Total: {{ totalItems() | number }}</div>
             <!-- (botones export si quieres aquí) -->
-            <div class="flex items-center gap-2">
-                <button [disabled]="excelDisabled()||generandoExcel()"
+            <div class="flex justify-end gap-2">
+                <button [disabled]="excelDisabled()||generandoExcel()"                
+                    class="px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg cursor-pointer hover:bg-green-500 transition disabled:opacity-50"
+                    (click)="exportarExcelRdlSPrimerNivel(false)">
+                   <lucide-icon [name]="fileSpreadSheet" class="w-5 h-5"></lucide-icon> 
+                        {{ mensajeBotonExcel2() }}
+                </button>
+                <button [disabled]="excelDisabled()||generandoExcel()"                
                     class="px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg cursor-pointer hover:bg-green-500 transition disabled:opacity-50"
                     (click)="exportarExcelRdlSPrimerNivel(true)">
-                    {{ mensajeBotonExcel() }}
+                    <lucide-icon [name]="fileSpreadSheet" class="w-5 h-5"></lucide-icon>
+                        {{ mensajeBotonExcel() }}
                 </button>
             </div>
         </div>

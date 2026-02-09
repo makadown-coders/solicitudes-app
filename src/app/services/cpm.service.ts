@@ -18,6 +18,7 @@ import { CpmExpectedRow } from '../models/CpmExpectedRow';
 import { CpmApiResponse } from '../models/CpmApiResponse';
 import { CpmUnionRow } from '../models/CpmUnionRow';
 import { FeatureFlagsService } from './feature-flags.service';
+import { StorageVariables } from '../shared/storage-variables';
 
 @Injectable({ providedIn: 'root' })
 export class CpmService {
@@ -64,6 +65,33 @@ export class CpmService {
     };
   }
 
+  /**
+   * Limpia todo el storage relacionado con CPM (útil para debugging)
+   * todo lo que contenga "cpm:union:" o "cpm:ts:" para liberar espacio
+   * en caso de QuotaExceededError.
+   */
+  private cleanCPMUnionTSStorage() {
+    // limpiando claves legacy que pudieran persistir. 
+    // Ya no se usan pero por si acaso quedan residuos.
+    localStorage.removeItem(StorageVariables.SOLICITUD_CPMS);
+    localStorage.removeItem(StorageVariables.SOLICITUD_CLAVEGRUPOS);
+    localStorage.removeItem(StorageVariables.SOLICITUD_CPMS_TS);
+    try {
+      const keysToRemove: string[] = [];
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+
+        if (key.startsWith('cpm:union:') || key.startsWith('cpm:ts:')) {
+          keysToRemove.push(key);
+        }
+      }
+
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch { /* noop */ }
+  }
+
   private normClave(c: string) { return (c || '').toUpperCase().trim(); }
 
   private hydrateUnion(cluesimb: string): CpmUnionRow[] {
@@ -96,8 +124,16 @@ export class CpmService {
         try {
           tryWrite();
         } catch (err2) {
-          console.warn('[CPM] Sin espacio en localStorage, no se persistirá', cluesimb);
-          // Importante: NO lanzar error. Solo no persistir.
+          // Segundo intento fallido
+          try {
+            // Ya mejor de plano Limpio el storage de CPM
+            this.cleanCPMUnionTSStorage();
+            tryWrite();
+          } catch (err3) {
+            // Tercer intento fallido
+            console.warn('[CPM] Sin espacio en localStorage, no se persistirá', cluesimb);
+            // Importante: NO lanzar error. Solo no persistir.  
+          }
         }
         return;
       }
