@@ -504,7 +504,7 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
     goTo(p: number) { this.page.set(Math.min(Math.max(1, p), this.totalPages())); }
     nextPage() { if (this.page() < this.totalPages()) this.page.update(v => v + 1); }
     prevPage() { if (this.page() > 1) this.page.update(v => v - 1); }
-    jump(delta: number) { this.goTo(this.page() + delta); }
+    jump(sug: number) { this.goTo(this.page() + sug); }
 
     // === aplica TIPO/GRUPO con los servicios (sin helpers sueltos) ===
     private applyTipoYGrupo() {
@@ -666,8 +666,8 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
                     const existRaw = existMap.get(clave) ?? 0;
                     const exist = Number.isFinite(Number(existRaw)) ? Number(existRaw) : 0;
 
-                    const deltaSigned = exist - cpm;
-                    const delta = (Number.isFinite(deltaSigned) && deltaSigned < 0) ? Math.abs(deltaSigned) : 0;
+                    const sugSigned = exist - cpm;
+                    const sug = (sugSigned < 0) ? Math.abs(sugSigned) : 0;
 
                     concentrado.push({
                         jurisdiccion: u.jurisdiccion ?? '',
@@ -679,15 +679,15 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
                         tipo: meta?.tipo ?? '',
                         existencia: exist,
                         cpm,
-                        delta,
+                        sug,
                     });
 
                     sumCpm += cpm;
                     sumExist += exist;
-                    if (delta > 0) faltantes++;
+                    if (sug > 0) faltantes++;
                 }
 
-                const deltaRU = sumExist - sumCpm;
+                const sugRU = sumExist - sumCpm;
                 resumenUnidad.push({
                     jurisdiccion: u.jurisdiccion ?? '',
                     cluesimb: clues,
@@ -695,7 +695,7 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
                     claves_en_kit: clavesExportNorm.length,
                     sum_cpm: sumCpm,
                     sum_existencia: sumExist,
-                    sum_sug: ((deltaRU >= 0) ? 0 : Math.abs(deltaRU)),
+                    sum_sug: ((sugRU >= 0) ? 0 : Math.abs(sugRU)),
                     claves_con_faltante: faltantes
                 });
             }));
@@ -711,11 +711,11 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
             const acc = resumenClaveMap.get(k) ?? { sumCpm: 0, sumExist: 0, faltantes: 0 };
             acc.sumCpm += Number(row.cpm || 0);
             acc.sumExist += Number(row.existencia || 0);
-            if (Number(row.delta || 0) > 0) acc.faltantes += 1; // delta ya es positivo si hay faltante
+            if (Number(row.sug || 0) > 0) acc.faltantes += 1; // sug ya es positivo si hay faltante
             resumenClaveMap.set(k, acc);
         }
 
-        const deltaRC = (a: { sumCpm: number; sumExist: number }) => a.sumExist - a.sumCpm;
+        const sugRC = (a: { sumCpm: number; sumExist: number }) => a.sumExist - a.sumCpm;
 
         // 👇 almacenes desde tu signal almBuckets()
         const alm = this.almBuckets();
@@ -738,7 +738,7 @@ export class RdlsPrimerNivelComponent extends AbstractTabComponent implements On
                 grupo_terapeutico: (meta as any)?.grupo_terapeutico ?? '',
                 sum_cpm: a.sumCpm,
                 sum_existencia: a.sumExist,
-                sum_sug: ((deltaRC(a) >= 0) ? 0 : Math.abs(deltaRC(a))),
+                sum_sug: ((sugRC(a) >= 0) ? 0 : Math.abs(sugRC(a))),
                 unidades_con_faltante: a.faltantes,
                 // ✅ nuevas columnas de almacenes (al final)
                 azm: almVals.AZM,
