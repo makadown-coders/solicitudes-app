@@ -83,41 +83,66 @@ export class CargaCitasComponent {
                 headerLeido = true;
                 continue;
             }
-            const ejercicio = fila[0];
+            let ejercicio = fila[0];
             if (!ejercicio || (ejercicio + '').trim().length === 0) {
                 console.info('🔁 fin de archivo detectado en renglón ' + renglon + '. Finalizando obtención de datos', fila);
                 break;
             }
-            const ordenSuministro = fila[1];
-            const institucion = fila[2];
-            const contrato = fila[3];
-            const procedimiento = fila[4];
-            const tipoEntrega = fila[5];
-            const cluesDestino = fila[6];
-            const unidad = fila[7];
-            const fuenteFinanciamiento = fila[8];
-            const proveedor = fila[9];
-            const claveCNIS = fila[10];
-            const descripcion = fila[11];
-            const compra = fila[12];
-            const tipoRed = fila[13];
-            const tipoInsumo = fila[14];
-            const grupoTerapeutico = fila[15];
-            const precioUnitario = fila[16];
-            const piezasEmitidas = fila[17];
-            fila[18] = fila[18] instanceof Date ?
-                fila[18] :
-                (this.fechaService.excelDateToDatestring(fila[18]));
-            const fechaEmision = fila[18];
-            fila[19] = fila[19] instanceof Date ?
-                fila[19] :
-                (this.fechaService.excelDateToDatestring(fila[19]));
-            const fechaLimiteEntrega = fila[19];
-            const piezasRecibidas = fila[20];
+
+            let ordenSuministro = fila[1];
+            const nuevoFormato = isNaN(ejercicio);
+            // si ejercicio no es numero, lo tomo de columna V (índice 21)
+            if (isNaN(ejercicio)) {
+                ordenSuministro = fila[0];
+                // fila[21] es una fecha, de modo que debo sacar el año                
+                ejercicio = fila[21] instanceof Date ?
+                    fila[21].getFullYear() :
+                    (this.fechaService
+                        .parseLocalDate(this.fechaService.excelDateToDatestring(fila[21])!)
+                        .getFullYear());
+            }
+
+            let institucion = nuevoFormato ? fila[1] : fila[2];
+            let contrato = nuevoFormato ? fila[7] : fila[3];
+            let procedimiento = nuevoFormato ? fila[8] : fila[4];
+            let tipoEntrega = nuevoFormato ? fila[2] : fila[5];
+            let cluesDestino = nuevoFormato ? fila[5] : fila[6];
+            let unidad = nuevoFormato ? fila[6] : fila[7];
+            let fuenteFinanciamiento = nuevoFormato ? fila[9] : fila[8];
+            let proveedor = nuevoFormato ? fila[11] : fila[9];
+            let claveCNIS = nuevoFormato ? fila[13] : fila[10];
+            let descripcion = nuevoFormato ? fila[14] : fila[11];
+            let compra = nuevoFormato ? fila[10] : fila[12];
+            let tipoRed = nuevoFormato ? fila[15] : fila[13];
+            let tipoInsumo = nuevoFormato ? fila[16] : fila[14];
+            let grupoTerapeutico = nuevoFormato ? fila[17] : fila[15];
+            let precioUnitario = nuevoFormato ? fila[18] : fila[16];
+            let piezasEmitidas = nuevoFormato ? fila[19] : fila[17];
+            if (!nuevoFormato) {
+                fila[18] = fila[18] instanceof Date ?
+                    fila[18] :
+                    (this.fechaService.excelDateToDatestring(fila[18]));
+            } else {
+                fila[21] = fila[21] instanceof Date ?
+                    fila[21] :
+                    (this.fechaService.excelDateToDatestring(fila[21]));
+            }
+            let fechaEmision = nuevoFormato ? fila[21] : fila[18];
+            if (!nuevoFormato) {
+                fila[19] = fila[19] instanceof Date ?
+                    fila[19] :
+                    (this.fechaService.excelDateToDatestring(fila[19]));
+            } else {
+                fila[22] = fila[22] instanceof Date ?
+                    fila[22] :
+                    (this.fechaService.excelDateToDatestring(fila[22]));
+            }
+            let fechaLimiteEntrega = nuevoFormato ? fila[22] : fila[19];
+            let piezasRecibidas = nuevoFormato ? fila[25] : fila[20];
             /* Condiciono a que la fecha de recepción siempre sea null 
                si no tiene numero de remision (fila[22]) porque están intimamente ligados
             */
-            const fechaRecepcionAlmacen =
+            let fechaRecepcionAlmacen =
                 fila[22] === null ? null :
                     (fila[21] instanceof Date ? fila[21] :
                         (!(fila[21] + '').includes('/') ?
@@ -125,23 +150,46 @@ export class CargaCitasComponent {
                             (this.fechaService.formatFechaMultiple(fila[21] as string | null))
                         ))
                 ;
-            const numeroRemision = fila[22];
-            const lote = fila[23];
-            const caducidad = fila[24] === null ? null :
+
+            if (nuevoFormato) {
+                fechaRecepcionAlmacen =
+                    fila[23] === null ? null :
+                        (fila[23] instanceof Date ? fila[23] :
+                            (!(fila[23] + '').includes('/') ?
+                                this.fechaService.excelDateToDatestring(fila[23] + '') :
+                                (this.fechaService.formatFechaMultiple(fila[23] as string | null))
+                            ))
+                    ;
+            }
+            
+            let numeroRemision = nuevoFormato ? fila[24] : fila[22];
+            let lote = nuevoFormato ? fila[26] : fila[23];
+            let caducidad = fila[24] === null ? null :
                 (fila[24] instanceof Date ? fila[24] :
                     (!(fila[24] + '').includes('/') ?
                         this.fechaService.excelDateToDatestring(fila[24] + '') :
                         (this.fechaService.formatFechaMultiple(fila[24] as string | null))
                     ))
                 ;
-            const estatus = fila[25];
-            const folioAbasto = fila[26];
-            const almacenHospital = fila[27];
-            const evidencia = fila[28];
-            const carga = fila[29];
-            const fechaCita = (fila[30] instanceof Date ?
+            if (!nuevoFormato) {
+                // recalcular caducidad con fila[27]
+                caducidad = fila[27] === null ? null :
+                    (fila[27] instanceof Date ? fila[27] :
+                        (!(fila[27] + '').includes('/') ?
+                            this.fechaService.excelDateToDatestring(fila[27] + '') :
+                            (this.fechaService.formatFechaMultiple(fila[27] as string | null))
+                        ))
+                ;
+            }
+            let estatus = nuevoFormato ? fila[28] : fila[25];
+            let folioAbasto = nuevoFormato ? fila[29] : fila[26];
+            let almacenHospital = nuevoFormato ? fila[30] : fila[27];
+            let evidencia = nuevoFormato ? fila[31] : fila[28];
+            let carga = nuevoFormato ? fila[32] : fila[29];
+            // fecha de cita en nuevo formato ya no existe (por lo pronto).
+            let fechaCita = nuevoFormato ? null : ((fila[30] instanceof Date ?
                 fila[30] :
-                (this.fechaService.excelDateToDatestring(fila[30] + '')))! as Date | null;
+                (this.fechaService.excelDateToDatestring(fila[30] + '')))! as Date | null);
             // columnas 31 y 32 no se usan en el excel        
             // const observacion = fila[33];
 
@@ -153,13 +201,13 @@ export class CargaCitasComponent {
             nuevoRegistro.procedimiento = procedimiento;
             nuevoRegistro.tipo_de_entrega = tipoEntrega;
             nuevoRegistro.clues_destino = cluesDestino;
-            nuevoRegistro.unidad = unidad.trim().length > 0 ? unidad : 
-                ( this.unidadesService.findByCluessa(cluesDestino)?.nombre || 
-                  this.unidadesService.findByCluesimb(cluesDestino)?.nombre || '');
+            nuevoRegistro.unidad = unidad.trim().length > 0 ? unidad :
+                (this.unidadesService.findByCluessa(cluesDestino)?.nombre ||
+                    this.unidadesService.findByCluesimb(cluesDestino)?.nombre || '');
             nuevoRegistro.fte_fmto = fuenteFinanciamiento;
             nuevoRegistro.proveedor = (proveedor + '').trim().toLocaleUpperCase();
             nuevoRegistro.clave_cnis = claveCNIS;
-            nuevoRegistro.descripcion = (descripcion+'').substring(0, 2048);
+            nuevoRegistro.descripcion = (descripcion + '').substring(0, 2048);
             nuevoRegistro.compra = compra;
             nuevoRegistro.tipo_de_red = tipoRed;
             nuevoRegistro.tipo_de_insumo = tipoInsumo;
