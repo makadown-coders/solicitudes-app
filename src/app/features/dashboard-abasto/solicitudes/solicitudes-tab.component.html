@@ -14,7 +14,7 @@
         </div>
 
         <button (click)="cargar()"
-            class="px-3 py-2 text-white bg-[#006341] rounded-lg hover:opacity-90 disabled:opacity-50"
+            class="px-3 py-2 text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50"
             [disabled]="loading()">
             🔄 Recargar
         </button>
@@ -461,7 +461,7 @@
 @if (miniVisible()) {
 <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
     <div class="overflow-auto relative p-6 w-full max-w-[90vw] max-h-[90vh] bg-white rounded-xl dark:bg-[#1a202c]">
-        <button class="absolute top-3 right-3 text-xl" (click)="cerrarMiniBalanceo()">✖</button>
+        <button class="absolute top-3 right-3 text-xl cursor-pointer" (click)="cerrarMiniBalanceo()">✖</button>
 
         @if (miniHeader(); as H) {
         <h3 class="text-xl font-semibold text-green-800 dark:text-[#CBA135]">
@@ -519,7 +519,47 @@
                     <td class="px-2 py-1 text-right">{{ m.AZE }}</td>
                     <td class="px-2 py-1 text-right">{{ m.faltante }}</td>
                     <td class="px-2 py-1 text-slate-600 dark:text-slate-300">
-                        {{ m.sugerencia }}
+                        <div>{{ m.sugerencia }}</div>
+
+                        @if (m.homologacion?.mejores?.length) {
+                        <details class="mt-2">
+                            <summary class="text-xs text-green-800 cursor-pointer dark:text-[#CBA135]">
+                                Ver homólogos ({{ m.homologacion?.total }} candidato(s))
+                            </summary>
+                            <div class="mt-2 p-2 bg-slate-50 rounded-lg border-slate-200 border dark:border-slate-700 dark:bg-slate-900/40">
+                                <div class="mb-2 text-xs text-slate-500 dark:text-slate-300">
+                                    * Cálculo informativo: qty sugerida = faltante × factor
+                                </div>
+
+                                <table class="w-full text-xs">
+                                    <thead>
+                                        <tr class="text-left border-b border-slate-200 dark:border-slate-700">
+                                            <th class="py-1 pr-2">Sustituto</th>
+                                            <th class="py-1 pr-2">Desc.</th>
+                                            <th class="py-1 pr-2">Factor</th>
+                                            <th class="py-1 pr-2">Cant. sugerida</th>
+                                            <th class="py-1 pr-2">Alm.</th>
+                                            <th class="py-1 pr-2 text-right">Exist.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (c of m.homologacion!.mejores; track (c.sustituto + '|' + $index)) {
+                                            @let descripcion = getDescripcionArticulo(c.sustituto);
+                                        <tr class="border-b border-slate-100 dark:border-slate-800">
+                                            <td class="py-1 pr-2 font-medium">{{ c.sustituto }}</td>
+                                            <td class="py-1 pr-2 text-xs" [title]="descripcion">{{ descripcion.length <= 50 ?
+                                                descripcion : descripcion.slice(0, 50) + '...' }}</td>
+                                            <td class="py-1 pr-2 text-right">{{ c.factor }}</td>
+                                            <td class="py-1 pr-2">{{ c.qtySugerida | number:'1.0-2' }}</td>
+                                            <td class="py-1 pr-2">{{ c.bucketSugerido }}</td>
+                                            <td class="py-1 pr-2 text-right">{{ c.existenciaPreferida | number:'1.0-0' }}</td>
+                                        </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </details>
+                        }
                     </td>
                 </tr>
                 }

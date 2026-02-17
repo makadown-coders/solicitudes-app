@@ -1,3 +1,4 @@
+import { MiniBalanceHomologacion } from "../homologos/MiniBalanceHomologacion";
 
 export type MiniBalanceRow = {
   clave: string;
@@ -10,4 +11,10 @@ export type MiniBalanceRow = {
   AZE: number;
   faltante: number;
   sugerencia: string;
+
+  /**
+   * Sugerencias de homologación (solo cuando la clave original no puede cubrirse
+   * con existencias de almacenes).
+   */
+  homologacion?: MiniBalanceHomologacion;
 };
