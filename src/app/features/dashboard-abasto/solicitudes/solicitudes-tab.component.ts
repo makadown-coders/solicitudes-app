@@ -16,6 +16,9 @@ import { RdlsNormalizeService } from '../../../services/rdls/rdls-normalize.serv
 import { RdlsAlmacenesService } from '../../../services/rdls/rdls-almacenes.service';
 import { InventarioService } from '../../../services/inventario.service';
 import { MiniBalanceRow } from '../../../models/solicitudes/MiniBalanceRow';
+import { HomologoDTO } from '../../../models/homologos/HomologoDto';
+import { MiniBalanceHomologoCand } from '../../../models/homologos/MiniBalanceHomologoCand';
+import { HomologosService } from '../../../services/homologos.service';
 
 @Component({
     selector: 'app-solicitudes-tab',
@@ -30,6 +33,7 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
     private norm = inject(RdlsNormalizeService);
     private almSrv = inject(RdlsAlmacenesService);
     private inventario = inject(InventarioService);
+    private homologosSrv = inject(HomologosService);
     private unidadesLoaded = false;
 
     loading = signal(false);
@@ -339,7 +343,7 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
             this.movDesde.set(desde);
             this.movHasta.set(hasta);
             this.selectedUnidad.set(this.unidadesService.findByCluesimb(row.cluesimb)?.nombre ?? row.cluesimb);
-            
+
             const rows = await this.movService.listar({
                 cluesimb: row.cluesimb,
                 desde,
@@ -580,6 +584,41 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
                 };
             });
 
+            // 4.1) Homologación (solo cuando la clave original NO puede cubrir el faltante con almacenes)
+            const clavesParaHomologar = Array.from(new Set(
+                out
+                    .filter(r => r.faltante > 0 && ((r.AZM + r.AZT + r.AZE) < r.faltante))
+                    .map(r => r.clave)
+            ));
+
+            const homByClave = clavesParaHomologar.length
+                ? await firstValueFrom(this.homologosSrv.batch(clavesParaHomologar))
+                : new Map<string, HomologoDTO[]>();
+
+            const bucketPreferido = this.bucketPreferidoFromJurisdiccion(j);
+
+            for (const r of out) {
+                if (!(r.faltante > 0 && ((r.AZM + r.AZT + r.AZE) < r.faltante))) continue;
+
+                const homs = homByClave.get(r.clave) ?? [];
+                if (!homs.length) {
+                    r.homologacion = { total: 0, mejores: [] };
+                    r.sugerencia += ' Homologación: sin registros en catálogo.';
+                    continue;
+                }
+
+                const mejores = this.rankHomologos(homs, r.faltante, bucketPreferido, getAlm);
+                r.homologacion = { total: homs.length, mejores };
+
+                if (!mejores.length) {
+                    r.sugerencia += ` Homologación: ${homs.length} candidato(s), pero sin stock reportado en AZM/AZT/AZE.`;
+                    continue;
+                }
+
+                // Mantén el modal limpio: deja el detalle en `homologacion` y sólo una nota breve aquí.
+                r.sugerencia += ` Homologación: ver opciones (top ${mejores.length}).`;
+            }
+
             // orden por clave
             out.sort((a, b) => (a.clave || '').localeCompare(b.clave || ''));
             this.miniRows.set(out);
@@ -621,6 +660,94 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         // preferente sin stock reportado: solo texto consultivo
         const otros = (pref === 'AZT') ? 'AZM/AZE' : (pref === 'AZM') ? 'AZT/AZE' : 'AZT/AZM';
         return `Faltante aprox: ${faltante}. ${pref} sin existencia reportada; sugerencia: consultar ${pref} y, si aplica, preguntar también a ${otros}.`;
+    }
+
+    private bucketPreferidoFromJurisdiccion(j: string): 'AZM' | 'AZT' | 'AZE' | '' {
+        const jur = (j || '').trim().toUpperCase();
+        return jur === 'TIJUANA' ? 'AZT' : jur === 'MEXICALI' ? 'AZM' : jur === 'ENSENADA' ? 'AZE' : '';
+    }
+
+    private rankHomologos(
+        homs: HomologoDTO[],
+        faltante: number,
+        bucketPreferido: 'AZM' | 'AZT' | 'AZE' | '',
+        getAlm: (clave: string) => { AZM: number; AZT: number; AZE: number }
+    ): MiniBalanceHomologoCand[] {
+        const candidates: MiniBalanceHomologoCand[] = [];
+
+        for (const h of (homs ?? [])) {
+            const sustituto = (h.candidato || '').trim().toUpperCase();
+            if (!sustituto) continue;
+
+            // factor como número (para cálculo aproximado de UI)
+            const f = Number(h.factor);
+            if (!isFinite(f) || f <= 0) continue;
+
+            const buckets = getAlm(sustituto);
+            const total = (buckets.AZM || 0) + (buckets.AZT || 0) + (buckets.AZE || 0);
+            if (total <= 0) continue;
+
+            const existenciaPreferida = bucketPreferido === 'AZM'
+                ? buckets.AZM
+                : bucketPreferido === 'AZT'
+                    ? buckets.AZT
+                    : bucketPreferido === 'AZE'
+                        ? buckets.AZE
+                        : 0;
+
+            // bucket sugerido: primero preferido si hay stock; si no, el de mayor stock
+            let bucketSugerido: 'AZM' | 'AZT' | 'AZE' | '' = '';
+            if (bucketPreferido && existenciaPreferida > 0) {
+                bucketSugerido = bucketPreferido;
+            } else {
+                const pairs: Array<['AZM' | 'AZT' | 'AZE', number]> = [
+                    ['AZT', buckets.AZT],
+                    ['AZM', buckets.AZM],
+                    ['AZE', buckets.AZE],
+                ];
+                pairs.sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
+                bucketSugerido = pairs[0]?.[0] ?? '';
+            }
+
+            candidates.push({
+                sustituto,
+                factor: h.factor,
+                qtySugerida: (faltante || 0) * f,
+                buckets,
+                bucketPreferido,
+                bucketSugerido,
+                existenciaPreferida: bucketSugerido === 'AZM'
+                    ? buckets.AZM
+                    : bucketSugerido === 'AZT'
+                        ? buckets.AZT
+                        : bucketSugerido === 'AZE'
+                            ? buckets.AZE
+                            : 0,
+            });
+        }
+
+        // orden: 1) que tenga stock en preferido, 2) mayor stock en bucket sugerido, 3) factor más conveniente (menor qty sugerida)
+        candidates.sort((a, b) => {
+            const aPref = (a.bucketPreferido && a.bucketPreferido === a.bucketSugerido) ? 1 : 0;
+            const bPref = (b.bucketPreferido && b.bucketPreferido === b.bucketSugerido) ? 1 : 0;
+            if (bPref !== aPref) return bPref - aPref;
+
+            const aDisp = a.existenciaPreferida || 0;
+            const bDisp = b.existenciaPreferida || 0;
+            if (bDisp !== aDisp) return bDisp - aDisp;
+
+            return (a.qtySugerida || 0) - (b.qtySugerida || 0);
+        });
+
+        return candidates.slice(0, 3);
+    }
+
+    private formatQty(n: number): string {
+        const x = Number(n ?? 0);
+        if (!isFinite(x)) return '0';
+        // si es entero, sin decimales; si no, 2 decimales
+        if (Math.abs(x - Math.round(x)) < 1e-9) return String(Math.round(x));
+        return x.toFixed(2);
     }
 
     cerrarMiniBalanceo() {
