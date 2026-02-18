@@ -10,6 +10,7 @@ import { ClaveGrupo, CPMS } from '../../../models/CPMS';
 import { Inventario, InventarioDisponibles } from '../../../models/Inventario';
 import { Subject, take, takeUntil } from 'rxjs';
 import { ExistenciasXClaveComponent } from './existencias-x-clave/existencias-x-clave.component';
+import { ExistenciasHomologosComponent } from './existencias-homologos/existencias-homologos.component';
 // import { ExistenciasXUnidadComponent } from './existencias-x-unidad/existencias-x-unidad.component';
 // import { ExistenciasXGrupoComponent } from './existencias-x-grupo/existencias-x-grupo.component';
 import { BalanceoSugerenciasComponent } from './balanceo-sugerencias/balanceo-sugerencias.component';
@@ -20,6 +21,7 @@ import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
     imports: [
     FormsModule,
     ExistenciasXClaveComponent,
+    ExistenciasHomologosComponent,
     BalanceoSugerenciasComponent
 ],
     selector: 'app-existencias',
@@ -38,7 +40,7 @@ export class ExistenciasComponent extends AbstractTabComponent implements OnInit
     private onDestroy$ = new Subject<void>();
 
     // en construccion
-    existenciasTabs = ['xClave', /*'xUnidad', 'xGrupo',*/ 'Balanceo (beta)'];
+    existenciasTabs = ['xClave', 'Homologos', /*'xUnidad', 'xGrupo',*/ 'Balanceo (beta)'];
     activeExistenciaTab = 'xClave';
     constructor() {
         super();
