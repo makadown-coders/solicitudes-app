@@ -321,6 +321,8 @@ export class KitModalComponent implements OnInit {
                 unidadMedida: this.getUnidadMedidaFor(clave) ?? '',
                 cantidad: qty,
                 cpm: r.cpm ?? 0,
+                observaciones: '',
+                presentacion: ''
             });
         }
 

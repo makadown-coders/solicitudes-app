@@ -62,8 +62,10 @@ export class ArticulosService {
             clave: art.clave,
             descripcion: art.descripcion,
             unidadMedida: art.presentacion ?? '',
+            presentacion: art.presentacion ?? '',
+            observaciones: '',            
             cantidad: 0, // valor neutral inicial,
-            cpm: 0 // valor neutral inicial
+            cpm: 0, // valor neutral inicial
           }));
           return {
             resultados: res,
@@ -89,7 +91,9 @@ export class ArticulosService {
             descripcion: art.descripcion,
             unidadMedida: art.presentacion ?? '',
             cantidad: 0, // valor neutral inicial
-            cpm: 0 // valor neutral inicial
+            cpm: 0, // valor neutral inicial
+            presentacion: art.presentacion ?? '',
+            observaciones: '',
           }));
           return {
             resultados: res,

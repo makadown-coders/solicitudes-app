@@ -152,6 +152,19 @@
             (CPMsPorUnidadActualizado)="actualizarCPMsPorUnidad($event)" />
           </div>
 
+          <!-- ✨ FLUJO 3: Sección de Oportunidades de Homologación -->
+          @if (mostrarOportunidadesEnTabla && oportunidadesDisponibles.length > 0) {
+            <div class="mt-4">
+              <app-homologos-tabla
+                [sugerencias]="oportunidadesDisponibles"
+                [mostrarAcciones]="true"
+                [titulo]="'⚖️ Oportunidades de Homologación (Agregadas desde modales)'"
+                (reemplazar)="onReemplazarDesdeOportunidades($event)"
+                (close)="cerrarOportunidades()">
+              </app-homologos-tabla>
+            </div>
+          }
+
           @if (articulosSolicitados.length > 0 && todosMayorACero) {
             <button (click)="mostrarModalExportar()"
               class="p-2 mt-4 ml-2 text-white bg-green-600 rounded hover:bg-green-700" [disabled]="modoEdicionIndex !== null"
@@ -169,7 +182,32 @@
             (confirmar)="modalAceptar()" (cancelar)="cerrarModal()" />
         }
 
+        <!-- ✨ FLUJO 1: Modal de Sugerencia de Homólogo para Agregar Manual -->
+        @if (homologoModalVisible && homologoModalData) {
+          <app-homologo-sugerencia-modal
+            [topCandidates]="homologoModalData.sugerencias"
+            [originalClave]="homologoModalData.clave"
+            [originalCantidad]="homologoModalData.cantidad"
+            [originalDescripcion]="descripcionInput"
+            [inventarioDisponible]="homologoModalData.inventarioDisponible"
+            (reemplazar)="onReemplazarHomologo($event)"
+            (mantener)="onMantenerOriginal()"
+            (noSugerirMas)="agregarAListaNegra(homologoModalData!.clave)"
+            (close)="homologoModalVisible = false">
+          </app-homologo-sugerencia-modal>
+        }
 
+        <!-- ✨ FLUJO 2: Modal de Resumen de Importación -->
+        @if (importResumenHomologosVisible && articulosConHomologos.length > 0) {
+          <app-homologo-resumen-importacion
+            [sugerencias]="articulosConHomologos"
+            [totalImportados]="articulosSolicitados.length"
+            [inventarioDisponible]="inventarioDisponible"
+            (reemplazarTodos)="onReemplazarMultiplesDesdeResumen($event)"
+            (ignorar)="importResumenHomologosVisible = false"
+            (close)="importResumenHomologosVisible = false">
+          </app-homologo-resumen-importacion>
+        }
 
         <!-- Modal para nombrar archivo -->
         @if (modalPedirNombreArchivo) {

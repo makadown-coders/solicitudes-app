@@ -30,6 +30,11 @@ import { CpmModalComponent } from './cpm-modal/cpm-modal.component';
 import { FactorUnidad } from '../../models';
 import { TrazabilidadService } from '../../services/trazabilidad.service';
 import { SolicitudesBitacoraService } from '../../services/solicitudes/solicitudes-bitacora.service';
+import { HomologosSolicitudService, SugerenciaHomologoItem, MiniBalanceHomologoCand } from '../../services/homologos-solicitud.service';
+import { HomologoSugerenciaModalComponent } from './homologo-sugerencia-modal/homologo-sugerencia-modal.component';
+import { HomologosTablaComponent } from './homologos-tabla/homologos-tabla.component';
+import { HomologoResumenImportacionComponent } from './homologo-resumen-importacion/homologo-resumen-importacion.component';
+import { environment } from '../../../environments/environment.development';
 
 
 @Component({
@@ -41,7 +46,10 @@ import { SolicitudesBitacoraService } from '../../services/solicitudes/solicitud
     TablaArticulosComponent,
     RouterModule,
     KitModalComponent,
-    CpmModalComponent
+    CpmModalComponent,
+    HomologoSugerenciaModalComponent,
+    HomologosTablaComponent,
+    HomologoResumenImportacionComponent
   ],
   templateUrl: './solicitudes.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -111,6 +119,22 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   get hasUnidadExistencias(): boolean { return this.existUnidadIndex.size > 0; }
 
   // dentro de la clase SolicitudesComponent
+  // ============= Inyección de servicios =============
+  private homologosSolicitudService = inject(HomologosSolicitudService);
+
+  // ============= FLUJO 1: Properties para Agregar Manual =============
+  homologoModalVisible = false;
+  homologoModalData: { sugerencias: MiniBalanceHomologoCand[]; clave: string; cantidad: number; inventarioDisponible: InventarioDisponibles[] } | null = null;
+  private listaNegraHomologos = new Set<string>();
+
+  // ============= FLUJO 2: Properties para Importación =============
+  importResumenHomologosVisible = false;
+  articulosConHomologos: SugerenciaHomologoItem[] = [];
+
+  // ============= FLUJO 3: Properties para Modales CPM/KIT =============
+  mostrarOportunidadesEnTabla = false;
+  oportunidadesDisponibles: SugerenciaHomologoItem[] = [];
+
   public tituloUnidad$ = this.storageSolicitudService.nombreUnidad$.pipe(
     map((nombre) => {
       const raw = this.storageSolicitudService.getDatosCluesFromLocalStorage();
@@ -478,8 +502,13 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       descripcion: this.descripcionInput.trim(),
       unidadMedida: this.unidadInput.trim(),
       cantidad: this.cantidadInput,
-      cpm
+      cpm,
+      presentacion: '',
+      observaciones: ''
     });
+
+    // ✨ FLUJO 1: NUEVO - Detectar homologos para este artículo
+    this.detectarYMostrarHomologoParaArticulo(clave, this.cantidadInput);
 
     this.storageSolicitudService
       .setArticulosSolicitadosInLocalStorage(
@@ -497,6 +526,183 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     setTimeout(() => {
       this.inputClaveRef?.nativeElement.focus();
     }, 0);
+  }
+
+  // ============================================
+  // FLUJO 1: Métodos para Agregar Manual
+  // ============================================
+
+  /**
+   * Detecta homologos y muestra el modal si hay sugerencias
+   */
+  private async detectarYMostrarHomologoParaArticulo(clave: string, cantidad: number) {
+    // No sugerir si está en lista negra
+    if (this.esClaveEnListaNegra(clave)) return;
+
+    try {
+      const sugerencias = await this.homologosSolicitudService.obtenerMejoresHomologos(
+        clave,
+        cantidad,
+        this.inventarioDisponible,
+        this.cluesimbActual
+      );
+
+      if (sugerencias?.length) {
+        this.homologoModalData = { sugerencias, clave, cantidad, inventarioDisponible: this.inventarioDisponible };
+        this.homologoModalVisible = true;
+        this.cdRef.detectChanges();
+      }
+    } catch (error) {
+      console.error('Error detectando homologos:', error);
+      // Fallar silenciosamente - la captura continúa normalmente
+    }
+  }
+
+  /**
+   * Maneja el reemplazo por homólogo sugerido
+   */
+  async onReemplazarHomologo(candidato: MiniBalanceHomologoCand) {
+    const originalClave = this.homologoModalData?.clave;
+    if (!originalClave) return;
+
+    // Encontrar y reemplazar el artículo más reciente agregado
+    const index = this.articulosSolicitados.findIndex(a => a.clave === originalClave);
+    if (index >= 0) {
+      const originalCantidad = this.articulosSolicitados[index].cantidad;
+      const nuevaCantidad = Math.round(originalCantidad * Number(candidato.factor));
+
+      // Reemplazar
+      this.articulosSolicitados[index].clave = candidato.sustituto;
+      this.articulosSolicitados[index].cantidad = nuevaCantidad;
+
+      // Buscar descripción del nuevo artículo
+      try {
+        const resp = await firstValueFrom(this.articulosService
+          .buscarArticulos(candidato.sustituto));
+        console.log('resp de modal de homologos', resp);
+        if (resp?.resultados && resp.resultados.length > 0) {
+          const art = resp.resultados[0];
+          this.articulosSolicitados[index].descripcion = art.descripcion ?? '';
+          this.articulosSolicitados[index].unidadMedida = art.unidadMedida ??
+            (art.presentacion ?? '');
+          this.articulosSolicitados[index].observaciones = 
+            `Reemplaza ${originalClave} por ser homólogo.`;
+        }
+      } catch {
+        // Silencio si falla
+      }
+
+      this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados)
+      );
+
+      this.toast.success({
+        title: 'Artículo reemplazado',
+        content: `${originalClave} → ${candidato.sustituto} (${nuevaCantidad} un.)`,
+        duration: 4
+      });
+    }
+
+    this.homologoModalVisible = false;
+    this.cdRef.detectChanges();
+  }
+
+  /**
+   * Mantiene el artículo original
+   */
+  onMantenerOriginal() {
+    this.homologoModalVisible = false;
+    this.cdRef.detectChanges();
+  }
+
+  /**
+   * Agrega una clave a la lista negra (no sugerir más)
+   */
+  agregarAListaNegra(clave: string) {
+    this.listaNegraHomologos.add(clave.toUpperCase());
+    this.toast.warn({
+      title: 'Anotado',
+      content: `No se sugerirán alternativas para ${clave}`,
+      duration: 3
+    });
+  }
+
+  /**
+   * Verifica si una clave está en lista negra
+   */
+  private esClaveEnListaNegra(clave: string): boolean {
+    return this.listaNegraHomologos.has(clave.toUpperCase());
+  }
+
+  // ============================================
+  // FLUJO 2: Métodos para Importación
+  // ============================================
+
+  /**
+   * Detecta homologos para artículos importados y muestra resumen
+   */
+  private async detectarYMostrarHomologosImport() {
+    try {
+      const sugerencias = await this.homologosSolicitudService.detectarHomologosParaArticulos(
+        this.articulosSolicitados,
+        this.inventarioDisponible,
+        this.cluesimbActual
+      );
+
+      if (sugerencias?.length > 0) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Espera a que se cierre el primer modal
+        this.articulosConHomologos = sugerencias;
+        this.importResumenHomologosVisible = true;
+        this.cdRef.detectChanges();
+      }
+    } catch (error) {
+      console.error('Error detectando homologos en importación:', error);
+      // Fallar silenciosamente
+    }
+  }
+
+  /**
+   * Maneja el reemplazo múltiple desde el resumen de importación
+   */
+  async onReemplazarMultiplesDesdeResumen(sugerencias: SugerenciaHomologoItem[]) {
+    for (const sug of sugerencias) {
+      const candidates = sug.mejores;
+      if (!candidates?.length) continue;
+
+      const topCandidate = candidates[0];
+      const index = this.articulosSolicitados.findIndex(a => a.clave === sug.originalClave);
+
+      if (index >= 0) {
+        const nuevaCantidad = Math.round(sug.originalCantidad * Number(topCandidate.factor));
+
+        this.articulosSolicitados[index].clave = topCandidate.sustituto;
+        this.articulosSolicitados[index].cantidad = nuevaCantidad;
+
+        // Buscar descripción
+        try {
+          const resp = await this.articulosService.buscarArticulos(topCandidate.sustituto).toPromise();
+          if (resp?.resultados && resp.resultados.length > 0) {
+            const art = resp.resultados[0];
+            this.articulosSolicitados[index].descripcion = art.descripcion ?? '';
+            this.articulosSolicitados[index].unidadMedida = art.unidadMedida ?? '';
+          }
+        } catch {
+          // Silencio
+        }
+      }
+    }
+
+    this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+      JSON.stringify(this.articulosSolicitados)
+    );
+
+    this.importResumenHomologosVisible = false;
+    this.toast.success({
+      title: 'Homologos aplicados',
+      content: `Se reemplazaron ${sugerencias.length} artículos`,
+      duration: 4
+    });
+    this.cdRef.detectChanges();
   }
 
   abrirModal() {
@@ -592,10 +798,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       if (cluesStr) this.datosClues = JSON.parse(cluesStr) as DatosClues;
     }
 
+
+    const enProduccion = environment.production;
     const payload = this.bitacoraService.buildPayload(this.datosClues, items, this.modoStandalone);
 
     // 🚀 best-effort: no bloquea el Excel
-    if (payload) void this.bitacoraService.registrar(payload);
+    if (payload && enProduccion) void this.bitacoraService.registrar(payload);
 
     this.excelService.exportarExcelConTemplate(
       'template.xlsx',
@@ -809,7 +1017,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         let fila: any = { ...renglon };
         if (usandoTemplate) fila = Object.values(fila);
 
-        let clave: string = ((!usandoTemplate ? (fila[colClave!]||fila[colClave!.toLocaleUpperCase()]) : fila[2]) ?? '')
+        let clave: string = ((!usandoTemplate ? (fila[colClave!] || fila[colClave!.toLocaleUpperCase()]) : fila[2]) ?? '')
           .toString().trim().toUpperCase();
         if (!clave) continue;
 
@@ -826,7 +1034,11 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
           existente.cantidad += cantidad;
           repetidas[clave] = (repetidas[clave] || 0) + cantidad;
         } else {
-          nuevos.push({ clave, descripcion: '', unidadMedida: '', cantidad, cpm: 0 });
+          nuevos.push({
+            clave, descripcion: '', unidadMedida: '', cantidad, cpm: 0,
+            presentacion: '',
+            observaciones: ''
+          });
         }
       }
 
@@ -877,6 +1089,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         lineas.push(`• Fuera de KIT: ${fueraKit}`);
       }*/
       if (dupKeys.length > 0) lineas.push(`ℹ Duplicadas combinadas (${dupKeys.length}): ${dupPreview}`);
+
+      // ✨ FLUJO 2: NUEVO - Detectar homologos para artículos importados
+      this.detectarYMostrarHomologosImport();
 
       this.abrirModalInfo('Importación completada', lineas.join('\n'));
 
@@ -1031,7 +1246,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.kitModalVisible = true;
   }
 
-  /** Recibe lo que emite el modal (por CPM o por kit) y 
+  /** Recibe lo que emite el modal (por CPM o por kit) y
    * lo integra (respetando tu flujo actual)
    */
   onKitAdd(items: ArticuloSolicitud[]) {
@@ -1045,7 +1260,101 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
       JSON.stringify(this.articulosSolicitados)
     );
+
+    // ✨ FLUJO 3: NUEVO - Detectar homologos para artículos recién agregados
+    this.detectarYMostrarOportunidadesModales(nuevos);
+
     // this.autocompletarDatos();
+  }
+
+  // ============================================
+  // FLUJO 3: Métodos para Modales CPM/KIT
+  // ============================================
+
+  /**
+   * Detecta homologos para artículos agregados desde modales y muestra sección de oportunidades
+   */
+  private async detectarYMostrarOportunidadesModales(artículos: ArticuloSolicitud[]) {
+    try {
+      const sugerencias = await this.homologosSolicitudService.detectarHomologosParaArticulos(
+        artículos,
+        this.inventarioDisponible,
+        this.cluesimbActual
+      );
+
+      if (sugerencias?.length > 0) {
+        this.oportunidadesDisponibles = sugerencias;
+        this.mostrarOportunidadesEnTabla = true;
+
+        this.toast.warn({
+          title: `${sugerencias.length} oportunidad(es)`,
+          content: 'Se detectaron alternativas mejores disponibles',
+          duration: 5
+        });
+
+        this.cdRef.detectChanges();
+      }
+    } catch (error) {
+      console.error('Error detectando oportunidades en modales:', error);
+      // Fallar silenciosamente
+    }
+  }
+
+  /**
+   * Maneja el reemplazo desde la tabla de oportunidades
+   */
+  async onReemplazarDesdeOportunidades(event: any) {
+    const { original, candidato } = event;
+    if (!original || !candidato) return;
+
+    const index = this.articulosSolicitados.findIndex(a => a.clave === original.originalClave);
+    if (index < 0) return;
+
+    const nuevaCantidad = Math.round(original.originalCantidad * Number(candidato.factor));
+
+    this.articulosSolicitados[index].clave = candidato.sustituto;
+    this.articulosSolicitados[index].cantidad = nuevaCantidad;
+
+    // Buscar descripción del nuevo artículo
+    try {
+      const resp = await this.articulosService.buscarArticulos(candidato.sustituto).toPromise();
+      if (resp?.resultados && resp.resultados.length > 0) {
+        const art = resp.resultados[0];
+        this.articulosSolicitados[index].descripcion = art.descripcion ?? '';
+        this.articulosSolicitados[index].unidadMedida = art.unidadMedida ?? '';
+      }
+    } catch {
+      // Silencio
+    }
+
+    this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+      JSON.stringify(this.articulosSolicitados)
+    );
+
+    // Remover de oportunidades
+    this.oportunidadesDisponibles = this.oportunidadesDisponibles.filter(
+      o => o.originalClave !== original.originalClave
+    );
+
+    if (this.oportunidadesDisponibles.length === 0) {
+      this.mostrarOportunidadesEnTabla = false;
+    }
+
+    this.toast.success({
+      title: 'Artículo reemplazado',
+      content: `${original.originalClave} → ${candidato.sustituto}`,
+      duration: 3
+    });
+
+    this.cdRef.detectChanges();
+  }
+
+  /**
+   * Cierra la sección de oportunidades
+   */
+  cerrarOportunidades() {
+    this.mostrarOportunidadesEnTabla = false;
+    this.cdRef.detectChanges();
   }
 
   existingClavesList: string[] = [];

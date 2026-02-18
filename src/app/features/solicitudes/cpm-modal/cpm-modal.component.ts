@@ -82,7 +82,7 @@ export class CpmModalComponent {
         .map(r => ({ clave: r.clave_cnis, cpm: Number(r.cpm ?? 0) }));
 
       // 2) Enriquecer con mapa de artículos local
-      const mapa = await firstValueFrom(this.arts.getArticulosMapa());      
+      const mapa = await firstValueFrom(this.arts.getArticulosMapa());
       const enriched = rowsBase.map(r => {
         const meta = mapa?.[r.clave];
         return { ...r, descripcion: meta?.descripcion ?? '', presentacion: meta?.presentacion ?? '' };
@@ -92,7 +92,7 @@ export class CpmModalComponent {
       let idx = new Map<string, number>();
       try {
         const ex = await firstValueFrom(this.existApi.byUnidad(this.cluesimb));
-        
+
         const entries = await Promise.all(ex!.map(async x => {
           // obteniendo factor de conversion
           const factor = await this.trazabilidadService
@@ -217,11 +217,11 @@ export class CpmModalComponent {
     // Si activaron existencias, calcula reorden = max(CPM*meses - exist, 0)
     //if (this.hasUnidadExist() && (r.exist ?? 0) >= 0) {
 
-      // const totalCobertura = (cpm > 0 ? cpm : this.defaultQtyNoCpm) * meses;
-      const totalCobertura = cpm * meses;
-      const reorden = Math.max(0, Math.round(totalCobertura - (r.exist ?? 0)));
-      if (reorden > 0) { base = reorden; fuente = 'reorden'; reordenEsTotalLocal = true; }
-      else { base = 0; fuente = 'reorden'; reordenEsTotalLocal = true; }
+    // const totalCobertura = (cpm > 0 ? cpm : this.defaultQtyNoCpm) * meses;
+    const totalCobertura = cpm * meses;
+    const reorden = Math.max(0, Math.round(totalCobertura - (r.exist ?? 0)));
+    if (reorden > 0) { base = reorden; fuente = 'reorden'; reordenEsTotalLocal = true; }
+    else { base = 0; fuente = 'reorden'; reordenEsTotalLocal = true; }
     /*} else {
       this.reordenEsTotal = false;
     }*/
@@ -261,8 +261,10 @@ export class CpmModalComponent {
         clave: r.clave,
         descripcion: r.descripcion ?? '',
         unidadMedida: r.presentacion ?? '',
+        presentacion: r.presentacion ?? '',
         cantidad: qty,
         cpm: Number(r.cpm ?? 0),
+        observaciones: '',
       });
     }
 
