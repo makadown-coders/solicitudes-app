@@ -664,31 +664,28 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   /**
    * Maneja el reemplazo múltiple desde el resumen de importación
    */
-  async onReemplazarMultiplesDesdeResumen(sugerencias: SugerenciaHomologoItem[]) {
-    for (const sug of sugerencias) {
-      const candidates = sug.mejores;
-      if (!candidates?.length) continue;
+  async onReemplazarMultiplesDesdeResumen(
+    resultados: Array<{ originalClave: string; articulo: ArticuloSolicitud }>
+  ) {
+    // Reemplazar artículos en la lista según su clave original
+    for (const resultado of resultados) {
+      const { originalClave, articulo: nuevoArt } = resultado;
 
-      const topCandidate = candidates[0];
-      const index = this.articulosSolicitados.findIndex(a => a.clave === sug.originalClave);
+      // Buscar el artículo original por clave original (normalizada)
+      const index = this.articulosSolicitados.findIndex(a => {
+        const aNorm = this.inventarioService.normalizarClave(a.clave);
+        const origNorm = this.inventarioService.normalizarClave(originalClave);
+        return aNorm === origNorm;
+      });
 
       if (index >= 0) {
-        const nuevaCantidad = Math.round(sug.originalCantidad * Number(topCandidate.factor));
-
-        this.articulosSolicitados[index].clave = topCandidate.sustituto;
-        this.articulosSolicitados[index].cantidad = nuevaCantidad;
-
-        // Buscar descripción
-        try {
-          const resp = await this.articulosService.buscarArticulos(topCandidate.sustituto).toPromise();
-          if (resp?.resultados && resp.resultados.length > 0) {
-            const art = resp.resultados[0];
-            this.articulosSolicitados[index].descripcion = art.descripcion ?? '';
-            this.articulosSolicitados[index].unidadMedida = art.unidadMedida ?? '';
-          }
-        } catch {
-          // Silencio
-        }
+        // Reemplazar con los nuevos valores
+        this.articulosSolicitados[index].clave = nuevoArt.clave;
+        this.articulosSolicitados[index].cantidad = nuevoArt.cantidad;
+        this.articulosSolicitados[index].descripcion = nuevoArt.descripcion || this.articulosSolicitados[index].descripcion;
+        this.articulosSolicitados[index].unidadMedida = nuevoArt.unidadMedida || this.articulosSolicitados[index].unidadMedida;
+        this.articulosSolicitados[index].presentacion = nuevoArt.presentacion || this.articulosSolicitados[index].presentacion;
+        // cpm se actualizará en autocompletarDatos()
       }
     }
 
@@ -698,8 +695,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.importResumenHomologosVisible = false;
     this.toast.success({
-      title: 'Homologos aplicados',
-      content: `Se reemplazaron ${sugerencias.length} artículos`,
+      title: 'Importación completada',
+      content: `Se procesaron ${resultados.length} artículos con sugerencias`,
       duration: 4
     });
     this.cdRef.detectChanges();

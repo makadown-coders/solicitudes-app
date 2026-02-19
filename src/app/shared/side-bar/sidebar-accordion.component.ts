@@ -29,6 +29,7 @@ export class SidebarAccordionComponent {
       { type: 'link', id: 'rdls-primer-nivel', label: 'RdlS (1er nivel)', route: 'rdls-primer-nivel' },
       { type: 'group', id: 'analisis', label: 'Análisis de Abasto', children: [
         { type: 'link', id: 'xclave', label: 'xClave', route: 'analisis/xclave' },
+        { type: 'link', id: 'homologos', label: 'Homologos', route: 'analisis/homologos' },
         { type: 'link', id: 'balanceo', label: 'Balanceo (beta)', route: 'analisis/balanceo' },
       ]},
     ]},

@@ -89,7 +89,6 @@
             [mostrarAcciones]="true"
             [titulo]="'Alternativas Disponibles para Importación'"
             [inventarioDisponible]="inventarioDisponible"
-            (reemplazar)="onReemplazarDesdeTabla($event)"
             (close)="mostrarDetalles = false">
           </app-homologos-tabla>
         </div>
@@ -102,7 +101,7 @@
                   class="flex-1 px-4 py-2 text-white font-medium bg-blue-500 rounded-lg transition-colors hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600">
             ← Volver
           </button>
-          <button (click)="close.emit()"
+          <button (click)="confirmarSeleccion()"
                   class="flex-1 px-4 py-2 text-white font-medium bg-green-600 rounded-lg transition-colors hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600">
             ✓ Confirmar Selección
           </button>

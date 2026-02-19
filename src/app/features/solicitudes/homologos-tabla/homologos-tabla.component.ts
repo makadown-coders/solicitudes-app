@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, inject, ChangeDetectorRef } from '@angular/core';
-import { SugerenciaHomologoItem } from '../../../services/homologos-solicitud.service';
+import { SugerenciaHomologoItem, MiniBalanceHomologoCand } from '../../../services/homologos-solicitud.service';
 import { InventarioDisponibles } from '../../../models/Inventario';
+import { ArticuloSolicitud } from '../../../models/articulo-solicitud';
 import { ArticulosService } from '../../../services/articulos.service';
 import { InventarioService } from '../../../services/inventario.service';
 import { firstValueFrom } from 'rxjs';
@@ -33,8 +34,10 @@ export class HomologosTablaComponent {
   private artMapLoaded = false;
 
   // UI state
-  expandedRows = new Set<string>();
   mapLoading = true;
+
+  // State tracking: selecciones[originalClave] = selectedCandidate (o null = usar topCandidate por defecto)
+  selecciones: Map<string, MiniBalanceHomologoCand | null> = new Map();
 
   ngOnInit() {
     this.loadArtMapIfNeeded();
@@ -114,22 +117,118 @@ export class HomologosTablaComponent {
   }
 
   /**
-   * Toggle expandir fila
+   * Toggle de selección para un candidato
+   * Si ya estaba seleccionado, lo deselecciona (vuelve al top por defecto = null)
    */
-  toggleExpanded(claveOriginal: string) {
-    if (this.expandedRows.has(claveOriginal)) {
-      this.expandedRows.delete(claveOriginal);
-    } else {
-      this.expandedRows.add(claveOriginal);
-    }
-  }
+  toggleSeleccion(originalClave: string, candidato: MiniBalanceHomologoCand | null) {
+    const actual = this.selecciones.get(originalClave);
 
-  isExpanded(claveOriginal: string): boolean {
-    return this.expandedRows.has(claveOriginal);
+    // Si ya estaba seleccionado este mismo candidato, deseleccionar (volver a null = default)
+    if (actual && candidato && this.sonIguales(actual, candidato)) {
+      this.selecciones.delete(originalClave);
+    } else {
+      // Si no, seleccionar este candidato
+      this.selecciones.set(originalClave, candidato);
+    }
+
+    this.cdRef.markForCheck();
   }
 
   /**
-   * Emite reemplazo
+   * Verifica si un candidato está seleccionado para este artículo
+   */
+  isSeleccionado(originalClave: string, candidato: MiniBalanceHomologoCand | null): boolean {
+    const seleccionado = this.selecciones.get(originalClave);
+
+    // Si no hay selección explícita (null/undefined), usar el topCandidate por defecto
+    if (!seleccionado) {
+      // El topCandidate es la primera opción por defecto
+      // Estamos preguntando si este candidato es el seleccionado
+      // Necesitamos saber cuál es el topCandidate para comparar
+      return false; // No está seleccionado explícitamente
+    }
+
+    // Si hay selección, comparar
+    return this.sonIguales(seleccionado, candidato);
+  }
+
+  /**
+   * Verifica si hay alguna selección activa para este artículo
+   * (da igual si es TOP o ALT, lo importante es que cambió del default)
+   */
+  isAnySelectionActive(originalClave: string): boolean {
+    return this.selecciones.get(originalClave) !== undefined;
+  }
+
+  /**
+   * Compara dos candidatos por sustituto (clave)
+   */
+  private sonIguales(a: MiniBalanceHomologoCand | null, b: MiniBalanceHomologoCand | null): boolean {
+    if (!a || !b) return false;
+    return (a.sustituto ?? '').toUpperCase() === (b.sustituto ?? '').toUpperCase();
+  }
+
+  /**
+   * Obtiene el candidato final para un artículo (seleccionado o topCandidate)
+   */
+  getCandidatoFinal(item: SugerenciaHomologoItem): MiniBalanceHomologoCand | null {
+    const seleccionado = this.selecciones.get(item.originalClave);
+    return seleccionado ?? item.mejores[0];
+  }
+
+  /**
+   * Retorna la lista final de artículos a importar con las selecciones realizadas
+   * Incluye referencia a la clave original para facilitar el matching en el padre
+   * Returns: { originalClave, articulo }[]
+   */
+  getSeleccionesFinales(): Array<{ originalClave: string; articulo: ArticuloSolicitud }> {
+    const articulos: Array<{ originalClave: string; articulo: ArticuloSolicitud }> = [];
+
+    for (const sugerencia of this.sugerencias) {
+      const candidatoFinal = this.getCandidatoFinal(sugerencia);
+
+      if (candidatoFinal) {
+        // Artículo con sugerencia (usamos el candidato final)
+        const nuevaCantidad = Math.round(
+          sugerencia.originalCantidad * this.toNumber(candidatoFinal.factor)
+        );
+
+        const art = new ArticuloSolicitud();
+        art.clave = candidatoFinal.sustituto;
+        art.cantidad = nuevaCantidad;
+        art.descripcion = this.getDescripcionArticulo(candidatoFinal.sustituto);
+        art.presentacion = this.getUnidadArticulo(candidatoFinal.sustituto);
+        art.unidadMedida = this.getUnidadArticulo(candidatoFinal.sustituto);
+        art.cpm = 0; // Se obtendrá después en autocompletarDatos()
+        art.observaciones = '';
+
+        articulos.push({
+          originalClave: sugerencia.originalClave,
+          articulo: art
+        });
+      } else {
+        // Artículo original (sin cambios)
+        const art = new ArticuloSolicitud();
+        art.clave = sugerencia.originalClave;
+        art.cantidad = sugerencia.originalCantidad;
+        art.descripcion = sugerencia.originalDescripcion || this.getDescripcionArticulo(sugerencia.originalClave);
+        art.presentacion = this.getUnidadArticulo(sugerencia.originalClave);
+        art.unidadMedida = this.getUnidadArticulo(sugerencia.originalClave);
+        art.cpm = 0; // Se obtendrá después en autocompletarDatos()
+        art.observaciones = '';
+
+        articulos.push({
+          originalClave: sugerencia.originalClave,
+          articulo: art
+        });
+      }
+    }
+
+    return articulos;
+  }
+
+  /**
+   * Emite reemplazo (DEPRECATED - mantener para compatibilidad temporal)
    */
   onReemplazar(original: SugerenciaHomologoItem, candidato: any) {
     this.reemplazar.emit({ original, candidato });

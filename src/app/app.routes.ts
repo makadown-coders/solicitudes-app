@@ -119,6 +119,12 @@ export const routes: Routes = [
               .then(m => m.BalanceoSugerenciasComponent),
             title: 'Dashboard Abasto · Análisis · Balanceo'
           },
+          {
+            path: 'homologos',
+            loadComponent: () => import('./features/dashboard-abasto/existencias/existencias-homologos/existencias-homologos.component')
+              .then(m => m.ExistenciasHomologosComponent),
+            title: 'Dashboard Abasto · Análisis · Homologos'
+          },
         ]
       },
       {

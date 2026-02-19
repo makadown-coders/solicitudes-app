@@ -10,6 +10,14 @@
     💡 <strong>Cálculo:</strong> cantidad sugerida = cantidad original × factor de conversión
   </div>
 
+  <!-- Leyenda de Importación por Defecto -->
+  <div class="mb-6 p-3 bg-blue-50 border-blue-200 dark:bg-blue-950/20 rounded border dark:border-blue-800">
+    <div class="text-xs text-blue-700 dark:text-blue-300">
+      ℹ️ <strong>Por defecto, todos los artículos se importarán</strong> con sus mejores opciones.
+      Puedes cambiar la selección haciendo clic en las alternativas.
+    </div>
+  </div>
+
   <!-- Loading State -->
   @if (mapLoading) {
     <div class="flex items-center justify-center gap-2 py-12">
@@ -29,16 +37,17 @@
         @let tieneStockSuficiente = candidatoSatisfaceRequimiento(topCandidate?.sustituto || '', cantidadSugerida);
 
         @if (tieneStockSuficiente) {
-          <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow dark:bg-slate-800 dark:border-slate-700">
+          <div class="overflow-hidden bg-white rounded-lg border-gray-200 shadow-sm transition-shadow border hover:shadow-md dark:bg-slate-800 dark:border-slate-700">
 
           <!-- Card Content -->
           <div class="p-4">
             <!-- Original vs Sugerencia - Side by Side -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 gap-4 mb-4 md:grid-cols-2">
 
               <!-- Original Section -->
-              <div class="pb-4 md:pb-0 md:border-r border-gray-200 dark:border-slate-700 md:pr-4">
-                <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+              <div class="pb-4 pr-4 border-gray-200 border-r dark:border-slate-700 md:pb-0"
+                   [ngClass]="isAnySelectionActive(item.originalClave) ? 'opacity-20 transition-opacity' : 'opacity-100 transition-opacity duration-300'">
+                <div class="mb-2 text-xs font-semibold text-gray-500 tracking-wide dark:text-gray-400 uppercase">
                   📌 Original
                 </div>
                 <div class="space-y-2">
@@ -56,19 +65,19 @@
 
                   <!-- Existencias por Almacén Original -->
                   @let existOriginal = getExistenciasPorAlmacen(item.originalClave);
-                  <div class="mt-3 p-2 bg-white dark:bg-slate-700/50 rounded border border-gray-100 dark:border-slate-700">
-                    <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">📦 Existencias:</div>
+                  <div class="mt-3 p-2 bg-white border-gray-100 dark:bg-slate-700/50 rounded border dark:border-slate-700">
+                    <div class="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-400">📦 Existencias:</div>
                     <div class="grid grid-cols-3 gap-1">
                       <div class="p-1 text-center bg-gray-100 dark:bg-slate-600 rounded">
-                        <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">AZM</div>
+                        <div class="text-xs text-gray-500 tracking-wider dark:text-gray-400 uppercase">AZM</div>
                         <div class="font-bold text-xs text-gray-900 dark:text-white">{{ fmt(existOriginal.AZM) }}</div>
                       </div>
                       <div class="p-1 text-center bg-gray-100 dark:bg-slate-600 rounded">
-                        <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">AZT</div>
+                        <div class="text-xs text-gray-500 tracking-wider dark:text-gray-400 uppercase">AZT</div>
                         <div class="font-bold text-xs text-gray-900 dark:text-white">{{ fmt(existOriginal.AZT) }}</div>
                       </div>
                       <div class="p-1 text-center bg-gray-100 dark:bg-slate-600 rounded">
-                        <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">AZE</div>
+                        <div class="text-xs text-gray-500 tracking-wider dark:text-gray-400 uppercase">AZE</div>
                         <div class="font-bold text-xs text-gray-900 dark:text-white">{{ fmt(existOriginal.AZE) }}</div>
                       </div>
                     </div>
@@ -77,8 +86,9 @@
               </div>
 
               <!-- Sugerencia Section -->
-              <div class="md:pl-4">
-                <div class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">
+              <div class="md:pl-4"
+                   [ngClass]="isSeleccionado(item.originalClave, topCandidate) ? 'bg-green-50 dark:bg-green-950/30 rounded-lg p-4 ring-2 ring-green-500 shadow-lg dark:shadow-green-900/30 transition-all duration-300' : 'transition-all duration-300'">
+                <div class="mb-2 text-xs font-semibold text-green-600 tracking-wide dark:text-green-400 uppercase">
                   ✨ Sugerencia TOP
                 </div>
                 <div class="space-y-2">
@@ -104,8 +114,8 @@
                   </div>
 
                   <!-- Stock Info Bar para Sugerencia (mitad derecha) -->
-                  <div class="mt-3 p-3 bg-gray-50 dark:bg-slate-700/50 rounded border border-gray-200 dark:border-slate-600">
-                    <div class="flex items-center justify-between text-sm mb-3">
+                  <div class="mt-3 p-3 bg-gray-50 border-gray-200 dark:bg-slate-700/50 rounded border dark:border-slate-600">
+                    <div class="flex items-center justify-between mb-3 text-sm">
                       <div class="flex items-center gap-2">
                         <span class="text-gray-600 dark:text-gray-400">Stock:</span>
                         <span class="font-semibold text-gray-900 dark:text-white">{{ fmt(topCandidate?.existenciaPreferida ?? 0) }}</span>
@@ -115,25 +125,25 @@
                         {{ getAlmacenNombre(topCandidate?.bucketSugerido || '') }}
                       </span>
                       @if ((topCandidate?.existenciaPreferida ?? 0) > 0) {
-                        <span class="text-green-600 dark:text-green-400 text-lg">✓</span>
+                        <span class="text-green-600 text-lg dark:text-green-400">✓</span>
                       }
                     </div>
 
                     <!-- Existencias por Almacén Sugerencia -->
                     @let existSugerencia = getExistenciasPorAlmacen(topCandidate?.sustituto || '');
-                    <div class="border-t border-gray-200 dark:border-slate-600 pt-3">
-                      <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Almacenes:</div>
+                    <div class="pt-3 border-t border-gray-200 dark:border-slate-600">
+                      <div class="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-400">Almacenes:</div>
                       <div class="grid grid-cols-3 gap-2">
                         <div class="p-2 text-center bg-white dark:bg-slate-700 rounded">
-                          <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">AZM</div>
+                          <div class="text-xs text-gray-500 tracking-wider dark:text-gray-400 uppercase">AZM</div>
                           <div class="font-bold text-sm text-gray-900 dark:text-white">{{ fmt(existSugerencia.AZM) }}</div>
                         </div>
                         <div class="p-2 text-center bg-white dark:bg-slate-700 rounded">
-                          <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">AZT</div>
+                          <div class="text-xs text-gray-500 tracking-wider dark:text-gray-400 uppercase">AZT</div>
                           <div class="font-bold text-sm text-gray-900 dark:text-white">{{ fmt(existSugerencia.AZT) }}</div>
                         </div>
                         <div class="p-2 text-center bg-white dark:bg-slate-700 rounded">
-                          <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">AZE</div>
+                          <div class="text-xs text-gray-500 tracking-wider dark:text-gray-400 uppercase">AZE</div>
                           <div class="font-bold text-sm text-gray-900 dark:text-white">{{ fmt(existSugerencia.AZE) }}</div>
                         </div>
                       </div>
@@ -146,64 +156,50 @@
             <!-- Action Buttons -->
             @if (mostrarAcciones) {
               <div class="flex gap-2 mb-3">
-                <button (click)="onReemplazar(item, topCandidate)"
+                <button (click)="toggleSeleccion(item.originalClave, topCandidate)"
+                        [ngClass]="isSeleccionado(item.originalClave, topCandidate) ? 'ring-2 ring-green-500' : ''"
                         class="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg transition-colors hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600">
-                  ✓ Usar esta opción
+                  {{ isSeleccionado(item.originalClave, topCandidate) ? '✓ Seleccionada' : 'Cambiar por esta' }}
                 </button>
-                @if (item.mejores.length > 1) {
-                  <button (click)="toggleExpanded(item.originalClave)"
-                          class="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg transition-colors hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600">
-                    {{ isExpanded(item.originalClave) ? '∧' : '∨' }} Más
-                  </button>
-                }
               </div>
             }
 
-            <!-- Alternativas Expandibles -->
-            @if (isExpanded(item.originalClave) && item.mejores.length > 1) {
-              <div class="pt-3 border-t border-gray-200 dark:border-slate-700">
-                <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  Alternativas adicionales:
+            <!-- Alternativas (siempre visibles, layout compacto) -->
+            @if (item.mejores.length > 1) {
+              <div class="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+                <div class="mb-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">
+                  Alternativas disponibles:
                 </div>
-                <div class="space-y-2">
+                <div class="grid grid-cols-2 gap-2 md:grid-cols-4">
                   @for (alt of item.mejores.slice(1); track alt.sustituto) {
                     @let cantidadAlt = item.originalCantidad * toNumber(alt.factor);
                     @let altTieneStock = candidatoSatisfaceRequimiento(alt.sustituto || '', cantidadAlt);
 
-                    @if (altTieneStock) {
-                      <div class="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
-                           (click)="onReemplazar(item, alt)">
-                        <div class="flex items-start justify-between gap-2">
-                          <div class="flex-1">
-                            <div class="font-mono font-semibold text-gray-900 dark:text-white mb-1">
-                              {{ alt.sustituto }}
-                            </div>
-                            <div class="grid grid-cols-3 gap-2 text-xs text-gray-600 dark:text-gray-400">
-                              <div>
-                                <span class="block text-gray-500 dark:text-gray-400">Factor</span>
-                                <span class="font-semibold text-gray-900 dark:text-white">{{ alt.factor | number:'1.0-2' }}×</span>
-                              </div>
-                              <div>
-                                <span class="block text-gray-500 dark:text-gray-400">Cant.</span>
-                                <span class="font-semibold text-amber-600 dark:text-amber-400">
-                                  {{ cantidadAlt | number:'1.0-0' }} un.
-                                </span>
-                              </div>
-                              <div>
-                                <span class="block text-gray-500 dark:text-gray-400">Stock</span>
-                                <span class="font-semibold text-gray-900 dark:text-white">{{ fmt(alt.existenciaPreferida) }}</span>
-                              </div>
-                            </div>
-                          </div>
-                          @if (mostrarAcciones) {
-                            <button (click)="onReemplazar(item, alt); $event.stopPropagation()"
-                                    class="px-3 py-1 text-xs text-white bg-gray-400 rounded transition-colors hover:bg-gray-500 dark:bg-gray-600 dark:hover:bg-gray-700 whitespace-nowrap flex-shrink-0">
-                              Usar
-                            </button>
-                          }
+                    <div class="p-3 bg-blue-50 border-blue-200 rounded border cursor-pointer transition-all
+                                dark:bg-blue-950/20 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/40
+                                overflow-hidden relative"
+                         [ngClass]="isSeleccionado(item.originalClave, alt) ? 'ring-2 ring-blue-500 shadow-md' : ''"
+                         (click)="toggleSeleccion(item.originalClave, alt)">
+                      <div class="flex flex-col h-full">
+                        <div class="font-mono font-semibold text-xs text-gray-900 dark:text-white mb-1 truncate">
+                          {{ alt.sustituto }}
                         </div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                          {{ alt.factor | number:'1.0-2' }}×
+                        </div>
+                        <div class="text-xs text-amber-600 dark:text-amber-400 font-semibold mb-2">
+                          {{ cantidadAlt | number:'1.0-0' }} un.
+                        </div>
+                        @if (!altTieneStock) {
+                          <div class="text-xs text-red-600 dark:text-red-400 font-semibold">⚠️ Stock: 0</div>
+                        } @else {
+                          <div class="text-xs text-green-600 dark:text-green-400 font-semibold">✓ Stock OK</div>
+                        }
+                        @if (isSeleccionado(item.originalClave, alt)) {
+                          <div class="absolute top-1 right-1 text-blue-600 text-lg font-bold dark:text-blue-400">✓</div>
+                        }
                       </div>
-                    }
+                    </div>
                   }
                 </div>
               </div>

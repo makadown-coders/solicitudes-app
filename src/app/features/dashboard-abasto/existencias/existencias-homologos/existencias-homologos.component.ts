@@ -18,6 +18,7 @@ import { firstValueFrom } from 'rxjs';
 import { HomologoDTO } from '../../../../models/homologos/HomologoDto';
 import * as ExcelJS from 'exceljs';
 import { descargarArchivo, ensureExcelExtension } from '../../../../services/excel/excel-utils';
+import { ActivatedRoute } from '@angular/router';
 
 interface HomologoResumen {
   claveOrigen: string;
@@ -82,9 +83,26 @@ export class ExistenciasHomologosComponent implements OnInit, OnDestroy {
   // RxJS
   private onDestroy$ = new Subject<void>();
 
-  ngOnInit(): void {
+  constructor(activatedRoute: ActivatedRoute) {
+    if (activatedRoute.snapshot.url[0].path === 'homologos') {
+      this.inventarioService.existencias$.forEach((value, key) => {
+        value.pipe(takeUntil(this.onDestroy$)).subscribe({
+          next: (data: Inventario[]) => {
+            // console.log('Cargando existencias de unidad', key);
+            this.existenciaUnidades.set(key, data as Inventario[]);
+          }
+        });
+      });
+      this.isActive = true;
+    }
+  }
+
+  async ngOnInit() {
     if (this.isActive) {
-      this.cargarDatos();
+      setTimeout(async () => {
+        await this.cargarDatos();
+      }, 1000);
+
     }
   }
 
@@ -94,6 +112,7 @@ export class ExistenciasHomologosComponent implements OnInit, OnDestroy {
   }
 
   private async cargarDatos(): Promise<void> {
+    console.log('Cargando datos de homologos...');
     try {
       this.loading.set(true);
 
@@ -113,6 +132,7 @@ export class ExistenciasHomologosComponent implements OnInit, OnDestroy {
       const todasLasClaves = this.obtenerTodasLasClaves();
 
       if (todasLasClaves.length === 0) {
+        console.log('No se encontraron claves con homologos');
         this.loading.set(false);
         return;
       }
@@ -128,6 +148,7 @@ export class ExistenciasHomologosComponent implements OnInit, OnDestroy {
       );
 
       this.allData.set(homologosConExistencias);
+      console.log('allData:', this.allData());
       this.aplicarFiltros();
     } catch (error) {
       console.error('Error cargando datos de homologos:', error);
@@ -269,7 +290,7 @@ export class ExistenciasHomologosComponent implements OnInit, OnDestroy {
       const homologosDelAlmacen = this.filteredData().filter(
         (h) =>
           h.existenciasOrigen[almacenKey] > 0 ||
-          h.sustitutos.some((s) => s[`existencias${almacen}`] > 0)
+          h.sustitutos.some((s) => this.getExistenciasAlmacen(s, almacenKey) > 0)
       );
 
       if (homologosDelAlmacen.length > 0) {
@@ -282,6 +303,15 @@ export class ExistenciasHomologosComponent implements OnInit, OnDestroy {
     }
 
     this.cardsData.set(resultado);
+  }
+
+  private getExistenciasAlmacen(sustituto: HomologoConExistencias, almacen: 'AZM' | 'AZT' | 'AZE'): number {
+    switch (almacen) {
+      case 'AZM': return sustituto.existenciasAZM;
+      case 'AZT': return sustituto.existenciasAZT;
+      case 'AZE': return sustituto.existenciasAZE;
+      default: return 0;
+    }
   }
 
   private getAlmacenNombre(almacen: string): string {

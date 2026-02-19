@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, ViewChild } from '@angular/core';
 import { HomologosTablaComponent } from '../homologos-tabla/homologos-tabla.component';
 import { SugerenciaHomologoItem } from '../../../services/homologos-solicitud.service';
 import { InventarioDisponibles } from '../../../models/Inventario';
+import { ArticuloSolicitud } from '../../../models/articulo-solicitud';
 
 @Component({
   selector: 'app-homologo-resumen-importacion',
@@ -17,19 +18,61 @@ export class HomologoResumenImportacionComponent {
   @Input() totalImportados: number = 0;
   @Input() inventarioDisponible: InventarioDisponibles[] = [];
 
-  @Output() reemplazarTodos = new EventEmitter<SugerenciaHomologoItem[]>();
+  @Output() reemplazarTodos = new EventEmitter<Array<{ originalClave: string; articulo: ArticuloSolicitud }>>();
   @Output() personalizarSeleccion = new EventEmitter<SugerenciaHomologoItem[]>();
   @Output() ignorar = new EventEmitter<void>();
   @Output() close = new EventEmitter<void>();
+
+  @ViewChild(HomologosTablaComponent) homologosTablaRef!: HomologosTablaComponent;
 
   // UI state
   mostrarDetalles = false;
 
   /**
-   * Emite reemplazo de todos los TOP candidatos
+   * Emite reemplazo de todos los TOP candidatos (DEPRECATED)
+   * Mantener para compatibilidad temporal
    */
   onReemplazarTodos() {
-    this.reemplazarTodos.emit(this.sugerencias);
+    // Crear resultado con formato { originalClave, articulo }
+    const resultado: Array<{ originalClave: string; articulo: ArticuloSolicitud }> = this.sugerencias.map(sug => {
+      const topCandidate = sug.mejores[0];
+      const nuevaCantidad = Math.round(
+        sug.originalCantidad * Number(topCandidate.factor)
+      );
+
+      const art = new ArticuloSolicitud();
+      art.clave = topCandidate.sustituto;
+      art.cantidad = nuevaCantidad;
+      art.descripcion = sug.originalDescripcion || '';
+      art.presentacion = '';
+      art.unidadMedida = '';
+      art.cpm = 0;
+      art.observaciones = '';
+
+      return {
+        originalClave: sug.originalClave,
+        articulo: art
+      };
+    });
+
+    this.reemplazarTodos.emit(resultado);
+    this.close.emit();
+  }
+
+  /**
+   * Confirma las selecciones realizadas en la tabla y cierra el modal
+   * Obtiene las selecciones finales del componente hijo
+   */
+  confirmarSeleccion() {
+    if (!this.homologosTablaRef) return;
+
+    // Obtener las selecciones finales del componente hijo (incluye originalClave para matching)
+    const seleccionesFinales = this.homologosTablaRef.getSeleccionesFinales();
+
+    // Emitir resultado al abuelo (SolicitudesComponent) - ya vienen en formato { originalClave, articulo }
+    this.reemplazarTodos.emit(seleccionesFinales);
+
+    // Cerrar modal
     this.close.emit();
   }
 
@@ -46,14 +89,6 @@ export class HomologoResumenImportacionComponent {
   onIgnorar() {
     this.ignorar.emit();
     this.close.emit();
-  }
-
-  /**
-   * Manejo de reemplazo desde la tabla
-   */
-  onReemplazarDesdeTabla(event: any) {
-    // La tabla emite { original, candidato }
-    this.reemplazarTodos.emit([event.original]);
   }
 
   /**
