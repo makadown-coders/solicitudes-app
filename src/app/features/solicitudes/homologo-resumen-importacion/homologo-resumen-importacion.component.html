@@ -1,12 +1,12 @@
 <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-  <div class="overflow-hidden relative w-[min(96vw,1150px)] max-h-[90vh] bg-white rounded-2xl border-gray-200 shadow-2xl border dark:bg-slate-950 dark:border-slate-700 flex flex-col">
+  <div class="overflow-hidden relative flex flex-col w-[min(96vw,1150px)] max-h-[90vh] bg-white rounded-2xl border-gray-200 shadow-2xl border dark:bg-slate-950 dark:border-slate-700">
 
     @if (!mostrarDetalles) {
       <!-- Resumen Simple -->
       <div class="px-6 py-8 text-center bg-gradient-to-r from-blue-700 to-blue-600 dark:from-blue-900 dark:to-blue-800">
         <div class="mb-3 text-5xl">✅</div>
-        <h1 class="mb-2 text-2xl font-bold text-white">Importación Completada</h1>
-        <p class="text-blue-100">Se cargaron correctamente tus artículos solicitados</p>
+        <h1 class="mb-2 text-2xl font-bold text-white">{{ tituloPrincipal }}</h1>
+        <p class="text-blue-100">{{ subtituloPrincipal }}</p>
       </div>
 
       <div class="px-6 py-8">
@@ -14,7 +14,7 @@
         <div class="grid grid-cols-1 gap-4 mb-8 md:grid-cols-2">
           <div class="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border-green-300 border dark:from-green-950/30 dark:to-green-900/20 dark:border-green-700">
             <div class="mb-1 text-3xl font-bold text-green-700 dark:text-green-400">{{ totalImportados }}</div>
-            <div class="text-sm text-green-800 dark:text-green-300">Claves Importadas</div>
+            <div class="text-sm text-green-800 dark:text-green-300">{{ etiquetaTotal }}</div>
           </div>
           <div class="p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg border-yellow-300 border dark:from-yellow-950/30 dark:to-yellow-900/20 dark:border-yellow-700">
             <div class="mb-1 text-3xl font-bold text-yellow-700 dark:text-yellow-400">{{ sugerencias.length }}</div>
@@ -24,7 +24,7 @@
 
         <!-- Breakdown -->
         <div class="p-4 mb-8 bg-blue-50 rounded-lg border-blue-200 border dark:bg-blue-950/20 dark:border-blue-700">
-          <h3 class="mb-3 font-semibold text-gray-900 dark:text-white">Desglose de Importación:</h3>
+          <h3 class="mb-3 font-semibold text-gray-900 dark:text-white">{{ tituloDesglose }}</h3>
           <ul class="text-sm space-y-2">
             <li class="flex items-center gap-2">
               <span class="text-lg">✓</span>
@@ -52,16 +52,10 @@
         <!-- Actions -->
         <div class="flex flex-col gap-3">
           @if (sugerencias.length > 0) {
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button (click)="onReemplazarTodos()"
-                      class="px-6 py-3 text-white font-medium bg-green-600 rounded-lg transition-colors hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600">
-                ✓ Aplicar Todas (TOP)
-              </button>
-              <button (click)="onPersonalizarSeleccion()"
-                      class="px-6 py-3 text-white font-medium bg-blue-500 rounded-lg transition-colors hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600">
-                🔧 Personalizar Selección
-              </button>
-            </div>
+            <button (click)="onPersonalizarSeleccion()"
+                    class="px-6 py-3 text-white font-medium bg-blue-500 rounded-lg transition-colors hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600">
+              🔧 Elegir Alternativas
+            </button>
           }
           <button (click)="onIgnorar()"
                   class="px-6 py-3 text-gray-900 font-medium bg-gray-300 rounded-lg transition-colors hover:bg-gray-400 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-700">
@@ -73,22 +67,24 @@
       <!-- Vista Detallada (Tabla) - Header Fijo -->
       <div class="flex-shrink-0 px-6 py-4 bg-gradient-to-r from-blue-700 to-blue-600 dark:from-blue-900 dark:to-blue-800">
         <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-white">Revisar Oportunidades</h2>
+          <h2 class="text-xl font-semibold text-white">{{ tituloTablaDetalle }}</h2>
           <button (click)="mostrarDetalles = false"
-                  class="p-2 text-white rounded-lg transition-colors hover:bg-white/20">
+                  class="p-2 text-white rounded-lg transition-colors cursor-pointer hover:bg-white/20">
             ×
           </button>
         </div>
       </div>
 
       <!-- Contenedor central con scroll en ambas direcciones -->
-      <div class="flex-1 overflow-x-auto overflow-y-auto min-h-0">
+      <div class="overflow-x-auto overflow-y-auto flex-1 min-h-0">
         <div class="px-6 py-6 min-w-max">
           <app-homologos-tabla
             [sugerencias]="sugerencias"
             [mostrarAcciones]="true"
-            [titulo]="'Alternativas Disponibles para Importación'"
+            [titulo]="tituloTablaAlternativas"
             [inventarioDisponible]="inventarioDisponible"
+            [existingClaves]="existingClaves"
+            (selectionCountChange)="onSelectionCountChange($event)"
             (close)="mostrarDetalles = false">
           </app-homologos-tabla>
         </div>
@@ -98,15 +94,16 @@
       <div class="flex-shrink-0 px-6 py-6 bg-gray-50 border-t border-gray-200 dark:bg-slate-900/50 dark:border-slate-700">
         <div class="flex gap-3">
           <button (click)="mostrarDetalles = false"
-                  class="flex-1 px-4 py-2 text-white font-medium bg-blue-500 rounded-lg transition-colors hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600">
+                  class="flex-1 px-4 py-2 text-white font-medium bg-blue-500 rounded-lg transition-colors cursor-pointer hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600">
             ← Volver
           </button>
           <button (click)="confirmarSeleccion()"
-                  class="flex-1 px-4 py-2 text-white font-medium bg-green-600 rounded-lg transition-colors hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600">
-            ✓ Confirmar Selección
+                  class="flex-1 px-4 py-2 text-white font-medium bg-green-600 rounded-lg transition-colors cursor-pointer hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600">
+            Confirmar Seleccion ({{ selectedCount }})
           </button>
         </div>
       </div>
     }
   </div>
 </div>
+

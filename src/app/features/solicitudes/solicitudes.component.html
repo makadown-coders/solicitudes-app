@@ -152,19 +152,6 @@
             (CPMsPorUnidadActualizado)="actualizarCPMsPorUnidad($event)" />
           </div>
 
-          <!-- ✨ FLUJO 3: Sección de Oportunidades de Homologación -->
-          @if (mostrarOportunidadesEnTabla && oportunidadesDisponibles.length > 0) {
-            <div class="mt-4">
-              <app-homologos-tabla
-                [sugerencias]="oportunidadesDisponibles"
-                [mostrarAcciones]="true"
-                [titulo]="'⚖️ Oportunidades de Homologación (Agregadas desde modales)'"
-                (reemplazar)="onReemplazarDesdeOportunidades($event)"
-                (close)="cerrarOportunidades()">
-              </app-homologos-tabla>
-            </div>
-          }
-
           @if (articulosSolicitados.length > 0 && todosMayorACero) {
             <button (click)="mostrarModalExportar()"
               class="p-2 mt-4 ml-2 text-white bg-green-600 rounded hover:bg-green-700" [disabled]="modoEdicionIndex !== null"
@@ -201,8 +188,10 @@
         @if (importResumenHomologosVisible && articulosConHomologos.length > 0) {
           <app-homologo-resumen-importacion
             [sugerencias]="articulosConHomologos"
-            [totalImportados]="articulosSolicitados.length"
+            [totalImportados]="homologoResumenTotalImportados"
             [inventarioDisponible]="inventarioDisponible"
+            [existingClaves]="existingClavesList"
+            [origen]="homologoResumenOrigen"
             (reemplazarTodos)="onReemplazarMultiplesDesdeResumen($event)"
             (ignorar)="importResumenHomologosVisible = false"
             (close)="importResumenHomologosVisible = false">

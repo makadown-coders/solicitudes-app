@@ -1,0 +1,157 @@
+<div class="page">
+  <header class="page-head">
+    <div>
+      <h1>Catalogo de articulos</h1>
+      <p>Ruta aislada para administracion CRUD.</p>
+    </div>
+    <button class="btn btn-primary" (click)="openCreate()">Nuevo articulo</button>
+  </header>
+
+  <section class="card filters">
+    <div class="row">
+      <input
+        type="text"
+        class="input"
+        placeholder="Buscar por clave, descripcion o presentacion"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+        (keyup.enter)="onBuscar()"
+      />
+      <button class="btn" (click)="onBuscar()">Buscar</button>
+      <button class="btn" (click)="clearSearch()">Limpiar</button>
+
+      <label class="inline">
+        <span>Page size</span>
+        <select class="input" [ngModel]="pageSize()" (ngModelChange)="changePageSize($event)">
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="50">50</option>
+          <option [ngValue]="100">100</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  @if (message()) {
+    <div class="alert ok">{{ message() }}</div>
+  }
+  @if (error()) {
+    <div class="alert err">{{ error() }}</div>
+  }
+
+  <section class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th (click)="toggleSort('id')">Id {{ sortLabel('id') }}</th>
+            <th (click)="toggleSort('clave')">Clave {{ sortLabel('clave') }}</th>
+            <th (click)="toggleSort('descripcion')">Descripcion {{ sortLabel('descripcion') }}</th>
+            <th (click)="toggleSort('presentacion')">Presentacion {{ sortLabel('presentacion') }}</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (loading()) {
+            <tr><td colspan="5" class="muted">Cargando...</td></tr>
+          } @else {
+            @for (r of items(); track r.id) {
+              <tr>
+                <td>{{ r.id }}</td>
+                <td>{{ r.clave || '-' }}</td>
+                <td>{{ r.descripcion || '-' }}</td>
+                <td>{{ r.presentacion || '-' }}</td>
+                <td class="actions">
+                  <button class="btn btn-sm" (click)="openEdit(r)">Editar</button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteRow(r)">Eliminar</button>
+                </td>
+              </tr>
+            }
+            @if (items().length === 0) {
+              <tr><td colspan="5" class="muted">Sin resultados</td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="pager">
+      <span>Total: {{ total() }}</span>
+      <span>Pagina {{ page() }} de {{ totalPages() }}</span>
+      <div class="pager-actions">
+        <button class="btn" (click)="prevPage()" [disabled]="page() <= 1">Anterior</button>
+        <button class="btn" (click)="nextPage()" [disabled]="page() >= totalPages()">Siguiente</button>
+      </div>
+    </footer>
+  </section>
+
+  <section class="card">
+    <h2>Reporte rapido</h2>
+    @if (loadingSummary()) {
+      <p class="muted">Cargando reporte...</p>
+    } @else if (summary()) {
+      <div class="stats">
+        <div class="stat"><strong>{{ summary()!.total }}</strong><span>Total</span></div>
+        <div class="stat"><strong>{{ summary()!.con_clave }}</strong><span>Con clave</span></div>
+        <div class="stat"><strong>{{ summary()!.con_descripcion }}</strong><span>Con descripcion</span></div>
+        <div class="stat"><strong>{{ summary()!.con_presentacion }}</strong><span>Con presentacion</span></div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <h3>Top prefijos de clave</h3>
+          <ul>
+            @for (p of summary()!.prefijos_clave_top; track p.prefijo) {
+              <li>{{ p.prefijo }}: {{ p.total }}</li>
+            }
+            @if (summary()!.prefijos_clave_top.length === 0) {
+              <li class="muted">Sin datos</li>
+            }
+          </ul>
+        </div>
+
+        <div>
+          <h3>Claves duplicadas</h3>
+          <ul>
+            @for (d of summary()!.claves_duplicadas_top; track d.clave) {
+              <li>{{ d.clave }}: {{ d.total }}</li>
+            }
+            @if (summary()!.claves_duplicadas_top.length === 0) {
+              <li class="muted">Sin duplicados</li>
+            }
+          </ul>
+        </div>
+      </div>
+    }
+  </section>
+
+  @if (formOpen()) {
+    <div class="overlay">
+      <div class="modal card">
+        <h2>{{ formMode() === 'create' ? 'Nuevo articulo' : 'Editar articulo' }}</h2>
+
+        <label>
+          Clave
+          <input class="input" type="text" [ngModel]="formClave()" (ngModelChange)="formClave.set($event)" />
+        </label>
+
+        <label>
+          Descripcion
+          <textarea class="input" rows="3" [ngModel]="formDescripcion()" (ngModelChange)="formDescripcion.set($event)"></textarea>
+        </label>
+
+        <label>
+          Presentacion
+          <input class="input" type="text" [ngModel]="formPresentacion()" (ngModelChange)="formPresentacion.set($event)" />
+        </label>
+
+        <div class="modal-actions">
+          <button class="btn" (click)="closeForm()" [disabled]="saving()">Cancelar</button>
+          <button class="btn btn-primary" (click)="saveForm()" [disabled]="saving()">
+            {{ saving() ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -54,6 +54,13 @@ export const routes: Routes = [
     loadComponent: () => import('./features/cpm-editor/cpm-editor.component').then(m => m.CpmEditorComponent)
   },
   {
+    path: 'articulos-admin',
+    title: 'Catalogo de articulos',
+    loadComponent: () =>
+      import('./features/articulos-admin/articulos-admin.component')
+        .then(m => m.ArticulosAdminComponent)
+  },
+  {
     path: 'admin-kits',
     loadComponent: () => import('./features/kits/admin-kits/admin-kits.component')
       .then(m => m.AdminKitsComponent)

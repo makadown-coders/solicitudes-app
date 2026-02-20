@@ -297,9 +297,12 @@ export class CpmModalComponent {
     this.importDetail.set(detalle + (detalle2 ? ' · ' + detalle2 : ''));
     this.procesarToastDesdeAgregarSeleccion();
 
-    // Emitimos a la solicitud y cerramos tras un pequeño respiro para que alcancen a leer
-    this.addToSolicitud.emit(nuevos);    // setTimeout(() => this.close.emit(), 800);
-    this.close.emit();
+    // Cerrar siempre el modal aunque el handler del padre falle.
+    try {
+      this.addToSolicitud.emit(nuevos);
+    } finally {
+      this.close.emit();
+    }
   }
   procesarToastDesdeAgregarSeleccion() {
     if (this.importMsg()) {

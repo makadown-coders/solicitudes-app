@@ -20,10 +20,12 @@ export class HomologosTablaComponent {
   @Input() mostrarAcciones: boolean = true;
   @Input() titulo: string = '⚖️ Oportunidades de Homologación';
   @Input() inventarioDisponible: InventarioDisponibles[] = [];
+  @Input() existingClaves: string[] = [];
 
   @Output() reemplazar = new EventEmitter<{ original: SugerenciaHomologoItem; candidato: any }>();
   @Output() verAlternativas = new EventEmitter<SugerenciaHomologoItem>();
   @Output() close = new EventEmitter<void>();
+  @Output() selectionCountChange = new EventEmitter<number>();
 
   private articulosService = inject(ArticulosService);
   private inventarioService = inject(InventarioService);
@@ -131,6 +133,50 @@ export class HomologosTablaComponent {
       this.selecciones.set(originalClave, candidato);
     }
 
+    this.emitSelectionCount();
+    this.cdRef.markForCheck();
+  }
+
+  private isSugerenciaTopVisible(item: SugerenciaHomologoItem): boolean {
+    const topCandidate = item?.mejores?.[0];
+    if (!topCandidate) return false;
+    const cantidadSugerida = item.originalCantidad * this.toNumber(topCandidate.factor);
+    return this.candidatoSatisfaceRequimiento(topCandidate.sustituto || '', cantidadSugerida);
+  }
+
+  getTotalElegibles(): number {
+    return this.sugerencias.filter(s => this.isSugerenciaTopVisible(s)).length;
+  }
+
+  areAllTopSelected(): boolean {
+    const elegibles = this.sugerencias.filter(s => this.isSugerenciaTopVisible(s));
+    if (!elegibles.length) return false;
+    return elegibles.every(item => {
+      const topCandidate = item.mejores?.[0] ?? null;
+      return this.isSeleccionado(item.originalClave, topCandidate);
+    });
+  }
+
+  toggleElegirTodas() {
+    const elegibles = this.sugerencias.filter(s => this.isSugerenciaTopVisible(s));
+    if (!elegibles.length) return;
+
+    if (this.areAllTopSelected()) {
+      for (const item of elegibles) {
+        this.selecciones.delete(item.originalClave);
+      }
+      this.emitSelectionCount();
+      this.cdRef.markForCheck();
+      return;
+    }
+
+    for (const item of elegibles) {
+      const topCandidate = item.mejores?.[0] ?? null;
+      if (topCandidate) {
+        this.selecciones.set(item.originalClave, topCandidate);
+      }
+    }
+    this.emitSelectionCount();
     this.cdRef.markForCheck();
   }
 
@@ -169,15 +215,14 @@ export class HomologosTablaComponent {
   }
 
   /**
-   * Obtiene el candidato final para un artículo (seleccionado o topCandidate)
+   * Obtiene el candidato final para un articulo (solo seleccionado explicitamente)
    */
   getCandidatoFinal(item: SugerenciaHomologoItem): MiniBalanceHomologoCand | null {
-    const seleccionado = this.selecciones.get(item.originalClave);
-    return seleccionado ?? item.mejores[0];
+    return this.selecciones.get(item.originalClave) ?? null;
   }
 
   /**
-   * Retorna la lista final de artículos a importar con las selecciones realizadas
+   * Retorna solo homologaciones seleccionadas por el usuario
    * Incluye referencia a la clave original para facilitar el matching en el padre
    * Returns: { originalClave, articulo }[]
    */
@@ -186,45 +231,37 @@ export class HomologosTablaComponent {
 
     for (const sugerencia of this.sugerencias) {
       const candidatoFinal = this.getCandidatoFinal(sugerencia);
+      if (!candidatoFinal) continue;
 
-      if (candidatoFinal) {
-        // Artículo con sugerencia (usamos el candidato final)
-        const nuevaCantidad = Math.round(
-          sugerencia.originalCantidad * this.toNumber(candidatoFinal.factor)
-        );
+      // Articulo con sugerencia (usamos el candidato final seleccionado)
+      const nuevaCantidad = Math.round(
+        sugerencia.originalCantidad * this.toNumber(candidatoFinal.factor)
+      );
 
-        const art = new ArticuloSolicitud();
-        art.clave = candidatoFinal.sustituto;
-        art.cantidad = nuevaCantidad;
-        art.descripcion = this.getDescripcionArticulo(candidatoFinal.sustituto);
-        art.presentacion = this.getUnidadArticulo(candidatoFinal.sustituto);
-        art.unidadMedida = this.getUnidadArticulo(candidatoFinal.sustituto);
-        art.cpm = 0; // Se obtendrá después en autocompletarDatos()
-        art.observaciones = '';
+      const art = new ArticuloSolicitud();
+      art.clave = candidatoFinal.sustituto;
+      art.cantidad = nuevaCantidad;
+      art.descripcion = this.getDescripcionArticulo(candidatoFinal.sustituto);
+      art.presentacion = this.getUnidadArticulo(candidatoFinal.sustituto);
+      art.unidadMedida = this.getUnidadArticulo(candidatoFinal.sustituto);
+      art.cpm = 0; // Se obtendra despues en autocompletarDatos()
+      art.observaciones = `Reemplazo de ${sugerencia.originalClave}.`;
 
-        articulos.push({
-          originalClave: sugerencia.originalClave,
-          articulo: art
-        });
-      } else {
-        // Artículo original (sin cambios)
-        const art = new ArticuloSolicitud();
-        art.clave = sugerencia.originalClave;
-        art.cantidad = sugerencia.originalCantidad;
-        art.descripcion = sugerencia.originalDescripcion || this.getDescripcionArticulo(sugerencia.originalClave);
-        art.presentacion = this.getUnidadArticulo(sugerencia.originalClave);
-        art.unidadMedida = this.getUnidadArticulo(sugerencia.originalClave);
-        art.cpm = 0; // Se obtendrá después en autocompletarDatos()
-        art.observaciones = '';
-
-        articulos.push({
-          originalClave: sugerencia.originalClave,
-          articulo: art
-        });
-      }
+      articulos.push({
+        originalClave: sugerencia.originalClave,
+        articulo: art
+      });
     }
 
     return articulos;
+  }
+
+  getSeleccionesCount(): number {
+    return this.getSeleccionesFinales().length;
+  }
+
+  private emitSelectionCount() {
+    this.selectionCountChange.emit(this.getSeleccionesCount());
   }
 
   /**
@@ -278,4 +315,17 @@ export class HomologosTablaComponent {
   toNumber(value: any): number {
     return Number(value ?? 1);
   }
+
+  private normClave(clave: string): string {
+    return this.inventarioService.normalizarClave(clave || '');
+  }
+
+  isClaveDuplicadaEnLista(originalClave: string, candidataClave: string): boolean {
+    const candidataNorm = this.normClave(candidataClave);
+    const originalNorm = this.normClave(originalClave);
+    if (!candidataNorm || candidataNorm === originalNorm) return false;
+    const existing = new Set((this.existingClaves || []).map(c => this.normClave(c)));
+    return existing.has(candidataNorm);
+  }
 }
+

@@ -1,3 +1,4 @@
+// src/app/features/dashboard-abasto/existencias/existencias-homologos/existencias-homologos.component.ts
 import {
   ChangeDetectionStrategy,
   Component,

@@ -17,6 +17,8 @@ export class HomologoResumenImportacionComponent {
   @Input() sugerencias: SugerenciaHomologoItem[] = [];
   @Input() totalImportados: number = 0;
   @Input() inventarioDisponible: InventarioDisponibles[] = [];
+  @Input() existingClaves: string[] = [];
+  @Input() origen: 'importacion' | 'modales' = 'importacion';
 
   @Output() reemplazarTodos = new EventEmitter<Array<{ originalClave: string; articulo: ArticuloSolicitud }>>();
   @Output() personalizarSeleccion = new EventEmitter<SugerenciaHomologoItem[]>();
@@ -27,6 +29,7 @@ export class HomologoResumenImportacionComponent {
 
   // UI state
   mostrarDetalles = false;
+  selectedCount = 0;
 
   /**
    * Emite reemplazo de todos los TOP candidatos (DEPRECATED)
@@ -76,6 +79,10 @@ export class HomologoResumenImportacionComponent {
     this.close.emit();
   }
 
+  onSelectionCountChange(count: number) {
+    this.selectedCount = count ?? 0;
+  }
+
   /**
    * Muestra tabla para personalizar selección
    */
@@ -96,5 +103,39 @@ export class HomologoResumenImportacionComponent {
    */
   get sinSugerencias(): number {
     return Math.max(0, this.totalImportados - this.sugerencias.length);
+  }
+
+  get tituloPrincipal(): string {
+    return this.origen === 'modales'
+      ? 'Carga por CPM/KIT completada'
+      : 'Importacion completada';
+  }
+
+  get subtituloPrincipal(): string {
+    return this.origen === 'modales'
+      ? 'Se agregaron claves desde CPM/KIT a tu solicitud'
+      : 'Se cargaron correctamente tus articulos solicitados';
+  }
+
+  get etiquetaTotal(): string {
+    return this.origen === 'modales' ? 'Claves agregadas' : 'Claves importadas';
+  }
+
+  get tituloDesglose(): string {
+    return this.origen === 'modales'
+      ? 'Desglose de la carga por CPM/KIT:'
+      : 'Desglose de importacion:';
+  }
+
+  get tituloTablaDetalle(): string {
+    return this.origen === 'modales'
+      ? 'Revisar oportunidades de CPM/KIT'
+      : 'Revisar oportunidades de importacion';
+  }
+
+  get tituloTablaAlternativas(): string {
+    return this.origen === 'modales'
+      ? 'Alternativas disponibles para CPM/KIT'
+      : 'Alternativas disponibles para importacion';
   }
 }
