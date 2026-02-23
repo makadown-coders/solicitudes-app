@@ -1,0 +1,126 @@
+import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil, debounceTime } from 'rxjs';
+import { ArticulosService } from '../../services/articulos.service';
+
+export type ArticuloAutocompleteItem = {
+  clave: string;
+  descripcion: string;
+  unidadMedida?: string;
+  presentacion?: string;
+};
+
+@Component({
+  selector: 'app-articulo-autocomplete',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './articulo-autocomplete.component.html',
+  styleUrls: ['./articulo-autocomplete.component.css'],
+})
+export class ArticuloAutocompleteComponent implements OnInit, OnDestroy {
+  private articulosService = inject(ArticulosService);
+  private onDestroy$ = new Subject<void>();
+  private search$ = new Subject<string>();
+
+  @Input() label = 'Articulo';
+  @Input() placeholder = 'Buscar clave o descripcion (min 3)';
+  @Input() minChars = 3;
+  @Input() model = '';
+
+  @Output() modelChange = new EventEmitter<string>();
+  @Output() selected = new EventEmitter<ArticuloAutocompleteItem>();
+
+  inputValue = '';
+  results: ArticuloAutocompleteItem[] = [];
+  selectedIndex = -1;
+  searching = false;
+
+  ngOnInit(): void {
+    this.inputValue = this.model ?? '';
+    this.search$
+      .pipe(debounceTime(350), takeUntil(this.onDestroy$))
+      .subscribe((texto) => this.buscarConFallback(texto));
+  }
+
+  ngOnDestroy(): void {
+    this.onDestroy$.next();
+    this.onDestroy$.complete();
+  }
+
+  onInputChange(value: string) {
+    this.inputValue = value;
+    this.modelChange.emit(value);
+    const t = value.trim();
+    if (t.length < this.minChars) {
+      this.results = [];
+      this.selectedIndex = -1;
+      return;
+    }
+    this.search$.next(t);
+  }
+
+  onInputKeyDown(event: KeyboardEvent) {
+    if (!this.results.length) return;
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.selectedIndex = (this.selectedIndex + 1) % this.results.length;
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.selectedIndex = (this.selectedIndex - 1 + this.results.length) % this.results.length;
+        break;
+      case 'Enter':
+        event.preventDefault();
+        if (this.selectedIndex >= 0 && this.results[this.selectedIndex]) {
+          this.selectItem(this.results[this.selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        this.results = [];
+        this.selectedIndex = -1;
+        break;
+    }
+  }
+
+  selectItem(item: ArticuloAutocompleteItem) {
+    const clave = String(item.clave ?? '').trim().toUpperCase();
+    this.inputValue = clave;
+    this.modelChange.emit(clave);
+    this.selected.emit({
+      ...item,
+      clave,
+      descripcion: String(item.descripcion ?? '').trim(),
+    });
+    this.results = [];
+    this.selectedIndex = -1;
+  }
+
+  private buscarConFallback(texto: string) {
+    this.searching = true;
+    this.articulosService.buscarArticulos(texto).subscribe({
+      next: (data) => {
+        const rows = (data?.resultados ?? []) as ArticuloAutocompleteItem[];
+        this.results = rows.sort((a, b) => String(a.clave).localeCompare(String(b.clave))).slice(0, 24);
+        this.selectedIndex = this.results.length ? 0 : -1;
+        this.searching = false;
+      },
+      error: () => {
+        this.articulosService.buscarArticulosv2(texto).subscribe({
+          next: (data) => {
+            const rows = (data?.resultados ?? []) as ArticuloAutocompleteItem[];
+            this.results = rows.sort((a, b) => String(a.clave).localeCompare(String(b.clave))).slice(0, 24);
+            this.selectedIndex = this.results.length ? 0 : -1;
+            this.searching = false;
+          },
+          error: () => {
+            this.results = [];
+            this.selectedIndex = -1;
+            this.searching = false;
+          },
+        });
+      },
+    });
+  }
+}

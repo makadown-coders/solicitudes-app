@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { CargaMasivaComponent } from './features/carga-masiva/carga-masiva.component';
 import { SolicitudesConfigComponent } from './features/solicitudes-config/solicitudes-config.component';
+import { HomologosConfigComponent } from './features/homologos-config/homologos-config.component';
 
 export const routes: Routes = [
   {
@@ -59,6 +60,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/articulos-admin/articulos-admin.component')
         .then(m => m.ArticulosAdminComponent)
+  },
+  {
+    path: 'homologos-config',
+    title: 'Configuracion de homologos',
+    loadComponent: () => import('./features/homologos-config/homologos-config.component')
+      .then(m => m.HomologosConfigComponent)
   },
   {
     path: 'admin-kits',
@@ -186,4 +193,4 @@ export const routes: Routes = [
   },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: '**', redirectTo: '/home' },
-]; 
+];

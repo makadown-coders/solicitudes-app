@@ -96,7 +96,7 @@
                     <td class="px-3 py-2 font-medium whitespace-nowrap">{{ r.cluesimb }} - {{
                         getDescripcionUnidad(r.cluesimb) }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ r.tipo_pedido }}</td>
-                    <td class="px-3 py-2">{{ (r.tipos_insumo ?? []).join(' - ') }}</td>
+                    <td class="px-3 py-2">{{ (r.tipos_insumo).join(' - ') }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ r.periodo_texto ?? '—' }}</td>
                     <td class="px-3 py-2 text-right">{{ r.total_renglones }}</td>
                     <td class="px-3 py-2 text-right">{{ r.total_piezas }}</td>
@@ -147,7 +147,7 @@
                     </h3>
                     <div class="px-3 py-1 text-sm text-slate-600 dark:text-slate-300">
                         <span class="font-medium">{{ H.cluesimb }}</span> · {{ H.created_day }} · {{ H.tipo_pedido }}
-                        · {{ (H.tipos_insumo ?? []).join(' - ') }}
+                        · {{ (H.tipos_insumo).join(' - ') }}
                     </div>
                     }
 
@@ -227,7 +227,7 @@
                             @let comparativa = getComparativaViewOrdenadoPorClave();
                             @for (r of comparativa; track r.clave) {
                                 <!-- alternate row colors -->
-                            <tr class="border-b hover:bg-slate-100 dark:hover:bg-black/30">                                
+                            <tr class="border-b hover:bg-slate-100 dark:hover:bg-black/30">
                                 <td class="px-2 py-1">{{ $index + 1 }}</td>
                                 <td class="px-2 py-1 font-medium">{{ r.clave }}</td>
                                 <td class="px-2 py-1" [title]="r.descripcion" ]>{{ r.descripcion.length > 50 ?
@@ -318,7 +318,7 @@
         @if (selectedHeader(); as H) {
         <h3 class="text-xl font-semibold text-green-800 dark:text-[#CBA135]">
             Movimientos hacia {{ selectedUnidad() }} - Pedido {{ H.tipo_pedido }}
-            · Tipo {{ (H.tipos_insumo ?? []).join(' - ') }}
+            · Tipo {{ (H.tipos_insumo).join(' - ') }}
         </h3>
         }
 
@@ -466,7 +466,7 @@
         @if (miniHeader(); as H) {
         <h3 class="text-xl font-semibold text-green-800 dark:text-[#CBA135]">
             Análisis · {{ selectedUnidad() }} - Pedido {{ H.tipo_pedido }}
-            · Tipo {{ (H.tipos_insumo ?? []).join(' - ') }} - Periodo {{ H.periodo_texto }}
+            · Tipo {{ (H.tipos_insumo).join(' - ') }} - Periodo {{ H.periodo_texto }}
         </h3>
         <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">
             * Las sugerencias mostradas no representan una asignación automática de surtido ni sustituyen los procesos

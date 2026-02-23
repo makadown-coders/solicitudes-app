@@ -1,0 +1,31 @@
+<div class="ac-wrap">
+  <label class="ac-label">{{ label }}</label>
+  <input
+    class="ac-input"
+    type="text"
+    [placeholder]="placeholder"
+    [ngModel]="inputValue"
+    (ngModelChange)="onInputChange($event)"
+    (keydown)="onInputKeyDown($event)"
+  />
+
+  @if (results.length) {
+    <ul class="ac-list">
+      @for (item of results; track item.clave; let i = $index) {
+        <li
+          class="ac-item"
+          [class.active]="i === selectedIndex"
+          (click)="selectItem(item)"
+        >
+          <div class="ac-clave">{{ item.clave }}</div>
+          <div class="ac-desc">{{ item.descripcion }}</div>
+          <div class="ac-meta">{{ item.presentacion || item.unidadMedida || '-' }}</div>
+        </li>
+      }
+    </ul>
+  } @else if (searching) {
+    <div class="ac-hint">Buscando...</div>
+  } @else if ((inputValue || '').trim().length > 0 && (inputValue || '').trim().length < minChars) {
+    <div class="ac-hint">Escribe al menos {{ minChars }} caracteres</div>
+  }
+</div>

@@ -45,8 +45,8 @@ export class ArticulosService {
 
   /**
    * Método de emergencia por que se me acabaron los créditos en el backend de railway :(
-   * @param termino 
-   * @returns 
+   * @param termino
+   * @returns
    */
   buscarArticulosv2(termino: string): Observable<{ resultados: ArticuloSolicitud[]; total: number }> {
     const filtro = termino.toLowerCase();
@@ -63,7 +63,7 @@ export class ArticulosService {
             descripcion: art.descripcion,
             unidadMedida: art.presentacion ?? '',
             presentacion: art.presentacion ?? '',
-            observaciones: '',            
+            observaciones: '',
             cantidad: 0, // valor neutral inicial,
             cpm: 0, // valor neutral inicial
           }));
@@ -103,16 +103,16 @@ export class ArticulosService {
       );
   }
 
-  
+
   /**
-   * Returns a map of clave: { descripcion, presentacion, categoria } from local json file.
+   * Returns a map of clave: { descripcion, presentacion, categoria }.
    * The map is cached so that subsequent calls return the same map.
    * Para uso en Dashboard abasto > Inventario
    * Para usarse en caso de emergencia.
    * @returns {Observable<Record<string, any>>} The map of clave: { descripcion, presentacion, categoria }.
    */
   getArticulosMapa() {
-    if (!this._articulosMapaCache$) {      
+    if (!this._articulosMapaCache$) {
       this._articulosMapaCache$ = this.http.get<{ resultados: ArticuloSolicitud[]; total: number }>(this.apiUrl+'/all').pipe(
         map( arr => {
           const mapa: Record<string, any> = {};
@@ -135,11 +135,11 @@ export class ArticulosService {
 
   /**
    * Por deprecar o usar en caso de emergencia =/
-   * @returns 
+   * @returns
    */
   getArticulosMapaLegacy() {
     if (!this._articulosMapaCache$) {
-      this._articulosMapaCache$ = this.http.get<Articulo[]>('/articulos.json').pipe(      
+      this._articulosMapaCache$ = this.http.get<Articulo[]>('/articulos.json').pipe(
         map(arr => {
           const mapa: Record<string, any> = {};
           for (const a of arr) {
