@@ -1,0 +1,26 @@
+/* Animación de filas */
+tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+/* Hover effect */
+tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+/* Dark mode */
+:host-context(.dark) tbody tr:hover {
+  background-color: rgba(15, 23, 42, 0.5);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  table {
+    font-size: 0.75rem;
+  }
+
+  button {
+    padding: 0.375rem 0.5rem !important;
+    font-size: 0.65rem !important;
+  }
+}

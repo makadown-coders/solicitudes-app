@@ -54,6 +54,13 @@ export const routes: Routes = [
     loadComponent: () => import('./features/cpm-editor/cpm-editor.component').then(m => m.CpmEditorComponent)
   },
   {
+    path: 'articulos-admin',
+    title: 'Catalogo de articulos',
+    loadComponent: () =>
+      import('./features/articulos-admin/articulos-admin.component')
+        .then(m => m.ArticulosAdminComponent)
+  },
+  {
     path: 'admin-kits',
     loadComponent: () => import('./features/kits/admin-kits/admin-kits.component')
       .then(m => m.AdminKitsComponent)
@@ -118,6 +125,12 @@ export const routes: Routes = [
             loadComponent: () => import('./features/dashboard-abasto/existencias/balanceo-sugerencias/balanceo-sugerencias.component')
               .then(m => m.BalanceoSugerenciasComponent),
             title: 'Dashboard Abasto · Análisis · Balanceo'
+          },
+          {
+            path: 'homologos',
+            loadComponent: () => import('./features/dashboard-abasto/existencias/existencias-homologos/existencias-homologos.component')
+              .then(m => m.ExistenciasHomologosComponent),
+            title: 'Dashboard Abasto · Análisis · Homologos'
           },
         ]
       },

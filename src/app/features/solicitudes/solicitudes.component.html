@@ -137,7 +137,7 @@
               Exportar Captura
             </button>
           }
-          <input type="file" #fileInput accept=".xlsx,.xls,.csv" class="hidden" (change)="manejarArchivoPrecarga($event)">
+          <input title="archivo" type="file" #fileInput accept=".xlsx,.xls,.csv" class="hidden" (change)="manejarArchivoPrecarga($event)">
           <button class="p-2 mt-4 ml-2 text-white align-self-end bg-green-800 rounded hover:bg-green-900 float-right"
             (click)="buscarArchivo(fileInput)">
             Importar Precarga
@@ -169,7 +169,34 @@
             (confirmar)="modalAceptar()" (cancelar)="cerrarModal()" />
         }
 
+        <!-- ✨ FLUJO 1: Modal de Sugerencia de Homólogo para Agregar Manual -->
+        @if (homologoModalVisible && homologoModalData) {
+          <app-homologo-sugerencia-modal
+            [topCandidates]="homologoModalData.sugerencias"
+            [originalClave]="homologoModalData.clave"
+            [originalCantidad]="homologoModalData.cantidad"
+            [originalDescripcion]="descripcionInput"
+            [inventarioDisponible]="homologoModalData.inventarioDisponible"
+            (reemplazar)="onReemplazarHomologo($event)"
+            (mantener)="onMantenerOriginal()"
+            (noSugerirMas)="agregarAListaNegra(homologoModalData!.clave)"
+            (close)="homologoModalVisible = false">
+          </app-homologo-sugerencia-modal>
+        }
 
+        <!-- ✨ FLUJO 2: Modal de Resumen de Importación -->
+        @if (importResumenHomologosVisible && articulosConHomologos.length > 0) {
+          <app-homologo-resumen-importacion
+            [sugerencias]="articulosConHomologos"
+            [totalImportados]="homologoResumenTotalImportados"
+            [inventarioDisponible]="inventarioDisponible"
+            [existingClaves]="existingClavesList"
+            [origen]="homologoResumenOrigen"
+            (reemplazarTodos)="onReemplazarMultiplesDesdeResumen($event)"
+            (ignorar)="importResumenHomologosVisible = false"
+            (close)="importResumenHomologosVisible = false">
+          </app-homologo-resumen-importacion>
+        }
 
         <!-- Modal para nombrar archivo -->
         @if (modalPedirNombreArchivo) {

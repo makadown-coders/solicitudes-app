@@ -149,11 +149,11 @@ export class SolicitudExcelExporter {
             worksheet!.getCell(`I${renglon}`).value = existenciaAZM;
             worksheet!.getCell(`J${renglon}`).value = existenciaAZT;
             worksheet!.getCell(`K${renglon}`).value = existenciaAZE;
-            const enKit = kitHas?.(articulosSolicitados[i].clave) === true;
+            // const enKit = kitHas?.(articulosSolicitados[i].clave) === true;
             const celdaObs = worksheet!.getCell(`L${renglon}`);
-            celdaObs.value = enKit ? 'En KIT de Rutas de la Salud' : '';
+            celdaObs.value = articulosSolicitados[i].observaciones; // enKit ? 'En KIT de Rutas de la Salud' : '';
 
-            if (enKit) {
+            if (articulosSolicitados[i].observaciones && articulosSolicitados[i].observaciones.length > 0) {
                 celdaObs.font = { italic: true, color: { argb: '22543D' } };
                 celdaObs.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D1FAE5' } };
                 worksheet.getColumn('L').width = 42;

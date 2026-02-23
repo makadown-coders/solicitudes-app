@@ -111,7 +111,7 @@ export class KitModalComponent implements OnInit {
 
         await this.ensureDescripcionIndex();
         await this.loadKit();             // construye filas CPM + AZM/AZE/AZT
-        this.loadExistenciasForUnit();    // mezcla existencias por unidad + reorden        
+        this.loadExistenciasForUnit();    // mezcla existencias por unidad + reorden
     }
 
     // ===== Construcción de filas del KIT =====
@@ -269,7 +269,7 @@ export class KitModalComponent implements OnInit {
     // ===== Acciones =====
     cerrar() { this.close.emit(); }
 
-    /** 
+    /**
  * Si TRUE: r.reordenSug YA VIENE como total para X meses (no se vuelve a multiplicar).
  * Si FALSE: r.reordenSug es mensual y SÍ se multiplica por mesesCobertura.
  */
@@ -321,6 +321,8 @@ export class KitModalComponent implements OnInit {
                 unidadMedida: this.getUnidadMedidaFor(clave) ?? '',
                 cantidad: qty,
                 cpm: r.cpm ?? 0,
+                observaciones: '',
+                presentacion: ''
             });
         }
 
@@ -460,9 +462,9 @@ export class KitModalComponent implements OnInit {
         this.cdRef.markForCheck();
         this.busy = false;
     }
-    setMesesCobertura(n: number) {        
+    setMesesCobertura(n: number) {
         this.mesesCobertura = Math.max(1, Math.floor(n || 1));
-        // if (this.hasUnidadExistencias) 
+        // if (this.hasUnidadExistencias)
         this.mergeExistenciasIntoKit();
     }
 

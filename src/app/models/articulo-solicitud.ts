@@ -1,10 +1,12 @@
 // /src/app/models/articulo-solicitud.ts
-export interface ArticuloSolicitud {
-  clave: string;
-  descripcion: string;
-  unidadMedida: string;
-  cantidad: number;
-  cpm: number;
+export class ArticuloSolicitud {
+  clave: string = '';
+  descripcion: string = '';
+  unidadMedida: string = '';
+  presentacion: string = '';
+  cantidad: number = 0;
+  cpm: number = 0;
+  observaciones: string = ''; 
 }
 
 export interface Articulo {

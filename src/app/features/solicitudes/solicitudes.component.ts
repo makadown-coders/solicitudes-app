@@ -1,4 +1,4 @@
-// src/app/features/solicitudes/solicitudes.component.ts
+﻿// src/app/features/solicitudes/solicitudes.component.ts
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
 import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -30,6 +30,10 @@ import { CpmModalComponent } from './cpm-modal/cpm-modal.component';
 import { FactorUnidad } from '../../models';
 import { TrazabilidadService } from '../../services/trazabilidad.service';
 import { SolicitudesBitacoraService } from '../../services/solicitudes/solicitudes-bitacora.service';
+import { HomologosSolicitudService, SugerenciaHomologoItem, MiniBalanceHomologoCand } from '../../services/homologos-solicitud.service';
+import { HomologoSugerenciaModalComponent } from './homologo-sugerencia-modal/homologo-sugerencia-modal.component';
+import { HomologoResumenImportacionComponent } from './homologo-resumen-importacion/homologo-resumen-importacion.component';
+import { environment } from '../../../environments/environment.development';
 
 
 @Component({
@@ -41,7 +45,9 @@ import { SolicitudesBitacoraService } from '../../services/solicitudes/solicitud
     TablaArticulosComponent,
     RouterModule,
     KitModalComponent,
-    CpmModalComponent
+    CpmModalComponent,
+    HomologoSugerenciaModalComponent,
+    HomologoResumenImportacionComponent
   ],
   templateUrl: './solicitudes.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -111,6 +117,24 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   get hasUnidadExistencias(): boolean { return this.existUnidadIndex.size > 0; }
 
   // dentro de la clase SolicitudesComponent
+  // ============= Inyección de servicios =============
+  private homologosSolicitudService = inject(HomologosSolicitudService);
+
+  // ============= FLUJO 1: Properties para Agregar Manual =============
+  homologoModalVisible = false;
+  homologoModalData: { sugerencias: MiniBalanceHomologoCand[]; clave: string; cantidad: number; inventarioDisponible: InventarioDisponibles[] } | null = null;
+  private listaNegraHomologos = new Set<string>();
+
+  // ============= FLUJO 2: Properties para Importación =============
+  importResumenHomologosVisible = false;
+  articulosConHomologos: SugerenciaHomologoItem[] = [];
+  homologoResumenTotalImportados = 0;
+  homologoResumenOrigen: 'importacion' | 'modales' = 'importacion';
+
+  // ============= FLUJO 3: Properties para Modales CPM/KIT =============
+  mostrarOportunidadesEnTabla = false;
+  oportunidadesDisponibles: SugerenciaHomologoItem[] = [];
+
   public tituloUnidad$ = this.storageSolicitudService.nombreUnidad$.pipe(
     map((nombre) => {
       const raw = this.storageSolicitudService.getDatosCluesFromLocalStorage();
@@ -181,14 +205,14 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       this.rebuildExistingClaves();
     }
 
-    // ⬇️ (Robustez) si el usuario llega directo a esta ruta,
+    // â¬‡ï¸ (Robustez) si el usuario llega directo a esta ruta,
     // levanta CPM de la unidad guardada en localStorage.
     const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
     if (cluesStr) {
       this.datosClues = JSON.parse(cluesStr) as DatosClues;
       const cluesimb = this.datosClues?.hospital?.cluesimb || '';
       if (cluesimb) {
-        // no hace daño si Layout ya lo cargó: usa caché del CpmService
+        // no hace daño si Layout ya lo cargó: usa cachá del CpmService
         this.cpmService.ensureForCluesimb(cluesimb).subscribe();
         this.loadExistenciasUnidad(cluesimb);
       }
@@ -221,9 +245,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
-  // ⬇️ Adaptador de filas del endpoint a tu tipo CPMS (lo que use tu ExcelService)
+  // â¬‡ï¸ Adaptador de filas del endpoint a tu tipo CPMS (lo que use tu ExcelService)
   // Asumo CPMS = { clave: string; cpm: number }.
-  // Si tu interfaz CPMS tiene más campos, ajústalos aquí.
+  // Si tu interfaz CPMS tiene más campos, ajústalos aquÃ­.
   private mapCpmRowsToCPMS(rows: CpmRowLite[], cluesimbFallback?: string): CPMS[] {
     // Consolidamos por clave (si una clave aparece varias veces por distintos kits, tomamos el mayor CPM)
     const byClave = new Map<string, CPMS>();
@@ -242,7 +266,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         byClave.set(clave, {
           clave,
           cluesimb,
-          cantidad: cpmVal,   // 👈 aquí ‘cantidad’ = CPM
+          cantidad: cpmVal,   // ðŸ‘ˆ aquÃ­ â€˜cantidadâ€™ = CPM
         });
       }
     }
@@ -252,7 +276,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   calcularInventarioDisponible() {
     this.inventarioDisponible = [];
-    this.invIndex.clear(); // ⬅️ importante
+    this.invIndex.clear(); // â¬…ï¸ importante
 
     const arregloClavesInventario = this.inventario.map(item => item.clave);
     arregloClavesInventario.forEach(clave => {
@@ -275,7 +299,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       });
 
       this.inventarioDisponible.push(existencia);
-      // ⬇️ llenar índice para consultas rápidas
+      // â¬‡ï¸ llenar Ã­ndice para consultas rápidas
       this.invIndex.set(clave, existencia);
     });
   }
@@ -302,7 +326,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     const unDiaMs = 24 * 60 * 60 * 1000;
 
     if (timestampFallback && ahora - Number(timestampFallback) < unDiaMs) {
-      // 🔁 Usa fallback directamente
+      // ðŸ” Usa fallback directamente
       this.usarBusquedaLocal(texto);
       return;
     }
@@ -312,7 +336,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     // forzo recarga
     this.loadExistenciasUnidad(this.cluesimbActual);
 
-    // 🔌 Intenta con backend koyeb
+    // ðŸ”Œ Intenta con backend koyeb
     this.articulosService.buscarArticulos(texto).subscribe({
       next: (data) => {
         // this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
@@ -435,7 +459,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     const clave = this.claveInput.trim().toUpperCase();
     try {
       await this.cpmService.ensureAllowedOrThrow(clave);
-      // proceder con la captura…
+      // proceder con la captura
     } catch {
       this.toast.warn({
         title: 'Clave fuera de KIT',
@@ -460,14 +484,14 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    // Validar que si estoy capturando en modo primer nivel solo admita artículos de primer nivel
+    // Validar que si estoy capturando en modo primer nivel solo admita articulos de primer nivel
     // Parte por eliminar hasta que sea oficial
     /*if (this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL) {
       const esPrimerNivel = this.articulosService.esPrimerNivel(clave);
       if (!esPrimerNivel) {
         this.abrirModalInfo(
           'Clave no permitida',
-          `El artículos con la clave "${clave}" no se captura en modo primer nivel.`);
+          `El articulos con la clave "${clave}" no se captura en modo primer nivel.`);
         return;
       }
     }*/
@@ -478,8 +502,13 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       descripcion: this.descripcionInput.trim(),
       unidadMedida: this.unidadInput.trim(),
       cantidad: this.cantidadInput,
-      cpm
+      cpm,
+      presentacion: '',
+      observaciones: ''
     });
+
+    // âœ¨ FLUJO 1: NUEVO - Detectar homologos para este artículo
+    this.detectarYMostrarHomologoParaArticulo(clave, this.cantidadInput);
 
     this.storageSolicitudService
       .setArticulosSolicitadosInLocalStorage(
@@ -499,6 +528,259 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     }, 0);
   }
 
+  // ============================================
+  // FLUJO 1: Mátodos para Agregar Manual
+  // ============================================
+
+  /**
+   * Detecta homologos y muestra el modal si hay sugerencias
+   */
+  private async detectarYMostrarHomologoParaArticulo(clave: string, cantidad: number) {
+    // No sugerir si está en lista negra
+    if (this.esClaveEnListaNegra(clave)) return;
+
+    try {
+      const sugerencias = await this.homologosSolicitudService.obtenerMejoresHomologos(
+        clave,
+        cantidad,
+        this.inventarioDisponible,
+        this.cluesimbActual
+      );
+
+      if (sugerencias?.length) {
+        const claveOriginalNorm = this.normClave(clave);
+        const existentes = new Set(this.articulosSolicitados.map(a => this.normClave(a.clave)));
+        const sugerenciasFiltradas = sugerencias.filter(s => {
+          const candNorm = this.normClave(s.sustituto);
+          if (!candNorm) return false;
+          if (candNorm === claveOriginalNorm) return true;
+          return !existentes.has(candNorm);
+        });
+
+        const omitidas = sugerencias.length - sugerenciasFiltradas.length;
+        if (omitidas > 0) {
+          this.toast.warn({
+            title: 'Alternativas omitidas',
+            content: `${omitidas} alternativa(s) ya estaban en la lista y no se mostraron.`,
+            duration: 4
+          });
+        }
+
+        if (!sugerenciasFiltradas.length) {
+          return;
+        }
+
+        this.homologoModalData = {
+          sugerencias: sugerenciasFiltradas,
+          clave,
+          cantidad,
+          inventarioDisponible: this.inventarioDisponible
+        };
+        this.homologoModalVisible = true;
+        this.cdRef.detectChanges();
+      }
+    } catch (error) {
+      console.error('Error detectando homologos:', error);
+      // Fallar silenciosamente - la captura continúa normalmente
+    }
+  }
+
+  /**
+   * Maneja el reemplazo por homólogo sugerido
+   */
+  async onReemplazarHomologo(candidato: MiniBalanceHomologoCand) {
+    const originalClave = this.homologoModalData?.clave;
+    if (!originalClave) return;
+
+    const originalNorm = this.normClave(originalClave);
+    const sustitutoNorm = this.normClave(candidato.sustituto);
+    const duplicada = this.articulosSolicitados.some(a => {
+      const actualNorm = this.normClave(a.clave);
+      return actualNorm === sustitutoNorm && actualNorm !== originalNorm;
+    });
+    if (duplicada) {
+      this.toast.warn({
+        title: 'Clave sugerida ya capturada',
+        content: `La clave ${candidato.sustituto} ya existe en la lista. Elige otra alternativa o conserva la original.`,
+        duration: 5
+      });
+      return;
+    }
+
+    // Encontrar y reemplazar el artículo más reciente agregado
+    const index = this.articulosSolicitados.findIndex(a => a.clave === originalClave);
+    if (index >= 0) {
+      const originalCantidad = this.articulosSolicitados[index].cantidad;
+      const nuevaCantidad = Math.round(originalCantidad * Number(candidato.factor));
+
+      // Reemplazar
+      this.articulosSolicitados[index].clave = candidato.sustituto;
+      this.articulosSolicitados[index].cantidad = nuevaCantidad;
+
+      // Buscar descripción del nuevo artículo
+      try {
+        const resp = await firstValueFrom(this.articulosService
+          .buscarArticulos(candidato.sustituto));
+        console.log('resp de modal de homologos', resp);
+        if (resp?.resultados && resp.resultados.length > 0) {
+          const art = resp.resultados[0];
+          this.articulosSolicitados[index].descripcion = art.descripcion ?? '';
+          this.articulosSolicitados[index].unidadMedida = art.unidadMedida ??
+            (art.presentacion ?? '');
+          this.articulosSolicitados[index].observaciones =
+            `Reemplaza ${originalClave} .`;
+        }
+      } catch {
+        // Silencio si falla
+      }
+
+      this.rebuildExistingClaves();
+      this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados)
+      );
+
+      this.toast.success({
+        title: 'Artículo reemplazado',
+        content: `${originalClave} x ${candidato.sustituto} (${nuevaCantidad} un.)`,
+        duration: 4
+      });
+    }
+
+    this.homologoModalVisible = false;
+    this.cdRef.detectChanges();
+  }
+
+  /**
+   * Mantiene el artículo original
+   */
+  onMantenerOriginal() {
+    this.homologoModalVisible = false;
+    this.cdRef.detectChanges();
+  }
+
+  /**
+   * Agrega una clave a la lista negra (no sugerir más)
+   */
+  agregarAListaNegra(clave: string) {
+    this.listaNegraHomologos.add(clave.toUpperCase());
+    this.toast.warn({
+      title: 'Anotado',
+      content: `No se sugerirán alternativas para ${clave}`,
+      duration: 3
+    });
+  }
+
+  /**
+   * Verifica si una clave está en lista negra
+   */
+  private esClaveEnListaNegra(clave: string): boolean {
+    return this.listaNegraHomologos.has(clave.toUpperCase());
+  }
+
+  // ============================================
+  // FLUJO 2: Métodos para Importación
+  // ============================================
+
+  /**
+   * Detecta homologos para articulos importados y muestra resumen
+   */
+  private async detectarYMostrarHomologosImport() {
+    try {
+      const sugerencias = await this.homologosSolicitudService.detectarHomologosParaArticulos(
+        this.articulosSolicitados,
+        this.inventarioDisponible,
+        this.cluesimbActual
+      );
+
+      if (sugerencias?.length > 0) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Espera a que se cierre el primer modal
+        this.homologoResumenOrigen = 'importacion';
+        this.homologoResumenTotalImportados = this.articulosSolicitados.length;
+        this.articulosConHomologos = sugerencias;
+        this.importResumenHomologosVisible = true;
+        this.cdRef.detectChanges();
+      }
+    } catch (error) {
+      console.error('Error detectando homologos en importación:', error);
+      // Fallar silenciosamente
+    }
+  }
+
+  /**
+   * Maneja el reemplazo múltiple desde el resumen de importación
+   */
+  async onReemplazarMultiplesDesdeResumen(
+    resultados: Array<{ originalClave: string; articulo: ArticuloSolicitud }>
+  ) {
+    const norm = (c: string) => this.inventarioService.normalizarClave(c);
+    const clavesActuales = new Set(this.articulosSolicitados.map(a => norm(a.clave)));
+    const aplicables: Array<{ originalClave: string; articulo: ArticuloSolicitud }> = [];
+    const conflictos: string[] = [];
+
+    for (const resultado of resultados) {
+      const { originalClave, articulo: nuevoArt } = resultado;
+      const originalNorm = norm(originalClave);
+      const nuevaNorm = norm(nuevoArt.clave);
+      const duplicadaEnLista = nuevaNorm !== originalNorm && clavesActuales.has(nuevaNorm);
+      const duplicadaEnSeleccion = aplicables.some(a => norm(a.articulo.clave) === nuevaNorm);
+
+      if (duplicadaEnLista || duplicadaEnSeleccion) {
+        conflictos.push(nuevoArt.clave);
+        continue;
+      }
+
+      aplicables.push(resultado);
+      clavesActuales.delete(originalNorm);
+      clavesActuales.add(nuevaNorm);
+    }
+
+    for (const resultado of aplicables) {
+      const { originalClave, articulo: nuevoArt } = resultado;
+
+      const index = this.articulosSolicitados.findIndex(a => {
+        const aNorm = this.inventarioService.normalizarClave(a.clave);
+        const origNorm = this.inventarioService.normalizarClave(originalClave);
+        return aNorm === origNorm;
+      });
+
+      if (index >= 0) {
+        this.articulosSolicitados[index].clave = nuevoArt.clave;
+        this.articulosSolicitados[index].cantidad = nuevoArt.cantidad;
+        this.articulosSolicitados[index].descripcion = nuevoArt.descripcion || this.articulosSolicitados[index].descripcion;
+        this.articulosSolicitados[index].unidadMedida = nuevoArt.unidadMedida || this.articulosSolicitados[index].unidadMedida;
+        this.articulosSolicitados[index].presentacion = nuevoArt.presentacion || this.articulosSolicitados[index].presentacion;
+        this.articulosSolicitados[index].observaciones =
+          nuevoArt.observaciones || `Reemplaza ${originalClave} .`;
+      }
+    }
+
+    this.rebuildExistingClaves();
+    this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+      JSON.stringify(this.articulosSolicitados)
+    );
+
+    const origen = this.homologoResumenOrigen;
+    this.importResumenHomologosVisible = false;
+    if (aplicables.length === 0) {
+      this.toast.warn({
+        title: 'Sin homologaciones seleccionadas',
+        content: conflictos.length > 0
+          ? `No se aplicaron cambios. ${conflictos.length} sugerencia(s) omitida(s) por clave duplicada en la lista.`
+          : 'No se aplicaron cambios; se conservaron los articulos originales.',
+        duration: 5
+      });
+    } else {
+      this.toast.success({
+        title: origen === 'modales' ? 'Selección completada' : 'Importación completada',
+        content: conflictos.length > 0
+          ? `Se procesaron ${aplicables.length} sugerencia(s). ${conflictos.length} omitida(s) por duplicado.`
+          : `Se procesaron ${aplicables.length} articulos con sugerencias`,
+        duration: 4
+      });
+    }
+    this.cdRef.detectChanges();
+  }
+
   abrirModal() {
     this.mostrarModal = true;
   }
@@ -507,6 +789,10 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.articulosSolicitados = [];
     this.storageSolicitudService.limpiarArticulosSolicitadosInLocalStorage();
     this.existingClavesList = [];
+    this.oportunidadesDisponibles = [];
+    this.mostrarOportunidadesEnTabla = false;
+    this.articulosConHomologos = [];
+    this.importResumenHomologosVisible = false;
     this.cerrarModal();
   }
 
@@ -555,7 +841,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     const cluesimb = this.datosClues?.hospital?.cluesimb ?? '';
     if (!cluesimb) return;
 
-    // 👇 aquí se valida el flag efectivo
+    // se valida el flag efectivo
     const puede = await this.shouldAskSurvey(cluesimb);
     if (!puede) return;
 
@@ -566,7 +852,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   confirmarLimpiezaModal() {
     this.abrirModalConfirmacion(
       '¿Estás seguro?',
-      'Esta acción eliminará todos los artículos capturados. ¿Deseas continuar?',
+      'Esta acción eliminará todos los articulos capturados. ¿Deseas continuar?',
       'Sí, limpiar todo',
       'Cancelar',
       () => this.confirmarLimpieza()
@@ -585,17 +871,19 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       items = enKit;
     }
 
-    // ✅ arma payload desde aquí (tienes datosClues, items y modoStandalone)
+    // âœ… arma payload desde aquí­ (tienes datosClues, items y modoStandalone)
     // Asegura tener datosClues fresco:
     if (!this.modoStandalone) {
       const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
       if (cluesStr) this.datosClues = JSON.parse(cluesStr) as DatosClues;
     }
 
+
+    const enProduccion = environment.production;
     const payload = this.bitacoraService.buildPayload(this.datosClues, items, this.modoStandalone);
 
-    // 🚀 best-effort: no bloquea el Excel
-    if (payload) void this.bitacoraService.registrar(payload);
+    // ðŸš€ best-effort: no bloquea el Excel
+    if (payload && enProduccion) void this.bitacoraService.registrar(payload);
 
     this.excelService.exportarExcelConTemplate(
       'template.xlsx',
@@ -604,12 +892,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       this.modoStandalone,
       this.inventarioDisponible,
       this.cpmsDeCluesActual,
-      // ⬇️ predicado para saber si la clave está en el KIT
+      // predicado para saber si la clave está en el KIT
       (clave) => this.cpmService.isClaveInKit(this.normClave(clave), this.cluesimbActual)
     );
     this.abrirModalInfo(
       this.generarPrecarga ? 'Archivos generados' : 'Archivo generado',
-      'Por favor cerciórese que la información esté en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
+      'Por favor cerciórese que la información está en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
     );
 
     if (restrict && fueraDeKit.length) {
@@ -733,7 +1021,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.articulosSolicitados.length > 0) {
       this.abrirModalConfirmacion(
         'Precarga detectada',
-        'Esto reemplazará los artículos ya capturados. ¿Deseas continuar?',
+        'Esto reemplazará los articulos ya capturados. Â¿Deseas continuar?',
         'Sí, reemplazar',
         'Cancelar',
         () => fileInput.click()
@@ -752,7 +1040,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     let usandoTemplate = false;
 
     try {
-      // limpio lista de articulos capturados 
+      // limpio lista de articulos capturados
       this.articulosSolicitados = [];
       this.existingClavesList = [];
       const datosCluesStorage = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}') as DatosClues;
@@ -774,7 +1062,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       // 2) Lee archivo
       let datos = await this.excelService.leerArchivoPrecarga(archivo);
       if (!datos || datos.length === 0) {
-        this.abrirModalInfo('Archivo vacío', 'El archivo está vacío o no contiene datos válidos.');
+        this.abrirModalInfo('Archivo vacÃ­o', 'El archivo está vacÃ­o o no contiene datos válidos.');
         return;
       }
 
@@ -809,7 +1097,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         let fila: any = { ...renglon };
         if (usandoTemplate) fila = Object.values(fila);
 
-        let clave: string = ((!usandoTemplate ? (fila[colClave!]||fila[colClave!.toLocaleUpperCase()]) : fila[2]) ?? '')
+        let clave: string = ((!usandoTemplate ? (fila[colClave!] || fila[colClave!.toLocaleUpperCase()]) : fila[2]) ?? '')
           .toString().trim().toUpperCase();
         if (!clave) continue;
 
@@ -826,7 +1114,11 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
           existente.cantidad += cantidad;
           repetidas[clave] = (repetidas[clave] || 0) + cantidad;
         } else {
-          nuevos.push({ clave, descripcion: '', unidadMedida: '', cantidad, cpm: 0 });
+          nuevos.push({
+            clave, descripcion: '', unidadMedida: '', cantidad, cpm: 0,
+            presentacion: '',
+            observaciones: ''
+          });
         }
       }
 
@@ -844,14 +1136,15 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       } else {
         this.articulosSolicitados = nuevos;
       }
-      this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+      this.rebuildExistingClaves();
+    this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
         JSON.stringify(this.articulosSolicitados)
       );
 
       // 6) Completar desc/unidad + poner CPM
       this.autocompletarDatos();
 
-      // 7) Métricas del KIT
+      // 7) Mátricas del KIT
       const kitTotal = this.cpmService.getKitCountFor(this.cluesimbActual);
       const clavesNorm = this.articulosSolicitados.map(a => this.normClave(a.clave));
       const enKit = clavesNorm.filter(c => this.cpmService.isClaveInKit(c, this.cluesimbActual)).length;
@@ -862,21 +1155,24 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       const dupPreview = dupKeys.length > 0
         ? (() => {
           const top = dupKeys.slice(0, 10).join(', ');
-          const extra = dupKeys.length > 10 ? ` y ${dupKeys.length - 10} más…` : '';
+          const extra = dupKeys.length > 10 ? ` y ${dupKeys.length - 10} másâ€¦` : '';
           return `${top}${extra}`;
         })()
         : '';
 
-      // 9) ÚNICO modal de resumen
+      // 9) ÃšNICO modal de resumen
       const lineas: string[] = [];
-      lineas.push(`✔ Claves Importadas: ${this.articulosSolicitados.length}`);
-      /*lineas.push(`✔ En KIT: ${enKit}/${kitTotal || '¿?'}`);
+      lineas.push(`âœ” Claves Importadas: ${this.articulosSolicitados.length}`);
+      /*lineas.push(`âœ” En KIT: ${enKit}/${kitTotal || 'Â¿?'}`);
       if (bloqueadas.length) {
-        lineas.push(`⛔ Bloqueadas por bandera: ${bloqueadas.length}`);
+        lineas.push(`â›” Bloqueadas por bandera: ${bloqueadas.length}`);
       } else {
-        lineas.push(`• Fuera de KIT: ${fueraKit}`);
+        lineas.push(`â€¢ Fuera de KIT: ${fueraKit}`);
       }*/
-      if (dupKeys.length > 0) lineas.push(`ℹ Duplicadas combinadas (${dupKeys.length}): ${dupPreview}`);
+      if (dupKeys.length > 0) lineas.push(`â„¹ Duplicadas combinadas (${dupKeys.length}): ${dupPreview}`);
+
+      // âœ¨ FLUJO 2: NUEVO - Detectar homologos para articulos importados
+      this.detectarYMostrarHomologosImport();
 
       this.abrirModalInfo('Importación completada', lineas.join('\n'));
 
@@ -944,7 +1240,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!items?.length) return items as Array<T & EnrichedProps>;
 
     return items.map((it) => {
-      const base = it as Record<string, any>;     // ← asegura que es "object" para el spread
+      const base = it as Record<string, any>;     // â† asegura que es "object" para el spread
       const clave = this.normClave(base['clave']);
 
       const inv = this.invIndex.get(clave);
@@ -957,7 +1253,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       const enKit = this.cpmService.isClaveInKit(clave, this.cluesimbActual);
 
       return {
-        ...base,               // ✅ ya es un object
+        ...base,               // âœ… ya es un object
         _azm: azm,
         _aze: aze,
         _azt: azt,
@@ -1031,7 +1327,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.kitModalVisible = true;
   }
 
-  /** Recibe lo que emite el modal (por CPM o por kit) y 
+  /** Recibe lo que emite el modal (por CPM o por kit) y
    * lo integra (respetando tu flujo actual)
    */
   onKitAdd(items: ArticuloSolicitud[]) {
@@ -1045,7 +1341,102 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
       JSON.stringify(this.articulosSolicitados)
     );
+
+    // Detectar homologos para articulos agregados desde CPM/KIT y resolver en modal de resumen.
+    this.detectarYMostrarHomologosDesdeModales(nuevos);
+
     // this.autocompletarDatos();
+  }
+
+  // ============================================
+  // FLUJO 3: Mátodos para Modales CPM/KIT
+  // ============================================
+
+  private async detectarYMostrarHomologosDesdeModales(articulos: ArticuloSolicitud[]) {
+    try {
+      const sugerencias = await this.homologosSolicitudService.detectarHomologosParaArticulos(
+        articulos,
+        this.inventarioDisponible,
+        this.cluesimbActual
+      );
+
+      if (sugerencias?.length > 0) {
+        this.homologoResumenOrigen = 'modales';
+        this.homologoResumenTotalImportados = articulos.length;
+        this.articulosConHomologos = sugerencias;
+        this.importResumenHomologosVisible = true;
+
+        this.toast.warn({
+          title: `${sugerencias.length} oportunidad(es)`,
+          content: 'Elige las alternativas antes de confirmar',
+          duration: 5
+        });
+
+        this.cdRef.detectChanges();
+      }
+    } catch (error) {
+      console.error('Error detectando homologos en modales:', error);
+      // Fallar silenciosamente
+    }
+  }
+
+  /**
+   * Maneja el reemplazo desde la tabla de oportunidades
+   */
+  async onReemplazarDesdeOportunidades(event: any) {
+    const { original, candidato } = event;
+    if (!original || !candidato) return;
+
+    const index = this.articulosSolicitados.findIndex(a => a.clave === original.originalClave);
+    if (index < 0) return;
+
+    const nuevaCantidad = Math.round(original.originalCantidad * Number(candidato.factor));
+
+    this.articulosSolicitados[index].clave = candidato.sustituto;
+    this.articulosSolicitados[index].cantidad = nuevaCantidad;
+
+    // Buscar descripción del nuevo artículo
+    try {
+      const resp = await this.articulosService.buscarArticulos(candidato.sustituto).toPromise();
+      if (resp?.resultados && resp.resultados.length > 0) {
+        const art = resp.resultados[0];
+        this.articulosSolicitados[index].descripcion = art.descripcion ?? '';
+        this.articulosSolicitados[index].unidadMedida = art.unidadMedida ?? '';
+      }
+    } catch {
+      // Silencio
+    }
+
+    this.rebuildExistingClaves();
+    this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+      JSON.stringify(this.articulosSolicitados)
+    );
+
+    // Remover de oportunidades
+    this.oportunidadesDisponibles = this.oportunidadesDisponibles.filter(
+      o => o.originalClave !== original.originalClave
+    );
+
+    if (this.oportunidadesDisponibles.length === 0) {
+      this.mostrarOportunidadesEnTabla = false;
+    }
+
+    this.toast.success({
+      title: 'Artículo reemplazado',
+      content: `${original.originalClave} â†’ ${candidato.sustituto}`,
+      duration: 3
+    });
+
+    this.cdRef.detectChanges();
+  }
+
+  /**
+   * Cierra la sección de oportunidades
+   */
+  cerrarOportunidades() {
+    this.oportunidadesDisponibles = [];
+    this.mostrarOportunidadesEnTabla = false;
+    this.cdRef.detectChanges();
   }
 
   existingClavesList: string[] = [];
@@ -1092,9 +1483,15 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /**
    * Actualiza la lista de CPMS por unidad desde el componente hijo.
-   * @param $event 
+   * @param $event
    */
   actualizarCPMsPorUnidad($event: CPMS[]) {
     this.cpmsDeCluesActual = $event;
   }
 }
+
+
+
+
+
+

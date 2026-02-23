@@ -1,4 +1,4 @@
-import { CommonModule } from "@angular/common";
+﻿import { CommonModule } from "@angular/common";
 import { ChangeDetectionStrategy, inject, signal, computed, Component } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { LucideAngularModule } from "lucide-angular";
@@ -53,6 +53,27 @@ export class CpmEditorComponent {
         this.artMapLoaded = true;
     }
 
+    private findArticuloMetaByClave(rawClave: string): { claveCanonica: string; meta: any } | null {
+        const clave = String(rawClave || '').trim();
+        if (!clave) return null;
+
+        const direct = this.artMap.get(clave);
+        if (direct) return { claveCanonica: clave, meta: direct };
+
+        const upper = clave.toUpperCase();
+        const upperDirect = this.artMap.get(upper);
+        if (upperDirect) return { claveCanonica: upper, meta: upperDirect };
+
+        const lower = clave.toLowerCase();
+        for (const [k, v] of this.artMap.entries()) {
+            if (k.toLowerCase() === lower) {
+                return { claveCanonica: k, meta: v };
+            }
+        }
+
+        return null;
+    }
+
     load() {
         const ident = this.unidadSel ? (this.unidadSel.cluesimb || this.unidadSel.cluesssa || '') : null;
         if (!ident) { this.error.set('Captura un identificador de unidad (CLUES IMB/SSA o alias).'); return; }
@@ -70,6 +91,9 @@ export class CpmEditorComponent {
                     ...r,
                     _dirty: false,
                     _invalid: Number.isNaN(Number(r.cpm)) || Number(r.cpm) < 0,
+                    _isNew: false,
+                    _originalCpm: Number(r.cpm),
+                    _originalFuente: r.fuente,
                 }));
 
                 await this.loadArtMapIfNeeded();
@@ -95,16 +119,36 @@ export class CpmEditorComponent {
         });
     }
 
-    addRow() {
+    async addRow() {
         const clave = window.prompt('Clave CNIS a agregar:');
         if (!clave) return;
         const v = clave.trim();
         if (!v) return;
 
-        const existing = this.rows().some(x => x.clave_cnis === v);
-        if (existing) { window.alert('Esa clave ya está en la lista.'); return; }
+        const existing = this.rows().some(x => x.clave_cnis.trim().toLowerCase() === v.toLowerCase());
+        if (existing) { window.alert('Esa clave ya estÃ¡ en la lista.'); return; }
 
-        this.rows.update(list => [{ clave_cnis: v, cpm: 0, fuente: 'manual', _dirty: true, _invalid: false }, ...list]);
+        await this.loadArtMapIfNeeded();
+        const found = this.findArticuloMetaByClave(v);
+        if (!found) {
+            this.error.set(`La clave ${v} no existe en el catalogo de articulos.`);
+            return;
+        }
+
+        this.rows.update(list => [{
+            clave_cnis: found.claveCanonica,
+            cpm: 0,
+            fuente: 'manual',
+            descripcion: found.meta?.descripcion ?? '',
+            presentacion: found.meta?.presentacion ?? '',
+            _dirty: true,
+            _invalid: true,
+            _isNew: true,
+            _originalCpm: 0,
+            _originalFuente: 'manual',
+        }, ...list]);
+        this.error.set('');
+        this.message.set('Clave agregada. Para insertar debes capturar un CPM mayor a 0.');
     }
 
     onRowCpmChange(index: number, value: number | string) {
@@ -114,10 +158,11 @@ export class CpmEditorComponent {
             const r = { ...copy[index] };
             r.cpm = n;
             r._dirty = true;
-            r._invalid = Number.isNaN(n) || n < 0;
+            r._invalid = Number.isNaN(n) || n < 0 || (!!r._isNew && n === 0);
             copy[index] = r;
             return copy;
         });
+        this.error.set('');
     }
 
     onRowFuenteChange(index: number, value: string) {
@@ -129,27 +174,46 @@ export class CpmEditorComponent {
             copy[index] = r;
             return copy;
         });
+        this.error.set('');
     }
 
     saveRow(index: number) {
         const ident = this.um();
         if (!ident) { this.error.set('Falta unidad.'); return; }
         const r = this.rows()[index];
-        if (r._invalid) { this.error.set('Corrige los valores inválidos antes de guardar.'); return; }
+        if (r._invalid) { this.error.set('Corrige los valores invalidos antes de guardar.'); return; }
 
         this.saving.set(true);
-        this.api.upsertOne(ident, r.clave_cnis, r.cpm, r.fuente).subscribe({
+        const isDelete = !r._isNew && Number(r.cpm) === 0;
+        const op$ = r._isNew
+            ? this.api.upsertOneCreate(ident, r.clave_cnis, r.cpm, r.fuente)
+            : this.api.saveExistingOne(ident, r.clave_cnis, r.cpm, r.fuente);
+
+        op$.subscribe({
             next: () => {
-                this.rows.update(list => {
-                    const copy = [...list];
-                    copy[index] = { ...r, _dirty: false };
-                    return copy;
-                });
-                this.message.set('Fila guardada.');
+                if (isDelete) {
+                    this.rows.update(list => list.filter((_, i) => i !== index));
+                    this.error.set('');
+                    this.message.set(`CPM=0 aplicado. Se elimino ${r.clave_cnis}.`);
+                } else {
+                    this.rows.update(list => {
+                        const copy = [...list];
+                        copy[index] = {
+                            ...r,
+                            _dirty: false,
+                            _isNew: false,
+                            _originalCpm: Number(r.cpm),
+                            _originalFuente: r.fuente,
+                        };
+                        return copy;
+                    });
+                    this.error.set('');
+                    this.message.set(r._isNew ? 'Clave insertada.' : 'Fila guardada.');
+                }
                 this.saving.set(false);
             },
             error: (err) => {
-                this.error.set(err?.error?.error ?? 'Error al guardar fila');
+                this.error.set(err?.error?.error ?? err?.message ?? 'Error al guardar fila');
                 this.saving.set(false);
             }
         });
@@ -158,13 +222,13 @@ export class CpmEditorComponent {
     /* saveAll() {
          const ident = this.um();
          if (!ident) { this.error.set('Falta unidad.'); return; }
- 
+
          const items: BatchItem[] = this.rows()
              .filter(r => r._dirty && !r._invalid)
              .map(r => ({ clave: r.clave_cnis, cpm: r.cpm, fuente: r.fuente }));
- 
+
          if (items.length === 0) { this.message.set('No hay cambios por guardar.'); return; }
- 
+
          this.saving.set(true);
          this.api.upsertBatch(ident, items).subscribe({
              next: (res) => {
@@ -183,8 +247,17 @@ export class CpmEditorComponent {
         const ident = this.um();
         if (!ident) { this.error.set('Falta unidad.'); return; }
 
-        const items: BatchItem[] = this.rows()
-            .filter(r => r._dirty && !r._invalid)
+        const invalidNewZero = this.rows()
+            .filter(r => r._dirty && !!r._isNew && Number(r.cpm) === 0)
+            .map(r => r.clave_cnis);
+
+        if (invalidNewZero.length) {
+            this.error.set(`No se puede insertar CPM=0. Ajusta estas claves: ${invalidNewZero.slice(0, 6).join(', ')}${invalidNewZero.length > 6 ? '…' : ''}`);
+            return;
+        }
+
+        const dirtyRows = this.rows().filter(r => r._dirty && !r._invalid);
+        const items: BatchItem[] = dirtyRows
             .map(r => ({ clave: r.clave_cnis, cpm: r.cpm, fuente: r.fuente }));
 
         if (items.length === 0) { this.message.set('No hay cambios por guardar.'); return; }
@@ -199,9 +272,21 @@ export class CpmEditorComponent {
                 await firstValueFrom(this.api.upsertBatch(ident, chunk));
                 const done = i + chunk.length;
                 this.saveProgress.set(Math.round((done / total) * 100));
-                // marca como guardadas las filas afectadas
                 const claves = new Set(chunk.map(c => c.clave));
-                this.rows.update(list => list.map(r => claves.has(r.clave_cnis) ? ({ ...r, _dirty: false }) : r));
+
+                this.rows.update(list => list
+                    .map(r => claves.has(r.clave_cnis)
+                        ? ({
+                            ...r,
+                            _dirty: false,
+                            _isNew: false,
+                            _originalCpm: Number(r.cpm),
+                            _originalFuente: r.fuente
+                        })
+                        : r
+                    )
+                    .filter(r => !(claves.has(r.clave_cnis) && Number(r.cpm) === 0))
+                );
             } catch (err: any) {
                 this.error.set(err?.error?.error ?? 'Error en guardado masivo');
                 this.saving.set(false);
@@ -210,10 +295,44 @@ export class CpmEditorComponent {
             }
         }
 
-        this.message.set(`Cambios guardados (${total}).`);
+        const deletedCount = dirtyRows.filter(r => !r._isNew && Number(r.cpm) === 0).length;
+        this.error.set('');
+        this.message.set(deletedCount > 0
+            ? `Cambios guardados (${total}). Eliminadas por CPM=0: ${deletedCount}.`
+            : `Cambios guardados (${total}).`);
+
         this.saving.set(false);
-        // deja la barra llena un instante y luego la ocultas
         setTimeout(() => this.saveProgress.set(0), 400);
+    }
+
+    cancelRow(index: number) {
+        const r = this.rows()[index];
+        if (!r) return;
+
+        if (r._isNew) {
+            this.rows.update(list => list.filter((_, i) => i !== index));
+            this.error.set('');
+            this.message.set(`Alta cancelada para ${r.clave_cnis}.`);
+            return;
+        }
+
+        const originalCpm = Number(r._originalCpm ?? r.cpm);
+        const originalFuente = r._originalFuente ?? r.fuente ?? 'manual';
+
+        this.rows.update(list => {
+            const copy = [...list];
+            copy[index] = {
+                ...r,
+                cpm: originalCpm,
+                fuente: originalFuente,
+                _dirty: false,
+                _invalid: Number.isNaN(originalCpm) || originalCpm < 0,
+            };
+            return copy;
+        });
+
+        this.error.set('');
+        this.message.set(`Edicion cancelada para ${r.clave_cnis}.`);
     }
 
     trackByClave = (_: number, r: UIRow) => r.clave_cnis;
@@ -229,17 +348,17 @@ export class CpmEditorComponent {
         if (prev === next) return;
 
         const msgMap: Record<string, string> = {
-            'historico->manual': 'Marcar como MANUAL puede congelar este CPM ante recalculos automáticos.',
-            'manual->historico': 'Volver a HISTÓRICO permite que se actualice con cálculos de consumo.',
-            'import->manual': 'De IMPORT a MANUAL: pasarás a control local (criterio técnico).',
-            'import->historico': 'De IMPORT a HISTÓRICO: quedará libre para recalculo automático.',
+            'historico->manual': 'Marcar como MANUAL puede congelar este CPM ante recalculos automÃ¡ticos.',
+            'manual->historico': 'Volver a HISTÃ“RICO permite que se actualice con cÃ¡lculos de consumo.',
+            'import->manual': 'De IMPORT a MANUAL: pasarÃ¡s a control local (criterio tÃ©cnico).',
+            'import->historico': 'De IMPORT a HISTÃ“RICO: quedarÃ¡ libre para recalculo automÃ¡tico.',
         };
         const key = `${prev}->${next}`;
-        const warn = msgMap[key] || '¿Confirmas cambiar el origen (fuente)?';
+        const warn = msgMap[key] || 'Â¿Confirmas cambiar el origen (fuente)?';
 
         if (!confirm(warn)) return;
 
-        this.onRowFuenteChange(index, next); // reutiliza tu método existente que marca dirty
+        this.onRowFuenteChange(index, next); // reutiliza tu mÃ©todo existente que marca dirty
     }
 
     chipClass(fuente: string) {
@@ -263,7 +382,7 @@ export class CpmEditorComponent {
         this.error.set('');
     }
 
-    filterText = signal('');  // ← ahora sí es reactivo
+    filterText = signal('');  // â† ahora sÃ­ es reactivo
     rowsFiltered = computed(() => {
         const q = this.filterText().trim().toLowerCase();
         if (!q) return this.rows();
@@ -273,3 +392,5 @@ export class CpmEditorComponent {
         );
     });
 }
+
+
