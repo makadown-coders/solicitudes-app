@@ -136,7 +136,7 @@ export class ExistenciasHomologosComponent implements OnInit, OnDestroy {
 
     for (let i = 0; i < claves.length; i += batchSize) {
       const lote = claves.slice(i, i + batchSize);
-      const parcial = await firstValueFrom(this.homologosService.batch(lote));
+      const parcial = await firstValueFrom(this.homologosService.batchForward(lote));
       for (const [clave, homologos] of parcial) {
         resultado.set(clave, homologos);
       }
