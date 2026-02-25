@@ -76,8 +76,8 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
 
     constructor(activatedRoute: ActivatedRoute) {
         super();
-        // Si viene con parámetros de ruta (que la ruta contenga el texto 'citas-completadas'), hacer this.isActive = true
-        if (activatedRoute.snapshot.url[0].path === 'citas-completadas') {
+        // Si viene con parámetros de ruta (que la ruta contenga el texto 'ordenes-completadas'), hacer this.isActive = true
+        if (activatedRoute.snapshot.url[0].path === 'ordenes-completadas') {
             this.isActive = true;
             this.mostradoPorPrimeraVez = true;
             this.cargarDeLocalStorage();
@@ -99,7 +99,7 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
     /**
      * Para ser usada desde componentes padres (via ViewChild) que quieran forzar
      * la recarga de datos desde el backend.
-     * @param forceRefresh 
+     * @param forceRefresh
      */
     refrescarDatos(forceRefresh = false): void {
         this.cargarCitasDesdeBackend(false, forceRefresh);

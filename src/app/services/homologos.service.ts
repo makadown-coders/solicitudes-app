@@ -29,7 +29,7 @@ export class HomologosService {
           const k = (r.claveConsultada || '').trim().toUpperCase();
           if (!k) continue;
           const arr = byClave.get(k) ?? [];
-          arr.push({ ...r, claveConsultada: k, 
+          arr.push({ ...r, claveConsultada: k,
             candidato: (r.candidato || '').trim().toUpperCase() });
           byClave.set(k, arr);
         }

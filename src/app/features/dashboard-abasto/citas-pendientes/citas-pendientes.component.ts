@@ -1,3 +1,4 @@
+// src/app/features/dashboard-abasto/citas-pendientes/citas-pendientes.component.ts
 import {
   Component, Input, OnChanges, SimpleChanges,
   ViewChildren, QueryList, ElementRef, OnInit, signal,
@@ -31,7 +32,7 @@ interface GrupoUnidad {
   styleUrls: ['./citas-pendientes.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class CitasPendientesComponent extends AbstractTabComponent implements OnInit {
+export class OrdenesPendientesComponent extends AbstractTabComponent implements OnInit {
   // ============================================================
   //    STATE MAESTRO (igual que Proveedores)
   // ============================================================
@@ -76,8 +77,8 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
   private provSrv = inject(ProveedoresService);
   constructor(activatedRoute: ActivatedRoute) {
     super();
-    // Si viene con parámetros de ruta (que la ruta contenga el texto 'citas-pendientes'), hacer this.isActive = true
-    if (activatedRoute.snapshot.url[0].path === 'citas-pendientes') {
+    // Si viene con parámetros de ruta (que la ruta contenga el texto 'ordenes-pendientes'), hacer this.isActive = true
+    if (activatedRoute.snapshot.url[0].path === 'ordenes-pendientes') {
       this.isActive = true;
       this.mostradoPorPrimeraVez = true;
       this.cargarDeLocalStorage();
@@ -152,7 +153,8 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
     this.filtroBusqueda = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_TEXTO) || '';
     this.filtroUnidad = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_UNIDAD) || '';
     this.filtroCompra = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_COMPRA) || '';
-    this.incluirFechasNulas = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_INCLUIR_NULAS) === 'true';
+    // por ahora siempre será true
+    this.incluirFechasNulas = true;// localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_INCLUIR_NULAS) === 'true';
 
     const inicio = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_INICIO);
     const fin = localStorage.getItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_FIN);
@@ -197,7 +199,7 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FILTRO_COMPRA, this.filtroCompra);
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_INICIO, this.fechaInicio.toISOString());
     localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_FECHA_FIN, this.fechaFin.toISOString());
-    localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_INCLUIR_NULAS, this.incluirFechasNulas.toString());
+    // localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_INCLUIR_NULAS, this.incluirFechasNulas.toString());
 
     const hoy = new Date();
     const lista = this.citasPendientes;
@@ -233,14 +235,22 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
       const coincideCompra = !this.filtroCompra || c.compra === this.filtroCompra;
 
       // ✅ AHORA SÍ parseamos bien la fecha de cita
-      const fechaCita = this.fechasService.toDateOrNull(c.fecha_de_cita);
+      // const fechaCita = this.fechasService.toDateOrNull(c.fecha_de_cita);
+      // nueva validacion temporal:
+      // que limite de entrega no sea mayor a 6 meses a partir de hoy,
+      // para evitar que registros con fechas erroneas afecten el filtro
+      const fechaLim = this.fechasService.toDateOrNull(c.fecha_limite_de_entrega);
+      const diasEntreFechas = this.fechasService.getDiasEntreFechas(fechaLim!, hoy);
+      const esFechaLimiteValida = diasEntreFechas >= 0 && diasEntreFechas <= 180; // 6 meses = 180 días
 
-      const coincideFecha =
+      const coincideFecha = this.incluirFechasNulas && esFechaLimiteValida;
+
+      /* const coincideFecha =
         this.incluirFechasNulas && !fechaCita
           ? true
           : fechaCita
             ? fechaCita >= this.fechaInicio && fechaCita <= this.fechaFin
-            : false;
+            : false; */
 
       /*if (debugCount <= 5 && c.ejercicio! > 2024) {
         console.log('---- DEBUG CITA ----');
@@ -290,7 +300,7 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
       citas,
     }));
     agrupadas.sort((a, b) => b.citas.length - a.citas.length);
-    this.unidadesAgrupadas.set(agrupadas);    
+    this.unidadesAgrupadas.set(agrupadas);
 
     // ============================
     //     KPIs derivados
@@ -304,9 +314,9 @@ export class CitasPendientesComponent extends AbstractTabComponent implements On
     /*this.citasEntregaAtrasadas = citasFiltradas.filter(cita =>
       cita.fecha_limite_de_entrega &&
       ( typeof (cita.fecha_limite_de_entrega) === 'string' ?
-      this.fechasService.parseLocalDate(cita.fecha_limite_de_entrega) 
+      this.fechasService.parseLocalDate(cita.fecha_limite_de_entrega)
       : cita.fecha_limite_de_entrega  )
-      < hoy 
+      < hoy
     );*/
 
     this.citasEntregaAtrasadas = citasFiltradas.filter(c => {

@@ -142,23 +142,23 @@ export const routes: Routes = [
         ]
       },
       {
-        path: 'citas-completadas',
+        path: 'ordenes-completadas',
         loadComponent: () => import('./features/dashboard-abasto/proveedores/proveedores.component')
           .then(m => m.ProveedoresComponent),
-        title: 'Dashboard Abasto · Citas Completadas'
+        title: 'Dashboard Abasto · Ordenes Completadas'
       },
       {
-        path: 'citas-pendientes',
+        path: 'ordenes-pendientes',
         loadComponent: () => import('./features/dashboard-abasto/citas-pendientes/citas-pendientes.component')
-          .then(m => m.CitasPendientesComponent),
-        title: 'Dashboard Abasto · Citas Pendientes'
+          .then(m => m.OrdenesPendientesComponent),
+        title: 'Dashboard Abasto · Ordenes Pendientes'
       },
-      {
+   /*   {
         path: 'resumen-citas',
         loadComponent: () => import('./features/dashboard-abasto/resumen-citas/resumen-citas.component')
           .then(m => m.ResumenCitasComponent),
         title: 'Dashboard Abasto · Resumen Citas'
-      },
+      },*/
       {
         path: 'existencias',
         loadComponent: () => import('./features/dashboard-abasto/inventario-tab/inventario-tab.component')

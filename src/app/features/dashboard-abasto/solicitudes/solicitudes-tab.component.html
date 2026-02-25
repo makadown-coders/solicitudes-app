@@ -187,13 +187,25 @@
                     </div>
 
                     <div class="flex flex-wrap gap-2 text-xs">
+                        <button
+                            class="px-2 py-1 text-white bg-slate-600 cursor-pointer rounded hover:opacity-90 disabled:opacity-50"
+                            [disabled]="comparativaOsLoading()"
+                            (click)="refrescarOrdenesComparativa()">
+                            Refrescar órdenes (sin caché)
+                        </button>
+                        <button
+                            class="px-2 py-1 text-white bg-emerald-700 cursor-pointer rounded hover:opacity-90 disabled:opacity-50"
+                            [disabled]="comparativaExportando() || comparativaOsLoading() || getComparativaViewOrdenadoPorClave().length === 0"
+                            (click)="exportarComparativaExcel()">
+                            {{ comparativaExportando() ? 'Exportando...' : 'Exportar comparativa' }}
+                        </button>
                         <span
                             class="px-2 py-1 bg-white border-slate-200 rounded dark:bg-black border dark:border-slate-700">
-                            Solic: <b>{{ kpiSolicitado() }}</b>
+                            Solic prom: <b>{{ kpiSolicitado() }}</b>
                         </span>
                         <span
                             class="px-2 py-1 bg-white border-slate-200 rounded dark:bg-black border dark:border-slate-700">
-                            Entr: <b>{{ kpiEntregado() }}</b>
+                            Entr prom: <b>{{ kpiEntregado() }}</b>
                         </span>
                         <span
                             class="px-2 py-1 bg-white border-slate-200 rounded dark:bg-black border dark:border-slate-700">
@@ -209,6 +221,12 @@
                 @if (movResumenError(); as err) {
                 <div class="mt-2 p-2 text-sm text-red-700 bg-red-50 rounded">{{ err }}</div>
                 }
+                @if (comparativaOsLoading()) {
+                <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">Cargando órdenes de suministro (15d)...</div>
+                }
+                @if (comparativaOsError(); as osErr) {
+                <div class="mt-2 p-2 text-sm text-red-700 bg-red-50 rounded">{{ osErr }}</div>
+                }
 
                 <div class="overflow-auto mt-3 max-h-[35vh]">
                     <table class="w-full text-sm">
@@ -221,6 +239,7 @@
                                 <th class="px-2 py-1 text-right">Entregado</th>
                                 <th class="px-2 py-1 text-right">Faltante</th>
                                 <th class="px-2 py-1 text-right">%</th>
+                                <th class="px-2 py-1">Órdenes suministro (entregadas recientes y pendientes)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -236,12 +255,20 @@
                                 <td class="px-2 py-1 text-right">{{ r.entregado }}</td>
                                 <td class="px-2 py-1 text-right">{{ r.diferencia }}</td>
                                 <td class="px-2 py-1 text-right">{{ r.cumplimientoPct }}%</td>
+                                <td class="px-2 py-1 text-xs whitespace-pre-line" [title]="r.ordenesSuministro">
+                                    @if (r.ordenesSuministroCount > 0) {
+                                    {{ r.ordenesSuministro }}
+                                    } @else {
+                                    —
+                                    }
+                                </td>
+                                
                             </tr>
                             }
 
                             @if (!movResumenLoading() && comparativa.length === 0) {
                             <tr>
-                                <td colspan="6" class="py-4 text-center text-slate-500">
+                                <td colspan="8" class="py-4 text-center text-slate-500">
                                     Sin datos para comparar.
                                 </td>
                             </tr>
@@ -253,6 +280,9 @@
                 <div class="mt-2 text-xs text-slate-500">
                     Rango fechas de envios de almacenes hacia {{ selectedUnidad() }}: {{ movDesde() }} → {{ movHasta()
                     }}
+                </div>
+                <div class="mt-1 text-xs text-slate-500">
+                    Criterio de órdenes de suministro: entregadas en los últimos 15 días y pendientes con fecha límite desde hace 15 días hacia adelante.
                 </div>
             </div>
 

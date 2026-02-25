@@ -13,12 +13,12 @@
         class="flex-1 px-4 py-2 min-w-[440px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
       </div>
 
-      <!-- Picker de periodo -->
-      <div class="min-w-[270px]">
+      <!-- Picker de periodo POR AHORA QUITAMOS FECHA DE CITA EN LO QUE SE ESTABILIZAN LOS REGISTROS DE CDMX-->
+      <!-- <div class="min-w-[270px]">
         <app-periodo-picker-dashboard [fechaInicio]="fechaInicio" [fechaFin]="fechaFin" [titulo]="'Fecha de Cita'"
           (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)">
         </app-periodo-picker-dashboard>
-      </div>
+      </div> -->
 
       <!-- Select de unidad -->
       <div class="min-w-[270px]">
@@ -44,15 +44,15 @@
         </select>
       </div>
 
-      <div class="mt-6 min-w-[180px] text-sm">
+      <!-- <div class="mt-6 min-w-[180px] text-sm">
         <input type="checkbox" [(ngModel)]="incluirFechasNulas" (change)="actualizarAgrupacion()" id="toggleFechasNulas"
           class="ml-6 h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500" />
           <label for="toggleFechasNulas" class="ml-2 text-sm">Incluir órdenes sin fecha de cita</label>
-        </div>
+        </div>-->
       </div>
 
       <!-- Mini estadísticas -->
-      <div class="flex flex-col gap-4 mt-6 md:flex-row">
+     <!--  <div class="flex flex-col gap-4 mt-6 md:flex-row">
     <div class="p-4 w-full text-yellow-900 bg-yellow-100 rounded shadow md:w-1/2" [ngClass]="{
             'text-red-600 bg-red-100 font-bold': citasEntregaAtrasadas.length > 100,
             'text-yellow-600 bg-yellow-100 font-medium': citasEntregaAtrasadas.length > 10 && citasEntregaAtrasadas.length <=100,
@@ -81,7 +81,7 @@
           <h3 class="font-semibold">Órdenes incompletas</h3>
           <p class="text-2xl">{{ citasIncompletas.length }}</p>
         </div>
-      </div>
+      </div> -->
 
       <!-- Acordeones -->
       @for (grupo of unidadesAgrupadas(); track grupo; let i = $index) {
@@ -102,7 +102,7 @@
                   <th class="p-2 border">Tipo de compra</th>
                   <th class="p-2 border">Piezas</th>
                   <th class="p-2 border">Fecha Límite Entrega</th>
-                  <th class="p-2 border">Fecha de cita</th>
+                  <!-- <th class="p-2 border">Fecha de cita</th> -->
                 </tr>
               </thead>
               <tbody>
@@ -131,7 +131,7 @@
                   <td class="p-2 border">{{ cita.compra }}</td>
                   <td class="p-2 text-right border">{{ cita.no_de_piezas_emitidas || 0 }}</td>
                   <td class="p-2 border">{{ cita.fecha_limite_de_entrega | date: 'dd/MM/yyyy' }}</td>
-                  <td class="p-2 border">{{ cita.fecha_de_cita || '—' }}</td>
+                 <!--  <td class="p-2 border">{{ cita.fecha_de_cita || '—' }}</td> -->
                 </tr>
               }
             </tbody>

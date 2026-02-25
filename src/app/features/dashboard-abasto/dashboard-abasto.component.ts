@@ -8,7 +8,7 @@ import { ResumenComponent } from './resumen/resumen.component';
 import { Cita } from '../../models/Cita';
 import { DashboardService } from '../../services/dashboard.service';
 import { ProveedoresComponent } from './proveedores/proveedores.component';
-import { CitasPendientesComponent } from './citas-pendientes/citas-pendientes.component';
+import { OrdenesPendientesComponent } from './citas-pendientes/citas-pendientes.component';
 import { Existencias, StorageVariables } from '../../shared/storage-variables';
 import { ResumenCitasComponent } from './resumen-citas/resumen-citas.component';
 import { InventarioCriticoComponent } from './inventario-critico/inventario-critico.component';
@@ -23,14 +23,14 @@ import { AcercaComponent } from './acerca/acerca.component';
 
 @Component({
   selector: 'app-dashboard-abasto',
-  imports: [FormsModule, ResumenComponent, RouterModule, ProveedoresComponent, CitasPendientesComponent, ResumenCitasComponent, ExistenciasComponent, InventarioTabComponent, RdlSComponent, AcercaComponent],
+  imports: [FormsModule, ResumenComponent, RouterModule, ProveedoresComponent, OrdenesPendientesComponent, ResumenCitasComponent, ExistenciasComponent, InventarioTabComponent, RdlSComponent, AcercaComponent],
   templateUrl: './dashboard-abasto.component.html',
   styleUrl: './dashboard-abasto.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardAbastoComponent implements OnInit {
   @ViewChild(ProveedoresComponent) proveedoresTab?: ProveedoresComponent;
-  @ViewChild(CitasPendientesComponent) citasPendientesTab?: CitasPendientesComponent;
+  @ViewChild(OrdenesPendientesComponent) citasPendientesTab?: OrdenesPendientesComponent;
 
   themeService = inject(ThemeService);
   inventarioService = inject(InventarioService);

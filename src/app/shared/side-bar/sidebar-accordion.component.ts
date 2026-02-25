@@ -19,9 +19,8 @@ export class SidebarAccordionComponent {
   items = signal<NavItem[]>([
     { type: 'group', id: 'dashboard', label: 'Dashboard', children: [
       { type: 'link', id: 'resumen', label: 'Resumen', route: 'resumen' },
-      { type: 'link', id: 'citas-pend', label: 'Citas Pendientes', route: 'citas-pendientes' },
-      { type: 'link', id: 'citas-comp', label: 'Citas Completadas', route: 'citas-completadas' },
-      { type: 'link', id: 'resumen-citas', label: 'Resumen Citas (beta)', route: 'resumen-citas' },
+      { type: 'link', id: 'citas-pend', label: 'Órdenes Pendientes', route: 'ordenes-pendientes' },
+      { type: 'link', id: 'citas-comp', label: 'Órdenes Completadas', route: 'ordenes-completadas' },
     ]},
     { type: 'group', id: 'existencias', label: 'Existencias', children: [
       { type: 'link', id: 'existencias-beta', label: 'Existencias (beta)', route: 'existencias' },
@@ -35,9 +34,6 @@ export class SidebarAccordionComponent {
     ]},
      { type: 'group', id: 'solicitudes-unidades', label: 'Solicitudes', children: [
       { type: 'link', id: 'solicitudes', label: 'Solicitudes', route: 'solicitudes' },
-      /*{ type: 'link', id: 'citas-pend', label: 'Citas Pendientes', route: 'citas-pendientes' },
-      { type: 'link', id: 'citas-comp', label: 'Citas Completadas', route: 'citas-completadas' },
-      { type: 'link', id: 'resumen-citas', label: 'Resumen Citas (beta)', route: 'resumen-citas' },*/
     ]},
     { type: 'group', id: 'sistema', label: 'Sistema', children: [
       { type: 'link', id: 'about', label: 'Acerca de', route: 'acerca' },
