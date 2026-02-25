@@ -34,6 +34,7 @@ export class SidebarAccordionComponent {
     ]},
      { type: 'group', id: 'solicitudes-unidades', label: 'Solicitudes', children: [
       { type: 'link', id: 'solicitudes', label: 'Solicitudes', route: 'solicitudes' },
+      { type: 'link', id: 'radar-desabasto', label: 'Radar de desabasto', route: 'radar-desabasto' },
     ]},
     { type: 'group', id: 'sistema', label: 'Sistema', children: [
       { type: 'link', id: 'about', label: 'Acerca de', route: 'acerca' },

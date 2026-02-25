@@ -1,0 +1,255 @@
+<div class="space-y-4">
+  <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+    <div>
+      <h2 class="text-2xl font-semibold tracking-tight text-green-800 dark:text-[#CBA135]">
+        Radar de Riesgo de Desabasto
+      </h2>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+        Identifica claves solicitadas con bajo respaldo logístico (existencia, citas y movimientos).
+      </p>
+    </div>
+    <button
+      class="px-3 py-2 text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50"
+      [disabled]="loading()"
+      (click)="cargar()">
+      Recargar
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 gap-3 md:grid-cols-6">
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">Fecha desde</label>
+      <input
+        type="date"
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        [ngModel]="desde()"
+        (ngModelChange)="desde.set($event)" />
+    </div>
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">Fecha hasta</label>
+      <input
+        type="date"
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        [ngModel]="hasta()"
+        (ngModelChange)="hasta.set($event)" />
+    </div>
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">Unidad (CLUES)</label>
+      <input
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        placeholder="BCIMB001726"
+        [ngModel]="clues()"
+        (ngModelChange)="clues.set(($event || '').toUpperCase())" />
+    </div>
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">Estado evento</label>
+      <select
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        [ngModel]="estado()"
+        (ngModelChange)="estado.set($event)">
+        <option value="">Todos</option>
+        <option value="abierto">Abierto</option>
+        <option value="en_seguimiento">En seguimiento</option>
+        <option value="cerrado">Cerrado</option>
+      </select>
+    </div>
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">Riesgo mínimo</label>
+      <select
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        [ngModel]="riesgoMin()"
+        (ngModelChange)="riesgoMin.set($event)">
+        <option value="">Todos</option>
+        <option value="MEDIO">Medio+</option>
+        <option value="ALTO">Alto+</option>
+        <option value="CRITICO">Crítico</option>
+      </select>
+    </div>
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">Acción</label>
+      <button
+        class="mt-1 px-3 py-1 w-full text-white bg-blue-600 rounded-lg cursor-pointer hover:opacity-90"
+        (click)="cargar(true)">
+        Aplicar filtros
+      </button>
+    </div>
+  </div>
+
+  @if (errorMsg(); as err) {
+    <div class="p-3 text-sm text-red-700 bg-red-50 border-red-200 rounded-xl border">
+      {{ err }}
+    </div>
+  }
+
+  <div class="overflow-auto bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
+    <table class="min-w-full text-sm">
+      <thead class="sticky top-0 bg-white border-b dark:bg-[#1a202c]">
+        <tr class="text-left text-slate-600 dark:text-slate-300">
+          <th class="px-3 py-2">Fecha</th>
+          <th class="px-3 py-2">CLUES</th>
+          <th class="px-3 py-2">Motivo</th>
+          <th class="px-3 py-2 text-right">Claves</th>
+          <th class="px-3 py-2">Riesgo máx</th>
+          <th class="px-3 py-2">Estado</th>
+          <th class="px-3 py-2 text-right"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td colspan="7" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+              Cargando eventos...
+            </td>
+          </tr>
+        }
+
+        @for (r of rows(); track r.id) {
+          <tr class="border-b hover:bg-green-50 dark:hover:bg-black">
+            <td class="px-3 py-2 whitespace-nowrap">{{ r.fecha_evento }}</td>
+            <td class="px-3 py-2">{{ r.clues }} {{ r.unidad_nombre ? ('- ' + r.unidad_nombre) : '' }}</td>
+            <td class="px-3 py-2">{{ r.motivo }}</td>
+            <td class="px-3 py-2 text-right">{{ r.total_claves }}</td>
+            <td class="px-3 py-2">
+              <span class="px-2 py-1 text-xs rounded border" [class]="badgeRiesgoClass(r.riesgo_maximo)">
+                {{ r.riesgo_maximo ?? 'N/A' }}
+              </span>
+            </td>
+            <td class="px-3 py-2">
+              <span class="px-2 py-1 text-xs rounded border" [class]="badgeEstadoClass(r.estado)">
+                {{ r.estado }}
+              </span>
+            </td>
+            <td class="px-3 py-2 text-right">
+              <button
+                class="px-3 py-1 text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90"
+                (click)="abrirDetalle(r)">
+                Detalle
+              </button>
+            </td>
+          </tr>
+        }
+
+        @if (!loading() && rows().length === 0) {
+          <tr>
+            <td colspan="7" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+              Sin eventos para los filtros seleccionados.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flex items-center justify-between p-2 text-sm">
+    <div class="text-slate-600 dark:text-slate-300">
+      Total eventos: {{ total() }}
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="px-2 py-1 rounded border disabled:opacity-50" [disabled]="page() <= 1" (click)="prevPage()">Anterior</button>
+      <span>Página {{ page() }} de {{ totalPages }}</span>
+      <button class="px-2 py-1 rounded border disabled:opacity-50" [disabled]="page() >= totalPages" (click)="nextPage()">Siguiente</button>
+    </div>
+  </div>
+
+  @if (detalleVisible()) {
+    <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-35">
+      <div class="overflow-y-auto relative p-5 w-full max-h-[90vh] max-w-[88vw] bg-white rounded-xl shadow-lg dark:bg-[#1a202c]">
+        <button class="absolute top-2 right-3 text-2xl cursor-pointer" (click)="cerrarDetalle()">&times;</button>
+
+        @if (detalleLoading()) {
+          <div class="p-3 text-sm text-slate-600 dark:text-slate-300">Cargando detalle...</div>
+        }
+        @if (detalleError(); as derr) {
+          <div class="p-3 text-sm text-red-700 bg-red-50 rounded">{{ derr }}</div>
+        }
+
+        @if (detalle(); as det) {
+          <div class="mb-3">
+            <h3 class="text-xl font-semibold text-green-800 dark:text-[#CBA135]">Evento #{{ det.evento.id }}</h3>
+            <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              {{ det.evento.fecha_evento }} · {{ det.evento.clues }} · {{ det.evento.motivo }}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3 mb-3 md:grid-cols-3">
+            <div class="p-3 bg-slate-50 rounded border dark:bg-black/20">
+              <label class="block text-xs text-slate-500 dark:text-slate-300">Estado del evento</label>
+              <select
+                class="mt-1 px-2 py-1 w-full rounded border-custom-default border dark:bg-black"
+                [ngModel]="editEstado()"
+                (ngModelChange)="editEstado.set($event)">
+                <option value="abierto">Abierto</option>
+                <option value="en_seguimiento">En seguimiento</option>
+                <option value="cerrado">Cerrado</option>
+              </select>
+            </div>
+            <div class="p-3 bg-slate-50 rounded border dark:bg-black/20 md:col-span-2">
+              <label class="block text-xs text-slate-500 dark:text-slate-300">Observaciones de seguimiento</label>
+              <input
+                class="mt-1 px-2 py-1 w-full rounded border-custom-default border dark:bg-black"
+                [ngModel]="editObservaciones()"
+                (ngModelChange)="editObservaciones.set($event)"
+                placeholder="Ej. Pendiente validación con abasto central..." />
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2 mb-3">
+            <button
+              class="px-3 py-2 text-white bg-blue-700 rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50"
+              [disabled]="guardandoDetalle() || recalculando()"
+              (click)="guardarDetalle()">
+              {{ guardandoDetalle() ? 'Guardando...' : 'Guardar cambios' }}
+            </button>
+            <button
+              class="px-3 py-2 text-white bg-slate-700 rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50"
+              [disabled]="guardandoDetalle() || recalculando()"
+              (click)="recalcularActual()">
+              {{ recalculando() ? 'Recalculando...' : 'Recalcular métricas' }}
+            </button>
+          </div>
+
+          <div class="overflow-auto max-h-[45vh]">
+            <table class="min-w-full text-sm">
+              <thead class="sticky top-0 bg-white border-b dark:bg-[#1a202c]">
+                <tr class="text-left text-slate-600 dark:text-slate-300">
+                  <th class="px-2 py-1">Clave</th>
+                  <th class="px-2 py-1 text-right">Existencia</th>
+                  <th class="px-2 py-1 text-right">CPM</th>
+                  <th class="px-2 py-1 text-right">Días cobertura</th>
+                  <th class="px-2 py-1 text-right">Citas pend.</th>
+                  <th class="px-2 py-1 text-right">Solicitado 30d</th>
+                  <th class="px-2 py-1 text-right">Mov. 30d</th>
+                  <th class="px-2 py-1">Riesgo</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of det.claves; track c.id) {
+                  <tr class="border-b hover:bg-slate-50 dark:hover:bg-black/20">
+                    <td class="px-2 py-1">
+                      <div class="font-medium">{{ c.clave_cnis }}</div>
+                      @if (c.descripcion) {
+                        <div class="text-xs text-slate-500">{{ c.descripcion }}</div>
+                      }
+                    </td>
+                    <td class="px-2 py-1 text-right">{{ c.existencia_actual }}</td>
+                    <td class="px-2 py-1 text-right">{{ c.consumo_promedio }}</td>
+                    <td class="px-2 py-1 text-right">{{ c.dias_cobertura ?? 'N/A' }}</td>
+                    <td class="px-2 py-1 text-right">{{ c.citas_pendientes }}</td>
+                    <td class="px-2 py-1 text-right">{{ c.solicitado_30d }}</td>
+                    <td class="px-2 py-1 text-right">{{ c.movimientos_recientes }}</td>
+                    <td class="px-2 py-1">
+                      <span class="px-2 py-1 text-xs rounded border" [class]="badgeRiesgoClass(c.nivel_riesgo)">
+                        {{ c.nivel_riesgo }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+
