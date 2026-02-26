@@ -187,6 +187,14 @@
                     </div>
 
                     <div class="flex flex-wrap gap-2 text-xs">
+                        @if (comparativaRiesgoRows().length > 0) {
+                        <button
+                            class="px-2 py-1 text-white bg-indigo-700 cursor-pointer rounded hover:opacity-90 disabled:opacity-50"
+                            [disabled]="comparativaOsLoading() || detalleLoading()"
+                            (click)="abrirCrearEventoRadar()">
+                            Crear evento en Radar ({{ comparativaRiesgoRows().length }} claves)
+                        </button>
+                        }
                         <button
                             class="px-2 py-1 text-white bg-slate-600 cursor-pointer rounded hover:opacity-90 disabled:opacity-50"
                             [disabled]="comparativaOsLoading()"
@@ -226,6 +234,16 @@
                 }
                 @if (comparativaOsError(); as osErr) {
                 <div class="mt-2 p-2 text-sm text-red-700 bg-red-50 rounded">{{ osErr }}</div>
+                }
+                @if (radarCrearExito(); as radarOk) {
+                <div class="mt-2 p-2 text-sm text-green-700 bg-green-50 rounded">
+                    {{ radarOk }}
+                </div>
+                }
+                @if (comparativaRiesgoRows().length === 0 && !movResumenLoading()) {
+                <div class="mt-2 p-2 text-sm text-blue-800 bg-blue-50 rounded">
+                    Cobertura al 100% en todas las claves: no se requiere crear evento de vigilancia.
+                </div>
                 }
 
                 <div class="overflow-auto mt-3 max-h-[35vh]">
@@ -338,6 +356,91 @@
             </div>
         </div>
     </div>
+
+    @if (radarCrearVisible()) {
+    <div class="z-[60] fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
+        <div class="p-5 w-full max-w-3xl bg-white rounded-xl border shadow-xl dark:bg-[#1a202c]">
+            <div class="flex items-center justify-between">
+                <h4 class="text-lg font-semibold text-green-800 dark:text-[#CBA135]">
+                    Crear evento de vigilancia en Radar de Desabasto
+                </h4>
+                <button class="text-xl cursor-pointer hover:opacity-70" (click)="cerrarCrearEventoRadar()">&times;</button>
+            </div>
+
+            <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                Se registrarán solamente claves con cobertura menor a 100% para evitar ruido operativo.
+            </div>
+
+            @if (selectedHeader(); as H) {
+            <div class="grid grid-cols-1 gap-2 mt-3 text-sm md:grid-cols-3">
+                <div class="p-2 bg-slate-50 rounded border dark:bg-black/20">
+                    <div class="text-xs text-slate-500">Unidad</div>
+                    <div class="font-medium">{{ H.cluesimb }} - {{ getDescripcionUnidad(H.cluesimb) }}</div>
+                </div>
+                <div class="p-2 bg-slate-50 rounded border dark:bg-black/20">
+                    <div class="text-xs text-slate-500">Fecha de referencia</div>
+                    <div class="font-medium">{{ H.created_day }}</div>
+                </div>
+                <div class="p-2 bg-slate-50 rounded border dark:bg-black/20">
+                    <div class="text-xs text-slate-500">Tipo de insumo</div>
+                    <div class="font-medium">{{ (H.tipos_insumo).join(' - ') }}</div>
+                </div>
+            </div>
+            }
+
+            <div class="grid grid-cols-1 gap-3 mt-3 md:grid-cols-2">
+                <div>
+                    <label class="block text-xs text-slate-500 dark:text-slate-300">Motivo del evento</label>
+                    <input
+                        class="mt-1 px-3 py-2 w-full rounded-lg border-custom-default border dark:bg-black"
+                        [ngModel]="radarMotivo()"
+                        (ngModelChange)="radarMotivo.set($event)"
+                        placeholder="Describe por qué se abre este evento" />
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-500 dark:text-slate-300">Observaciones iniciales</label>
+                    <input
+                        class="mt-1 px-3 py-2 w-full rounded-lg border-custom-default border dark:bg-black"
+                        [ngModel]="radarObservaciones()"
+                        (ngModelChange)="radarObservaciones.set($event)"
+                        placeholder="Contexto operativo, hipótesis o acción inicial" />
+                </div>
+            </div>
+
+            <div class="mt-3 p-3 bg-slate-50 rounded border dark:bg-black/20">
+                <div class="mb-1 text-xs text-slate-500 dark:text-slate-300">
+                    Claves que se incluirán en el evento ({{ getComparativaRiesgoRowsOrdenadoPorClave().length }})
+                </div>
+                <div class="text-sm text-slate-700 dark:text-slate-200 max-h-28 overflow-auto">
+                    @for (r of getComparativaRiesgoRowsOrdenadoPorClave(); track r.clave) {
+                    <div class="py-0.5">
+                        <b>{{ r.clave }}</b> · Cobertura {{ r.cumplimientoPct }}% · Faltante {{ r.diferencia }}
+                    </div>
+                    }
+                </div>
+            </div>
+
+            @if (radarCrearError(); as radarErr) {
+            <div class="mt-3 p-2 text-sm text-red-700 bg-red-50 rounded">{{ radarErr }}</div>
+            }
+
+            <div class="flex justify-end gap-2 mt-4">
+                <button
+                    class="px-4 py-2 text-white bg-gray-600 cursor-pointer rounded hover:bg-gray-700 disabled:opacity-50"
+                    [disabled]="radarCrearLoading()"
+                    (click)="cerrarCrearEventoRadar()">
+                    Cancelar
+                </button>
+                <button
+                    class="px-4 py-2 text-white bg-indigo-700 cursor-pointer rounded hover:opacity-90 disabled:opacity-50"
+                    [disabled]="radarCrearLoading()"
+                    (click)="crearEventoRadarDesdeComparativa()">
+                    {{ radarCrearLoading() ? 'Creando evento...' : 'Confirmar y crear evento' }}
+                </button>
+            </div>
+        </div>
+    </div>
+    }
     }
 </div>
 

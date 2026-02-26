@@ -23,6 +23,8 @@ import { CitasService } from '../../../services/citas.service';
 import { Cita } from '../../../models/Cita';
 import { ExcelService } from '../../../services/excel.service';
 import { SolicitudesComparativaOrdenRow } from '../../../services/excel/solicitudes-comparativa-excel-exporter';
+import { RadarAbastoService } from '../../../services/radar-abasto.service';
+import { RadarCrearEventoPayload } from '../../../models/radar-abasto/RadarAbastoModels';
 
 type OrdenSuministroComparativa = {
     unidadDestino: string;
@@ -54,6 +56,7 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
     private homologosSrv = inject(HomologosService);
     private citasService = inject(CitasService);
     private excelService = inject(ExcelService);
+    private radarAbastoService = inject(RadarAbastoService);
     private unidadesLoaded = false;
 
     loading = signal(false);
@@ -169,6 +172,12 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
     comparativaOsLoading = signal(false);
     comparativaOsError = signal<string | null>(null);
     comparativaExportando = signal(false);
+    radarCrearVisible = signal(false);
+    radarCrearLoading = signal(false);
+    radarCrearError = signal<string | null>(null);
+    radarCrearExito = signal<string | null>(null);
+    radarMotivo = signal('');
+    radarObservaciones = signal('');
     private ordenesComparativaByClave = signal<Map<string, OrdenSuministroComparativa[]>>(new Map());
     private readonly ordenesComparativaCacheTtlMs = 10 * 60 * 1000; // 10 min
     private ordenesComparativaCache = new Map<string, OrdenSuministroCacheEntry>();
@@ -426,6 +435,81 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         return copia;
     }
 
+    comparativaRiesgoRows = computed<ComparativaRow[]>(() => {
+        return (this.comparativaView() ?? []).filter(r => (Number(r.cumplimientoPct) || 0) < 100);
+    });
+
+    getComparativaRiesgoRowsOrdenadoPorClave(): ComparativaRow[] {
+        const rows = this.comparativaRiesgoRows();
+        const copia = [...rows];
+        copia.sort((a, b) => (a.clave || '').localeCompare(b.clave || ''));
+        return copia;
+    }
+
+    abrirCrearEventoRadar() {
+        const h = this.selectedHeader();
+        if (!h) return;
+
+        this.radarCrearError.set(null);
+        this.radarCrearExito.set(null);
+        this.radarMotivo.set(`Cobertura parcial detectada en solicitud ${h.created_day}`);
+        this.radarObservaciones.set(`Detectado desde comparativa Solicitudes vs Entregado para ${h.cluesimb}.`);
+        this.radarCrearVisible.set(true);
+    }
+
+    cerrarCrearEventoRadar() {
+        this.radarCrearVisible.set(false);
+        this.radarCrearLoading.set(false);
+        this.radarCrearError.set(null);
+    }
+
+    async crearEventoRadarDesdeComparativa() {
+        const h = this.selectedHeader();
+        if (!h) return;
+
+        const clavesRiesgo = this.getComparativaRiesgoRowsOrdenadoPorClave();
+        if (!clavesRiesgo.length) {
+            this.radarCrearError.set('No hay claves con cobertura menor a 100% para crear evento.');
+            return;
+        }
+
+        const motivo = (this.radarMotivo() || '').trim();
+        if (!motivo) {
+            this.radarCrearError.set('El motivo es obligatorio para registrar el evento.');
+            return;
+        }
+
+        this.radarCrearLoading.set(true);
+        this.radarCrearError.set(null);
+        this.radarCrearExito.set(null);
+
+        try {
+            const payload: RadarCrearEventoPayload = {
+                fecha_evento: new Date().toISOString().slice(0, 10),
+                clues: (h.cluesimb ?? '').trim().toUpperCase(),
+                unidad_nombre: this.getDescripcionUnidad(h.cluesimb) || null,
+                tipo_insumo: (h.tipos_insumo ?? []).join(' - ') || null,
+                fecha_referencia: h.created_day,
+                motivo,
+                observaciones: (this.radarObservaciones() || '').trim() || null,
+                estado: 'abierto',
+                creado_por: 'dashboard-abasto',
+                claves: clavesRiesgo.map(r => ({
+                    clave_cnis: this.keyClave(r.clave),
+                    descripcion: (r.descripcion ?? '').trim() || null
+                }))
+            };
+
+            const resp = await this.radarAbastoService.crearEvento(payload);
+            this.radarCrearVisible.set(false);
+            this.radarCrearExito.set(`Evento de vigilancia creado correctamente (ID ${resp.id}).`);
+        } catch (e: any) {
+            this.radarCrearError.set('No se pudo crear el evento en Radar de Desabasto.');
+        } finally {
+            this.radarCrearLoading.set(false);
+        }
+    }
+
     cerrarDetalle() {
         this.detalleVisible.set(false);
         this.selectedHeader.set(null);
@@ -433,6 +517,10 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         this.ordenesComparativaByClave.set(new Map());
         this.comparativaOsError.set(null);
         this.comparativaOsLoading.set(false);
+        this.radarCrearVisible.set(false);
+        this.radarCrearLoading.set(false);
+        this.radarCrearError.set(null);
+        this.radarCrearExito.set(null);
     }
 
     totalUnidadesEnVista(): number {

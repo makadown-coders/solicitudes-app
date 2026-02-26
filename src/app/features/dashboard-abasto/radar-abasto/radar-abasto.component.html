@@ -1,5 +1,5 @@
 <div class="space-y-4">
-  <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+  <div class="flex flex-col gap-2 md:flex-row items-center justify-between">
     <div>
       <h2 class="text-2xl font-semibold tracking-tight text-green-800 dark:text-[#CBA135]">
         Radar de Riesgo de Desabasto
@@ -175,7 +175,7 @@
             <div class="p-3 bg-slate-50 rounded border dark:bg-black/20">
               <label class="block text-xs text-slate-500 dark:text-slate-300">Estado del evento</label>
               <select
-                class="mt-1 px-2 py-1 w-full rounded border-custom-default border dark:bg-black"
+                class="mt-1 px-2 py-1 w-full border-custom-default rounded border dark:bg-black"
                 [ngModel]="editEstado()"
                 (ngModelChange)="editEstado.set($event)">
                 <option value="abierto">Abierto</option>
@@ -186,7 +186,7 @@
             <div class="p-3 bg-slate-50 rounded border dark:bg-black/20 md:col-span-2">
               <label class="block text-xs text-slate-500 dark:text-slate-300">Observaciones de seguimiento</label>
               <input
-                class="mt-1 px-2 py-1 w-full rounded border-custom-default border dark:bg-black"
+                class="mt-1 px-2 py-1 w-full border-custom-default rounded border dark:bg-black"
                 [ngModel]="editObservaciones()"
                 (ngModelChange)="editObservaciones.set($event)"
                 placeholder="Ej. Pendiente validación con abasto central..." />
@@ -203,9 +203,14 @@
             <button
               class="px-3 py-2 text-white bg-slate-700 rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50"
               [disabled]="guardandoDetalle() || recalculando()"
+              title="Vuelve a consultar existencias, CPM, citas pendientes y movimientos de los ultimos 30 dias para actualizar el riesgo."
               (click)="recalcularActual()">
               {{ recalculando() ? 'Recalculando...' : 'Recalcular métricas' }}
             </button>
+          </div>
+
+          <div class="mb-3 text-xs text-slate-500 dark:text-slate-300">
+            Recalcular métricas actualiza el snapshot del evento con datos actuales (existencia, CPM, citas pendientes y movimientos 30d). No cambia ni elimina las claves capturadas.
           </div>
 
           <div class="overflow-auto max-h-[45vh]">
@@ -215,11 +220,12 @@
                   <th class="px-2 py-1">Clave</th>
                   <th class="px-2 py-1 text-right">Existencia</th>
                   <th class="px-2 py-1 text-right">CPM</th>
-                  <th class="px-2 py-1 text-right">Días cobertura</th>
-                  <th class="px-2 py-1 text-right">Citas pend.</th>
+                  <!-- <th class="px-2 py-1 text-right">Días cobertura</th> -->
+                  <th class="px-2 py-1 text-right">Ords. pend.</th>
                   <th class="px-2 py-1 text-right">Solicitado 30d</th>
                   <th class="px-2 py-1 text-right">Mov. 30d</th>
                   <th class="px-2 py-1">Riesgo</th>
+                  <th class="px-2 py-1">Ordenes suministro (entregadas recientes y pendientes)</th>
                 </tr>
               </thead>
               <tbody>
@@ -233,7 +239,7 @@
                     </td>
                     <td class="px-2 py-1 text-right">{{ c.existencia_actual }}</td>
                     <td class="px-2 py-1 text-right">{{ c.consumo_promedio }}</td>
-                    <td class="px-2 py-1 text-right">{{ c.dias_cobertura ?? 'N/A' }}</td>
+                    <!-- <td class="px-2 py-1 text-right">{{ c.dias_cobertura ?? 'N/A' }}</td> -->
                     <td class="px-2 py-1 text-right">{{ c.citas_pendientes }}</td>
                     <td class="px-2 py-1 text-right">{{ c.solicitado_30d }}</td>
                     <td class="px-2 py-1 text-right">{{ c.movimientos_recientes }}</td>
@@ -241,6 +247,22 @@
                       <span class="px-2 py-1 text-xs rounded border" [class]="badgeRiesgoClass(c.nivel_riesgo)">
                         {{ c.nivel_riesgo }}
                       </span>
+                    </td>
+                    <td class="px-2 py-1 text-xs align-top">
+                      @let clave = (c.clave_cnis || '').toUpperCase();
+                      @if (ordenesLoadingByClave().has(clave)) {
+                        <div class="text-slate-500">Cargando ordenes...</div>
+                      } @else if (ordenesErrorByClave().get(clave); as orderErr) {
+                        <div class="text-red-700">{{ orderErr }}</div>
+                      } @else if (ordenesByClave().get(clave); as orderData) {
+                        @if (orderData.count > 0) {
+                          <div class="whitespace-pre-line" [title]="orderData.text">{{ orderData.text }}</div>
+                        } @else {
+                          <div class="text-slate-500">Sin ordenes en criterio 15d.</div>
+                        }
+                      } @else {
+                        <div class="text-slate-500">Consultando ordenes...</div>
+                      }
                     </td>
                   </tr>
                 }

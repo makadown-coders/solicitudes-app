@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import {
   RadarEstadoEvento,
   RadarEventoDetalle,
@@ -8,6 +9,7 @@ import {
   RadarRiesgoNivel
 } from '../../../models/radar-abasto/RadarAbastoModels';
 import { RadarAbastoService } from '../../../services/radar-abasto.service';
+import { CitasService } from '../../../services/citas.service';
 
 @Component({
   selector: 'app-radar-abasto',
@@ -18,6 +20,7 @@ import { RadarAbastoService } from '../../../services/radar-abasto.service';
 })
 export class RadarAbastoComponent implements OnInit {
   private radarService = inject(RadarAbastoService);
+  private citasService = inject(CitasService);
 
   loading = signal(false);
   errorMsg = signal<string | null>(null);
@@ -41,6 +44,10 @@ export class RadarAbastoComponent implements OnInit {
   editObservaciones = signal('');
   guardandoDetalle = signal(false);
   recalculando = signal(false);
+  ordenesByClave = signal<Map<string, { text: string; count: number }>>(new Map());
+  ordenesLoadingByClave = signal<Set<string>>(new Set());
+  ordenesErrorByClave = signal<Map<string, string>>(new Map());
+  ordenesBulkLoading = signal(false);
 
   ngOnInit(): void {
     void this.cargar();
@@ -99,11 +106,16 @@ export class RadarAbastoComponent implements OnInit {
     this.detalleLoading.set(true);
     this.detalleError.set(null);
     this.detalle.set(null);
+    this.ordenesByClave.set(new Map());
+    this.ordenesLoadingByClave.set(new Set());
+    this.ordenesErrorByClave.set(new Map());
+    this.ordenesBulkLoading.set(false);
     try {
       const d = await this.radarService.detalleEvento(row.id);
       this.detalle.set(d);
       this.editEstado.set(d.evento.estado);
       this.editObservaciones.set(d.evento.observaciones ?? '');
+      void this.cargarOrdenesEvento();
     } catch {
       this.detalleError.set('No se pudo cargar el detalle del evento.');
     } finally {
@@ -118,6 +130,10 @@ export class RadarAbastoComponent implements OnInit {
     this.detalle.set(null);
     this.guardandoDetalle.set(false);
     this.recalculando.set(false);
+    this.ordenesByClave.set(new Map());
+    this.ordenesLoadingByClave.set(new Set());
+    this.ordenesErrorByClave.set(new Map());
+    this.ordenesBulkLoading.set(false);
   }
 
   async guardarDetalle() {
@@ -154,6 +170,121 @@ export class RadarAbastoComponent implements OnInit {
       this.detalleError.set('No se pudo recalcular el evento.');
     } finally {
       this.recalculando.set(false);
+    }
+  }
+
+  private keyClave(clave: string): string {
+    return (clave ?? '').trim().toUpperCase();
+  }
+
+  private parseDateOrNull(value: unknown): Date | null {
+    if (!value) return null;
+    const d = new Date(value as any);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  private formatDateYmd(value: unknown): string {
+    if (!value) return '';
+    if (typeof value === 'string') {
+      const m = value.match(/^\d{4}-\d{2}-\d{2}/);
+      if (m?.[0]) return m[0];
+    }
+    const d = this.parseDateOrNull(value);
+    return d ? d.toISOString().slice(0, 10) : '';
+  }
+
+  private buildOrdenesTexto(rows: any[]): { text: string; count: number } {
+    const hoy = new Date();
+    hoy.setHours(23, 59, 59, 999);
+
+    const limiteAtras = new Date();
+    limiteAtras.setDate(limiteAtras.getDate() - 15);
+    limiteAtras.setHours(0, 0, 0, 0);
+
+    const out: string[] = [];
+    const seen = new Set<string>();
+
+    for (const cita of (rows ?? [])) {
+      const fechaEntregado = this.parseDateOrNull((cita?.fecha_recepcion_lista && cita.fecha_recepcion_lista[0]) ?? null);
+      const fechaLimite = this.parseDateOrNull(cita?.fecha_limite_de_entrega);
+
+      const esEntregadaReciente = !!fechaEntregado && fechaEntregado >= limiteAtras && fechaEntregado <= hoy;
+      const esPendiente = !fechaEntregado && !!fechaLimite && fechaLimite >= limiteAtras;
+      if (!esEntregadaReciente && !esPendiente) continue;
+
+      const orden = String(cita?.orden_de_suministro ?? '').trim();
+      if (!orden) continue;
+
+      const fechaTipo = esEntregadaReciente ? 'entregado' : 'fecha limite';
+      const fecha = esEntregadaReciente ? this.formatDateYmd(fechaEntregado) : this.formatDateYmd(fechaLimite);
+      const unidad = String(cita?.unidad ?? 'SIN UNIDAD').trim().toUpperCase();
+      const tipoCompra = String(cita?.compra ?? 'Sin tipo').trim();
+      const piezas = Number(cita?.no_de_piezas_emitidas ?? 0) || 0;
+
+      const dedupeKey = `${orden}|${fechaTipo}|${fecha}|${unidad}|${piezas}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+
+      out.push(`${unidad} - ${orden} (${tipoCompra} - ${piezas} piezas - ${fechaTipo} ${fecha})`);
+    }
+
+    out.sort((a, b) => a.localeCompare(b));
+    return { text: out.join('\n'), count: out.length };
+  }
+
+  async cargarOrdenesClave(clave: string, forceRefresh = false) {
+    const k = this.keyClave(clave);
+    if (!k) return;
+
+    const current = this.ordenesByClave();
+    if (!forceRefresh && current.has(k)) return;
+
+    const loadingSet = new Set(this.ordenesLoadingByClave());
+    loadingSet.add(k);
+    this.ordenesLoadingByClave.set(loadingSet);
+
+    const errorMap = new Map(this.ordenesErrorByClave());
+    errorMap.delete(k);
+    this.ordenesErrorByClave.set(errorMap);
+
+    try {
+      const resp = await firstValueFrom(this.citasService.getCitasPorClaveXClave({
+        clave: k,
+        windowDays: 15,
+        incluyeNoRecibidas: true,
+        limit: 500
+      }));
+
+      const parsed = this.buildOrdenesTexto((resp?.rows ?? []) as any[]);
+      const map = new Map(this.ordenesByClave());
+      map.set(k, parsed);
+      this.ordenesByClave.set(map);
+    } catch {
+      const err = new Map(this.ordenesErrorByClave());
+      err.set(k, 'No se pudieron cargar órdenes para esta clave.');
+      this.ordenesErrorByClave.set(err);
+    } finally {
+      const s = new Set(this.ordenesLoadingByClave());
+      s.delete(k);
+      this.ordenesLoadingByClave.set(s);
+    }
+  }
+
+  async cargarOrdenesEvento(forceRefresh = false) {
+    const d = this.detalle();
+    if (!d) return;
+
+    const claves = (d.claves ?? []).map(x => this.keyClave(x.clave_cnis)).filter(Boolean);
+    if (!claves.length) return;
+
+    this.ordenesBulkLoading.set(true);
+    try {
+      for (let i = 0; i < claves.length; i += 4) {
+        const chunk = claves.slice(i, i + 4);
+        await Promise.all(chunk.map(c => this.cargarOrdenesClave(c, forceRefresh)));
+      }
+    } finally {
+      this.ordenesBulkLoading.set(false);
     }
   }
 
