@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { CargaMasivaComponent } from './features/carga-masiva/carga-masiva.component';
 import { SolicitudesConfigComponent } from './features/solicitudes-config/solicitudes-config.component';
+import { HomologosConfigComponent } from './features/homologos-config/homologos-config.component';
 
 export const routes: Routes = [
   {
@@ -59,6 +60,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/articulos-admin/articulos-admin.component')
         .then(m => m.ArticulosAdminComponent)
+  },
+  {
+    path: 'homologos-config',
+    title: 'Configuracion de homologos',
+    loadComponent: () => import('./features/homologos-config/homologos-config.component')
+      .then(m => m.HomologosConfigComponent)
   },
   {
     path: 'admin-kits',
@@ -135,23 +142,23 @@ export const routes: Routes = [
         ]
       },
       {
-        path: 'citas-completadas',
+        path: 'ordenes-completadas',
         loadComponent: () => import('./features/dashboard-abasto/proveedores/proveedores.component')
           .then(m => m.ProveedoresComponent),
-        title: 'Dashboard Abasto · Citas Completadas'
+        title: 'Dashboard Abasto · Ordenes Completadas'
       },
       {
-        path: 'citas-pendientes',
+        path: 'ordenes-pendientes',
         loadComponent: () => import('./features/dashboard-abasto/citas-pendientes/citas-pendientes.component')
-          .then(m => m.CitasPendientesComponent),
-        title: 'Dashboard Abasto · Citas Pendientes'
+          .then(m => m.OrdenesPendientesComponent),
+        title: 'Dashboard Abasto · Ordenes Pendientes'
       },
-      {
+   /*   {
         path: 'resumen-citas',
         loadComponent: () => import('./features/dashboard-abasto/resumen-citas/resumen-citas.component')
           .then(m => m.ResumenCitasComponent),
         title: 'Dashboard Abasto · Resumen Citas'
-      },
+      },*/
       {
         path: 'existencias',
         loadComponent: () => import('./features/dashboard-abasto/inventario-tab/inventario-tab.component')
@@ -177,6 +184,12 @@ export const routes: Routes = [
         title: 'Dashboard Abasto · Solicitudes (bitácora)'
       },
       {
+        path: 'radar-desabasto',
+        loadComponent: () => import('./features/dashboard-abasto/radar-abasto/radar-abasto.component')
+          .then(m => m.RadarAbastoComponent),
+        title: 'Dashboard Abasto - Radar de Riesgo de Desabasto'
+      },
+      {
         path: 'acerca',
         loadComponent: () => import('./features/dashboard-abasto/acerca/acerca.component')
           .then(m => m.AcercaComponent),
@@ -186,4 +199,4 @@ export const routes: Routes = [
   },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: '**', redirectTo: '/home' },
-]; 
+];

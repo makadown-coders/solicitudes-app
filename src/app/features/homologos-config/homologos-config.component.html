@@ -1,0 +1,152 @@
+<div class="page">
+  <header class="page-head">
+    <div>
+      <h1>Configuracion de homologos</h1>
+      <p>CRUD con paginacion local y descripciones de articulos.</p>
+    </div>
+    <button class="btn btn-primary" (click)="openCreate()">Nuevo homologo</button>
+  </header>
+
+  <section class="card filters">
+    <div class="row">
+      <input
+        type="text"
+        class="input"
+        placeholder="Buscar por clave, sustituto o descripcion"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+        (keyup.enter)="onBuscar()"
+      />
+      <button class="btn" (click)="onBuscar()">Buscar</button>
+      <button class="btn" (click)="clearSearch()">Limpiar</button>
+
+      <label class="inline">
+        <span>Page size</span>
+        <select class="input" [ngModel]="pageSize()" (ngModelChange)="changePageSize($event)">
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="50">50</option>
+          <option [ngValue]="100">100</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+ <!--  <section class="stats-grid">
+    <article class="card stat">
+      <h3>Total homologos</h3>
+      <strong>{{ allItems().length }}</strong>
+    </article>
+    <article class="card stat">
+      <h3>Sin descripcion (clave)</h3>
+      <strong>{{ sinDescripcionClave() }}</strong>
+    </article>
+    <article class="card stat">
+      <h3>Sin descripcion (sustituto)</h3>
+      <strong>{{ sinDescripcionSustituto() }}</strong>
+    </article>
+  </section> -->
+
+  @if (message()) {
+    <div class="alert ok">{{ message() }}</div>
+  }
+  @if (error()) {
+    <div class="alert err">{{ error() }}</div>
+  }
+
+  <section class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th (click)="toggleSort('id')">Id {{ sortLabel('id') }}</th>
+            <th (click)="toggleSort('clave')">Clave {{ sortLabel('clave') }}</th>
+            <th (click)="toggleSort('claveDescripcion')">Descripcion clave {{ sortLabel('claveDescripcion') }}</th>
+            <th (click)="toggleSort('sustituto')">Sustituto {{ sortLabel('sustituto') }}</th>
+            <th (click)="toggleSort('sustitutoDescripcion')">Descripcion sustituto {{ sortLabel('sustitutoDescripcion') }}</th>
+            <th (click)="toggleSort('factor')">Factor {{ sortLabel('factor') }}</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (loading()) {
+            <tr><td colspan="7" class="muted">Cargando...</td></tr>
+          } @else {
+            @for (r of pagedItems(); track r.id) {
+              <tr>
+                <td>{{ r.id }}</td>
+                <td>{{ r.clave }}</td>
+                <td>{{ r.claveDescripcion || '-' }}</td>
+                <td>{{ r.sustituto }}</td>
+                <td>{{ r.sustitutoDescripcion || '-' }}</td>
+                <td>{{ r.factor }}</td>
+                <td class="actions">
+                  <button class="btn btn-sm" (click)="openEdit(r)">Editar</button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteRow(r)">Eliminar</button>
+                </td>
+              </tr>
+            }
+            @if (pagedItems().length === 0) {
+              <tr><td colspan="7" class="muted">Sin resultados</td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="pager">
+      <span>Total filtrado: {{ total() }}</span>
+      <span>Pagina {{ page() }} de {{ totalPages() }}</span>
+      <div class="pager-actions">
+        <button class="btn" (click)="prevPage()" [disabled]="page() <= 1">Anterior</button>
+        <button class="btn" (click)="nextPage()" [disabled]="page() >= totalPages()">Siguiente</button>
+      </div>
+    </footer>
+  </section>
+
+  @if (formOpen()) {
+    <div class="overlay">
+      <div class="modal card">
+        <h2>{{ formMode() === 'create' ? 'Nuevo homologo' : 'Editar homologo' }}</h2>
+
+        <app-articulo-autocomplete
+          label="Clave"
+          placeholder="Buscar articulo para clave"
+          [model]="formClave()"
+          (modelChange)="onClaveModelChange($event)"
+          (selected)="onClaveSelected($event)"
+        />
+        @if (formClaveDescripcion()) {
+          <div class="picked ok">{{ formClaveDescripcion() }}</div>
+        } @else if (formClave().trim()) {
+          <div class="picked warn">Sin descripcion seleccionada.</div>
+        }
+
+        <app-articulo-autocomplete
+          label="Sustituto"
+          placeholder="Buscar articulo para sustituto"
+          [model]="formSustituto()"
+          (modelChange)="onSustitutoModelChange($event)"
+          (selected)="onSustitutoSelected($event)"
+        />
+        @if (formSustitutoDescripcion()) {
+          <div class="picked ok">{{ formSustitutoDescripcion() }}</div>
+        } @else if (formSustituto().trim()) {
+          <div class="picked warn">Sin descripcion seleccionada.</div>
+        }
+
+        <label>
+          Factor
+          <input class="input" type="number" step="0.0000000001" [ngModel]="formFactor()" (ngModelChange)="formFactor.set($event)" />
+        </label>
+
+        <div class="modal-actions">
+          <button class="btn" (click)="closeForm()" [disabled]="saving()">Cancelar</button>
+          <button class="btn btn-primary" (click)="saveForm()" [disabled]="saving()">
+            {{ saving() ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -878,12 +878,16 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       if (cluesStr) this.datosClues = JSON.parse(cluesStr) as DatosClues;
     }
 
-
     const enProduccion = environment.production;
     const payload = this.bitacoraService.buildPayload(this.datosClues, items, this.modoStandalone);
 
-    // ðŸš€ best-effort: no bloquea el Excel
-    if (payload && enProduccion) void this.bitacoraService.registrar(payload);
+    // TODO: consoles temporales que estarán en producción en lo que se resuelve el bug
+    console.log('Payload:', payload);
+    console.log('Entorno producción:', enProduccion);
+    if (payload && enProduccion ) {
+      console.log('Payload válido, registrando en bitácora...');
+      await this.bitacoraService.registrar(payload);
+    }
 
     this.excelService.exportarExcelConTemplate(
       'template.xlsx',

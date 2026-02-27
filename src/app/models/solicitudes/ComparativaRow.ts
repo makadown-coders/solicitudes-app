@@ -6,4 +6,6 @@ export type ComparativaRow = {
   entregado: number;
   diferencia: number;       // solicitado - entregado
   cumplimientoPct: number;  // 0..100
+  ordenesSuministro: string;
+  ordenesSuministroCount: number;
 };

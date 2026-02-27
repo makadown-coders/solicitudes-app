@@ -18,6 +18,12 @@ import { BalanceoExcelExporter } from './excel/balanceo-excel-exporter';
 import { KitCatalogoRow } from '../models/KitCatalogoRow';
 import { ArticuloInfo } from '../models/ArticuloInfo';
 import { KitsExcelExporter } from './excel/kits-excel-exporter';
+import {
+    SolicitudesComparativaExcelExporter,
+    SolicitudesComparativaExcelContext,
+    SolicitudesComparativaOrdenRow
+} from './excel/solicitudes-comparativa-excel-exporter';
+import { ComparativaRow } from '../models/solicitudes/ComparativaRow';
 
 @Injectable({ providedIn: 'root' })
 export class ExcelService {
@@ -27,6 +33,7 @@ export class ExcelService {
     private readonly inventarioExporter = new InventarioExcelExporter();
     private readonly balanceoExporter = new BalanceoExcelExporter();
     private readonly kitsExporter = new KitsExcelExporter();
+    private readonly solicitudesComparativaExporter = new SolicitudesComparativaExcelExporter();
 
     exportarExcelPrecarga(nombreArchivo: string, articulosSolicitados: ArticuloSolicitud[]) {
         return this.solicitudExporter.exportarExcelPrecarga(nombreArchivo, articulosSolicitados);
@@ -173,6 +180,20 @@ export class ExcelService {
             kits,
             filas,
             articulosMapa
+        );
+    }
+
+    async exportarSolicitudesComparativa(
+        nombreArchivo: string,
+        contexto: SolicitudesComparativaExcelContext,
+        comparativa: ComparativaRow[],
+        ordenes: SolicitudesComparativaOrdenRow[]
+    ) {
+        await this.solicitudesComparativaExporter.exportarComparativa(
+            nombreArchivo,
+            contexto,
+            comparativa,
+            ordenes
         );
     }
 }

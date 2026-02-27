@@ -19,6 +19,26 @@ import { MiniBalanceRow } from '../../../models/solicitudes/MiniBalanceRow';
 import { HomologoDTO } from '../../../models/homologos/HomologoDto';
 import { MiniBalanceHomologoCand } from '../../../models/homologos/MiniBalanceHomologoCand';
 import { HomologosService } from '../../../services/homologos.service';
+import { CitasService } from '../../../services/citas.service';
+import { Cita } from '../../../models/Cita';
+import { ExcelService } from '../../../services/excel.service';
+import { SolicitudesComparativaOrdenRow } from '../../../services/excel/solicitudes-comparativa-excel-exporter';
+import { RadarAbastoService } from '../../../services/radar-abasto.service';
+import { RadarCrearEventoPayload } from '../../../models/radar-abasto/RadarAbastoModels';
+
+type OrdenSuministroComparativa = {
+    unidadDestino: string;
+    orden: string;
+    tipoCompra: string;
+    piezasEmitidas: number;
+    fechaTipo: 'entregado' | 'fecha limite';
+    fecha: string;
+};
+
+type OrdenSuministroCacheEntry = {
+    ts: number;
+    rows: Cita[];
+};
 
 @Component({
     selector: 'app-solicitudes-tab',
@@ -34,6 +54,9 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
     private almSrv = inject(RdlsAlmacenesService);
     private inventario = inject(InventarioService);
     private homologosSrv = inject(HomologosService);
+    private citasService = inject(CitasService);
+    private excelService = inject(ExcelService);
+    private radarAbastoService = inject(RadarAbastoService);
     private unidadesLoaded = false;
 
     loading = signal(false);
@@ -146,6 +169,18 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
     detalleError = signal<string | null>(null);
     selectedHeader = signal<BitacoraHeader | null>(null);
     detalle = signal<BitacoraDetalle[]>([]);
+    comparativaOsLoading = signal(false);
+    comparativaOsError = signal<string | null>(null);
+    comparativaExportando = signal(false);
+    radarCrearVisible = signal(false);
+    radarCrearLoading = signal(false);
+    radarCrearError = signal<string | null>(null);
+    radarCrearExito = signal<string | null>(null);
+    radarMotivo = signal('');
+    radarObservaciones = signal('');
+    private ordenesComparativaByClave = signal<Map<string, OrdenSuministroComparativa[]>>(new Map());
+    private readonly ordenesComparativaCacheTtlMs = 10 * 60 * 1000; // 10 min
+    private ordenesComparativaCache = new Map<string, OrdenSuministroCacheEntry>();
 
     movResumenView = computed(() => {
         const q = (this.movFiltroClave() || '').trim().toUpperCase();
@@ -161,11 +196,12 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
     comparativaView = computed<ComparativaRow[]>(() => {
         const det = this.detalle() ?? [];
         const mov = this.movResumenRows() ?? [];
+        const osByClave = this.ordenesComparativaByClave();
 
         // index por clave (entregado)
         const entregadoByClave = new Map<string, number>();
         for (const r of mov) {
-            const k = (r.clave ?? '').toUpperCase();
+            const k = this.keyClave(r.clave ?? '');
             if (!k) continue;
             entregadoByClave.set(k, Number(r.entregado_piezas) || 0);
         }
@@ -173,9 +209,14 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         // armar tabla comparativa desde lo solicitado
         const rows: ComparativaRow[] = det.map(d => {
             const clave = (d.clave ?? '').toUpperCase();
+            const claveKey = this.keyClave(clave);
             const solicitado = Number(d.cantidad) || 0;
-            const entregado = entregadoByClave.get(clave) ?? 0;
-            const diferencia = solicitado - entregado;
+            const entregado = entregadoByClave.get(claveKey) ?? 0;
+            const diferencia = Math.max(0, solicitado - entregado);
+            const ordenes = osByClave.get(claveKey) ?? [];
+            const ordenesSuministro = ordenes.map(o =>
+                `${o.unidadDestino} - ${o.orden} (${o.tipoCompra} - ${this.formatQty(o.piezasEmitidas)} piezas - ${o.fechaTipo} ${o.fecha})`
+            ).join('\n');
 
             const pct = solicitado > 0 ? (entregado / solicitado) * 100 : 0;
             const cumplimientoPct = Math.max(0, Math.min(100, Math.round(pct)));
@@ -186,7 +227,9 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
                 solicitado,
                 entregado,
                 diferencia,
-                cumplimientoPct
+                cumplimientoPct,
+                ordenesSuministro,
+                ordenesSuministroCount: ordenes.length
             };
         });
 
@@ -197,18 +240,28 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
     });
 
     kpiSolicitado = computed(() =>
-        this.comparativaView().reduce((acc, r) => acc + (r.solicitado || 0), 0)
+        (() => {
+            const rows = this.comparativaView();
+            if (!rows.length) return 0;
+            const total = rows.reduce((acc, r) => acc + (r.solicitado || 0), 0);
+            return Math.round(total / rows.length);
+        })()
     );
 
     kpiEntregado = computed(() =>
-        this.comparativaView().reduce((acc, r) => acc + (r.entregado || 0), 0)
+        (() => {
+            const rows = this.comparativaView();
+            if (!rows.length) return 0;
+            const total = rows.reduce((acc, r) => acc + (r.entregado || 0), 0);
+            return Math.round(total / rows.length);
+        })()
     );
 
     kpiCoberturaPct = computed(() => {
-        const sol = this.kpiSolicitado();
-        const ent = this.kpiEntregado();
-        if (sol <= 0) return 0;
-        return Math.max(0, Math.min(100, Math.round((ent / sol) * 100)));
+        const rows = this.comparativaView();
+        if (!rows.length) return 0;
+        const totalPct = rows.reduce((acc, r) => acc + (Number(r.cumplimientoPct) || 0), 0);
+        return Math.max(0, Math.min(100, Math.round(totalPct / rows.length)));
     });
 
     // --- MINI BALANCEO ---
@@ -324,11 +377,14 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         this.detalleLoading.set(true);
         this.detalleError.set(null);
         this.detalle.set([]);
+        this.comparativaOsError.set(null);
+        this.ordenesComparativaByClave.set(new Map());
         this.calcularMovimientosClavesSolicitud(row);
 
         try {
             const det = await this.bitacora.detalle(row.id);
-            this.detalle.set((det ?? []).sort((a, b) => (a.clave || '').localeCompare(b.clave || '')));
+            const detalleOrdenado = (det ?? []).sort((a, b) => (a.clave || '').localeCompare(b.clave || ''));
+            this.detalle.set(detalleOrdenado);
 
             // después de cargar det:
             const desde = row.created_day;
@@ -350,6 +406,7 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
                 hasta
             });
             this.movRows.set(rows);
+            await this.cargarOrdenesSuministroComparativa(row, detalleOrdenado, rows);
         } catch {
             this.detalleError.set('No se pudo cargar el detalle.');
         } finally {
@@ -378,10 +435,92 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         return copia;
     }
 
+    comparativaRiesgoRows = computed<ComparativaRow[]>(() => {
+        return (this.comparativaView() ?? []).filter(r => (Number(r.cumplimientoPct) || 0) < 100);
+    });
+
+    getComparativaRiesgoRowsOrdenadoPorClave(): ComparativaRow[] {
+        const rows = this.comparativaRiesgoRows();
+        const copia = [...rows];
+        copia.sort((a, b) => (a.clave || '').localeCompare(b.clave || ''));
+        return copia;
+    }
+
+    abrirCrearEventoRadar() {
+        const h = this.selectedHeader();
+        if (!h) return;
+
+        this.radarCrearError.set(null);
+        this.radarCrearExito.set(null);
+        this.radarMotivo.set(`Cobertura parcial detectada en solicitud ${h.created_day}`);
+        this.radarObservaciones.set(`Detectado desde comparativa Solicitudes vs Entregado para ${h.cluesimb}.`);
+        this.radarCrearVisible.set(true);
+    }
+
+    cerrarCrearEventoRadar() {
+        this.radarCrearVisible.set(false);
+        this.radarCrearLoading.set(false);
+        this.radarCrearError.set(null);
+    }
+
+    async crearEventoRadarDesdeComparativa() {
+        const h = this.selectedHeader();
+        if (!h) return;
+
+        const clavesRiesgo = this.getComparativaRiesgoRowsOrdenadoPorClave();
+        if (!clavesRiesgo.length) {
+            this.radarCrearError.set('No hay claves con cobertura menor a 100% para crear evento.');
+            return;
+        }
+
+        const motivo = (this.radarMotivo() || '').trim();
+        if (!motivo) {
+            this.radarCrearError.set('El motivo es obligatorio para registrar el evento.');
+            return;
+        }
+
+        this.radarCrearLoading.set(true);
+        this.radarCrearError.set(null);
+        this.radarCrearExito.set(null);
+
+        try {
+            const payload: RadarCrearEventoPayload = {
+                fecha_evento: new Date().toISOString().slice(0, 10),
+                clues: (h.cluesimb ?? '').trim().toUpperCase(),
+                unidad_nombre: this.getDescripcionUnidad(h.cluesimb) || null,
+                tipo_insumo: (h.tipos_insumo ?? []).join(' - ') || null,
+                fecha_referencia: h.created_day,
+                motivo,
+                observaciones: (this.radarObservaciones() || '').trim() || null,
+                estado: 'abierto',
+                creado_por: 'dashboard-abasto',
+                claves: clavesRiesgo.map(r => ({
+                    clave_cnis: this.keyClave(r.clave),
+                    descripcion: (r.descripcion ?? '').trim() || null
+                }))
+            };
+
+            const resp = await this.radarAbastoService.crearEvento(payload);
+            this.radarCrearVisible.set(false);
+            this.radarCrearExito.set(`Evento de vigilancia creado correctamente (ID ${resp.id}).`);
+        } catch (e: any) {
+            this.radarCrearError.set('No se pudo crear el evento en Radar de Desabasto.');
+        } finally {
+            this.radarCrearLoading.set(false);
+        }
+    }
+
     cerrarDetalle() {
         this.detalleVisible.set(false);
         this.selectedHeader.set(null);
         this.detalle.set([]);
+        this.ordenesComparativaByClave.set(new Map());
+        this.comparativaOsError.set(null);
+        this.comparativaOsLoading.set(false);
+        this.radarCrearVisible.set(false);
+        this.radarCrearLoading.set(false);
+        this.radarCrearError.set(null);
+        this.radarCrearExito.set(null);
     }
 
     totalUnidadesEnVista(): number {
@@ -748,6 +887,213 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
         // si es entero, sin decimales; si no, 2 decimales
         if (Math.abs(x - Math.round(x)) < 1e-9) return String(Math.round(x));
         return x.toFixed(2);
+    }
+
+    private keyClave(clave: string): string {
+        const raw = (clave ?? '').trim().toUpperCase();
+        const normalized = this.norm.normClave(raw);
+        return (normalized || raw).trim().toUpperCase();
+    }
+
+    private parseDateOrNull(value: unknown): Date | null {
+        if (!value) return null;
+        const d = new Date(value as any);
+        return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    private formatDateYmd(value: unknown): string {
+        if (!value) return '';
+        if (typeof value === 'string') {
+            const m = value.match(/^\d{4}-\d{2}-\d{2}/);
+            if (m?.[0]) return m[0];
+        }
+        const d = this.parseDateOrNull(value);
+        return d ? d.toISOString().slice(0, 10) : '';
+    }
+
+    private cacheKeyOrdenesComparativa(clave: string, cluesimb: string): string {
+        return `${this.keyClave(clave)}|${(cluesimb ?? '').trim().toUpperCase()}|15d|incPend`;
+    }
+
+    private async getOrdenesComparativaCached(clave: string, cluesimb: string, forceRefresh = false): Promise<Cita[]> {
+        const key = this.cacheKeyOrdenesComparativa(clave, cluesimb);
+        const now = Date.now();
+        const cached = this.ordenesComparativaCache.get(key);
+        if (!forceRefresh && cached && (now - cached.ts) < this.ordenesComparativaCacheTtlMs) {
+            return cached.rows;
+        }
+
+        const resp = await firstValueFrom(this.citasService.getCitasPorClaveXClave({
+            clave,
+            windowDays: 15,
+            incluyeNoRecibidas: true,
+            limit: 300
+        }));
+        const rows = (resp?.rows ?? []) as Cita[];
+        this.ordenesComparativaCache.set(key, { ts: now, rows });
+        return rows;
+    }
+
+    private async cargarOrdenesSuministroComparativa(
+        row: BitacoraHeader,
+        det: BitacoraDetalle[],
+        movRows: MovimientoRow[],
+        forceRefresh = false
+    ) {
+        this.comparativaOsLoading.set(true);
+        this.comparativaOsError.set(null);
+
+        const entregadoByClave = new Map<string, number>();
+        for (const r of (movRows ?? [])) {
+            const clave = this.keyClave((r as any).clave_cnis ?? '');
+            if (!clave) continue;
+            const cant = Number((r as any).cantidad ?? 0) || 0;
+            entregadoByClave.set(clave, (entregadoByClave.get(clave) ?? 0) + cant);
+        }
+
+        const claves = Array.from(new Set(
+            (det ?? [])
+                .filter(d => {
+                    const clave = this.keyClave(d.clave ?? '');
+                    const solicitado = Number(d.cantidad ?? 0) || 0;
+                    const entregado = Number(entregadoByClave.get(clave) ?? 0);
+                    return clave && solicitado !== entregado;
+                })
+                .map(x => this.keyClave(x.clave ?? ''))
+                .filter(Boolean)
+        ));
+
+        if (!claves.length) {
+            this.ordenesComparativaByClave.set(new Map());
+            this.comparativaOsLoading.set(false);
+            return;
+        }
+
+        const hoy = new Date();
+        hoy.setHours(23, 59, 59, 999);
+
+        const limiteAtras = new Date();
+        limiteAtras.setDate(limiteAtras.getDate() - 15);
+        limiteAtras.setHours(0, 0, 0, 0);
+
+        const resultado = new Map<string, OrdenSuministroComparativa[]>();
+        let errores = 0;
+
+        const settled = await Promise.allSettled(
+            claves.map(async clave => {
+                const rows = await this.getOrdenesComparativaCached(clave, row.cluesimb, forceRefresh);
+                return { clave, rows };
+            })
+        );
+
+        for (const item of settled) {
+            if (item.status !== 'fulfilled') {
+                errores++;
+                continue;
+            }
+
+            const clave = item.value.clave;
+            const rows = item.value.rows ?? [];
+            const acumulado: OrdenSuministroComparativa[] = [];
+            const seen = new Set<string>();
+
+            for (const cita of rows) {
+                const clueDestino = (cita.clues_destino ?? '').trim().toUpperCase();
+                if (clueDestino && clueDestino !== (row.cluesimb ?? '').trim().toUpperCase()) continue;
+
+                const fechaEntregado = this.parseDateOrNull((cita.fecha_recepcion_lista && cita.fecha_recepcion_lista[0]) ?? null);
+                const fechaLimite = this.parseDateOrNull(cita.fecha_limite_de_entrega);
+
+                const esEntregadaReciente = !!fechaEntregado && fechaEntregado >= limiteAtras && fechaEntregado <= hoy;
+                const esPendiente = !fechaEntregado && !!fechaLimite && fechaLimite >= limiteAtras;
+
+                if (!esEntregadaReciente && !esPendiente) continue;
+
+                const orden = (cita.orden_de_suministro ?? '').trim();
+                if (!orden) continue;
+
+                const fechaTipo: 'entregado' | 'fecha limite' = esEntregadaReciente ? 'entregado' : 'fecha limite';
+                const fecha = esEntregadaReciente
+                    ? this.formatDateYmd(fechaEntregado)
+                    : this.formatDateYmd(fechaLimite);
+
+                const dedupeKey = `${orden}|${fechaTipo}|${fecha}`;
+                if (seen.has(dedupeKey)) continue;
+                seen.add(dedupeKey);
+
+                acumulado.push({
+                    unidadDestino: (cita.unidad ?? 'SIN UNIDAD').trim().toUpperCase(),
+                    orden,
+                    tipoCompra: (cita.compra ?? 'Sin tipo').trim(),
+                    piezasEmitidas: Number(cita.no_de_piezas_emitidas ?? 0) || 0,
+                    fechaTipo,
+                    fecha
+                });
+            }
+
+            acumulado.sort((a, b) => a.orden.localeCompare(b.orden));
+            resultado.set(clave, acumulado);
+        }
+
+        this.ordenesComparativaByClave.set(resultado);
+        if (errores > 0) {
+            this.comparativaOsError.set('No se pudieron cargar todas las órdenes de suministro para la comparativa.');
+        }
+        this.comparativaOsLoading.set(false);
+    }
+
+    async refrescarOrdenesComparativa() {
+        const header = this.selectedHeader();
+        if (!header) return;
+        await this.cargarOrdenesSuministroComparativa(header, this.detalle(), this.movRows(), true);
+    }
+
+    async exportarComparativaExcel() {
+        const h = this.selectedHeader();
+        if (!h) return;
+
+        this.comparativaExportando.set(true);
+        try {
+            const comparativa = this.getComparativaViewOrdenadoPorClave();
+            const descripcionByClave = new Map<string, string>(
+                comparativa.map(r => [this.keyClave(r.clave), r.descripcion ?? ''])
+            );
+
+            const ordenes: SolicitudesComparativaOrdenRow[] = [];
+            for (const [clave, list] of this.ordenesComparativaByClave().entries()) {
+                const descripcion = descripcionByClave.get(this.keyClave(clave)) ?? '';
+                for (const o of (list ?? [])) {
+                    ordenes.push({
+                        clave,
+                        descripcion,
+                        unidadDestino: o.unidadDestino,
+                        orden: o.orden,
+                        tipoCompra: o.tipoCompra,
+                        piezasEmitidas: Number(o.piezasEmitidas ?? 0),
+                        fechaTipo: o.fechaTipo,
+                        fecha: o.fecha
+                    });
+                }
+            }
+
+            const nombre = `Comparativa_Solicitudes_${h.cluesimb}_${h.created_day}`;
+            await this.excelService.exportarSolicitudesComparativa(
+                nombre,
+                {
+                    cluesimb: h.cluesimb,
+                    unidad: this.selectedUnidad(),
+                    fechaSolicitud: h.created_day,
+                    tipoPedido: h.tipo_pedido,
+                    tiposInsumo: (h.tipos_insumo ?? []).join(' - '),
+                    rangoDesde: this.movDesde(),
+                    rangoHasta: this.movHasta()
+                },
+                comparativa,
+                ordenes
+            );
+        } finally {
+            this.comparativaExportando.set(false);
+        }
     }
 
     cerrarMiniBalanceo() {
