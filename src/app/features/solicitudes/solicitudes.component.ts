@@ -33,7 +33,7 @@ import { SolicitudesBitacoraService } from '../../services/solicitudes/solicitud
 import { HomologosSolicitudService, SugerenciaHomologoItem, MiniBalanceHomologoCand } from '../../services/homologos-solicitud.service';
 import { HomologoSugerenciaModalComponent } from './homologo-sugerencia-modal/homologo-sugerencia-modal.component';
 import { HomologoResumenImportacionComponent } from './homologo-resumen-importacion/homologo-resumen-importacion.component';
-import { environment } from '../../../environments/environment.development';
+import { environment } from '../../../environments/environment';
 
 
 @Component({
