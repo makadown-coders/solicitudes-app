@@ -881,11 +881,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     const enProduccion = environment.production;
     const payload = this.bitacoraService.buildPayload(this.datosClues, items, this.modoStandalone);
 
-    // TODO: consoles temporales que estarán en producción en lo que se resuelve el bug
-    console.log('Payload:', payload);
-    console.log('Entorno producción:', enProduccion);
     if (payload && enProduccion ) {
-      console.log('Payload válido, registrando en bitácora...');
       await this.bitacoraService.registrar(payload);
     }
 

@@ -1,0 +1,449 @@
+﻿<div class="space-y-4">
+  <div class="flex flex-col items-center justify-between gap-2 md:flex-row">
+    <div>
+      <h2 class="text-2xl font-semibold tracking-tight text-green-800 dark:text-[#CBA135]">
+        Radar Global de Abasto
+      </h2>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+        Vista global por solicitudes: snapshot actual o tendencia reciente.
+      </p>
+    </div>
+    <div class="flex gap-2">
+      <button
+        class="px-3 py-2 rounded-lg cursor-pointer border"
+        [class.bg-[#006341]]="mode() === 'snapshot'"
+        [class.text-white]="mode() === 'snapshot'"
+        [class.border-custom-default]="mode() !== 'snapshot'"
+        (click)="cambiarModo('snapshot')">
+        Snapshot
+      </button>
+      <button
+        class="px-3 py-2 rounded-lg cursor-pointer border"
+        [class.bg-[#006341]]="mode() === 'timeline'"
+        [class.text-white]="mode() === 'timeline'"
+        [class.border-custom-default]="mode() !== 'timeline'"
+        (click)="cambiarModo('timeline')">
+        Timeline
+      </button>
+      <button
+        class="px-3 py-2 rounded-lg cursor-pointer border"
+        [class.bg-[#006341]]="mode() === 'claves-riesgo'"
+        [class.text-white]="mode() === 'claves-riesgo'"
+        [class.border-custom-default]="mode() !== 'claves-riesgo'"
+        (click)="cambiarModo('claves-riesgo')">
+        Riesgo por clave
+      </button>
+      <button
+        class="px-3 py-2 text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50"
+        [disabled]="loading()"
+        (click)="cargar()">
+        Recargar
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 gap-3 md:grid-cols-7">
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c] md:col-span-2">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">CLUES</label>
+      <input
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        [ngModel]="clues()"
+        (ngModelChange)="clues.set(($event || '').toUpperCase())"
+        placeholder="BCIMB001726" />
+    </div>
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">Tipo pedido</label>
+      <input
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        [ngModel]="tipoPedido()"
+        (ngModelChange)="tipoPedido.set(($event || '').toUpperCase())"
+        placeholder="ORDINARIO" />
+    </div>
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">Tipo insumo</label>
+      <input
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        [ngModel]="tiposInsumo()"
+        (ngModelChange)="tiposInsumo.set(($event || '').toUpperCase())"
+        placeholder="MEDICAMENTO" />
+    </div>
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">Meses (timeline/riesgo)</label>
+      <input
+        type="number"
+        min="1"
+        max="24"
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        [ngModel]="months()"
+        (ngModelChange)="months.set(+$event || 3)"
+        [disabled]="mode() === 'snapshot'" />
+    </div>
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">Mín solicitado (riesgo)</label>
+      <input
+        type="number"
+        min="0"
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        [ngModel]="minSolicitado()"
+        (ngModelChange)="minSolicitado.set(+$event || 0)"
+        [disabled]="mode() !== 'claves-riesgo'" />
+    </div>
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">Acción</label>
+      <button
+        class="mt-1 px-3 py-1 w-full text-white bg-blue-600 rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50"
+        [disabled]="loading()"
+        (click)="cargar(true)">
+        Aplicar
+      </button>
+    </div>
+  </div>
+
+  @if (errorMsg(); as err) {
+    <div class="p-3 text-sm text-red-700 bg-red-50 border-red-200 rounded-xl border">
+      {{ err }}
+    </div>
+  }
+
+  <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+    <div class="p-4 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <div class="text-xs text-slate-500 dark:text-slate-300">
+        {{ mode() === 'snapshot' ? 'Combinaciones activas' : 'Registros en ventana' }}
+      </div>
+      <div class="mt-1 text-2xl font-semibold">
+        {{ mode() === 'snapshot' ? summaryCombinaciones() : summaryRegistros() | number }}
+      </div>
+    </div>
+    <div class="p-4 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <div class="text-xs text-slate-500 dark:text-slate-300">Renglones</div>
+      <div class="mt-1 text-2xl font-semibold">{{ summaryRenglones() | number }}</div>
+    </div>
+    <div class="p-4 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <div class="text-xs text-slate-500 dark:text-slate-300">Piezas</div>
+      <div class="mt-1 text-2xl font-semibold">{{ summaryPiezas() | number }}</div>
+    </div>
+    <div class="p-4 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
+      <div class="text-xs text-slate-500 dark:text-slate-300">Modo actual</div>
+      <div class="mt-2">
+        <span class="px-2 py-1 text-xs text-white bg-[#006341] rounded-full">
+          {{
+            mode() === 'snapshot'
+              ? 'Snapshot'
+              : mode() === 'timeline'
+                ? ('Timeline ' + months() + ' meses')
+                : ('Riesgo por clave ' + months() + ' meses')
+          }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  @if (mode() === 'claves-riesgo') {
+    <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <section class="p-4 bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-slate-700 dark:text-slate-200">Top riesgo por clave</h3>
+          <div class="flex gap-2">
+            <button
+              class="px-2 py-1 text-xs cursor-pointer rounded border"
+              [class.bg-red-700]="vistaRiesgo() === 'desabasto'"
+              [class.text-white]="vistaRiesgo() === 'desabasto'"
+              (click)="cambiarVistaRiesgo('desabasto')">
+              Desabasto
+            </button>
+            <button
+              class="px-2 py-1 text-xs cursor-pointer rounded border"
+              [class.bg-indigo-700]="vistaRiesgo() === 'sobreabasto'"
+              [class.text-white]="vistaRiesgo() === 'sobreabasto'"
+              (click)="cambiarVistaRiesgo('sobreabasto')">
+              Sobreabasto
+            </button>
+          </div>
+        </div>
+        <div class="space-y-2">
+        @for (item of topRiesgoVisible(); track item.cluesimb + '-' + item.clave) {
+            <div class="p-2 rounded-lg border-slate-200 border dark:border-slate-700">
+              <div class="text-sm font-medium">{{ item.clave }}</div>
+              @if (descripcionClave(item.clave); as descClave) {
+                <div class="text-[11px] text-slate-500 dark:text-slate-300" [title]="descClave">
+                  {{ descClave | maxLength:50 }}
+                </div>
+              }
+              <div class="text-xs text-slate-500 dark:text-slate-300">
+                {{ item.cluesimb }}
+                @if (nombreUnidad(item.cluesimb); as nombre) {
+                  · {{ nombre }}
+                }
+              </div>
+              <div class="flex items-center justify-between mt-1 text-xs">
+                @if (vistaRiesgo() === 'desabasto') {
+                  <span class="px-2 py-0.5 rounded border" [class]="badgeDesabasto(item.nivel_desabasto)">
+                    {{ iconoDesabasto(item.nivel_desabasto) }} {{ item.nivel_desabasto }} ({{ item.puntaje_desabasto }})
+                  </span>
+                } @else {
+                  <span class="px-2 py-0.5 rounded border" [class]="badgeSobreabasto(item.nivel_sobreabasto)">
+                    {{ iconoSobreabasto(item.nivel_sobreabasto) }} {{ item.nivel_sobreabasto }} ({{ item.puntaje_sobreabasto }})
+                  </span>
+                }
+                <span>{{ item.renglones_solicitados | number }} claves · {{ item.solicitado_periodo | number }} solicitado</span>
+              </div>
+            </div>
+          }
+          @if (!loading() && topRiesgoVisible().length === 0) {
+            <div class="p-3 text-sm text-slate-500 border-dashed rounded-lg dark:text-slate-300 border">
+              Sin datos de riesgo para el criterio actual.
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="p-4 bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
+        <h3 class="mb-3 font-semibold text-slate-700 dark:text-slate-200">Lectura rápida</h3>
+        <ul class="text-sm text-slate-600 space-y-2 dark:text-slate-300">
+          <li>Desabasto: prioriza claves con cobertura baja y solicitado superior a existencia.</li>
+          <li>Sobreabasto: identifica claves con cobertura excesiva para rebalanceo.</li>
+          <li>Usa el filtro de meses para ver señal reciente vs señal estructural.</li>
+        </ul>
+      </section>
+    </div>
+  }
+
+  @if (mode() !== 'claves-riesgo') {
+  <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
+    <section class="p-4 bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-slate-700 dark:text-slate-200">Top CLUES con claves más solicitadas</h3>
+        <span class="text-xs text-slate-500 dark:text-slate-300">Top 5 claves por CLUES</span>
+      </div>
+      <div class="space-y-2">
+        @for (item of topCluesConTopClaves(); track item.cluesimb) {
+          <div class="p-2 rounded-lg border-slate-200 border dark:border-slate-700">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium">{{ item.cluesimb }}</div>
+                @if (nombreUnidad(item.cluesimb); as nombre) {
+                  <div class="text-[11px] text-slate-500 dark:text-slate-300">{{ nombre }}</div>
+                }
+              </div>
+              <div class="text-right">
+                <div class="text-sm font-semibold">{{ item.total_solicitado | number }}</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-300">solicitado</div>
+              </div>
+            </div>
+            <div class="mt-1 text-xs text-slate-500 dark:text-slate-300">
+              {{ item.claves_distintas | number }} claves distintas
+            </div>
+            <div class="flex flex-wrap gap-1 mt-2">
+              @for (c of item.top_claves; track c.clave) {
+                <div class="px-2 py-1 text-[11px] bg-slate-100 rounded-md border-slate-200 border dark:bg-black dark:border-slate-700"
+                     [title]="descripcionClave(c.clave)">
+                  <div class="font-medium">{{ c.clave }} - {{ c.solicitado | number }}</div>
+                  @if (descripcionClave(c.clave); as descClave) {
+                    <div class="text-[10px] text-slate-500 dark:text-slate-300">{{ descClave | maxLength:50 }}</div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+        @if (!loading() && topCluesConTopClaves().length === 0) {
+          <div class="p-3 text-sm text-slate-500 border-dashed rounded-lg dark:text-slate-300 border">
+            Sin datos para ranking de CLUES.
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="p-4 bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-slate-700 dark:text-slate-200">Top claves globales</h3>
+        <span class="text-xs text-slate-500 dark:text-slate-300">Más solicitadas en la red</span>
+      </div>
+      <div class="space-y-2">
+        @for (item of topClavesGlobales(); track item.clave) {
+          <div class="p-2 rounded-lg border-slate-200 border dark:border-slate-700">
+            <div class="text-sm font-medium">{{ item.clave }}</div>
+            @if (descripcionClave(item.clave); as descClave) {
+              <div class="text-[11px] text-slate-500 dark:text-slate-300" [title]="descClave">
+                {{ descClave | maxLength:50 }}
+              </div>
+            }
+            <div class="mt-1 text-xs text-slate-500 dark:text-slate-300">
+              <span class="font-semibold text-slate-700 dark:text-slate-200">{{ item.solicitado | number }}</span>
+              solicitado
+            </div>
+          </div>
+        }
+        @if (!loading() && topClavesGlobales().length === 0) {
+          <div class="p-3 text-sm text-slate-500 border-dashed rounded-lg dark:text-slate-300 border">
+            Sin datos para ranking global de claves.
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="p-4 bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-slate-700 dark:text-slate-200">Top claves por riesgo</h3>
+        <span class="text-xs text-slate-500 dark:text-slate-300">Criticidad agregada</span>
+      </div>
+      <div class="space-y-2">
+        @for (item of topClavesPorRiesgo(); track item.clave) {
+          <div class="p-2 rounded-lg border-slate-200 border dark:border-slate-700">
+            <div class="text-sm font-medium">{{ item.clave }}</div>
+            @if (descripcionClave(item.clave); as descClave) {
+              <div class="text-[11px] text-slate-500 dark:text-slate-300" [title]="descClave">
+                {{ descClave | maxLength:50 }}
+              </div>
+            }
+            <div class="mt-1 flex flex-wrap items-center gap-1 text-[11px]">
+              <span class="px-1.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200">Crítico {{ item.criticos }}</span>
+              <span class="px-1.5 py-0.5 rounded bg-orange-100 text-orange-800 border border-orange-200">Alto des {{ item.altos_desabasto }}</span>
+              <span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200">Alto sobre {{ item.altos_sobreabasto }}</span>
+            </div>
+            <div class="mt-1 text-xs text-slate-500 dark:text-slate-300">
+              <span class="font-semibold text-slate-700 dark:text-slate-200">{{ item.solicitado | number }}</span>
+              solicitado · score {{ item.score | number: '1.0-0' }}
+            </div>
+          </div>
+        }
+        @if (!loading() && topClavesPorRiesgo().length === 0) {
+          <div class="p-3 text-sm text-slate-500 border-dashed rounded-lg dark:text-slate-300 border">
+            Sin datos para ranking de riesgo por clave.
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+  }
+@if (mode() !== 'claves-riesgo') {
+  <section class="overflow-auto bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
+    <table class="min-w-full text-sm">
+      <thead class="sticky top-0 bg-white border-b dark:bg-[#1a202c]">
+        <tr class="text-left text-slate-600 dark:text-slate-300">
+          <th class="px-3 py-2">Fecha</th>
+          <th class="px-3 py-2">CLUES</th>
+          <th class="px-3 py-2">Tipo pedido</th>
+          <th class="px-3 py-2">Tipo insumo</th>
+          <th class="px-3 py-2">Periodo</th>
+          <th class="px-3 py-2 text-right">Renglones</th>
+          <th class="px-3 py-2 text-right">Piezas</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td colspan="7" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+              Cargando radar global...
+            </td>
+          </tr>
+        }
+
+        @for (row of rows(); track row.id) {
+          <tr class="border-b">
+            <td class="px-3 py-2 whitespace-nowrap">{{ row.created_day }}</td>
+            <td class="px-3 py-2">
+              <div>{{ row.cluesimb }}</div>
+              @if (nombreUnidad(row.cluesimb); as nombre) {
+                <div class="text-[11px] text-slate-500 dark:text-slate-300">{{ nombre }}</div>
+              }
+            </td>
+            <td class="px-3 py-2">{{ row.tipo_pedido }}</td>
+            <td class="px-3 py-2">{{ row.tipos_insumo }}</td>
+            <td class="px-3 py-2">{{ row.periodo_texto || 'N/A' }}</td>
+            <td class="px-3 py-2 text-right">{{ row.total_renglones | number }}</td>
+            <td class="px-3 py-2 text-right">{{ row.total_piezas | number }}</td>
+          </tr>
+        }
+
+        @if (!loading() && rows().length === 0) {
+          <tr>
+            <td colspan="7" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+              Sin datos para los filtros seleccionados.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+  } @else {
+  <section class="overflow-auto bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
+    <table class="min-w-full text-sm">
+      <thead class="sticky top-0 bg-white border-b dark:bg-[#1a202c]">
+        <tr class="text-left text-slate-600 dark:text-slate-300">
+          <th class="px-3 py-2">CLUES</th>
+          <th class="px-3 py-2">Clave</th>
+          <th class="px-3 py-2">Descripción</th>
+          <th class="px-3 py-2 text-right">Solicitado</th>
+          <th class="px-3 py-2 text-right">Existencia</th>
+          <th class="px-3 py-2 text-right">CPM</th>
+          <th class="px-3 py-2 text-right">Cobertura días</th>
+          <th class="px-3 py-2">Desabasto</th>
+          <th class="px-3 py-2">Sobreabasto</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td colspan="9" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+              Cargando radar de riesgo por clave...
+            </td>
+          </tr>
+        }
+        @for (row of riesgoRows(); track row.cluesimb + '-' + row.clave) {
+          <tr class="border-b transition-colors" [class]="rowClassRiesgo(row)">
+            <td class="px-3 py-2">
+              <div>{{ row.cluesimb }}</div>
+              @if (nombreUnidad(row.cluesimb); as nombre) {
+                <div class="text-[11px] text-slate-500 dark:text-slate-300">{{ nombre }}</div>
+              }
+            </td>
+            <td class="px-3 py-2 font-medium">{{ row.clave }}</td>
+            <td class="px-3 py-2">
+              @if (descripcionClave(row.clave); as descClave) {
+                <span class="text-xs text-slate-500 dark:text-slate-300" [title]="descClave">
+                  {{ descClave | maxLength:50 }}
+                </span>
+              } @else {
+                <span class="text-xs text-slate-400">Sin descripción</span>
+              }
+            </td>
+            <td class="px-3 py-2 text-right">{{ row.solicitado_periodo | number }}</td>
+            <td class="px-3 py-2 text-right">{{ row.existencia_actual | number }}</td>
+            <td class="px-3 py-2 text-right">{{ row.consumo_promedio | number }}</td>
+            <td class="px-3 py-2 text-right">{{ row.dias_cobertura == null ? 'N/A' : (row.dias_cobertura | number: '1.0-2') }}</td>
+            <td class="px-3 py-2">
+              <span class="px-2 py-1 text-xs rounded border" [class]="badgeDesabasto(row.nivel_desabasto)">
+                {{ iconoDesabasto(row.nivel_desabasto) }} {{ row.nivel_desabasto }} · {{ row.puntaje_desabasto }}
+              </span>
+            </td>
+            <td class="px-3 py-2">
+              <span class="px-2 py-1 text-xs rounded border" [class]="badgeSobreabasto(row.nivel_sobreabasto)">
+                {{ iconoSobreabasto(row.nivel_sobreabasto) }} {{ row.nivel_sobreabasto }} · {{ row.puntaje_sobreabasto }}
+              </span>
+            </td>
+          </tr>
+        }
+        @if (!loading() && riesgoRows().length === 0) {
+          <tr>
+            <td colspan="9" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+              Sin datos de riesgo por clave para los filtros seleccionados.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+  }
+
+  <div class="flex items-center justify-between p-2 text-sm">
+    <div class="text-slate-600 dark:text-slate-300">
+      Total: {{ total() | number }}
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="px-2 py-1 rounded border disabled:opacity-50" [disabled]="page() <= 1 || loading()" (click)="prevPage()">Anterior</button>
+      <span>Página {{ page() }} de {{ totalPages }}</span>
+      <button class="px-2 py-1 rounded border disabled:opacity-50" [disabled]="page() >= totalPages || loading()" (click)="nextPage()">Siguiente</button>
+    </div>
+  </div>
+</div>
