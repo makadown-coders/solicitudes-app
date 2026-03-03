@@ -436,14 +436,66 @@
   </section>
   }
 
-  <div class="flex items-center justify-between p-2 text-sm">
+  <div class="flex flex-col gap-2 p-2 text-sm lg:flex-row lg:items-center lg:justify-between">
     <div class="text-slate-600 dark:text-slate-300">
       Total: {{ total() | number }}
     </div>
-    <div class="flex items-center gap-2">
-      <button class="px-2 py-1 rounded border disabled:opacity-50" [disabled]="page() <= 1 || loading()" (click)="prevPage()">Anterior</button>
+    <div class="flex flex-wrap items-center justify-end gap-2">
+      <label class="text-sm text-slate-600 dark:text-slate-300">Filas por página</label>
+      <select
+        class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 dark:bg-black"
+        [ngModel]="pageSize()"
+        (ngModelChange)="changePageSize($event)"
+        [disabled]="loading()">
+        <option [ngValue]="25">25</option>
+        <option [ngValue]="50">50</option>
+        <option [ngValue]="100">100</option>
+        <option [ngValue]="200">200</option>
+      </select>
+
+      <button
+        class="px-2 py-1 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        (click)="goTo(1)"
+        [disabled]="page() <= 1 || loading()">
+        « Primera
+      </button>
+
+      <button
+        class="px-2 py-1 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        (click)="jump(-10)"
+        [disabled]="page() <= 1 || loading()">
+        ‹‹ -10
+      </button>
+
+      <button
+        class="px-2 py-1 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        (click)="prevPage()"
+        [disabled]="page() <= 1 || loading()">
+        ‹ Anterior
+      </button>
+
       <span>Página {{ page() }} de {{ totalPages }}</span>
-      <button class="px-2 py-1 rounded border disabled:opacity-50" [disabled]="page() >= totalPages || loading()" (click)="nextPage()">Siguiente</button>
+
+      <button
+        class="px-2 py-1 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        (click)="nextPage()"
+        [disabled]="page() >= totalPages || loading()">
+        Siguiente ›
+      </button>
+
+      <button
+        class="px-2 py-1 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        (click)="jump(10)"
+        [disabled]="page() >= totalPages || loading()">
+        +10 ››
+      </button>
+
+      <button
+        class="px-2 py-1 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        (click)="goTo(totalPages)"
+        [disabled]="page() >= totalPages || loading()">
+        Última »
+      </button>
     </div>
   </div>
 </div>

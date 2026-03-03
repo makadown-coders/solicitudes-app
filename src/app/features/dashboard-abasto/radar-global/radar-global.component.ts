@@ -317,14 +317,31 @@ export class RadarGlobalComponent implements OnInit {
   }
 
   prevPage(): void {
-    if (this.page() <= 1) return;
-    this.page.set(this.page() - 1);
-    void this.cargar();
+    this.goTo(this.page() - 1);
   }
 
   nextPage(): void {
-    if (this.page() >= this.totalPages) return;
-    this.page.set(this.page() + 1);
+    this.goTo(this.page() + 1);
+  }
+
+  goTo(targetPage: number): void {
+    const next = Math.min(this.totalPages, Math.max(1, Math.trunc(targetPage)));
+    if (next === this.page()) return;
+    this.page.set(next);
+    void this.cargar();
+  }
+
+  jump(delta: number): void {
+    this.goTo(this.page() + delta);
+  }
+
+  changePageSize(nextPageSize: number): void {
+    const n = Number(nextPageSize);
+    if (!Number.isFinite(n) || n <= 0) return;
+    const safeSize = Math.trunc(n);
+    if (safeSize === this.pageSize() && this.page() === 1) return;
+    this.pageSize.set(safeSize);
+    this.page.set(1);
     void this.cargar();
   }
 
