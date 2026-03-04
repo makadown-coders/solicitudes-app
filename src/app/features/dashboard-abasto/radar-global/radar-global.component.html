@@ -5,7 +5,7 @@
         Radar Global de Abasto
       </h2>
       <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">
-        Vista global por solicitudes: snapshot actual o tendencia reciente.
+        Vista global por solicitudes: snapshot actual (ultima combinación por Clues+ tipo perido + tipo insumo) o histórico (timeline).
       </p>
     </div>
     <div class="flex gap-2">
@@ -108,7 +108,7 @@
   <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
     <div class="p-4 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
       <div class="text-xs text-slate-500 dark:text-slate-300">
-        {{ mode() === 'snapshot' ? 'Combinaciones activas' : 'Registros en ventana' }}
+        {{ mode() === 'snapshot' ? 'Solicitudes recientes' : 'Solicitudes' }}
       </div>
       <div class="mt-1 text-2xl font-semibold">
         {{ mode() === 'snapshot' ? summaryCombinaciones() : summaryRegistros() | number }}
@@ -209,7 +209,7 @@
   }
 
   @if (mode() !== 'claves-riesgo') {
-  <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
+  <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
     <section class="p-4 bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
       <div class="flex items-center justify-between mb-3">
         <h3 class="font-semibold text-slate-700 dark:text-slate-200">Top CLUES con claves más solicitadas</h3>
@@ -282,38 +282,6 @@
       </div>
     </section>
 
-    <section class="p-4 bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-semibold text-slate-700 dark:text-slate-200">Top claves por riesgo</h3>
-        <span class="text-xs text-slate-500 dark:text-slate-300">Criticidad agregada</span>
-      </div>
-      <div class="space-y-2">
-        @for (item of topClavesPorRiesgo(); track item.clave) {
-          <div class="p-2 rounded-lg border-slate-200 border dark:border-slate-700">
-            <div class="text-sm font-medium">{{ item.clave }}</div>
-            @if (descripcionClave(item.clave); as descClave) {
-              <div class="text-[11px] text-slate-500 dark:text-slate-300" [title]="descClave">
-                {{ descClave | maxLength:50 }}
-              </div>
-            }
-            <div class="mt-1 flex flex-wrap items-center gap-1 text-[11px]">
-              <span class="px-1.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200">Crítico {{ item.criticos }}</span>
-              <span class="px-1.5 py-0.5 rounded bg-orange-100 text-orange-800 border border-orange-200">Alto des {{ item.altos_desabasto }}</span>
-              <span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200">Alto sobre {{ item.altos_sobreabasto }}</span>
-            </div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-300">
-              <span class="font-semibold text-slate-700 dark:text-slate-200">{{ item.solicitado | number }}</span>
-              solicitado · score {{ item.score | number: '1.0-0' }}
-            </div>
-          </div>
-        }
-        @if (!loading() && topClavesPorRiesgo().length === 0) {
-          <div class="p-3 text-sm text-slate-500 border-dashed rounded-lg dark:text-slate-300 border">
-            Sin datos para ranking de riesgo por clave.
-          </div>
-        }
-      </div>
-    </section>
   </div>
   }
 @if (mode() !== 'claves-riesgo') {
@@ -436,14 +404,14 @@
   </section>
   }
 
-  <div class="flex flex-col gap-2 p-2 text-sm lg:flex-row lg:items-center lg:justify-between">
+  <div class="flex flex-col items-center justify-between gap-2 p-2 text-sm lg:flex-row">
     <div class="text-slate-600 dark:text-slate-300">
       Total: {{ total() | number }}
     </div>
     <div class="flex flex-wrap items-center justify-end gap-2">
       <label class="text-sm text-slate-600 dark:text-slate-300">Filas por página</label>
       <select
-        class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 dark:bg-black"
+        class="px-2 py-1 border-slate-300 rounded border dark:border-slate-600 dark:bg-black"
         [ngModel]="pageSize()"
         (ngModelChange)="changePageSize($event)"
         [disabled]="loading()">

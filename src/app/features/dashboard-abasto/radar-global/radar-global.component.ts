@@ -1,3 +1,4 @@
+// src/app/features/dashboard-abasto/radar-global/radar-global.component.ts
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
