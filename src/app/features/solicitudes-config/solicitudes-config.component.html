@@ -1,21 +1,34 @@
 <div class="mx-auto p-4 max-w-3xl">
-  <h1 class="text-2xl font-bold text-green-800">Configuración de Solicitudes (Feature Flags)</h1>
-  <p class="mt-1 text-sm text-gray-600">Prende/apaga comportamientos sin desplegar código.</p>
+  <h1 class="text-2xl font-bold text-green-800">
+    Configuración de Solicitudes (Feature Flags)
+  </h1>
+  <p class="mt-1 text-sm text-gray-600">
+    Prende/apaga comportamientos sin desplegar código.
+  </p>
 
   <!-- Scope selector -->
-  <form [formGroup]="scopeForm" class="grid grid-cols-1 items-end gap-3 mt-4 md:grid-cols-3">
+  <form
+    [formGroup]="scopeForm"
+    class="grid grid-cols-1 items-end gap-3 mt-4 md:grid-cols-3"
+  >
     <div>
       <label class="block mb-1 text-sm font-medium text-gray-700">Ámbito</label>
-      <select formControlName="scope" class="px-3 py-2 w-full border rounded" [class.cursor-wait]="loading()">
+      <select
+        formControlName="scope"
+        class="px-3 py-2 w-full border rounded"
+        [class.cursor-wait]="loading()"
+      >
         <option value="global">Global</option>
         <option value="nivel">Nivel</option>
         <option value="clues">CLUES</option>
       </select>
     </div>
 
-    @if (scopeForm.value.scope === 'nivel') {
+    @if (scopeForm.value.scope === "nivel") {
       <div>
-        <label class="block mb-1 text-sm font-medium text-gray-700">Nivel</label>
+        <label class="block mb-1 text-sm font-medium text-gray-700"
+          >Nivel</label
+        >
         <select formControlName="nivel" class="px-3 py-2 w-full border rounded">
           <option value="PRIMER_NIVEL">Primer Nivel</option>
           <option value="SEGUNDO_NIVEL">Segundo Nivel</option>
@@ -24,12 +37,18 @@
     }
 
     <!-- Ámbito CLUES -->
-    @if (scopeForm.value.scope === 'clues') {
+    @if (scopeForm.value.scope === "clues") {
       <div>
-        <label class="block mb-1 text-sm font-medium text-gray-700">Unidad (allowlist)</label>
+        <label class="block mb-1 text-sm font-medium text-gray-700"
+          >Unidad (allowlist)</label
+        >
         <div class="flex items-center gap-2">
-          <select formControlName="cluesimb" class="flex-1 px-3 py-2 border rounded" [disabled]="unitsLoading()"
-            [class.cursor-not-allowed]="unitsLoading()">
+          <select
+            formControlName="cluesimb"
+            class="flex-1 px-3 py-2 border rounded"
+            [disabled]="unitsLoading()"
+            [class.cursor-not-allowed]="unitsLoading()"
+          >
             <option value="" disabled selected>Selecciona una unidad…</option>
             @for (u of units(); track u) {
               <option [value]="u.cluesimb">
@@ -37,144 +56,238 @@
               </option>
             }
           </select>
-          <button type="button" class="px-3 py-2 rounded border" (click)="ensureUnitsLoaded()"
-            [disabled]="unitsLoading()">
-            {{ unitsLoading() ? 'Cargando…' : 'Recargar' }}
+          <button
+            type="button"
+            class="px-3 py-2 rounded border"
+            (click)="ensureUnitsLoaded()"
+            [disabled]="unitsLoading()"
+          >
+            {{ unitsLoading() ? "Cargando…" : "Recargar" }}
           </button>
         </div>
         @if (!unitsLoading() && units().length === 0) {
           <p class="mt-2 text-xs text-gray-500">
-            No se encontraron unidades en la allowlist. Verifica configuración global de
+            No se encontraron unidades en la allowlist. Verifica configuración
+            global de
             <code>CLUES_EXISTENCIAS_ALLOWLIST</code>.
           </p>
         }
       </div>
     }
-
   </form>
 
   <!-- Toggles -->
   <div class="mt-6 p-4 rounded-lg border">
     <div class="flex items-center justify-between py-2">
       <div>
-        <div class="font-medium">SOLO_CPMS</div>
-        <div class="text-xs text-gray-500">Segundo nivel: usar sólo artículos en CPM.</div>
+        <div class="font-medium">EDIT_CPMS</div>
+        <div class="text-xs text-gray-500">
+          Dejar que la unidad edite sus cpms.
+        </div>
       </div>
-      <label class="inline-flex items-center" role="switch" [attr.aria-checked]="flagValue('SOLO_CPMS')"
-        [attr.aria-disabled]="togglesDisabled()">
+      <label
+        class="inline-flex items-center"
+        role="switch"
+        [attr.aria-checked]="flagValue('EDIT_CPMS')"
+        [attr.aria-disabled]="togglesDisabled()"
+      >
         <!-- Contenedor del switch -->
         <span class="switch" [class.switch--disabled]="togglesDisabled()">
-          <input type="checkbox" class="switch__input" [disabled]="togglesDisabled()"
-            [checked]="flagValue('SOLO_CPMS')" (change)="onToggle('SOLO_CPMS', $event)">
+          <input
+            type="checkbox"
+            class="switch__input"
+            [disabled]="togglesDisabled()"
+            [checked]="flagValue('EDIT_CPMS')"
+            (change)="onToggle('EDIT_CPMS', $event)"
+          />
 
-            <span class="switch__track" aria-hidden="true"></span>
-            <span class="switch__thumb" aria-hidden="true"></span>
-          </span>
-        </label>
+          <span class="switch__track" aria-hidden="true"></span>
+          <span class="switch__thumb" aria-hidden="true"></span>
+        </span>
+      </label>
+    </div>
+    <div class="flex items-center justify-between py-2">
+      <div>
+        <div class="font-medium">SOLO_CPMS</div>
+        <div class="text-xs text-gray-500">
+          Segundo nivel: usar sólo artículos en CPM.
+        </div>
       </div>
+      <label
+        class="inline-flex items-center"
+        role="switch"
+        [attr.aria-checked]="flagValue('SOLO_CPMS')"
+        [attr.aria-disabled]="togglesDisabled()"
+      >
+        <!-- Contenedor del switch -->
+        <span class="switch" [class.switch--disabled]="togglesDisabled()">
+          <input
+            type="checkbox"
+            class="switch__input"
+            [disabled]="togglesDisabled()"
+            [checked]="flagValue('SOLO_CPMS')"
+            (change)="onToggle('SOLO_CPMS', $event)"
+          />
 
-      <div class="flex items-center justify-between py-2 border-t">
-        <div>
-          <div class="font-medium">BUSCAR_EXISTENCIA_EN_CLUES</div>
-          <div class="text-xs text-gray-500">Avisar si hay existencias en CLUES elegido (hosp. integrados).</div>
+          <span class="switch__track" aria-hidden="true"></span>
+          <span class="switch__thumb" aria-hidden="true"></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="flex items-center justify-between py-2 border-t">
+      <div>
+        <div class="font-medium">BUSCAR_EXISTENCIA_EN_CLUES</div>
+        <div class="text-xs text-gray-500">
+          Avisar si hay existencias en CLUES elegido (hosp. integrados).
         </div>
-        <label class="inline-flex items-center" role="switch"
-          [attr.aria-checked]="flagValue('BUSCAR_EXISTENCIA_EN_CLUES')" [attr.aria-disabled]="togglesDisabled()">
-          <!-- Contenedor del switch -->
-          <span class="switch" [class.switch--disabled]="togglesDisabled()">
-            <input type="checkbox" class="switch__input" [disabled]="togglesDisabled()"
-              [checked]="flagValue('BUSCAR_EXISTENCIA_EN_CLUES')"
-              (change)="onToggle('BUSCAR_EXISTENCIA_EN_CLUES', $event)">
+      </div>
+      <label
+        class="inline-flex items-center"
+        role="switch"
+        [attr.aria-checked]="flagValue('BUSCAR_EXISTENCIA_EN_CLUES')"
+        [attr.aria-disabled]="togglesDisabled()"
+      >
+        <!-- Contenedor del switch -->
+        <span class="switch" [class.switch--disabled]="togglesDisabled()">
+          <input
+            type="checkbox"
+            class="switch__input"
+            [disabled]="togglesDisabled()"
+            [checked]="flagValue('BUSCAR_EXISTENCIA_EN_CLUES')"
+            (change)="onToggle('BUSCAR_EXISTENCIA_EN_CLUES', $event)"
+          />
 
-              <span class="switch__track" aria-hidden="true"></span>
-              <span class="switch__thumb" aria-hidden="true"></span>
-            </span>
-          </label>
+          <span class="switch__track" aria-hidden="true"></span>
+          <span class="switch__thumb" aria-hidden="true"></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="flex items-center justify-between py-2 border-t">
+      <div>
+        <div class="font-medium">APLICAR_ENCUESTAS</div>
+        <div class="text-xs text-gray-500">
+          Micro-surveys periódicas por CLUES.
         </div>
+      </div>
+      <label
+        class="inline-flex items-center"
+        role="switch"
+        [attr.aria-checked]="flagValue('APLICAR_ENCUESTAS')"
+        [attr.aria-disabled]="togglesDisabled()"
+      >
+        <!-- Contenedor del switch -->
+        <span class="switch" [class.switch--disabled]="togglesDisabled()">
+          <input
+            type="checkbox"
+            class="switch__input"
+            [disabled]="togglesDisabled()"
+            [checked]="flagValue('APLICAR_ENCUESTAS')"
+            (change)="onToggle('APLICAR_ENCUESTAS', $event)"
+          />
 
-        <div class="flex items-center justify-between py-2 border-t">
-          <div>
-            <div class="font-medium">APLICAR_ENCUESTAS</div>
-            <div class="text-xs text-gray-500">Micro-surveys periódicas por CLUES.</div>
-          </div>
-          <label class="inline-flex items-center" role="switch" [attr.aria-checked]="flagValue('APLICAR_ENCUESTAS')"
-            [attr.aria-disabled]="togglesDisabled()">
+          <span class="switch__track" aria-hidden="true"></span>
+          <span class="switch__thumb" aria-hidden="true"></span>
+        </span>
+      </label>
+    </div>
 
-            <!-- Contenedor del switch -->
-            <span class="switch" [class.switch--disabled]="togglesDisabled()">
-              <input type="checkbox" class="switch__input" [disabled]="togglesDisabled()"
-                [checked]="flagValue('APLICAR_ENCUESTAS')" (change)="onToggle('APLICAR_ENCUESTAS', $event)">
+    <div class="flex items-center justify-between py-2 border-t">
+      <div>
+        <div class="font-medium">APLICAR_EQUIVALENCIAS</div>
+        <div class="text-xs text-gray-500">
+          Sugerir equivalentes cuando los 3 almacenes están en 0.
+        </div>
+      </div>
+      <label
+        class="inline-flex items-center"
+        role="switch"
+        [attr.aria-checked]="flagValue('APLICAR_EQUIVALENCIAS')"
+        [attr.aria-disabled]="togglesDisabled()"
+      >
+        <!-- Contenedor del switch -->
+        <span class="switch" [class.switch--disabled]="togglesDisabled()">
+          <input
+            type="checkbox"
+            class="switch__input"
+            [disabled]="togglesDisabled()"
+            [checked]="flagValue('APLICAR_EQUIVALENCIAS')"
+            (change)="onToggle('APLICAR_EQUIVALENCIAS', $event)"
+          />
 
-                <span class="switch__track" aria-hidden="true"></span>
-                <span class="switch__thumb" aria-hidden="true"></span>
-              </span>
-            </label>
+          <span class="switch__track" aria-hidden="true"></span>
+          <span class="switch__thumb" aria-hidden="true"></span>
+        </span>
+      </label>
+    </div>
 
-          </div>
+    <div class="flex items-center justify-between py-2 border-t">
+      <div>
+        <div class="font-medium">IMPORT_LIMIT_TO_KIT</div>
+        <div class="text-xs text-gray-500">
+          Restringir importación a claves del KIT de la unidad.
+        </div>
+      </div>
+      <label
+        class="inline-flex items-center"
+        role="switch"
+        [attr.aria-checked]="flagValue('IMPORT_LIMIT_TO_KIT')"
+        [attr.aria-disabled]="togglesDisabled()"
+      >
+        <span class="switch" [class.switch--disabled]="togglesDisabled()">
+          <input
+            type="checkbox"
+            class="switch__input"
+            [disabled]="togglesDisabled()"
+            [checked]="flagValue('IMPORT_LIMIT_TO_KIT')"
+            (change)="onToggle('IMPORT_LIMIT_TO_KIT', $event)"
+          />
+          <span class="switch__track" aria-hidden="true"></span>
+          <span class="switch__thumb" aria-hidden="true"></span>
+        </span>
+      </label>
+    </div>
 
-          <div class="flex items-center justify-between py-2 border-t">
-            <div>
-              <div class="font-medium">APLICAR_EQUIVALENCIAS</div>
-              <div class="text-xs text-gray-500">Sugerir equivalentes cuando los 3 almacenes están en 0.</div>
-            </div>
-            <label class="inline-flex items-center" role="switch"
-              [attr.aria-checked]="flagValue('APLICAR_EQUIVALENCIAS')" [attr.aria-disabled]="togglesDisabled()">
+    <!-- Aviso -->
+    @if (saveMsg()) {
+      <div
+        class="mt-4 text-sm"
+        [ngClass]="{ 'text-green-700': saveOk(), 'text-red-700': !saveOk() }"
+      >
+        {{ saveMsg() }}
+      </div>
+    }
 
-              <!-- Contenedor del switch -->
-              <span class="switch" [class.switch--disabled]="togglesDisabled()">
-                <input type="checkbox" class="switch__input" [disabled]="togglesDisabled()"
-                  [checked]="flagValue('APLICAR_EQUIVALENCIAS')"
-                  (change)="onToggle('APLICAR_EQUIVALENCIAS', $event)">
+    <div class="flex gap-2 mt-4">
+      <!-- Guardar (ya lo tienes parecido) -->
+      <button
+        type="button"
+        (click)="save()"
+        [disabled]="
+          saving() || togglesDisabled() || pendingChanges().length === 0
+        "
+        class="px-4 py-2 text-white bg-green-700 rounded hover:bg-green-800 disabled:bg-gray-300 disabled:text-white disabled:cursor-not-allowed"
+      >
+        {{ saving() ? "Guardando..." : "Guardar cambios" }}
+      </button>
 
-                  <span class="switch__track" aria-hidden="true"></span>
-                  <span class="switch__thumb" aria-hidden="true"></span>
-                </span>
-              </label>
-            </div>
+      <!-- Deshacer (mejorado) -->
+      <button
+        type="button"
+        (click)="resetToLoaded()"
+        [disabled]="togglesDisabled() || pendingChanges().length === 0"
+        class="px-4 py-2 text-gray-800 border-gray-300 rounded border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400"
+      >
+        Deshacer
+      </button>
+    </div>
+  </div>
 
-            <div class="flex items-center justify-between py-2 border-t">
-              <div>
-                <div class="font-medium">IMPORT_LIMIT_TO_KIT</div>
-                <div class="text-xs text-gray-500">Restringir importación a claves del KIT de la unidad.</div>
-              </div>
-              <label class="inline-flex items-center" role="switch" [attr.aria-checked]="flagValue('IMPORT_LIMIT_TO_KIT')"
-                [attr.aria-disabled]="togglesDisabled()">
-                <span class="switch" [class.switch--disabled]="togglesDisabled()">
-                  <input type="checkbox" class="switch__input" [disabled]="togglesDisabled()"
-                    [checked]="flagValue('IMPORT_LIMIT_TO_KIT')" (change)="onToggle('IMPORT_LIMIT_TO_KIT', $event)">
-                    <span class="switch__track" aria-hidden="true"></span>
-                    <span class="switch__thumb" aria-hidden="true"></span>
-                  </span>
-                </label>
-              </div>
-
-              <!-- Aviso -->
-              @if (saveMsg()) {
-                <div class="mt-4 text-sm" [ngClass]="{'text-green-700': saveOk(), 'text-red-700': !saveOk()}">
-                  {{ saveMsg() }}
-                </div>
-              }
-
-              <div class="flex gap-2 mt-4">
-                <!-- Guardar (ya lo tienes parecido) -->
-                <button type="button" (click)="save()"
-                  [disabled]="saving() || togglesDisabled() || pendingChanges().length===0"
-                  class="px-4 py-2 text-white bg-green-700 rounded hover:bg-green-800 disabled:bg-gray-300 disabled:text-white disabled:cursor-not-allowed">
-                  {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
-                </button>
-
-                <!-- Deshacer (mejorado) -->
-                <button type="button" (click)="resetToLoaded()"
-                  [disabled]="togglesDisabled() || pendingChanges().length===0"
-                  class="px-4 py-2 text-gray-800 border-gray-300 rounded border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400">
-                  Deshacer
-                </button>
-              </div>
-            </div>
-
-            <!-- Info -->
-            <div class="mt-6 text-xs text-gray-500">
-              Ámbitos y precedencia: <strong>CLUES</strong> ▶ <strong>Nivel</strong> ▶ <strong>Global</strong>.
-              Estás editando valores <em>en el ámbito seleccionado</em>.
-            </div>
-          </div>
+  <!-- Info -->
+  <div class="mt-6 text-xs text-gray-500">
+    Ámbitos y precedencia: <strong>CLUES</strong> ▶ <strong>Nivel</strong> ▶
+    <strong>Global</strong>. Estás editando valores
+    <em>en el ámbito seleccionado</em>.
+  </div>
+</div>

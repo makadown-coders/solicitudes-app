@@ -1,0 +1,170 @@
+<div class="z-[120] fixed inset-0 grid place-items-center bg-black/50">
+  <div class="modal-shell">
+    <div class="modal-head">
+      <div>
+        <h3 class="title">
+          Editar CPM de unidad {{ mostrarUnidadEnTitulo ? ('- ' + (tituloUnidad || cluesimb)) : '' }}
+        </h3>
+        <p class="subtitle">Gestiona CPM vigente por clave y agrega nuevas claves desde catalogo.</p>
+      </div>
+      <button class="icon-btn" type="button" (click)="close.emit()" [disabled]="saving()">x</button>
+    </div>
+
+    <div class="mb-3 p-3 text-xs text-amber-900 bg-amber-50 border-amber-200 border rounded">
+      Aviso: Los CPM mostrados o editados en este modulo son de apoyo para la captura local y no sustituyen
+      los lineamientos, validaciones ni autorizaciones oficiales aplicables. Se recomienda revisar y
+      validar con tu Area Medica correspondiente.
+    </div>
+
+    @if (loading()) {
+      <div class="p-4 text-sm text-gray-600">Cargando CPMS...</div>
+    } @else {
+      @if (!canEdit) {
+        <div class="mb-3 p-3 text-sm text-amber-900 bg-amber-100 border-amber-200 border rounded">
+          No autorizado para editar CPM en esta unidad.
+        </div>
+      }
+
+      <div class="toolbar">
+        <div class="grow">
+          <app-articulo-autocomplete
+            label="Agregar clave nueva"
+            placeholder="Buscar por clave o descripcion"
+            [model]="autocompleteModel()"
+            (modelChange)="onAutocompleteModelChange($event)"
+            (selected)="onArticuloSelected($event)"
+          />
+        </div>
+        <div class="filter-wrap">
+          <label class="filter-label">Filtrar</label>
+          <input
+            class="input"
+            type="text"
+            placeholder="Clave o descripcion"
+            [ngModel]="filterText()"
+            (ngModelChange)="filterText.set($event)"
+          />
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="w-full text-sm">
+          <thead>
+            <tr>
+              <th class="th">Clave</th>
+              <th class="th">Descripcion</th>
+              <th class="th">Presentacion</th>
+              <th class="th">CPM</th>
+              <!-- <th class="th">Fuente</th> -->
+              <th class="text-right th">Accion</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of rowsFiltered(); track trackByClave($index, r); let i = $index) {
+              <tr [class.bg-yellow-50]="r._dirty" [class.bg-red-50]="r._invalid" [class.bg-rose-50]="isMarkedForDelete(r)">
+                <td class="td mono">{{ r.clave_cnis }}</td>
+                <td class="text-xs text-gray-600 td">{{ (r.descripcion || '-') | slice: 0:50 }}</td>
+                <td class="td">{{ r.presentacion || '-' }}</td>
+                <td class="td">
+                  <input
+                    class="w-48 input"
+                    type="number"
+                    min="0"
+                    step="1"
+                    [disabled]="!canEdit || saving()"
+                    [ngModel]="r.cpm"
+                    (ngModelChange)="onRowCpmChange(i, $event)"
+                  />
+                  @if (isMarkedForDelete(r)) {
+                    <div class="mt-1 text-xs text-red-700">Marcada para eliminar al guardar.</div>
+                  }
+                </td>
+                <!-- <td class="td">
+                  <select
+                    class="input"
+                    [disabled]="!canEdit || saving()"
+                    [ngModel]="r.fuente"
+                    (ngModelChange)="onRowFuenteChange(i, $event)"
+                  >
+                    <option value="manual">manual</option>
+                    <option value="historico">historico</option>
+                    <option value="import">import</option>
+                  </select>
+                </td> -->
+                <td class="text-right td">
+                  <div class="action-group">
+                    @if (!isMarkedForDelete(r)) {
+                      <button
+                        class="btn-icon btn-danger"
+                        type="button"
+                        title="Eliminar clave"
+                        aria-label="Eliminar clave"
+                        [disabled]="saving() || !canEdit"
+                        (click)="deleteRow(i)"
+                      >
+                        <span aria-hidden="true">🗑</span>
+                      </button>
+                    } @else {
+                      <button
+                        class="btn-icon btn-ghost"
+                        type="button"
+                        title="Deshacer eliminacion"
+                        aria-label="Deshacer eliminacion"
+                        [disabled]="saving() || !canEdit"
+                        (click)="undoDeleteMark(i)"
+                      >
+                        <span aria-hidden="true">↺</span>
+                      </button>
+                    }
+                    @if (r._dirty) {
+                      <button
+                        class="btn-icon btn-ghost"
+                        type="button"
+                        title="Cancelar cambios"
+                        aria-label="Cancelar cambios"
+                        [disabled]="saving()"
+                        (click)="cancelRow(i)"
+                      >
+                        <span aria-hidden="true">✕</span>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+            @if (rowsFiltered().length === 0) {
+              <tr>
+                <td class="p-3 text-center text-gray-500" colspan="6">Sin resultados.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-foot">
+        <div class="foot-meta">
+          <span class="text-sm text-gray-600">Claves cargadas: {{ rows().length }}</span>
+          <span class="text-sm text-gray-600">Cambios listos para guardar: {{ dirtyCount() }}</span>
+          <span class="text-xs text-sky-700">
+            Guia rapida: eliminar en claves existentes las marca para baja al guardar; en claves nuevas las quita de inmediato. Usa deshacer o cancelar para revertir cambios.
+          </span>
+          @if (message()) {
+            <span class="text-xs text-emerald-700">{{ message() }}</span>
+          }
+          @if (error()) {
+            <span class="text-xs text-red-700">{{ error() }}</span>
+          }
+        </div>
+        <div class="actions">
+          <button class="btn-ghost" type="button" [disabled]="saving()" (click)="close.emit()">Cerrar</button>
+          <button class="btn-primary" type="button" [disabled]="saving() || !canEdit || dirtyCount() === 0" (click)="saveAll()">
+            {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
+          </button>
+        </div>
+      </div>
+      <p class="mt-2 text-[11px] text-gray-500">
+        Recomendacion: confirma estos valores con tu Area Medica.
+      </p>
+    }
+  </div>
+</div>

@@ -35,6 +35,10 @@ export const loaderInterceptor: HttpInterceptorFn = (req, next) => {
     customMessage = 'Cargando factores de conversión para existencias... espere un momento';
   }
 
+  if (cleanReq.url.includes('effective')) {
+    customMessage = 'Procesando flags... espere un momento';
+  }
+
   if (cleanReq.url.includes('all')) {
     customMessage = 'Cargando existencias con factor de conversión... espere un momento';
   }

@@ -91,6 +91,7 @@ export class SolicitudesConfigComponent implements OnInit {
                     APLICAR_EQUIVALENCIAS: !!flags['APLICAR_EQUIVALENCIAS'],
                     CLUES_EXISTENCIAS_ALLOWLIST: flags['CLUES_EXISTENCIAS_ALLOWLIST'],
                     IMPORT_LIMIT_TO_KIT: !!flags['IMPORT_LIMIT_TO_KIT'],
+                    EDIT_CPMS: !!flags['EDIT_CPMS'],
                 });
             } catch (e) {
                 console.error(e);
@@ -131,7 +132,12 @@ export class SolicitudesConfigComponent implements OnInit {
     pendingChanges = computed(() => {
         const loaded = this.loadedFlags();
         const draft = this.draftFlags();
-        const keys: FlagKey[] = ['SOLO_CPMS', 'BUSCAR_EXISTENCIA_EN_CLUES', 'APLICAR_ENCUESTAS', 'APLICAR_EQUIVALENCIAS', 'IMPORT_LIMIT_TO_KIT'];
+        const keys: FlagKey[] = ['SOLO_CPMS',
+                          'BUSCAR_EXISTENCIA_EN_CLUES',
+                          'APLICAR_ENCUESTAS',
+                          'APLICAR_EQUIVALENCIAS',
+                          'IMPORT_LIMIT_TO_KIT',
+                          'EDIT_CPMS'];
         return keys.filter(k => (!!draft[k]) !== (!!loaded[k]));
     });
 
@@ -142,7 +148,8 @@ export class SolicitudesConfigComponent implements OnInit {
             BUSCAR_EXISTENCIA_EN_CLUES: !!f['BUSCAR_EXISTENCIA_EN_CLUES'],
             APLICAR_ENCUESTAS: !!f['APLICAR_ENCUESTAS'],
             APLICAR_EQUIVALENCIAS: !!f['APLICAR_EQUIVALENCIAS'],
-            IMPORT_LIMIT_TO_KIT: !!f['IMPORT_LIMIT_TO_KIT']
+            IMPORT_LIMIT_TO_KIT: !!f['IMPORT_LIMIT_TO_KIT'],
+            EDIT_CPMS: !!f['EDIT_CPMS'],
         });
         this.saveMsg.set(null);
     }

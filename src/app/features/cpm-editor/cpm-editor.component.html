@@ -1,3 +1,4 @@
+<!-- src/app/features/cpm-editor/cpm-editor.component.html -->
 <div class="p-4 mx-auto max-w-5xl">
   <h1 class="text-2xl font-semibold">CPM por unidad (BC)</h1>
   <!-- Toolbar -->
@@ -103,7 +104,7 @@
                       Guardar
                     </button>
                     @if (r._dirty) {
-                      <button class="px-3 py-1 bg-red-50 rounded hover:bg-red-100 border border-red-200 text-red-700"
+                      <button class="px-3 py-1 text-red-700 bg-red-50 border-red-200 rounded hover:bg-red-100 border"
                         (click)="cancelRow(i)" [disabled]="saving()">
                         Cancelar
                       </button>
