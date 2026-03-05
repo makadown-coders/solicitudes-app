@@ -61,6 +61,7 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
 
     loading = signal(false);
     errorMsg = signal<string | null>(null);
+    mobileActionsOpenId = signal<string | null>(null);
 
     // rango por default: últimos 30 días
     desde = signal(this.isoDateDaysAgo(30));
@@ -530,6 +531,14 @@ export class SolicitudesTabComponent extends AbstractTabComponent {
 
     totalSolicitudesEnVista(): number {
         return this.rowsView().length;
+    }
+
+    toggleMobileActions(rowId: string): void {
+        this.mobileActionsOpenId.update(curr => curr === rowId ? null : rowId);
+    }
+
+    closeMobileActions(): void {
+        this.mobileActionsOpenId.set(null);
     }
 
     private pickLatestPerUnidad(rows: BitacoraHeader[]): BitacoraHeader[] {
