@@ -15,7 +15,7 @@ import { ClasificadorVEN } from '../../../../models/clasificador-ven';
 import { InventarioService } from '../../../../services/inventario.service';
 import { StorageVariables } from '../../../../shared/storage-variables';
 import { Articulo } from '../../../../models/articulo-solicitud';
-import { CircleAlertIcon, CircleCheckIcon, LucideAngularModule, LucidePill, OctagonAlertIcon, TriangleAlertIcon, TruckIcon } from 'lucide-angular';
+import { BadgeInfoIcon, CircleAlertIcon, CircleCheckIcon, LucideAngularModule, LucidePill, OctagonAlertIcon, TriangleAlertIcon, TruckIcon } from 'lucide-angular';
 import { Cita } from '../../../../models/Cita';
 import { StorageSolicitudService } from '../../../../services/storage-solicitud.service';
 import { controlados } from '../../../../models/controlados';
@@ -51,7 +51,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     // arriba en la clase
     mostrarNotaFactor = false;
 
-    @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();    
+    @Input() existenciaUnidades: Map<string, Inventario[]> = new Map<string, Inventario[]>();
     citasService = inject(CitasService);
     citas: Cita[] = []
 
@@ -59,6 +59,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     triangleAlert = TriangleAlertIcon;
     octagonAlert = OctagonAlertIcon;
     circleAlert = CircleAlertIcon;
+    badgeInfo = BadgeInfoIcon;
     truck = TruckIcon;
     circleCheck = CircleCheckIcon
     citasHalladasPorClave: Cita[] = [];

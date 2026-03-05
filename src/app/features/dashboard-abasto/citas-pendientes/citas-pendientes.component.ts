@@ -76,13 +76,14 @@ export class OrdenesPendientesComponent extends AbstractTabComponent implements 
   private artSrv = inject(ArticulosService);
   private provSrv = inject(ProveedoresService);
   constructor(activatedRoute: ActivatedRoute) {
+    console.log('constructor de OrdenesPendientesComponent');
     super();
     // Si viene con parámetros de ruta (que la ruta contenga el texto 'ordenes-pendientes'), hacer this.isActive = true
     if (activatedRoute.snapshot.url[0].path === 'ordenes-pendientes') {
+      console.log('constructor de OrdenesPendientesComponent > Activating tab due to route');
       this.isActive = true;
-      this.mostradoPorPrimeraVez = true;
-      this.cargarDeLocalStorage();
-      this.cargarCitasDesdeBackend(true);
+      this.mostradoPorPrimeraVez = false;
+      this.unidadesAgrupadas.set([]);
     }
   }
 
@@ -90,11 +91,13 @@ export class OrdenesPendientesComponent extends AbstractTabComponent implements 
   //                INIT
   // ============================================================
   ngOnInit(): void {
+    console.log('ngOnInit de OrdenesPendientesComponent');
     if ((!this.mostradoPorPrimeraVez && this.isActive) ||
       (this.unidadesAgrupadas().length === 0)) {
+        console.log('ngOnInit de OrdenesPendientesComponent > Cargando datos por primera vez');
       setTimeout(() => {
         this.onTabActivated();
-      }, 5000);
+      }, 500);
     }
   }
 
@@ -116,6 +119,7 @@ export class OrdenesPendientesComponent extends AbstractTabComponent implements 
     cargandoDesdeNgOnInit = false,
     forceRefresh = false
   ) {
+    console.log('cargarCitasDesdeBackend de OrdenesPendientesComponent');
     this.loading = true;
     this.errorMsg = null;
 
@@ -134,6 +138,7 @@ export class OrdenesPendientesComponent extends AbstractTabComponent implements 
     ).subscribe({
       next: async (resp: CitaQueryResponse) => {
         // console.log('Citas pendientes:', resp.data);
+        console.log('cargarCitasDesdeBackend de OrdenesPendientesComponent > recibiendo ordenes de suministro');
         this.citas.set(resp?.data ?? []);
         this.loading = false;
         await this.procesarCitas();
@@ -169,14 +174,16 @@ export class OrdenesPendientesComponent extends AbstractTabComponent implements 
   //         PROCESAMIENTOS Y AGRUPACIONES
   // ============================================================
   async procesarCitas() {
-    const lista = this.citas();
+    const lista = [...this.citas()];
     // console.log('Lista Citas :', lista);
 
     this.citasPendientes = [...lista];
     /*this.citasPendientes = lista.filter(c =>
       ((!c.fecha_recepcion_almacen || c.fecha_recepcion_almacen.trim() === '') &&
-        (c.estatus ?? '').toLowerCase() === 'vigente') ||
-      (c.estatus ?? '').toLowerCase() === 'incompleto'
+        (c.estatus ?? '').toLowerCase() !== 'completo') ||
+      (c.estatus ?? '').toLowerCase() === 'incompleto' ||
+      (c.estatus ?? '').toLowerCase() === 'proceso de cancelación' ||
+      (c.estatus ?? '').toLowerCase() === 'vigente'
     );*/
 
     // console.log('Citas pendientes:', this.citasPendientes);
@@ -202,7 +209,7 @@ export class OrdenesPendientesComponent extends AbstractTabComponent implements 
     // localStorage.setItem(StorageVariables.DASH_ABASTO_CITAS_INCLUIR_NULAS, this.incluirFechasNulas.toString());
 
     const hoy = new Date();
-    const lista = this.citasPendientes;
+    const lista = [...this.citasPendientes];
 
     let articulosMapa: Record<string, { descripcion: string; presentacion?: string; categoria?: string | null }> = {};
 
@@ -217,11 +224,11 @@ export class OrdenesPendientesComponent extends AbstractTabComponent implements 
       articulosMapa = {};
     }
 
-    let debugCount = 0;
+    // let debugCount = 0;
     const citasFiltradas = lista.filter(c => {
-      if (c.ejercicio! > 2024) {
+      /*if (c.ejercicio! > 2025) {
         debugCount++;
-      }
+      }*/
 
       const busqueda = this.filtroBusqueda.toLowerCase().trim();
       const coincideBusqueda =
@@ -234,14 +241,22 @@ export class OrdenesPendientesComponent extends AbstractTabComponent implements 
       const coincideUnidad = !this.filtroUnidad || c.unidad === this.filtroUnidad;
       const coincideCompra = !this.filtroCompra || c.compra === this.filtroCompra;
 
-      // ✅ AHORA SÍ parseamos bien la fecha de cita
+      // proximamente a deprecar
       // const fechaCita = this.fechasService.toDateOrNull(c.fecha_de_cita);
+
       // nueva validacion temporal:
       // que limite de entrega no sea mayor a 6 meses a partir de hoy,
       // para evitar que registros con fechas erroneas afecten el filtro
       const fechaLim = this.fechasService.toDateOrNull(c.fecha_limite_de_entrega);
-      const diasEntreFechas = this.fechasService.getDiasEntreFechas(fechaLim!, hoy);
-      const esFechaLimiteValida = diasEntreFechas >= 0 && diasEntreFechas <= 180; // 6 meses = 180 días
+      // establecer valor absoluto de días entre fechas para evitar que fechas erroneas con fecha_limite_de_entrega en el pasado afecten el filtro de inminentes
+      const diasEntreFechas =  Math.abs( this.fechasService.getDiasEntreFechas(fechaLim!, hoy) );
+      // y si fechaLim es en el futuro, permitirlo siempre (aunque tenga más de 6 meses), ya que no afectará el filtro de inminentes ni atrasados
+
+      let esFechaLimiteValida = diasEntreFechas >= 0 && diasEntreFechas <= 180; // 6 meses = 180 días
+
+      if (fechaLim && fechaLim > hoy) {
+        esFechaLimiteValida = true;
+      }
 
       const coincideFecha = this.incluirFechasNulas && esFechaLimiteValida;
 
@@ -252,21 +267,25 @@ export class OrdenesPendientesComponent extends AbstractTabComponent implements 
             ? fechaCita >= this.fechaInicio && fechaCita <= this.fechaFin
             : false; */
 
-      /*if (debugCount <= 5 && c.ejercicio! > 2024) {
+      // if (debugCount <= 5 && c.ejercicio! > 2025) {
+      if ( c.clave_cnis ===  '060.894.0052') {
         console.log('---- DEBUG CITA ----');
         console.log('Cita:', c);
         console.log('coincideBusqueda:', coincideBusqueda);
         console.log('coincideUnidad  :', coincideUnidad);
         console.log('coincideCompra  :', coincideCompra);
-        console.log('fecha_de_cita   :', c.fecha_de_cita);
-        console.log('fechaCita(Date) :', fechaCita);
+        // console.log('fecha_de_cita   :', c.fecha_de_cita);
+       // console.log('fechaCita(Date) :', fechaCita);
+        console.log('fechaLim:', fechaLim);
+        console.log('diasEntreFechas :', diasEntreFechas);
+        console.log('esFechaLimiteValida :', esFechaLimiteValida);
         console.log('coincideFecha   :', coincideFecha);
         console.log(
           'RESULT:',
           coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha
         );
         console.log('--------------------');
-      }*/
+      }
 
       return coincideBusqueda && coincideUnidad && coincideCompra && coincideFecha;
     });
@@ -367,8 +386,10 @@ export class OrdenesPendientesComponent extends AbstractTabComponent implements 
   }
 
   protected override onTabActivated(): void {
+    console.log('Tab Activada: OrdenesPendientesComponent');
     if (this.mostradoPorPrimeraVez === false) {
-      this.cargarDeLocalStorage();
+      console.log('Tab Activada: OrdenesPendientesComponent > Cargando datos por primera vez');
+      // this.cargarDeLocalStorage();
       this.cargarCitasDesdeBackend(true);
       //this.actualizarAgrupacion();
       this.mostradoPorPrimeraVez = true;
