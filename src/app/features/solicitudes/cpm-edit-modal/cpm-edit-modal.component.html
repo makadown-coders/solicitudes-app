@@ -156,7 +156,21 @@
           }
         </div>
         <div class="actions">
+          <input
+            title="archivo_cpms"
+            type="file"
+            #importInput
+            accept=".xlsx,.xls"
+            class="hidden"
+            (change)="onImportFile($event)"
+          />
           <button class="btn-ghost" type="button" [disabled]="saving()" (click)="close.emit()">Cerrar</button>
+          <button class="btn-ghost" type="button" [disabled]="loading() || saving() || !canEdit" (click)="importInput.click()">
+            Importar XLSX
+          </button>
+          <button class="btn-ghost" type="button" [disabled]="loading() || saving() || rows().length === 0" (click)="exportXlsx()">
+            Descargar XLSX
+          </button>
           <button class="btn-primary" type="button" [disabled]="saving() || !canEdit || dirtyCount() === 0" (click)="saveAll()">
             {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
           </button>

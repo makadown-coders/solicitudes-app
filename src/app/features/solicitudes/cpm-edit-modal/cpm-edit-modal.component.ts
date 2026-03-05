@@ -7,6 +7,7 @@ import { SolicitudCpmEditRow } from '../../../models/solicitud-cpm-edit-row';
 import { ArticulosService } from '../../../services/articulos.service';
 import { CpmEditorService } from '../../../services/cpm-editor.service';
 import { ArticuloAutocompleteComponent, ArticuloAutocompleteItem } from '../../../shared/articulo-autocomplete/articulo-autocomplete.component';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-cpm-edit-modal',
@@ -307,6 +308,173 @@ export class CpmEditModalComponent {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  exportXlsx() {
+    const rows = [...this.rows()]
+      .sort((a, b) => String(a.clave_cnis).localeCompare(String(b.clave_cnis)))
+      .map(r => ({
+        clave_cnis: r.clave_cnis,
+        descripcion: r.descripcion ?? '',
+        presentacion: r.presentacion ?? '',
+        cpm: Number(r.cpm ?? 0),
+        // fuente: r.fuente ?? 'manual',
+        // estado: this.isMarkedForDelete(r) ? 'MARCADA_PARA_ELIMINAR' : (r._dirty ? 'PENDIENTE_GUARDAR' : 'VIGENTE'),
+      }));
+
+    const ws = XLSX.utils.json_to_sheet(rows, { skipHeader: false });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'CPMs');
+
+    const now = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    const unitSafe = (this.cluesimb || 'UNIDAD').replace(/[^A-Z0-9_-]/gi, '_');
+    const filename = `CPMs_${unitSafe}_${stamp}.xlsx`;
+    XLSX.writeFile(wb, filename, { bookType: 'xlsx' });
+
+    this.setTransientMessage(`Archivo exportado: ${filename}`);
+  }
+
+  async onImportFile(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!this.canEdit || this.saving()) {
+      input.value = '';
+      return;
+    }
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const firstSheet = wb.SheetNames?.[0];
+      if (!firstSheet) {
+        this.error.set('El archivo no contiene hojas.');
+        return;
+      }
+
+      const ws = wb.Sheets[firstSheet];
+      const matrix = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, raw: false, defval: '' });
+      if (!matrix.length) {
+        this.error.set('El archivo esta vacio.');
+        return;
+      }
+
+      const header = this.findImportHeader(matrix);
+      if (!header) {
+        this.error.set('No se encontro encabezado valido. Requiere "clave_cnis" (o "clave") y "cpm".');
+        return;
+      }
+
+      const incoming = new Map<string, { cpm: number; descripcion?: string; presentacion?: string }>();
+      let invalidCount = 0;
+      let duplicateCount = 0;
+
+      for (let i = header.headerIndex + 1; i < matrix.length; i++) {
+        const row = matrix[i] ?? [];
+        const clave = String(row[header.idxClave] ?? '').trim().toUpperCase();
+        if (!clave) continue;
+
+        const cpmRaw = String(row[header.idxCpm] ?? '').trim().replace(',', '.');
+        const cpm = Number(cpmRaw);
+        if (!Number.isFinite(cpm) || cpm < 0) {
+          invalidCount++;
+          continue;
+        }
+
+        if (incoming.has(clave)) duplicateCount++;
+        incoming.set(clave, {
+          cpm,
+          descripcion: header.idxDescripcion >= 0 ? String(row[header.idxDescripcion] ?? '').trim() : '',
+          presentacion: header.idxPresentacion >= 0 ? String(row[header.idxPresentacion] ?? '').trim() : '',
+        });
+      }
+
+      if (!incoming.size) {
+        this.error.set('No se encontraron filas validas para importar.');
+        return;
+      }
+
+      const current = [...this.rows()];
+      const byClave = new Map(current.map((r, idx) => [r.clave_cnis.toUpperCase(), idx] as const));
+      let updated = 0;
+      let created = 0;
+
+      for (const [clave, payload] of incoming.entries()) {
+        const idx = byClave.get(clave);
+        if (idx !== undefined) {
+          const row = { ...current[idx] };
+          row.cpm = payload.cpm;
+          row._dirty = true;
+          row._invalid = Number.isNaN(payload.cpm) || payload.cpm < 0 || (!!row._isNew && payload.cpm === 0);
+          if (payload.descripcion) row.descripcion = payload.descripcion;
+          if (payload.presentacion) row.presentacion = payload.presentacion;
+          current[idx] = row;
+          updated++;
+          continue;
+        }
+
+        const meta = this.findMetaByClave(clave);
+        current.push({
+          clave_cnis: clave,
+          cpm: payload.cpm,
+          fuente: 'manual',
+          descripcion: payload.descripcion || meta?.descripcion || '',
+          presentacion: payload.presentacion || meta?.presentacion || '',
+          _dirty: true,
+          _invalid: Number.isNaN(payload.cpm) || payload.cpm < 0 || payload.cpm === 0,
+          _isNew: true,
+          _originalCpm: 0,
+          _originalFuente: 'manual',
+        });
+        created++;
+      }
+
+      this.rows.set(current.sort((a, b) => String(a.clave_cnis).localeCompare(String(b.clave_cnis))));
+
+      const notes: string[] = [];
+      if (invalidCount > 0) notes.push(`${invalidCount} fila(s) invalidas omitidas`);
+      if (duplicateCount > 0) notes.push(`${duplicateCount} duplicada(s), se tomo la ultima`);
+      this.error.set('');
+      this.setTransientMessage(
+        `Importadas ${incoming.size} clave(s): ${updated} actualizadas, ${created} nuevas.${notes.length ? ' ' + notes.join('. ') + '.' : ''}`,
+        6000
+      );
+    } catch (err: any) {
+      this.error.set(err?.message ?? 'No fue posible importar el archivo.');
+    } finally {
+      input.value = '';
+    }
+  }
+
+  private findImportHeader(matrix: any[][]): { headerIndex: number; idxClave: number; idxCpm: number; idxDescripcion: number; idxPresentacion: number } | null {
+    const norm = (v: any) => String(v ?? '').trim().toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '_');
+
+    const isClave = (k: string) => ['clave_cnis', 'clave', 'cnis'].includes(k);
+    const isCpm = (k: string) => k === 'cpm';
+    const isDescripcion = (k: string) => ['descripcion', 'desc'].includes(k);
+    const isPresentacion = (k: string) => ['presentacion', 'unidad_medida', 'unidad'].includes(k);
+
+    const maxScan = Math.min(matrix.length, 12);
+    for (let i = 0; i < maxScan; i++) {
+      const header = (matrix[i] ?? []).map(norm);
+      const idxClave = header.findIndex(isClave);
+      const idxCpm = header.findIndex(isCpm);
+      if (idxClave < 0 || idxCpm < 0) continue;
+
+      return {
+        headerIndex: i,
+        idxClave,
+        idxCpm,
+        idxDescripcion: header.findIndex(isDescripcion),
+        idxPresentacion: header.findIndex(isPresentacion),
+      };
+    }
+    return null;
   }
 
   private setTransientMessage(text: string, ttlMs = 3500) {
