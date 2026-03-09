@@ -1,5 +1,7 @@
 # Solicitudes / Abasto — Frontend (Angular) 🧭
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/535335da-fd93-4921-a7b8-ec283ab42fda/deploy-status)](https://app.netlify.com/projects/imssb-bc/deploys)
+
 Aplicación **Angular (standalone + signals, zoneless, OnPush)** para capturar y administrar **solicitudes de insumos** con soporte de **KIT**, **CPMs por unidad**, **existencias temporales** y **autocomplete enriquecido**. UI simple y funcional con **TailwindCSS**.
 
 > Nota: Este frontend consume el backend descrito en el README del servidor (endpoints `/api`).
