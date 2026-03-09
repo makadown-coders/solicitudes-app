@@ -1,6 +1,6 @@
 ﻿// src/app/features/solicitudes/solicitudes.component.ts
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
-import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, firstValueFrom, map, Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
@@ -27,6 +27,7 @@ import { ExistenciasTempService } from '../../services/existencias-temp.service'
 import { KitModalComponent } from './kit-modal/kit-modal.component';
 import { CpmUnionRow } from '../../models/CpmUnionRow';
 import { CpmModalComponent } from './cpm-modal/cpm-modal.component';
+import { CpmEditModalComponent } from './cpm-edit-modal/cpm-edit-modal.component';
 import { FactorUnidad } from '../../models';
 import { TrazabilidadService } from '../../services/trazabilidad.service';
 import { SolicitudesBitacoraService } from '../../services/solicitudes/solicitudes-bitacora.service';
@@ -46,6 +47,7 @@ import { environment } from '../../../environments/environment';
     RouterModule,
     KitModalComponent,
     CpmModalComponent,
+    CpmEditModalComponent,
     HomologoSugerenciaModalComponent,
     HomologoResumenImportacionComponent
   ],
@@ -107,7 +109,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // behaviorSubject para desuscribirme de todos los observables
   private onDestroy$ = new Subject<void>();
-  private flags = inject(FeatureFlagsService);
+  private featureFlagsService = inject(FeatureFlagsService);
   // cachecito opcional para no pedir siempre
   private surveyFlagCache = new Map<string, boolean>();
 
@@ -172,6 +174,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   inventario: Inventario[] = [];
   inventarioDisponible: InventarioDisponibles[] = [];
   cpmsDeCluesActual: CPMS[] = [];
+  canEditCpms = false;
 
   async ngOnInit() {
     if (this.router.url === '/solicitudv1') {
@@ -217,6 +220,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         this.loadExistenciasUnidad(cluesimb);
       }
     }
+    await this.loadEditCpmsFlag();
 
     this.searchSubject.pipe(debounceTime(1000), takeUntil(this.onDestroy$))
       .subscribe(texto => {
@@ -881,11 +885,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     const enProduccion = environment.production;
     const payload = this.bitacoraService.buildPayload(this.datosClues, items, this.modoStandalone);
 
-    // TODO: consoles temporales que estarán en producción en lo que se resuelve el bug
-    console.log('Payload:', payload);
-    console.log('Entorno producción:', enProduccion);
     if (payload && enProduccion ) {
-      console.log('Payload válido, registrando en bitácora...');
       await this.bitacoraService.registrar(payload);
     }
 
@@ -1224,7 +1224,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     try {
-      const flags = await this.flags.getEffective({ cluesimb, nivel });
+      const flags = await this.featureFlagsService.getEffective({ cluesimb, nivel });
       const allowed = !!flags['APLICAR_ENCUESTAS'];
       this.surveyFlagCache.set(cacheKey, allowed);
       return allowed;
@@ -1277,11 +1277,33 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
     try {
       // const eff = await this.flags.getEffective({ cluesimb, nivel });
-      const eff = await this.flags.getEffective({ cluesimb });
+      const eff = await this.featureFlagsService.getEffective({ cluesimb });
       return !!eff['IMPORT_LIMIT_TO_KIT'];
     } catch {
       // si no se pudo consultar el flag, no bloquees (comportamiento actual)
       return false;
+    }
+  }
+
+  private async loadEditCpmsFlag(): Promise<void> {
+    const cluesimb =
+      this.datosClues?.hospital?.cluesimb ||
+      (JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}')?.hospital?.cluesimb ?? '');
+    const nivel: Nivel = this.estaCapturandoPrimerNivel() ? 'PRIMER_NIVEL' : 'SEGUNDO_NIVEL';
+
+    if (!cluesimb) {
+      this.canEditCpms = false;
+      return;
+    }
+
+    try {
+      const eff = await this.featureFlagsService.getEffective({ cluesimb, nivel });
+      this.canEditCpms = !!eff['EDIT_CPMS'];
+    } catch {
+      // fail-closed para no exponer edicion por error de flags
+      this.canEditCpms = false;
+    } finally {
+      this.cdRef.detectChanges();
     }
   }
 
@@ -1316,12 +1338,65 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   /*************************************************************************************/
   kitModalVisible = false;
   cpmModalVisible = false;
+  cpmEditModalVisible = signal(false);
 
   /** PARA MODAL DE CLAVES POR CPM */
   abrirCpmModal() {
     // forzar recarga de this.datosClues de localstorageService porque este componente no lo recarga
     this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
     this.cpmModalVisible = true;
+  }
+
+  async abrirCpmEditModal() {
+    this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
+    await this.loadEditCpmsFlag();
+
+    if (!this.canEditCpms) {
+      this.toast.warn({
+        title: 'No autorizado',
+        content: 'La edicion de CPM no esta habilitada para esta unidad.',
+        duration: 5
+      });
+      this.cpmEditModalVisible.set(false);
+      return;
+    }
+
+    this.cpmEditModalVisible.set(true);
+  }
+
+  async onCpmEditUpdated() {
+    if (!this.cluesimbActual) return;
+    try {
+      const rows = await firstValueFrom(this.cpmService.refreshForCluesimb(this.cluesimbActual));
+      this.cpmsDeCluesActual = this.mapCpmRowsToCPMS(rows as any, this.cluesimbActual);
+
+      this.cpmIndex.clear();
+      for (const r of this.cpmsDeCluesActual) {
+        this.cpmIndex.set(this.normClave(r.clave), Number(r.cantidad) || 0);
+      }
+
+      // sincroniza CPM ya capturado en la solicitud sin alterar cantidades
+      this.articulosSolicitados = this.articulosSolicitados.map(art => ({
+        ...art,
+        cpm: this.cpmIndex.get(this.normClave(art.clave)) ?? 0
+      }));
+      this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados)
+      );
+
+      this.toast.success({
+        title: 'CPM actualizado',
+        content: 'Se refresco la captura con los nuevos CPM de la unidad.',
+        duration: 4
+      });
+      this.cdRef.detectChanges();
+    } catch {
+      this.toast.warn({
+        title: 'Aviso',
+        content: 'Se guardaron cambios, pero no se pudo refrescar CPM en pantalla.',
+        duration: 5
+      });
+    }
   }
 
   /** PARA MODAL DE CLAVES DE KIT */

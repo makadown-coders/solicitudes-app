@@ -5,6 +5,15 @@
       Solicitud de artículos {{ modoStandalone ? '' : ('para ' + (tituloUnidad$ | async)) }}
     </h1>
 
+    @if (canEditCpms) {
+        <button
+          class="self-start px-3 py-2 text-white text-sm bg-teal-700 cursor-pointer rounded hover:bg-teal-600 sm:self-auto"
+          title="Editar CPMs de esta unidad"
+          aria-label="Editar CPMs de esta unidad"
+          (click)="abrirCpmEditModal()">
+          <span aria-hidden="true">✏️</span> CPMs
+        </button>
+      }
     <div class="justify-items-end">
       <button
         class="self-start px-3 py-2 text-white text-sm bg-emerald-700 cursor-pointer rounded hover:bg-emerald-500 sm:self-auto"
@@ -225,4 +234,13 @@
             [existingClaves]="existingClavesList" (addToSolicitud)="onKitAdd($event)"
             (close)="cpmModalVisible=false">
           </app-cpm-modal>
+        }
+
+        @if (cpmEditModalVisible()) {
+          <app-cpm-edit-modal [cluesimb]="cluesimbActual"
+            [canEdit]="canEditCpms"
+            [tituloUnidad]="modoStandalone ? '' : (tituloUnidad$ | async) || ''" [mostrarUnidadEnTitulo]="!modoStandalone"
+            (updated)="onCpmEditUpdated()"
+            (close)="cpmEditModalVisible.set(false)">
+          </app-cpm-edit-modal>
         }

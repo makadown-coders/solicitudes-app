@@ -1,4 +1,9 @@
 <app-loader-overlay></app-loader-overlay>
+@if (showLegacyOsWarning) {
+  <div class="legacy-os-warning">
+    Aviso: este sistema operativo no esta soportado oficialmente; la aplicacion podria verse o funcionar de forma limitada.
+  </div>
+}
 <router-outlet />
 <div class="z-[99999] fixed inset-0 pointer-events-none">
     <ng-fast-toast></ng-fast-toast>

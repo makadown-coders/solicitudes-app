@@ -112,11 +112,24 @@ export class CitasService {
             /*if (cita.unidad?.trim().length == 0) {
               cita.unidad = this.mapCluesUnidad.get(cita.clues_destino) ?? '';
             }*/
-            if (cita.unidad?.trim() == 'Almacén Zona Ensenada') {
-              cita.unidad = cita.unidad.toLocaleUpperCase();
+            if (cita.unidad?.trim() == 'Almacén Zona Ensenada' ||
+              cita.unidad?.trim() == 'ALMACEN ZONA ENSENADA') {
+              cita.unidad = 'ALMACÉN ZONA ENSENADA';
             }
-            if (cita.unidad?.trim() == 'ALMACÉN DE MEXICALI') {
+            if (cita.unidad?.trim() == 'ALMACÉN DE MEXICALI' ||
+              cita.unidad?.trim() == 'ALMACEN DE MEXICALI') {
               cita.unidad = 'ALMACÉN ZONA MEXICALI';
+            }
+            if (cita.unidad?.trim() == 'ALMACEN TIJUANA' ||
+              cita.unidad?.trim() == 'ALMACÉN TIJUANA' ||
+              cita.unidad?.trim() == 'ALMACEN ZONA TIJUANA') {
+              cita.unidad = 'ALMACÉN ZONA TIJUANA';
+            }
+            if (cita.unidad?.trim() == 'UNEME DE ONCOLOGIA' ||
+              cita.unidad?.trim() == 'UNEME ONCOLOGIA' ||
+              cita.unidad?.trim() == 'UNEME ONCOLOGÍA'
+            ) {
+              cita.unidad = 'UNEME DE ONCOLOGÍA';
             }
             if (cita.fecha_recepcion_almacen == null || cita.fecha_recepcion_almacen?.trim().length == 0) {
               // asignar fecha_recepcion_min pero sin el formato UTC (T00:00:00Z)
@@ -199,6 +212,7 @@ export class CitasService {
           if (decompressed) {
             const parsed = JSON.parse(decompressed) as { ts: number; data: CitaQueryResponse };
             if (this.isCacheValid(parsed) && parsed.data) {
+              console.log('👉 Devolviendo citas desde cache');
               // 👇 Devolvemos observable “frío” desde cache
               return of(parsed.data);
             }
@@ -236,13 +250,27 @@ export class CitasService {
               cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logístico') {
               cita.tipo_de_entrega = 'Operador Logístico';
             }
-            if (cita.unidad?.trim() == 'Almacén Zona Ensenada') {
-              cita.unidad = cita.unidad.toLocaleUpperCase();
+            if (cita.unidad?.trim() == 'Almacén Zona Ensenada' ||
+              cita.unidad?.trim() == 'ALMACEN ZONA ENSENADA') {
+              cita.unidad = 'ALMACÉN ZONA ENSENADA';
             }
-            if (cita.unidad?.trim() == 'ALMACÉN DE MEXICALI') {
+            if (cita.unidad?.trim() == 'ALMACÉN DE MEXICALI' ||
+              cita.unidad?.trim() == 'ALMACEN DE MEXICALI') {
               cita.unidad = 'ALMACÉN ZONA MEXICALI';
             }
-            if (cita.fecha_recepcion_almacen == null || cita.fecha_recepcion_almacen?.trim().length == 0) {
+            if (cita.unidad?.trim() == 'ALMACEN TIJUANA' ||
+              cita.unidad?.trim() == 'ALMACÉN TIJUANA' ||
+              cita.unidad?.trim() == 'ALMACEN ZONA TIJUANA') {
+              cita.unidad = 'ALMACÉN ZONA TIJUANA';
+            }
+            if (cita.unidad?.trim() == 'UNEME DE ONCOLOGIA' ||
+              cita.unidad?.trim() == 'UNEME ONCOLOGIA' ||
+              cita.unidad?.trim() == 'UNEME ONCOLOGÍA'
+            ) {
+              cita.unidad = 'UNEME DE ONCOLOGÍA';
+            }
+            if ( (cita.fecha_recepcion_almacen == null || cita.fecha_recepcion_almacen?.trim().length == 0
+                 && cita.fecha_recepcion_min) ) {
               cita.fecha_recepcion_almacen = cita.fecha_recepcion_min?.substring(0, 10) || null;
             }
             cita.unidad = cita.unidad.toLocaleUpperCase();
@@ -259,6 +287,7 @@ export class CitasService {
           } catch (e) {
             console.warn('No se pudo guardar cache de citas', e);
           }
+          console.log('👉 Devolviendo citas desde backend y actualizando cache');
 
           return resp;
         })
@@ -293,26 +322,26 @@ export class CitasService {
 
   /**
    * En vias de deprecación!
-   * @param base64 
-   * @returns 
+   * @param base64
+   * @returns
    */
   /*  obtenerCitasDeBase64(base64: string): Cita[] {
-  
+
       // console.info('🔁 Obteniendo info con Power Automate');
       let citasRetorno: Cita[] = [];
       let fila: any = null;
       let citaProcesando: any = null;
       let corriendoCiclo = false;
       let corriendoCicloCitas = false;
-  
+
       try {
-  
+
         // 1. Convertir Base64 a ArrayBuffer
         const arrayBuffer = this.excelService.base64ToArrayBuffer(base64);
-  
+
         const rows: CitaRow[] = this.excelService.obtenerCitasDeExcel(arrayBuffer);
         // console.info('🔁 Procesando', rows.length, 'filas.');
-  
+
         let headerLeido = false;
         let renglon = 0;
         corriendoCiclo = true;
@@ -354,9 +383,9 @@ export class CitasService {
             (this.fechaService.excelDateToDatestring(fila[19]));
           const fechaLimiteEntrega = fila[19];
           const piezasRecibidas = fila[20];
-          // Condiciono a que la fecha de recepción siempre sea null 
+          // Condiciono a que la fecha de recepción siempre sea null
           // si no tiene numero de remision (fila[22]) porque están intimamente ligados
-          
+
           const fechaRecepcionAlmacen =
             fila[22] === null ? null :
               (fila[21] instanceof Date ? fila[21] :
@@ -382,9 +411,9 @@ export class CitasService {
           const fechaCita = (fila[30] instanceof Date ?
             fila[30] :
             (this.fechaService.excelDateToDatestring(fila[30] + '')))! as Date | null;
-          // columnas 31 y 32 no se usan en el excel        
+          // columnas 31 y 32 no se usan en el excel
           // const observacion = fila[33];
-  
+
           const nuevoRegistro: Cita = new Cita();
           nuevoRegistro.ejercicio = ejercicio;
           nuevoRegistro.orden_de_suministro = ordenSuministro;
@@ -420,14 +449,14 @@ export class CitasService {
           nuevoRegistro.carga = carga ?? null;
           nuevoRegistro.fecha_de_cita = fechaCita;
           //nuevoRegistro.observacion = observacion;
-  
+
           citasRetorno.push(nuevoRegistro);
         }
-  
+
         corriendoCiclo = false;
-  
+
         // console.info(`✅ Datos cargados desde Power Automate. Total: ${citasRetorno.length} registros.`);
-  
+
         corriendoCicloCitas = true;
         // creando rapidamente un map para relacion entre clues_destino y unidad
         // donde unidad no tenga valor vacío
@@ -438,7 +467,7 @@ export class CitasService {
             this.mapCluesUnidad.set(cita.clues_destino, cita.unidad);
           }
         });
-  
+
         // Corrigiendo inconsistencias:
         // En tipo_de_entrega reemplacemos la palabra "operador logísitico" por "operador lógistico"
         citasRetorno.forEach((cita: Cita) => {
@@ -456,7 +485,7 @@ export class CitasService {
           }
         });
         corriendoCicloCitas = false;
-  
+
       } catch (err: any) {
         console.error('❌ CitasService.obtenerCitasDePowerAutomate() - Error al obtener de power automate:', err);
         if (corriendoCiclo) {

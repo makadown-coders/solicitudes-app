@@ -11,4 +11,13 @@ import { LoaderOverlayComponent } from './core/loader/loader-overlay.component';
 })
 export class AppComponent {
   title = 'solicitudes-app';
+  readonly showLegacyOsWarning = this.isLegacyOs();
+
+  private isLegacyOs(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+
+    // Windows 7/8/8.1 -> NT 6.1 / 6.2 / 6.3
+    return /Windows NT 6\.(1|2|3)/i.test(ua);
+  }
 }

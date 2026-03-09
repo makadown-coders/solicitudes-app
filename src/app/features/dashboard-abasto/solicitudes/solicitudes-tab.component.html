@@ -81,40 +81,60 @@
                     <th class="px-3 py-2">CLUES</th>
                     <th class="px-3 py-2">Tipo pedido</th>
                     <th class="px-3 py-2">Tipo(s) insumo</th>
-                    <th class="px-3 py-2">Periodo</th>
-                    <th class="px-3 py-2 text-right">Renglones</th>
+                    <th class="px-3 py-2 w-28">Periodo</th>
+                    <th class="px-3 py-2 text-right">Claves</th>
                     <th class="px-3 py-2 text-right">Piezas</th>
-                    <th class="px-3 py-2"></th>
+                    <th class="px-3 py-2 w-28"></th>
                 </tr>
             </thead>
-
             <tbody>
                 @for (r of rowsView(); track r.id) {
                 <tr class="border-b hover:bg-green-50 dark:hover:bg-black">
-                    <td class="px-3 py-2 whitespace-nowrap">{{ $index + 1 }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap font-extralight">{{ $index + 1 }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ r.created_day }}</td>
-                    <td class="px-3 py-2 font-medium whitespace-nowrap">{{ r.cluesimb }} - {{
+                    <td class="px-3 py-2 max-w-80 font-medium">{{ r.cluesimb }} - {{
                         getDescripcionUnidad(r.cluesimb) }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ r.tipo_pedido }}</td>
                     <td class="px-3 py-2">{{ (r.tipos_insumo).join(' - ') }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">{{ r.periodo_texto ?? '—' }}</td>
+                    <td class="px-3 py-2 max-w-[7rem] whitespace-nowrap truncate" [title]="r.periodo_texto ?? '-'">{{ r.periodo_texto ?? '-' }}</td>
                     <td class="px-3 py-2 text-right">{{ r.total_renglones }}</td>
                     <td class="px-3 py-2 text-right">{{ r.total_piezas }}</td>
-                    <td class="px-3 py-2 text-right">
-                        <button class="px-3 py-1 text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90"
-                            [title]="'Detalle para ' + r.cluesimb + ' · ' + r.created_day" (click)="abrirDetalle(r)">
-                            🧾
-                        </button>
-                        <button class="px-3 py-1 text-white bg-blue-600 rounded-lg cursor-pointer hover:opacity-90"
-                            [title]="'Movimientos para ' + r.cluesimb + ' · ' + r.created_day + ' (30d)'"
-                            (click)="abrirMovimientosDesdeSolicitud(30, r)">
-                            🚚
-                        </button>
-                        <button class="px-3 py-1 text-white bg-[#CBA135] rounded-lg cursor-pointer hover:opacity-90"
-                            [title]="'Mini-balanceador para ' + r.cluesimb + ' · ' + r.created_day"
-                            (click)="abrirMiniBalanceo(r)">
-                            ⚖️
-                        </button>
+                    <td class="px-3 py-2">
+                        <div class="hidden md:flex items-center justify-end gap-1 min-w-[10rem] whitespace-nowrap">
+                            <button class="px-1 py-1 text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90"
+                                [title]="'Detalle para ' + r.cluesimb + ' - ' + r.created_day" (click)="abrirDetalle(r)">
+                                &#128196;
+                            </button>
+                            <button class="px-1 py-1 text-white bg-blue-600 rounded-lg cursor-pointer hover:opacity-90"
+                                [title]="'Movimientos para ' + r.cluesimb + ' - ' + r.created_day + ' (30d)'"
+                                (click)="abrirMovimientosDesdeSolicitud(30, r)">
+                                &#128666;
+                            </button>
+                            <button class="px-1 py-1 text-white bg-[#CBA135] rounded-lg cursor-pointer hover:opacity-90"
+                                [title]="'Mini-balanceador para ' + r.cluesimb + ' - ' + r.created_day"
+                                (click)="abrirMiniBalanceo(r)">
+                                &#9878;
+                            </button>
+                        </div>
+
+                        <div class="relative flex justify-end md:hidden">
+                            <button class="px-2 py-1 text-white bg-slate-600 rounded-lg cursor-pointer hover:opacity-90"
+                                [title]="'Acciones para ' + r.cluesimb + ' - ' + r.created_day"
+                                (click)="toggleMobileActions(r.id)">
+                                ...
+                            </button>
+
+                            @if (mobileActionsOpenId() === r.id) {
+                            <div class="absolute right-0 top-full z-10 mt-1 py-1 w-44 bg-white rounded-lg border shadow-lg dark:bg-[#1a202c]">
+                                <button class="block px-3 py-2 w-full text-sm text-left cursor-pointer hover:bg-slate-100 dark:hover:bg-black/30"
+                                    (click)="abrirDetalle(r); closeMobileActions()">Detalle</button>
+                                <button class="block px-3 py-2 w-full text-sm text-left cursor-pointer hover:bg-slate-100 dark:hover:bg-black/30"
+                                    (click)="abrirMovimientosDesdeSolicitud(30, r); closeMobileActions()">Movimientos (30d)</button>
+                                <button class="block px-3 py-2 w-full text-sm text-left cursor-pointer hover:bg-slate-100 dark:hover:bg-black/30"
+                                    (click)="abrirMiniBalanceo(r); closeMobileActions()">Mini-balanceador</button>
+                            </div>
+                            }
+                        </div>
                     </td>
                 </tr>
                 }
@@ -280,7 +300,7 @@
                                     —
                                     }
                                 </td>
-                                
+
                             </tr>
                             }
 
@@ -359,7 +379,7 @@
 
     @if (radarCrearVisible()) {
     <div class="z-[60] fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
-        <div class="p-5 w-full max-w-3xl bg-white rounded-xl border shadow-xl dark:bg-[#1a202c]">
+        <div class="p-5 w-full max-w-3xl bg-white rounded-xl shadow-xl border dark:bg-[#1a202c]">
             <div class="flex items-center justify-between">
                 <h4 class="text-lg font-semibold text-green-800 dark:text-[#CBA135]">
                     Crear evento de vigilancia en Radar de Desabasto
@@ -411,7 +431,7 @@
                 <div class="mb-1 text-xs text-slate-500 dark:text-slate-300">
                     Claves que se incluirán en el evento ({{ getComparativaRiesgoRowsOrdenadoPorClave().length }})
                 </div>
-                <div class="text-sm text-slate-700 dark:text-slate-200 max-h-28 overflow-auto">
+                <div class="overflow-auto max-h-28 text-sm text-slate-700 dark:text-slate-200">
                     @for (r of getComparativaRiesgoRowsOrdenadoPorClave(); track r.clave) {
                     <div class="py-0.5">
                         <b>{{ r.clave }}</b> · Cobertura {{ r.cumplimientoPct }}% · Faltante {{ r.diferencia }}

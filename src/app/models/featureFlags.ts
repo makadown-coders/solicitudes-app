@@ -5,7 +5,8 @@ export type FlagKey =
   | 'APLICAR_ENCUESTAS'
   | 'APLICAR_EQUIVALENCIAS'
   | 'CLUES_EXISTENCIAS_ALLOWLIST'
-  | 'IMPORT_LIMIT_TO_KIT'; 
+  | 'IMPORT_LIMIT_TO_KIT'
+  | 'EDIT_CPMS';
 
 export type FlagScope = 'global' | 'nivel' | 'clues';
 

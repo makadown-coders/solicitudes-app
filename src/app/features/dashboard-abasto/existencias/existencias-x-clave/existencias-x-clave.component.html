@@ -97,7 +97,8 @@
                       }
                       @if (cita.fecha_recepcion_almacen) {
                         <lucide-icon [img]="circleCheck"
-                        class="flex-shrink-0 w-6 h-6 text-green-600"></lucide-icon>
+                          class="flex-shrink-0 w-6 h-6 text-green-600">
+                        </lucide-icon>
                       }
                       <div>
                         <p class="font-bold text-xs"> {{ (i+1) + ')' }} #{{ cita.orden_de_suministro }}</p>
@@ -130,10 +131,9 @@
                           Límite: {{ cita.fecha_limite_de_entrega | date:'dd/MM/yyyy' }}
                         </span>
                       }
-                      @if (cita.fecha_de_cita && cita.estatus !== 'Completo') {
-                        <span class="px-2 py-1 text-xs border rounded"
-                          [ngClass]="getColorClase(cita.fecha_de_cita)">
-                          Cita: {{ cita.fecha_de_cita | date:'dd/MM/yyyy' }}
+                      @if ( cita.estatus === 'Proceso de cancelación' ) {
+                        <span class="px-2 py-1 text-xs bg-red-300 border rounded">
+                          En {{cita.estatus | lowercase}}
                         </span>
                       }
                     </div>

@@ -1,7 +1,8 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
-  name: 'maxLength'
+  name: 'maxLength',
+  standalone: true
 })
 export class MaxLengthPipe implements PipeTransform {
   transform(value: string, maxLength: number): string {

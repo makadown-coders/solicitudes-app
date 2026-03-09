@@ -126,7 +126,7 @@ export class CpmEditorComponent {
         if (!v) return;
 
         const existing = this.rows().some(x => x.clave_cnis.trim().toLowerCase() === v.toLowerCase());
-        if (existing) { window.alert('Esa clave ya estÃ¡ en la lista.'); return; }
+        if (existing) { window.alert('Esa clave ya está en la lista.'); return; }
 
         await this.loadArtMapIfNeeded();
         const found = this.findArticuloMetaByClave(v);

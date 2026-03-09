@@ -85,3 +85,70 @@ export type RadarListarEventosResponse = {
   data: RadarEventoHeader[];
 };
 
+export type RadarGlobalSolicitudRow = {
+  id: string;
+  created_day: string;
+  created_at: string;
+  cluesimb: string;
+  tipo_pedido: string;
+  tipos_insumo: string;
+  periodo_texto: string | null;
+  total_renglones: number;
+  total_piezas: number;
+};
+
+export type RadarGlobalSnapshotResponse = {
+  mode: 'snapshot';
+  page: number;
+  pageSize: number;
+  total: number;
+  summary: {
+    total_combinaciones: number;
+    total_renglones: number;
+    total_piezas: number;
+  };
+  data: RadarGlobalSolicitudRow[];
+};
+
+export type RadarGlobalTimelineResponse = {
+  mode: 'timeline';
+  months: number;
+  page: number;
+  pageSize: number;
+  total: number;
+  summary: {
+    total_registros: number;
+    total_renglones: number;
+    total_piezas: number;
+  };
+  data: RadarGlobalSolicitudRow[];
+};
+
+export type RadarGlobalClaveRiesgoRow = {
+  cluesimb: string;
+  clave: string;
+  solicitado_periodo: number;
+  renglones_solicitados: number;
+  existencia_actual: number;
+  consumo_promedio: number;
+  dias_cobertura: number | null;
+  entradas_30d: number;
+  salidas_30d: number;
+  ultima_solicitud: string | null;
+  puntaje_desabasto: number;
+  nivel_desabasto: 'CRITICO' | 'ALTO' | 'MEDIO' | 'BAJO';
+  puntaje_sobreabasto: number;
+  nivel_sobreabasto: 'ALTO' | 'MEDIO' | 'BAJO';
+};
+
+export type RadarGlobalClavesRiesgoResponse = {
+  mode: 'claves-riesgo';
+  window: { months: number };
+  page: number;
+  pageSize: number;
+  total: number;
+  data: RadarGlobalClaveRiesgoRow[];
+  top_desabasto: RadarGlobalClaveRiesgoRow[];
+  top_sobreabasto: RadarGlobalClaveRiesgoRow[];
+};
+

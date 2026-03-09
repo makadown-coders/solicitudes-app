@@ -1,3 +1,4 @@
+// src/app/shared/articulo-autocomplete/articulo-autocomplete.component.ts
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';

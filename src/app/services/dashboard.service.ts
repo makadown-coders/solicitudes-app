@@ -37,7 +37,7 @@ export class DashboardService {
   /**
    * En vias de deprecación / refactorización
    */
-  // public citas$: Observable<Cita[]> = this.citasSubject.asObservable();  
+  // public citas$: Observable<Cita[]> = this.citasSubject.asObservable();
   private resumenCitasSubject = new BehaviorSubject<Cita[]>([]);
   public resumenCitas$ = this.resumenCitasSubject.asObservable();
 
@@ -90,7 +90,7 @@ export class DashboardService {
     this.http.get<{ data: Cita[] }>(`${environment.apiUrl}/citas`, { params })
       .subscribe({
         next: (resp) => {
-          resp?.data?.forEach((cita: Cita) => {            
+          resp?.data?.forEach((cita: Cita) => {
             if (cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logísitico' ||
               cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logistico' ||
               cita.tipo_de_entrega?.trim().toLowerCase() === 'operador logístico') {
@@ -99,11 +99,24 @@ export class DashboardService {
             /*if (cita.unidad?.trim().length == 0) {
               cita.unidad = this.mapCluesUnidad.get(cita.clues_destino) ?? '';
             }*/
-            if (cita.unidad?.trim() == 'Almacén Zona Ensenada') {
-              cita.unidad = cita.unidad.toLocaleUpperCase();
+            if (cita.unidad?.trim() == 'Almacén Zona Ensenada' ||
+                cita.unidad?.trim() == 'ALMACEN ZONA ENSENADA') {
+              cita.unidad = 'ALMACÉN ZONA ENSENADA';
             }
-            if(cita.unidad?.trim() == 'ALMACÉN DE MEXICALI') {
+            if (cita.unidad?.trim() == 'ALMACÉN DE MEXICALI' ||
+                cita.unidad?.trim() == 'ALMACEN DE MEXICALI') {
               cita.unidad = 'ALMACÉN ZONA MEXICALI';
+            }
+            if (cita.unidad?.trim() == 'ALMACEN TIJUANA' ||
+                cita.unidad?.trim() == 'ALMACÉN TIJUANA' ||
+                cita.unidad?.trim() == 'ALMACEN ZONA TIJUANA') {
+              cita.unidad = 'ALMACÉN ZONA TIJUANA';
+            }
+            if (cita.unidad?.trim() == 'UNEME DE ONCOLOGIA' ||
+                cita.unidad?.trim() == 'UNEME ONCOLOGIA' ||
+                cita.unidad?.trim() == 'UNEME ONCOLOGÍA'
+              ) {
+              cita.unidad = 'UNEME DE ONCOLOGÍA';
             }
             if (cita.fecha_recepcion_almacen == null || cita.fecha_recepcion_almacen?.trim().length == 0) {
               // asignar fecha_recepcion_min pero sin el formato UTC (T00:00:00Z)

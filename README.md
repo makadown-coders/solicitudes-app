@@ -1,8 +1,27 @@
 # Solicitudes / Abasto — Frontend (Angular) 🧭
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/535335da-fd93-4921-a7b8-ec283ab42fda/deploy-status)](https://app.netlify.com/projects/imssb-bc/deploys)
+
 Aplicación **Angular (standalone + signals, zoneless, OnPush)** para capturar y administrar **solicitudes de insumos** con soporte de **KIT**, **CPMs por unidad**, **existencias temporales** y **autocomplete enriquecido**. UI simple y funcional con **TailwindCSS**.
 
 > Nota: Este frontend consume el backend descrito en el README del servidor (endpoints `/api`).
+
+![Browser baseline](https://img.shields.io/badge/browser%20baseline-March%202025%2B-1f7a1f)
+![Policy](https://img.shields.io/badge/policy-release%20date%20based-0b57d0)
+
+## Browser compatibility
+
+Esta app esta orientada a navegadores con versiones lanzadas desde **marzo de 2025** en adelante.
+
+Para reducir ambiguedad, una referencia practica aproximada es:
+- Chrome: **134+**
+- Edge: **134+**
+- Firefox: **136+**
+- Safari: **18.4+**
+
+La referencia por numero puede cambiar con el tiempo; el criterio oficial es siempre la **fecha de lanzamiento (marzo 2025+)**.
+
+> No se garantiza soporte en sistemas operativos fuera de mantenimiento (por ejemplo, Windows 7/8/8.1), incluso si el navegador instalado abre la aplicación.
 
 ---
 
@@ -239,7 +258,7 @@ Facilita pedidos ordinarios y extraordinarios, con validaciones, precargas y exp
 | **Referente Técnico-Operativo** *(Lineamientos de Abasto)* | Lic. Elia Del Carmen Rojas Villalas / Lic. Abril Núñez Madrid |
 | **Diseño y Desarrollo Tecnológico** | Ing. Mario Arturo Serrano Flores |
 
-<p align="center">© 2025 IMSS Bienestar – Baja California</p>
+<p align="center">© 2026 IMSS Bienestar – Baja California</p>
 
 
 ---

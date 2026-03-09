@@ -7,6 +7,9 @@ import {
   RadarCrearEventoResponse,
   RadarEventoDetalle,
   RadarEstadoEvento,
+  RadarGlobalClavesRiesgoResponse,
+  RadarGlobalSnapshotResponse,
+  RadarGlobalTimelineResponse,
   RadarListarEventosResponse,
   RadarRiesgoNivel
 } from '../models/radar-abasto/RadarAbastoModels';
@@ -66,6 +69,69 @@ export class RadarAbastoService {
         `${environment.apiUrl}/radar-abasto/eventos/${id}/recalcular`,
         {}
       )
+    );
+  }
+
+  async listarGlobalSnapshot(params: {
+    clues?: string;
+    tipo_pedido?: string;
+    tipos_insumo?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<RadarGlobalSnapshotResponse> {
+    let p = new HttpParams();
+    if (params.clues) p = p.set('clues', params.clues);
+    if (params.tipo_pedido) p = p.set('tipo_pedido', params.tipo_pedido);
+    if (params.tipos_insumo) p = p.set('tipos_insumo', params.tipos_insumo);
+    if (params.page) p = p.set('page', String(params.page));
+    if (params.pageSize) p = p.set('pageSize', String(params.pageSize));
+
+    return await firstValueFrom(
+      this.http.get<RadarGlobalSnapshotResponse>(`${environment.apiUrl}/radar-abasto/global/snapshot`, { params: p })
+    );
+  }
+
+  async listarGlobalTimeline(params: {
+    clues?: string;
+    tipo_pedido?: string;
+    tipos_insumo?: string;
+    months?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<RadarGlobalTimelineResponse> {
+    let p = new HttpParams();
+    if (params.clues) p = p.set('clues', params.clues);
+    if (params.tipo_pedido) p = p.set('tipo_pedido', params.tipo_pedido);
+    if (params.tipos_insumo) p = p.set('tipos_insumo', params.tipos_insumo);
+    if (params.months) p = p.set('months', String(params.months));
+    if (params.page) p = p.set('page', String(params.page));
+    if (params.pageSize) p = p.set('pageSize', String(params.pageSize));
+
+    return await firstValueFrom(
+      this.http.get<RadarGlobalTimelineResponse>(`${environment.apiUrl}/radar-abasto/global/timeline`, { params: p })
+    );
+  }
+
+  async listarGlobalClavesRiesgo(params: {
+    clues?: string;
+    tipo_pedido?: string;
+    tipos_insumo?: string;
+    months?: number;
+    minSolicitado?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<RadarGlobalClavesRiesgoResponse> {
+    let p = new HttpParams();
+    if (params.clues) p = p.set('clues', params.clues);
+    if (params.tipo_pedido) p = p.set('tipo_pedido', params.tipo_pedido);
+    if (params.tipos_insumo) p = p.set('tipos_insumo', params.tipos_insumo);
+    if (params.months) p = p.set('months', String(params.months));
+    if (params.minSolicitado != null) p = p.set('minSolicitado', String(params.minSolicitado));
+    if (params.page) p = p.set('page', String(params.page));
+    if (params.pageSize) p = p.set('pageSize', String(params.pageSize));
+
+    return await firstValueFrom(
+      this.http.get<RadarGlobalClavesRiesgoResponse>(`${environment.apiUrl}/radar-abasto/global/claves-riesgo`, { params: p })
     );
   }
 }
