@@ -8,7 +8,6 @@ import { CommonModule } from '@angular/common';
 import { Cita } from '../../../models/Cita';
 import { PeriodoFechasService } from '../../../shared/periodo-fechas.service';
 import { FormsModule } from '@angular/forms';
-import { PeriodoPickerDasboardComponent } from '../../../shared/periodo-picker/periodo-picker-dashboard.component';
 import { DetalleCitaModalComponent } from '../../../shared/detalle-cita-modal/detalle-cita-modal.component';
 import { StorageVariables } from '../../../shared/storage-variables';
 import { CitaQueryResponse } from '../../../models/CitaQueryResponse';
@@ -27,7 +26,7 @@ interface GrupoUnidad {
 @Component({
   selector: 'app-citas-pendientes',
   standalone: true,
-  imports: [CommonModule, FormsModule, PeriodoPickerDasboardComponent, DetalleCitaModalComponent],
+  imports: [CommonModule, FormsModule, DetalleCitaModalComponent],
   templateUrl: './citas-pendientes.component.html',
   styleUrls: ['./citas-pendientes.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush

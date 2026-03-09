@@ -1,8 +1,9 @@
 <!-- src/app/features/solicitudes/kit-modal/kit-modal.component.html -->
 <!-- Loader inicial (skeleton) -->
 @if (loading) {
-<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-  <div class="relative p-4 w-full max-w-4xl bg-white rounded-lg shadow-lg">
+<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50" (click)="cerrar()">
+  <div class="relative p-4 w-full max-w-4xl bg-white rounded-lg shadow-lg" (click)="$event.stopPropagation()"
+    role="dialog" aria-modal="true" aria-labelledby="kit-modal-title" tabindex="-1" #modalDialog>
     <h3 class="text-lg font-semibold text-emerald-700">
       Cargando... Espere un momento...
     </h3>
@@ -43,15 +44,16 @@
 <!-- Contenido real (se muestra al terminar la carga) -->
 @if (!loading) {
 <!-- Modal: Claves del KIT (con existencias) -->
-<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-  <div class="relative p-4 w-full max-w-4xl bg-white rounded-lg shadow-lg">
+<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50" (click)="cerrar()">
+  <div class="relative p-4 w-full max-w-4xl bg-white rounded-lg shadow-lg" (click)="$event.stopPropagation()"
+    role="dialog" aria-modal="true" aria-labelledby="kit-modal-title" tabindex="-1" #modalDialog>
     <!-- Top progress para tareas breves -->
     @if (busy) {
     <div class="progress indeterminate">
       <div class="bar"></div>
     </div>
     }
-    <h3 class="text-lg font-semibold text-emerald-700">
+    <h3 id="kit-modal-title" class="text-lg font-semibold text-emerald-700">
       Claves del KIT {{ mostrarUnidadEnTitulo && tituloUnidad ? ('para ' + tituloUnidad) : '' }}
     </h3>
     <!-- Encabezado: filtros y acciones -->
@@ -91,7 +93,7 @@
         </div>
         }
         <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-          <input type="checkbox" [ngModel]="verPorAlmacen" (ngModelChange)="verPorAlmacen = $event" />
+          <input type="checkbox" [ngModel]="verPorAlmacen" (ngModelChange)="setVerPorAlmacen($event)" />
           Ver existencias en AZM/AZE/AZT
         </label>
         <!-- Existencias por unidad (si hay staging en tmp_existencias) -->
@@ -184,9 +186,9 @@
             }
             <th class="px-2 py-1 w-[6rem] text-right border-b">Total</th>
             <!-- Existencias por unidad + reorden -->
-            <!-- @if (showUnidadExist && hasUnidadExistencias) { -->
+            @if (showUnidadExist && hasUnidadExistencias) {
             <th class="px-2 py-1 w-[7rem] text-right border-b">Cant. sugerida a solicitar</th>
-           <!--  } -->
+            }
           </tr>
         </thead>
         <tbody>
@@ -227,13 +229,13 @@
               </span>
             </td>
             <!-- Existencias por unidad + reorden -->
-            <!-- @if (showUnidadExist && hasUnidadExistencias) { -->
+            @if (showUnidadExist && hasUnidadExistencias) {
             <td class="px-2 py-1 text-right border-b">
               <span [class]="(r.reordenSug || 0) > 0 ? 'text-amber-700 font-semibold' : 'text-gray-500'">
                 {{ (r.reordenSug || 0) | number }}
               </span>
             </td>
-            <!-- } -->
+            }
           </tr>
           }
           @if (!kitRows.length) {
@@ -259,7 +261,7 @@
       cargados recientemente.
     </p>
     }
-    <button (click)="cerrar()"
+    <button (click)="cerrar()" aria-label="Cerrar modal de KIT"
       class="absolute top-2 right-2 text-gray-500 text-lg font-bold cursor-pointer hover:text-gray-700">×</button>
   </div>
 </div>
