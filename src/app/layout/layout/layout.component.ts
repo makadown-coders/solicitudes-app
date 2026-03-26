@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnChange
 import { CapturaCluesComponent } from '../../features/captura-clues/captura-clues.component';
 import { SolicitudesComponent } from '../../features/solicitudes/solicitudes.component';
 import { DatosClues } from '../../models/datos-clues';
-import { LucideAngularModule, CircleHelp, RefreshCcwDotIcon, LoaderIcon, InfoIcon } from 'lucide-angular';
+import { LucideAngularModule, CircleHelp, RefreshCcwDotIcon, LoaderIcon, InfoIcon, BookOpenIcon } from 'lucide-angular';
 import { InventarioService } from '../../services/inventario.service';
 import { StorageSolicitudService } from '../../services/storage-solicitud.service';
 import { Router } from '@angular/router';
@@ -38,9 +38,11 @@ import { Unidadv2 } from '../../models';
 })
 export class LayoutComponent implements OnInit, OnChanges {
   acercaDeVisible = false;
+  readonly faqUrl = 'https://imssb-bc-help.netlify.app/posts/preguntas-frecuentes-%E2%80%93-herramienta-de-solicitudes/';
   title: Title = inject(Title);
   readonly CircleHelp = CircleHelp;
   readonly InfoIcon = InfoIcon;
+  readonly BookOpenIcon = BookOpenIcon;
   readonly RefreshCCWDotIcon = RefreshCcwDotIcon;
   readonly LoaderIcon = LoaderIcon;
   activeTab: 'clues' | 'solicitud' = 'clues';

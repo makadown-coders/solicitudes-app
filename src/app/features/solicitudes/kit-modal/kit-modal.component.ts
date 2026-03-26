@@ -1,6 +1,6 @@
 // src/app/features/solicitudes/kit-modal/kit-modal.component.ts
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnInit, Output, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
@@ -26,6 +26,9 @@ import { TrazabilidadService } from '../../../services/trazabilidad.service';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class KitModalComponent implements OnInit {
+    private static readonly UI_PREFS_KEY = 'solicitudes.kitModal.uiPrefs';
+    @ViewChild('modalDialog') modalDialogRef?: ElementRef<HTMLDivElement>;
+
     // ===== Inputs =====
     /** CLUES IMB de la unidad (para existencias temporales y asegurar CPMs) */
     @Input() cluesimb: string = '';
@@ -92,6 +95,7 @@ export class KitModalComponent implements OnInit {
 
     // ===== Ciclo de vida =====
     async ngOnInit() {
+        this.loadUiPrefs();
         // invIndex local desde inventarioDisponible
         this.invIndex.clear();
         this.descIndex.clear();
@@ -112,6 +116,11 @@ export class KitModalComponent implements OnInit {
         await this.ensureDescripcionIndex();
         await this.loadKit();             // construye filas CPM + AZM/AZE/AZT
         this.loadExistenciasForUnit();    // mezcla existencias por unidad + reorden
+    }
+
+    @HostListener('document:keydown.escape')
+    onEscapeKey() {
+        this.cerrar();
     }
 
     // ===== Construcción de filas del KIT =====
@@ -167,6 +176,8 @@ export class KitModalComponent implements OnInit {
             this.existUnidadIndex.clear();
             this.hasUnidadExistencias = false;
             for (const r of this.kitRows) { delete r.existUnidad; delete r.reordenSug; }
+            this.loading = false;
+            this.focusDialog();
             this.cdRef.markForCheck();
             return;
         }
@@ -195,12 +206,14 @@ export class KitModalComponent implements OnInit {
                 this.hasUnidadExistencias = this.existUnidadIndex.size > 0;
                 this.mergeExistenciasIntoKit();
                 this.loading = false;
+                this.focusDialog();
             },
             error: () => {
                 this.existUnidadIndex.clear();
                 this.hasUnidadExistencias = false;
                 for (const r of this.kitRows) { delete r.existUnidad; delete r.reordenSug; }
                 this.loading = false;
+                this.focusDialog();
                 this.cdRef.markForCheck();
             }
         });
@@ -455,15 +468,22 @@ export class KitModalComponent implements OnInit {
     normClave(v: string | null | undefined) {
         return this.invSvc.normalizarClave((v ?? '').toString().toUpperCase());
     }
+    setVerPorAlmacen(v: boolean) {
+        this.verPorAlmacen = !!v;
+        this.saveUiPrefs();
+        this.cdRef.markForCheck();
+    }
     toggleMasOpciones() { this.mostrarMasOpciones = !this.mostrarMasOpciones; this.cdRef.markForCheck(); }
     setShowUnidadExist(v: boolean) {
-        this.showUnidadExist = v;
+        this.showUnidadExist = !!v;
+        this.saveUiPrefs();
         this.busy = true;
         this.cdRef.markForCheck();
         this.busy = false;
     }
     setMesesCobertura(n: number) {
         this.mesesCobertura = Math.max(1, Math.floor(n || 1));
+        this.saveUiPrefs();
         // if (this.hasUnidadExistencias)
         this.mergeExistenciasIntoKit();
     }
@@ -537,6 +557,43 @@ export class KitModalComponent implements OnInit {
             const cpmEff = this.getCpmEfectivo(r);
             r.reordenSug = this.computeReorden(cpmEff, exist);
         }
+    }
+
+    private loadUiPrefs() {
+        try {
+            const raw = localStorage.getItem(KitModalComponent.UI_PREFS_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw) as Partial<{
+                verPorAlmacen: boolean;
+                showUnidadExist: boolean;
+                mesesCobertura: number;
+            }>;
+
+            if (typeof parsed.verPorAlmacen === 'boolean') this.verPorAlmacen = parsed.verPorAlmacen;
+            if (typeof parsed.showUnidadExist === 'boolean') this.showUnidadExist = parsed.showUnidadExist;
+            if (typeof parsed.mesesCobertura === 'number' && Number.isFinite(parsed.mesesCobertura)) {
+                this.mesesCobertura = Math.max(1, Math.floor(parsed.mesesCobertura));
+            }
+        } catch {
+            // noop: si el JSON está dañado, usar defaults
+        }
+    }
+
+    private saveUiPrefs() {
+        try {
+            const payload = {
+                verPorAlmacen: this.verPorAlmacen,
+                showUnidadExist: this.showUnidadExist,
+                mesesCobertura: this.mesesCobertura
+            };
+            localStorage.setItem(KitModalComponent.UI_PREFS_KEY, JSON.stringify(payload));
+        } catch {
+            // noop: no bloquear UI por fallos de localStorage
+        }
+    }
+
+    private focusDialog() {
+        setTimeout(() => this.modalDialogRef?.nativeElement.focus(), 0);
     }
 
 }
