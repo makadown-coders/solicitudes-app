@@ -20,6 +20,9 @@
       <button (click)="mostrarAcercaDe()" title="Acerca de esta aplicación">
         <lucide-angular [img]="InfoIcon" [color]="'#006341'" class="mr-2 mt-1 w-6 h-6 cursor-pointer" />
       </button>
+      <a [href]="faqUrl" target="_blank" rel="noopener noreferrer" title="Preguntas frecuentes">
+        <lucide-angular [img]="BookOpenIcon" [color]="'#006341'" class="mr-2 mt-1 w-6 h-6 cursor-pointer" />
+      </a>
       <!-- Ícono de ayuda -->
       <button (click)="mostrarGuia()" title="Ayuda contextual">
         <lucide-angular [img]="CircleHelp" [color]="'#006341'" class="mr-2 mt-1 w-6 h-6 cursor-pointer" />
@@ -192,6 +195,12 @@ class="absolute top-2 right-2 text-gray-500 text-lg font-bold hover:text-gray-70
             No sustituye ni reemplaza sistemas institucionales oficiales.
             Las decisiones y validaciones deben sustentarse en la información emitida por los sistemas y áreas
             responsables.
+          </p>
+          <p>
+            <a [href]="faqUrl" target="_blank" rel="noopener noreferrer"
+              class="font-medium text-green-700 underline underline-offset-2 hover:text-green-800">
+              Consultar preguntas frecuentes de la herramienta
+            </a>
           </p>
         </div>
         <!-- Alcance de datos (llamado visual) -->
