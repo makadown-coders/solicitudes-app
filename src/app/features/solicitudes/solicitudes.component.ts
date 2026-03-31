@@ -320,24 +320,14 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   buscarEnDB(texto: string) {
-    this.buscarArticulosConFallback(texto);
+    this.buscarArticulosBackend(texto);
   }
 
   estaCapturandoPrimerNivel() {
     return this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL;
   }
 
-  buscarArticulosConFallback(texto: string) {
-    const timestampFallback = localStorage.getItem('usarFallbackLocal');
-    const ahora = Date.now();
-    const unDiaMs = 24 * 60 * 60 * 1000;
-
-    if (timestampFallback && ahora - Number(timestampFallback) < unDiaMs) {
-      // ðŸ” Usa fallback directamente
-      this.usarBusquedaLocal(texto);
-      return;
-    }
-
+  buscarArticulosBackend(texto: string) {
     // ðŸ”Œ Intenta con backend koyeb
     this.articulosService.buscarArticulos(texto).subscribe({
       next: (data) => {
@@ -358,34 +348,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         setTimeout(() => this.focusSelectedItem(), 0);
       },
       error: (error) => {
-        console.warn('⚠️ Backend no disponible, usando fallback por 24h');
-        localStorage.setItem('usarFallbackLocal', ahora.toString());
-        this.usarBusquedaLocal(texto);
-      }
-    });
-  }
-
-  usarBusquedaLocal(texto: string) {
-    this.articulosService.buscarArticulosv2(texto).subscribe({
-      next: (data) => {
-        const base = (data.resultados || []).sort((a, b) => a.clave.localeCompare(b.clave));
-        this.autocompleteResults = this.enrichWithExistencias(base);
-        if (this.hasUnidadExistencias) {
-          this.autocompleteResults = this.autocompleteResults.map(it => ({
-            ...it,
-            _existUnidad: this.existUnidadIndex.get(it.clave) ?? 0
-          }));
-        }
-        this.totalResults = data.total || 0;
-        this.moreResults = this.totalResults > 24;
-        this.selectedIndex = 0;
-        this.cdRef.detectChanges();
-        setTimeout(() => this.focusSelectedItem(), 0);
-      },
-      error: (fallbackError) => {
-        console.error('Error en búsqueda local:', fallbackError);
+        console.error('Error en búsqueda de artículos:', error);
         this.autocompleteResults = [];
+        this.selectedIndex = -1;
+        this.moreResults = false;
         this.totalResults = 0;
+        this.cdRef.detectChanges();
       }
     });
   }
@@ -1187,7 +1155,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   autocompletarDatos() {
-    this.articulosService.getArticulosCatalogoLocalMap().subscribe({
+    this.articulosService.getArticulosMapa().subscribe({
       next: (catalogo) => {
         for (const art of this.articulosSolicitados) {
           const encontrado = catalogo[(art.clave || '').toUpperCase()];
