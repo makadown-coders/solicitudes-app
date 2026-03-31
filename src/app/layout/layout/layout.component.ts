@@ -147,7 +147,7 @@ export class LayoutComponent implements OnInit, OnChanges {
     this.solicitudService.setDatosCluesInLocalStorage(JSON.stringify(datos));
     const cluesimb = datos?.hospital?.cluesimb || '';
 
-    if (cluesimb) this.cpmService.ensureForCluesimb(cluesimb, { force: true }).subscribe();
+    if (cluesimb) this.cpmService.ensureForCluesimb(cluesimb).subscribe();
     this.cdRef.detectChanges();
   }
 
@@ -163,7 +163,7 @@ export class LayoutComponent implements OnInit, OnChanges {
 
     // al pasar a la pestaña 2, asegura valores de CPM de la unidad actual
     const cluesimb = this.datosClues?.hospital?.cluesimb || '';
-    if (cluesimb) this.cpmService.ensureForCluesimb(cluesimb, { force: true }).subscribe();
+    if (cluesimb) this.cpmService.ensureForCluesimb(cluesimb).subscribe();
     this.cdRef.detectChanges();
   }
 

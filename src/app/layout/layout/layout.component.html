@@ -34,17 +34,19 @@
   </div>
 
   <ng-container>
-    <div [hidden]="activeTab !== 'clues'" class="transition-opacity duration-300"
-      [class.opacity-100]="activeTab === 'clues'" [class.opacity-0]="activeTab !== 'clues'">
+    @if (activeTab === 'clues') {
+    <div class="transition-opacity duration-300 opacity-100">
       <app-captura-clues (datosCapturados)="onDatosCluesCapturados($event)" (irASolicitud)="irASolicitud()" />
     </div>
+    }
   </ng-container>
 
   <ng-container>
-    <div [hidden]="activeTab !== 'solicitud'" class="transition-opacity duration-300"
-      [class.opacity-100]="activeTab === 'solicitud'" [class.opacity-0]="activeTab !== 'solicitud'">
+    @if (activeTab === 'solicitud') {
+    <div class="transition-opacity duration-300 opacity-100">
       <app-solicitudes />
     </div>
+    }
   </ng-container>
 </div>
 

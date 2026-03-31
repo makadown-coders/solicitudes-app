@@ -144,9 +144,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       try {
         municipio = (JSON.parse(raw || '{}')?.hospital?.municipio) ?? '';
       } catch { /* noop */ }
-      const temp = [...this.articulosSolicitados];
-      this.articulosSolicitados = [];
-      this.articulosSolicitados = temp;
 
       const esPrimerNivel =
         this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL;
@@ -279,33 +276,39 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   calcularInventarioDisponible() {
-    this.inventarioDisponible = [];
-    this.invIndex.clear(); // â¬…ï¸ importante
+    const disponiblePorClave = new Map<string, InventarioDisponibles>();
+    this.invIndex.clear();
 
-    const arregloClavesInventario = this.inventario.map(item => item.clave);
-    arregloClavesInventario.forEach(clave => {
-      const existencia: InventarioDisponibles = {
-        clave: clave,
-        existenciasAZM: 0,
-        existenciasAZE: 0,
-        existenciasAZT: 0
-      };
-      const inventarioItem = this.inventario.filter(item => item.clave === clave);
-      inventarioItem.forEach(item => {
-        if (item.almacen.toLowerCase().includes('almacen estatal zona mexicali') ||
-          item.almacen.toLowerCase().includes('almacen zona mexicali')) {
-          existencia.existenciasAZM += item.disponible - item.comprometidos;
-        } else if (item.almacen.toLowerCase().includes('almacen zona ensenada')) {
-          existencia.existenciasAZE += item.disponible - item.comprometidos;
-        } else if (item.almacen.toLowerCase().includes('almacen zona tijuana')) {
-          existencia.existenciasAZT += item.disponible - item.comprometidos;
-        }
-      });
+    for (const item of this.inventario) {
+      const clave = item.clave;
+      let existencia = disponiblePorClave.get(clave);
 
-      this.inventarioDisponible.push(existencia);
-      // â¬‡ï¸ llenar Ã­ndice para consultas rápidas
-      this.invIndex.set(clave, existencia);
-    });
+      if (!existencia) {
+        existencia = {
+          clave,
+          existenciasAZM: 0,
+          existenciasAZE: 0,
+          existenciasAZT: 0
+        };
+        disponiblePorClave.set(clave, existencia);
+      }
+
+      const disponiblesNetos = item.disponible - item.comprometidos;
+      const almacen = (item.almacen || '').toLowerCase();
+
+      if (almacen.includes('almacen estatal zona mexicali') || almacen.includes('almacen zona mexicali')) {
+        existencia.existenciasAZM += disponiblesNetos;
+      } else if (almacen.includes('almacen zona ensenada')) {
+        existencia.existenciasAZE += disponiblesNetos;
+      } else if (almacen.includes('almacen zona tijuana')) {
+        existencia.existenciasAZT += disponiblesNetos;
+      }
+    }
+
+    this.inventarioDisponible = Array.from(disponiblePorClave.values());
+    for (const item of this.inventarioDisponible) {
+      this.invIndex.set(item.clave, item);
+    }
   }
 
   ngAfterViewInit(): void {
@@ -334,11 +337,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       this.usarBusquedaLocal(texto);
       return;
     }
-
-    // forzar recarga de this.datosClues de localstorageService porque este componente no lo recarga
-    this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
-    // forzo recarga
-    this.loadExistenciasUnidad(this.cluesimbActual);
 
     // ðŸ”Œ Intenta con backend koyeb
     this.articulosService.buscarArticulos(texto).subscribe({
@@ -1189,14 +1187,13 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   autocompletarDatos() {
-    this.articulosService.buscarArticulosv2('').subscribe({
-      next: (data) => {
-        const catalogo = data.resultados;
+    this.articulosService.getArticulosCatalogoLocalMap().subscribe({
+      next: (catalogo) => {
         for (const art of this.articulosSolicitados) {
-          const encontrado = catalogo.find(c => c.clave.toLowerCase() === art.clave.toLowerCase());
+          const encontrado = catalogo[(art.clave || '').toUpperCase()];
           if (encontrado) {
             art.descripcion = encontrado.descripcion;
-            art.unidadMedida = encontrado.unidadMedida;
+            art.unidadMedida = encontrado.presentacion ?? '';
             const cpm = this.cpmIndex.get(this.normClave(art.clave)) ?? 0;
             art.cpm = cpm;
           }
@@ -1311,18 +1308,16 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!cluesimb) { this.existUnidadIndex.clear(); return; }
 
     this.existTemp.byUnidad(cluesimb).subscribe(async rows => {
-      const idx = new Map<string, number>();
-      for (const r of rows) {
-        // obteniendo factor de conversion
+      const entries = await Promise.all(rows.map(async r => {
         const factor = await this.trazabilidadService
           .getFactorConversionPorUnidad(r.clave_cnis, cluesimb);
         if (factor && factor.cantidad_fc > 0 && r.existencia_total > 0) {
           const existenciaConvertida = (r.existencia_total) / factor.cantidad_fc;
-          idx.set(r.clave_cnis, Math.floor(existenciaConvertida));
-        } else {
-          idx.set(r.clave_cnis, r.existencia_total ?? 0);
+          return [r.clave_cnis, Math.floor(existenciaConvertida)] as const;
         }
-      }
+        return [r.clave_cnis, r.existencia_total ?? 0] as const;
+      }));
+      const idx = new Map<string, number>(entries);
       this.existUnidadIndex = idx;
 
       // Enriquecer el autocomplete actual (si ya hay resultados en pantalla)
@@ -1521,6 +1516,10 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   existingClavesList: string[] = [];
   private rebuildExistingClaves() {
     this.existingClavesList = this.articulosSolicitados.map(a => this.normClave(a.clave));
+  }
+
+  trackAutocompleteItem(_: number, item: any): string {
+    return item?.clave ?? '';
   }
 
   get cluesimbActual(): string {

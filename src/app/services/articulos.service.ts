@@ -25,6 +25,8 @@ export class ArticulosService {
   /** para Tab Solicitudes */
   private _articulosSolicitudMapaCache$: Observable<Record<string, any>> | null = null;
   private _articulosSolicitudMapaCacheKey: string | null = null;
+  private _articulosCatalogoLocalCache$: Observable<Articulo[]> | null = null;
+  private _articulosCatalogoLocalMapCache$: Observable<Record<string, Articulo>> | null = null;
 
   constructor(private http: HttpClient) {
     // this.cargarArticulosPrimerNivel();
@@ -56,7 +58,7 @@ export class ArticulosService {
   buscarArticulosv2(termino: string): Observable<{ resultados: ArticuloSolicitud[]; total: number }> {
     const filtro = termino.toLowerCase();
     // cargo los datos del json local en /public para no tener que hacer peticiones a la api de koyeb
-    return this.http.get<Articulo[]>('/articulos.json')
+    return this.getArticulosCatalogoLocal()
       .pipe(
         map((articulosData: Articulo[]) => {
           const resultados = articulosData.filter(art =>
@@ -78,6 +80,33 @@ export class ArticulosService {
           };
         })
       );
+  }
+
+  getArticulosCatalogoLocal(): Observable<Articulo[]> {
+    if (!this._articulosCatalogoLocalCache$) {
+      this._articulosCatalogoLocalCache$ = this.http.get<Articulo[]>('/articulos.json').pipe(
+        shareReplay(1)
+      );
+    }
+
+    return this._articulosCatalogoLocalCache$;
+  }
+
+  getArticulosCatalogoLocalMap(): Observable<Record<string, Articulo>> {
+    if (!this._articulosCatalogoLocalMapCache$) {
+      this._articulosCatalogoLocalMapCache$ = this.getArticulosCatalogoLocal().pipe(
+        map(arr => {
+          const mapa: Record<string, Articulo> = {};
+          for (const art of arr) {
+            mapa[(art.clave || '').toUpperCase()] = art;
+          }
+          return mapa;
+        }),
+        shareReplay(1)
+      );
+    }
+
+    return this._articulosCatalogoLocalMapCache$;
   }
 
   /** Por deprecar ahora se jalaria por postgres */
