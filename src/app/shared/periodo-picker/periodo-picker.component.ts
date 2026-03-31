@@ -1,3 +1,4 @@
+// src/app/shared/periodo-picker/periodo-picker.component.ts
 import { ChangeDetectorRef, Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PeriodoFechasService } from '../periodo-fechas.service';
@@ -216,7 +217,7 @@ export class PeriodoPickerComponent implements OnInit {
   }
 
   onMesCambiado(nuevoMes: number) {
-    this.mesElegido = +nuevoMes; // forzando a número porque viene como string quien sabe porqué :/ 
+    this.mesElegido = +nuevoMes; // forzando a número porque viene como string quien sabe porqué :/
     this.hoveredDate = null; // limpiar si estaba seleccionando
     this.recomputeValidity();
     this.cdRef.detectChanges();

@@ -186,7 +186,7 @@ export class CargaExistenciasComponent {
         const out: TempRow[] = [];
 
         for (const r of rows) {
-            let claveRaw = r[4]; // hacia columna E           
+            let claveRaw = r[4]; // hacia columna E
             if (this.isHeaderish(claveRaw)) continue;
             let colClues = 2; // hacia columna C (CLUES IMB)
             let colCant = 5; // hacia columna F
@@ -235,7 +235,7 @@ export class CargaExistenciasComponent {
         this.progress = 0;
 
         try {
-            // 0) antes de comenzar, validar que salusIRows no tenga [clave_cnis + cluesimb] alguna 
+            // 0) antes de comenzar, validar que salusIRows no tenga [clave_cnis + cluesimb] alguna
             // contenidas en sasRows o salusRows (evitar confusión de fuentes)
             const clavesEnSASySALUS = new Set<string>();
             for (const r of [...this.sasRows, ...this.salusRows]) {
@@ -243,7 +243,7 @@ export class CargaExistenciasComponent {
                     clavesEnSASySALUS.add(`${r.clave_cnis}||${r.cluesimb}`);
                 }
             }
-            // para salusIRows, si alguna [clave_cnis+cluesimb] está en clavesEnSASySALUS, 
+            // para salusIRows, si alguna [clave_cnis+cluesimb] está en clavesEnSASySALUS,
             // la excluimos de la carga (no se mezclan fuentes)
             this.salusIRows = this.salusIRows.filter(r => !clavesEnSASySALUS.has(`${r.clave_cnis}||${r.cluesimb}`));
 

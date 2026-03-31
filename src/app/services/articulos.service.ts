@@ -1,3 +1,4 @@
+// src/app/services/articulos.service.ts
 import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { HttpClient } from '@angular/common/http';
@@ -20,6 +21,10 @@ export class ArticulosService {
   /** para Tab Inventario en Dashboard abasto */
   private _articulosMapaCache: Record<string, { descripcion: string; presentacion?: string }> | null = null;
   private _articulosMapaCache$: Observable<Record<string, any>> | null = null;
+
+  /** para Tab Solicitudes */
+  private _articulosSolicitudMapaCache$: Observable<Record<string, any>> | null = null;
+  private _articulosSolicitudMapaCacheKey: string | null = null;
 
   constructor(private http: HttpClient) {
     // this.cargarArticulosPrimerNivel();
@@ -111,7 +116,7 @@ export class ArticulosService {
    * Para usarse en caso de emergencia.
    * @returns {Observable<Record<string, any>>} The map of clave: { descripcion, presentacion, categoria }.
    */
-  getArticulosMapa() {
+  getArticulosMapa(): Observable<Record<string, any>> {
     if (!this._articulosMapaCache$) {
       this._articulosMapaCache$ = this.http.get<{ resultados: ArticuloSolicitud[]; total: number }>(this.apiUrl+'/all').pipe(
         map( arr => {
@@ -131,6 +136,38 @@ export class ArticulosService {
     }
 
     return this._articulosMapaCache$;
+  }
+
+  getArticulosMapaByCluesIMBCPM(cluesimb: string): Observable<Record<string, any>> {
+    const key = (cluesimb || '').trim().toUpperCase();
+
+    if (!key) {
+      return of({});
+    }
+
+    if (!this._articulosSolicitudMapaCache$ || this._articulosSolicitudMapaCacheKey !== key) {
+      this._articulosSolicitudMapaCacheKey = key;
+      this._articulosSolicitudMapaCache$ = this.http
+        .get<{ resultados: ArticuloSolicitud[]; total: number }>(
+          `${this.apiUrl}/by-cluesimb-cpm?cluesimb=${encodeURIComponent(key)}`
+        )
+        .pipe(
+          map(arr => {
+            const mapa: Record<string, any> = {};
+            for (const a of arr.resultados) {
+              mapa[a.clave] = {
+                descripcion: a.descripcion,
+                presentacion: a.unidadMedida && a.unidadMedida !== '' ? a.unidadMedida : (a as any).presentacion ?? '',
+                categoria: (a as any).categoria ?? null,
+              };
+            }
+            return mapa;
+          }),
+          shareReplay(1)
+        );
+    }
+
+    return this._articulosSolicitudMapaCache$;
   }
 
   /**
