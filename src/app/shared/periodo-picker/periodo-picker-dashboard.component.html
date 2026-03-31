@@ -40,13 +40,13 @@
         </p>
       }
       <div class="grid grid-cols-7 gap-1 text-center">
-        @for (dia of ['D', 'L', 'M', 'M', 'J', 'V', 'S']; track dia) {
+        @for (dia of ['D', 'L', 'M', 'M', 'J', 'V', 'S']; track $index) {
           <span class="font-bold text-gray-600">{{ dia
           }}</span>
         }
         <!-- Generador simple de días del mes actual -->
         @let diasDelMes = getDiasDelMes();
-        @for (dia of diasDelMes; track dia) {
+        @for (dia of diasDelMes; track $index) {
           @let inicioOFin = dia && esInicioOFin(dia);
           @let hoverFin = dia && esHoverFin(dia);
           @let esBetween = dia && isBetween(dia);

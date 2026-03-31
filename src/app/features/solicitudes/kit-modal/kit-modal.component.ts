@@ -75,6 +75,7 @@ export class KitModalComponent implements OnInit {
     // ===== Filtro por KIT (nuevo) =====
     kitOptions: string[] = [];
     kitSeleccionado: string = ''; // '' = Todos
+    filterText: string = '';
 
     // selección
     private selectedSet = new Set<string>(); // claves normalizadas
@@ -87,7 +88,7 @@ export class KitModalComponent implements OnInit {
     // índice de descripciones para tooltip
     private descIndex = new Map<string, string>();
     // índice de unidad medida (presentacion de insumo) para tooltip
-    private unidadMedidaIndex = new Map<string, string>();
+    private presentacionIndex = new Map<string, string>();
     // estado
     loading = true;   // ← muestra skeleton al abrir
     busy = false;     // ← barrita cuando haces recálculos o fetch parciales
@@ -99,7 +100,7 @@ export class KitModalComponent implements OnInit {
         // invIndex local desde inventarioDisponible
         this.invIndex.clear();
         this.descIndex.clear();
-        this.unidadMedidaIndex.clear();
+        this.presentacionIndex.clear();
         for (const it of this.inventarioDisponible || []) {
             const k = this.normClave(it.clave);
             if (k) this.invIndex.set(k, it);
@@ -146,7 +147,16 @@ export class KitModalComponent implements OnInit {
                     const azt = inv?.existenciasAZT ?? 0;
                     const total = azm + aze + azt;
 
-                    return { clave, cpm, azm, aze, azt, total };
+                    return {
+                        clave,
+                        cpm,
+                        azm,
+                        aze,
+                        azt,
+                        total,
+                        descripcion: this.getDescFor(clave) ?? '',
+                        presentacion: this.getPresentacionFor(clave) ?? ''
+                    };
                 })
                 .sort((a, b) => a.clave.localeCompare(b.clave));
 
@@ -265,18 +275,22 @@ export class KitModalComponent implements OnInit {
     }
 
     get allFilteredSelected() {
-        return this.kitRows.length > 0 &&
-            this.kitRows.every(r => this.selectedSet.has(this.normClave(r.clave)));
+        return this.kitRowsFiltrados.length > 0 &&
+            this.kitRowsFiltrados.every(r => this.selectedSet.has(this.normClave(r.clave)));
     }
     get anyFilteredSelected() {
-        return this.kitRows.some(r => this.selectedSet.has(this.normClave(r.clave)));
+        return this.kitRowsFiltrados.some(r => this.selectedSet.has(this.normClave(r.clave)));
     }
     get someFilteredSelected() {
         return this.anyFilteredSelected && !this.allFilteredSelected;
     }
     toggleMasterSelection(checked: boolean) {
-        if (checked) for (const r of this.kitRows) this.selectedSet.add(this.normClave(r.clave));
-        else this.clearSelection();
+        if (checked) {
+            for (const r of this.kitRowsFiltrados) this.selectedSet.add(this.normClave(r.clave));
+            return;
+        }
+
+        for (const r of this.kitRowsFiltrados) this.selectedSet.delete(this.normClave(r.clave));
     }
 
     // ===== Acciones =====
@@ -331,11 +345,11 @@ export class KitModalComponent implements OnInit {
             nuevos.push({
                 clave,
                 descripcion: this.getDescFor(clave) ?? '',
-                unidadMedida: this.getUnidadMedidaFor(clave) ?? '',
+                unidadMedida: this.getPresentacionFor(clave) ?? '',
                 cantidad: qty,
                 cpm: r.cpm ?? 0,
                 observaciones: '',
-                presentacion: ''
+                presentacion: this.getPresentacionFor(clave) ?? ''
             });
         }
 
@@ -383,9 +397,6 @@ export class KitModalComponent implements OnInit {
             cols.push({ key: 'azt', header: 'AZT' });
         }
 
-        // Total siempre va
-        cols.push({ key: 'total', header: 'Total' });
-
         // Al final, si aplica, el reorden sugerido
         if (this.showUnidadExist && this.hasUnidadExistencias) {
             cols.push({ key: 'reordenSug', header: 'Cant. sugerida a solicitar' });
@@ -397,7 +408,7 @@ export class KitModalComponent implements OnInit {
     private buildExportMatrix() {
         const cols = this.getVisibleColumns();
         const headers = cols.map(c => c.header);
-        const rows = this.kitRows.map(r => cols.map(c => {
+        const rows = this.kitRowsFiltrados.map(r => cols.map(c => {
             const v = (r as any)[c.key];
             return v == null ? '' : String(v);
         }));
@@ -439,13 +450,12 @@ export class KitModalComponent implements OnInit {
     private async ensureDescripcionIndex() {
         if (this.descIndex.size > 0) return;
         try {
-            const resp = await firstValueFrom(this.artSvc.buscarArticulosv2(''));
-            const resultados: Array<{ clave: string; descripcion: string; unidadMedida: string }> = resp?.resultados ?? [];
-            for (const r of resultados) {
-                const k = this.normClave(r.clave);
+            const mapa = await firstValueFrom(this.artSvc.getArticulosMapa());
+            for (const [clave, meta] of Object.entries(mapa ?? {})) {
+                const k = this.normClave(clave);
                 if (k) {
-                    this.descIndex.set(k, (r.descripcion ?? '').toString());
-                    this.unidadMedidaIndex.set(k, (r.unidadMedida ?? '').toString());
+                    this.descIndex.set(k, (meta?.descripcion ?? '').toString());
+                    this.presentacionIndex.set(k, (meta?.presentacion ?? '').toString());
                 }
             }
         } catch { /* noop */ }
@@ -457,11 +467,11 @@ export class KitModalComponent implements OnInit {
         return (full.length > 130 ? full.slice(0, 130) + '…' : full);
     }
 
-    getUnidadMedidaFor(clave: string): string | null {
+    getPresentacionFor(clave: string): string | null {
         const k = this.normClave(clave);
-        const um = this.unidadMedidaIndex.get(k) || '';
-        if (!um) return null;
-        return um.length > 50 ? um.slice(0, 50) + '…' : um;
+        const presentacion = this.presentacionIndex.get(k) || '';
+        if (!presentacion) return null;
+        return presentacion.length > 70 ? presentacion.slice(0, 70) + '...' : presentacion;
     }
 
     // ===== Helpers =====
@@ -491,7 +501,14 @@ export class KitModalComponent implements OnInit {
     // === Filtro “virtual” (por ahora no hay filtros visibles) ===
     // Si en el futuro reactivas filtros/búsqueda, aquí es donde los aplicarías.
     get kitRowsFiltrados(): KitRow[] {
-        return this.kitRows;
+        const q = (this.filterText || '').trim().toLowerCase();
+        if (!q) return this.kitRows;
+
+        return this.kitRows.filter(r =>
+            (r.clave || '').toLowerCase().includes(q) ||
+            (r.descripcion || '').toLowerCase().includes(q) ||
+            (r.presentacion || '').toLowerCase().includes(q)
+        );
     }
 
     // === Botón inteligente de selección ===

@@ -38,7 +38,7 @@
         @if (autocompleteResults.length) {
           <ul
             class="overflow-auto z-10 absolute top-12 left-0 right-0 max-h-52 bg-white shadow-md border rounded">
-            @for (item of autocompleteResults; track item; let i = $index) {
+            @for (item of autocompleteResults; track trackAutocompleteItem($index, item); let i = $index) {
               <li #resultItem
                 [class.bg-gray-200]="i === selectedIndex" (click)="selectArticulo(item)"
                 class="p-2 cursor-pointer hover:bg-gray-200">

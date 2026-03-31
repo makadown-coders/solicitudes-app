@@ -3,6 +3,8 @@
 export type KitRow =
     {
         clave: string;
+        descripcion?: string;
+        presentacion?: string;
         cpm: number;
         azm: number;
         aze: number;

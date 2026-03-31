@@ -39,8 +39,8 @@ export const loaderInterceptor: HttpInterceptorFn = (req, next) => {
     customMessage = 'Procesando flags... espere un momento';
   }
 
-  if (cleanReq.url.includes('all')) {
-    customMessage = 'Cargando existencias con factor de conversión... espere un momento';
+  if (cleanReq.url.includes('all') || cleanReq.url.includes('by-cluesimb-cpm')) {
+    customMessage = 'Cargando existencias... espere un momento';
   }
 
   // customizar mensaje dependiendo de la api llamada

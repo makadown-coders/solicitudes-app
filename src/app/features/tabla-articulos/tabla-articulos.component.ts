@@ -13,7 +13,7 @@ import { InventarioService } from '../../services/inventario.service';
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
 import { AlertCircleIcon, InfoIcon, LucideAngularModule, TriangleAlertIcon } from 'lucide-angular';
 import { CpmService } from '../../services/cpm.service';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, Subscription, takeUntil } from 'rxjs';
 import { CpmUnionRow } from '../../models/CpmUnionRow';
 import { CpmRowLite } from '../../models/CpmExpectedRow';
 
@@ -51,6 +51,7 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
   inventarioService = inject(InventarioService);
   private cpmService = inject(CpmService);
   private onDestroy$ = new Subject<void>();
+  private cpmSubscription?: Subscription;
 
   constructor() {
     // console.log('constructor de TablaArticulosComponent');
@@ -59,6 +60,7 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.onDestroy$.next();
     this.onDestroy$.complete();
+    this.cpmSubscription?.unsubscribe();
   }
 
   /** true si la clave pertenece al KIT de la unidad actual */
@@ -110,7 +112,8 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
         const datosClues = JSON.parse(cluesStr) as DatosClues;
         this.cluesimbActual = datosClues.hospital?.cluesimb ?? '';
 
-        this.cpmService.cpmsForImport(this.cluesimbActual)
+        this.cpmSubscription?.unsubscribe();
+        this.cpmSubscription = this.cpmService.cpmsForImport(this.cluesimbActual)
           .pipe(takeUntil(this.onDestroy$))
           .subscribe((rows: CpmUnionRow[]) => {
             const clues = this.cluesimbActual;

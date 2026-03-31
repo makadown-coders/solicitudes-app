@@ -133,6 +133,7 @@ export class CargaExistenciasComponent {
                 fuente: 'SAS',
                 alias_sas: alias || null,
                 cluesimb,
+                cluessa: null,
                 clave_cnis: clave,
                 lote,
                 fecha_caducidad: fCad,
@@ -164,7 +165,7 @@ export class CargaExistenciasComponent {
 
             out.push({
                 fuente: 'SALUS',
-                cluessa,
+                cluessa: null,
                 cluesimb,
                 clave_cnis: clave,
                 lote,
@@ -186,7 +187,7 @@ export class CargaExistenciasComponent {
         const out: TempRow[] = [];
 
         for (const r of rows) {
-            let claveRaw = r[4]; // hacia columna E           
+            let claveRaw = r[4]; // hacia columna E
             if (this.isHeaderish(claveRaw)) continue;
             let colClues = 2; // hacia columna C (CLUES IMB)
             let colCant = 5; // hacia columna F
@@ -216,7 +217,7 @@ export class CargaExistenciasComponent {
 
             out.push({
                 fuente: 'SALUS', //'SALUS_INDICADORES',
-                cluessa,
+                cluessa: null,
                 cluesimb,
                 clave_cnis: clave,
                 lote,
@@ -235,7 +236,7 @@ export class CargaExistenciasComponent {
         this.progress = 0;
 
         try {
-            // 0) antes de comenzar, validar que salusIRows no tenga [clave_cnis + cluesimb] alguna 
+            // 0) antes de comenzar, validar que salusIRows no tenga [clave_cnis + cluesimb] alguna
             // contenidas en sasRows o salusRows (evitar confusión de fuentes)
             const clavesEnSASySALUS = new Set<string>();
             for (const r of [...this.sasRows, ...this.salusRows]) {
@@ -243,9 +244,23 @@ export class CargaExistenciasComponent {
                     clavesEnSASySALUS.add(`${r.clave_cnis}||${r.cluesimb}`);
                 }
             }
-            // para salusIRows, si alguna [clave_cnis+cluesimb] está en clavesEnSASySALUS, 
+            // para salusIRows, si alguna [clave_cnis+cluesimb] está en clavesEnSASySALUS,
             // la excluimos de la carga (no se mezclan fuentes)
             this.salusIRows = this.salusIRows.filter(r => !clavesEnSASySALUS.has(`${r.clave_cnis}||${r.cluesimb}`));
+
+            const seen = new Set<string>();
+            const takeUniqueByCluesimb = (rows: TempRow[]) =>
+                this.normalizeRowsForUpload(rows).filter(r => {
+                    const key = this.getClaveUnidadKey(r);
+                    if (!key) return true;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+
+            this.sasRows = takeUniqueByCluesimb(this.sasRows);
+            this.salusRows = takeUniqueByCluesimb(this.salusRows);
+            this.salusIRows = takeUniqueByCluesimb(this.salusIRows);
 
             // 1) reset (TRUNCATE)
             await firstValueFrom(this.svc.init(this.resetTable));
@@ -310,5 +325,25 @@ export class CargaExistenciasComponent {
             return isNaN(dt.getTime()) ? null : dt.toISOString().split('T')[0];
         }
         return null;
+    }
+
+    private normalizeRowsForUpload(rows: TempRow[]): TempRow[] {
+        return rows.map(r => ({
+            ...r,
+            cluessa: null,
+            cluesimb: this.normalizeCluesimb(r.cluesimb),
+        }));
+    }
+
+    private normalizeCluesimb(value: string | null | undefined): string | null {
+        const normalized = (value ?? '').toString().trim().toUpperCase();
+        return normalized || null;
+    }
+
+    private getClaveUnidadKey(row: TempRow): string | null {
+        const cluesimb = this.normalizeCluesimb(row.cluesimb);
+        const clave = this.inv.normalizarClave((row.clave_cnis ?? '').toString().toUpperCase());
+        if (!cluesimb || !clave) return null;
+        return `${clave}||${cluesimb}`;
     }
 }
