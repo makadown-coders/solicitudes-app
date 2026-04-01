@@ -248,19 +248,31 @@ export class CargaExistenciasComponent {
             // la excluimos de la carga (no se mezclan fuentes)
             this.salusIRows = this.salusIRows.filter(r => !clavesEnSASySALUS.has(`${r.clave_cnis}||${r.cluesimb}`));
 
-            const seen = new Set<string>();
-            const takeUniqueByCluesimb = (rows: TempRow[]) =>
-                this.normalizeRowsForUpload(rows).filter(r => {
+            this.sasRows = this.normalizeRowsForUpload(this.sasRows);
+            const sasKeys = new Set(
+                this.sasRows
+                    .map(r => this.getClaveUnidadKey(r))
+                    .filter((key): key is string => !!key)
+            );
+
+            this.salusRows = this.normalizeRowsForUpload(this.salusRows)
+                .filter(r => {
                     const key = this.getClaveUnidadKey(r);
-                    if (!key) return true;
-                    if (seen.has(key)) return false;
-                    seen.add(key);
-                    return true;
+                    return !key || !sasKeys.has(key);
                 });
 
-            this.sasRows = takeUniqueByCluesimb(this.sasRows);
-            this.salusRows = takeUniqueByCluesimb(this.salusRows);
-            this.salusIRows = takeUniqueByCluesimb(this.salusIRows);
+            const sasAndSalusKeys = new Set([
+                ...sasKeys,
+                ...this.salusRows
+                    .map(r => this.getClaveUnidadKey(r))
+                    .filter((key): key is string => !!key)
+            ]);
+
+            this.salusIRows = this.normalizeRowsForUpload(this.salusIRows)
+                .filter(r => {
+                    const key = this.getClaveUnidadKey(r);
+                    return !key || !sasAndSalusKeys.has(key);
+                });
 
             // 1) reset (TRUNCATE)
             await firstValueFrom(this.svc.init(this.resetTable));
