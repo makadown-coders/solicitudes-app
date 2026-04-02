@@ -5,6 +5,7 @@ import { LucideAngularModule, Filter, RefreshCcw, Search, SlidersHorizontal } fr
 import { CpmsDifObservacion, CpmsDifResponse, CpmsDifRow } from '../models';
 import { CpmsDifService } from '../cpms-dif.service';
 import { map, of, switchMap } from 'rxjs';
+import { ArticulosService } from '../../../services/articulos.service';
 
 @Component({
   standalone: true,
@@ -16,6 +17,8 @@ import { map, of, switchMap } from 'rxjs';
 export class DetalleComponent {
   data = signal<CpmsDifResponse<CpmsDifRow> | null>(null);
   cargando = signal(false);
+  private articulosMapa = signal<Record<string, { descripcion?: string; presentacion?: string }>>({});
+  private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   page = signal(1);
   limit = 20;
@@ -24,18 +27,20 @@ export class DetalleComponent {
   readonly filtroTexto = signal('');
 
   readonly rowsFiltradas = computed(() => {
-    const rows = this.data()?.rows ?? [];
-    const texto = this.filtroTexto().trim().toLowerCase();
-
-    return rows.filter((row) => {
-      const coincideTexto = !texto || [row.cluesimb, row.nombre_de_unidad, row.clave_cnis]
-        .some((value) => value.toLowerCase().includes(texto));
-
-      return coincideTexto;
-    });
+    return this.data()?.rows ?? [];
   });
 
-  constructor(private service: CpmsDifService) {
+  constructor(
+    private service: CpmsDifService,
+    private articulosService: ArticulosService
+  ) {
+    this.articulosService.getArticulosMapa().subscribe({
+      next: (mapa) => {
+        this.articulosMapa.set(mapa ?? {});
+        this.rehidratarDescripciones();
+      },
+      error: (err) => console.error('Error loading articulos map:', err)
+    });
     this.load();
   }
 
@@ -44,7 +49,8 @@ export class DetalleComponent {
     this.service.getDetalle({
       page: this.page(),
       limit: this.limit,
-      observacion: this.filtroObservacion()
+      observacion: this.filtroObservacion(),
+      search: this.filtroTexto().trim()
     }).pipe(
       switchMap((res) => {
         const requiereFallback = res.rows.some((row) => !row.nombre_de_unidad?.trim());
@@ -56,19 +62,16 @@ export class DetalleComponent {
               resumen.rows.map((row) => [row.cluesimb, row.nombre_de_unidad])
             );
 
-            return {
-              ...res,
-              rows: res.rows.map((row) => ({
-                ...row,
-                nombre_de_unidad: row.nombre_de_unidad?.trim() || unidadesPorClues.get(row.cluesimb) || row.nombre_de_unidad
-              }))
-            };
+            return this.enriquecerRows(res.rows, unidadesPorClues, res);
           })
         );
       })
     ).subscribe({
       next: res => {
-        this.data.set(res);
+        const unidadesPorClues = new Map(
+          (res.rows ?? []).map((row) => [row.cluesimb, row.nombre_de_unidad])
+        );
+        this.data.set(this.enriquecerRows(res.rows, unidadesPorClues, res));
         this.cargando.set(false);
       },
       error: err => {
@@ -98,6 +101,20 @@ export class DetalleComponent {
     this.load();
   }
 
+  onFiltroTextoChange(value: string) {
+    this.filtroTexto.set(value);
+    this.page.set(1);
+
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+
+    this.searchDebounceTimer = setTimeout(() => {
+      this.load();
+      this.searchDebounceTimer = null;
+    }, 300);
+  }
+
   trackByRow(index: number, row: CpmsDifRow) {
     return `${row.cluesimb}-${row.clave_cnis}-${row.observacion}-${index}`;
   }
@@ -122,4 +139,50 @@ export class DetalleComponent {
   readonly FilterIcon = Filter;
   readonly RefreshCcwIcon = RefreshCcw;
   readonly SlidersHorizontalIcon = SlidersHorizontal;
+
+  private enriquecerRows(
+    rows: CpmsDifRow[],
+    unidadesPorClues: Map<string, string>,
+    res: CpmsDifResponse<CpmsDifRow>
+  ): CpmsDifResponse<CpmsDifRow> {
+    return {
+      ...res,
+      rows: rows.map((row) => ({
+        ...row,
+        nombre_de_unidad: row.nombre_de_unidad?.trim() || unidadesPorClues.get(row.cluesimb) || row.nombre_de_unidad,
+        descripcion: row.descripcion?.trim() || this.getDescripcionClave(row.clave_cnis),
+      }))
+    };
+  }
+
+  private getDescripcionClave(rawClave: string): string {
+    const clave = String(rawClave || '').trim();
+    if (!clave) return '';
+
+    const mapa = this.articulosMapa();
+    return mapa[clave]?.descripcion
+      || mapa[clave.toUpperCase()]?.descripcion
+      || Object.entries(mapa).find(([k]) => k.toLowerCase() === clave.toLowerCase())?.[1]?.descripcion
+      || '';
+  }
+
+  private rehidratarDescripciones() {
+    const actual = this.data();
+    if (!actual?.rows?.length) return;
+
+    this.data.set({
+      ...actual,
+      rows: actual.rows.map((row) => ({
+        ...row,
+        descripcion: row.descripcion?.trim() || this.getDescripcionClave(row.clave_cnis),
+      }))
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
+  }
 }

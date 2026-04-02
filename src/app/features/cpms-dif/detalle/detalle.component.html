@@ -22,7 +22,7 @@
               class="w-full rounded-xl border border-slate-300 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
               placeholder="CLUES, nombre de unidad o clave CNIS"
               [ngModel]="filtroTexto()"
-              (ngModelChange)="filtroTexto.set($event)" />
+              (ngModelChange)="onFiltroTextoChange($event)" />
           </div>
         </label>
 
@@ -72,22 +72,23 @@
             <th class="px-4 py-4 font-semibold">Unidad</th>
             <th class="px-4 py-4 font-semibold">Nombre</th>
             <th class="px-4 py-4 font-semibold">Clave</th>
-            <th class="px-4 py-4 font-semibold text-right">CDMX</th>
-            <th class="px-4 py-4 font-semibold text-right">Propuesto</th>
+            <th class="px-4 py-4 font-semibold">Descripción</th>
+            <th class="px-4 py-4 font-semibold text-right">CPM CDMX</th>
+            <th class="px-4 py-4 font-semibold text-right">CPM Prop.</th>
             <th class="px-4 py-4 font-semibold text-right">Diferencia</th>
-            <th class="px-4 py-4 font-semibold">Estatus</th>
+            <th class="px-4 py-4 font-semibold">ACCION</th>
           </tr>
         </thead>
         <tbody>
           @if (cargando()) {
             <tr>
-              <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-500">
+              <td colspan="8" class="px-4 py-10 text-center text-sm text-slate-500">
                 Cargando diferencias...
               </td>
             </tr>
           } @else if (rowsFiltradas().length === 0) {
             <tr>
-              <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-500">
+              <td colspan="8" class="px-4 py-10 text-center text-sm text-slate-500">
                 No hay registros para los filtros actuales.
               </td>
             </tr>
@@ -97,13 +98,21 @@
                 <td class="px-4 py-4 align-top font-semibold text-slate-900">{{ r.cluesimb }}</td>
                 <td class="px-4 py-4 align-top text-slate-700">{{ r.nombre_de_unidad }}</td>
                 <td class="px-4 py-4 align-top font-mono text-xs text-slate-700">{{ r.clave_cnis }}</td>
+                <td class="px-4 py-4 align-top text-xs text-slate-600">{{ r.descripcion || '-' }}</td>
                 <td class="px-4 py-4 text-right align-top tabular-nums text-slate-800">{{ r.cpm_cdmx }}</td>
                 <td class="px-4 py-4 text-right align-top tabular-nums text-slate-800">{{ r.cpm_propuesto }}</td>
                 <td class="px-4 py-4 text-right align-top font-bold tabular-nums text-slate-900">{{ r.diferencia }}</td>
                 <td class="px-4 py-4 align-top">
-                  <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold tracking-wide" [ngClass]="badgeClasses(r.observacion)">
+                  <div class="inline-flex items-center gap-2">
+                    @if (r.observacion === 'MODIFICADO' && r.diferencia > 0) {
+                      <span class="text-base font-bold leading-none text-emerald-700" title="Incremento">↑</span>
+                    } @else if (r.observacion === 'MODIFICADO' && r.diferencia < 0) {
+                      <span class="text-base font-bold leading-none text-rose-700" title="Disminución">↓</span>
+                    }
+                    <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold tracking-wide" [ngClass]="badgeClasses(r.observacion)">
                     {{ r.observacion }}
-                  </span>
+                    </span>
+                  </div>
                 </td>
               </tr>
             }

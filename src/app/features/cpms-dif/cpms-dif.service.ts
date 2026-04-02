@@ -13,6 +13,7 @@ export class CpmsDifService {
     page?: number;
     limit?: number;
     observacion?: CpmsDifObservacion | '';
+    search?: string;
     cluesimb?: string;
   }) {
     const cleanParams = Object.fromEntries(

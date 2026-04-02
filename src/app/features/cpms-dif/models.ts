@@ -17,6 +17,7 @@ export interface CpmsDifRow {
   cluesimb: string;
   nombre_de_unidad: string;
   clave_cnis: string;
+  descripcion?: string;
   cpm_cdmx: number;
   cpm_propuesto: number;
   diferencia: number;
