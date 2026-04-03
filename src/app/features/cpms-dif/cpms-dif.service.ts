@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { CpmsDifObservacion, CpmsDifResponse, CpmsDifRow, CpmsDifResumenRow } from './models';
+import { CpmsDifIndicadoresResponse, CpmsDifObservacion, CpmsDifResponse, CpmsDifRow, CpmsDifResumenRow } from './models';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -30,5 +30,9 @@ export class CpmsDifService {
       `${this.baseUrl}/resumen`,
       { params: params as any }
     );
+  }
+
+  getIndicadores() {
+    return this.http.get<CpmsDifIndicadoresResponse>(`${this.baseUrl}/indicadores`);
   }
 }

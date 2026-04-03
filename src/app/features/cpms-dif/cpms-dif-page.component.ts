@@ -3,8 +3,9 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule, Download, ShieldCheck } from 'lucide-angular';
 import { DetalleComponent } from './detalle/detalle.component';
+import { KpisComponent } from './kpis/kpis.component';
 import { ResumenComponent } from './resumen/resumen.component';
-import { CpmsDifRow, CpmsDifResumenRow } from './models';
+import { CpmsDifIndicadoresResponse, CpmsDifRow, CpmsDifResumenRow } from './models';
 import { CpmsDifService } from './cpms-dif.service';
 import { ArticulosService } from '../../services/articulos.service';
 import { firstValueFrom } from 'rxjs';
@@ -14,14 +15,14 @@ import * as XLSX from 'xlsx';
   selector: 'app-cpms-dif-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, DetalleComponent, ResumenComponent, LucideAngularModule],
+  imports: [CommonModule, DetalleComponent, ResumenComponent, KpisComponent, LucideAngularModule],
   templateUrl: './cpms-dif-page.component.html'
 })
 export class CpmsDifPageComponent {
   private cpmsDifService = inject(CpmsDifService);
   private articulosService = inject(ArticulosService);
 
-  tab: 'detalle' | 'resumen' = 'detalle';
+  tab: 'detalle' | 'resumen' | 'indicadores' = 'detalle';
   readonly ShieldCheckIcon = ShieldCheck;
   readonly DownloadIcon = Download;
   exportando = signal(false);
@@ -36,6 +37,10 @@ export class CpmsDifPageComponent {
         this.fetchAllDetalle(),
         firstValueFrom(this.articulosService.getArticulosMapa()),
       ]);
+      const indicadores = await firstValueFrom(this.cpmsDifService.getIndicadores());
+      const modifiedSplit = this.buildModifiedSplit(
+        detalleRows.filter((row) => row.observacion === 'MODIFICADO')
+      );
 
       const unidadesPorClues = new Map(
         resumenRows.map((row) => [row.cluesimb, row.nombre_de_unidad])
@@ -58,7 +63,8 @@ export class CpmsDifPageComponent {
         total_diferencias: row.total_diferencias,
         agregados: row.agregados,
         eliminados: row.eliminados,
-        modificados: row.modificados,
+        'modificados_positivos': modifiedSplit[row.cluesimb]?.positivos ?? 0,
+        'modificados_negativos': modifiedSplit[row.cluesimb]?.negativos ?? 0,
         impacto_absoluto_total: row.impacto_absoluto_total,
       }));
 
@@ -68,6 +74,7 @@ export class CpmsDifPageComponent {
 
       XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
       XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+      XLSX.utils.book_append_sheet(wb, this.buildIndicadoresSheet(indicadores), 'Indicadores');
 
       const now = new Date();
       const pad = (n: number) => n.toString().padStart(2, '0');
@@ -119,5 +126,87 @@ export class CpmsDifPageComponent {
     if (row.diferencia > 0) return 'MODIFICADO (+)';
     if (row.diferencia < 0) return 'MODIFICADO (-)';
     return 'MODIFICADO';
+  }
+
+  private buildModifiedSplit(rows: CpmsDifRow[]): Record<string, { positivos: number; negativos: number }> {
+    const split: Record<string, { positivos: number; negativos: number }> = {};
+
+    for (const row of rows) {
+      const key = row.cluesimb;
+      if (!split[key]) {
+        split[key] = { positivos: 0, negativos: 0 };
+      }
+
+      if (row.diferencia > 0) {
+        split[key].positivos++;
+      } else if (row.diferencia < 0) {
+        split[key].negativos++;
+      }
+    }
+
+    return split;
+  }
+
+  private buildIndicadoresSheet(indicadores: CpmsDifIndicadoresResponse) {
+    const rows: (string | number)[][] = [
+      ['Lectura ejecutiva'],
+      [indicadores.lectura_ejecutiva],
+      [],
+      ['Indicador', 'Valor'],
+      ['Total unidades universo', indicadores.kpis.total_unidades_universo],
+      ['Total unidades con cambios', indicadores.kpis.total_unidades_con_cambios],
+      ['Total unidades sin cambios', indicadores.kpis.total_unidades_sin_cambios],
+      ['Porcentaje unidades sin cambios', indicadores.kpis.porcentaje_unidades_sin_cambios],
+      ['Total claves evaluadas', indicadores.kpis.total_claves_evaluadas],
+      ['Total diferencias', indicadores.kpis.total_diferencias],
+      ['Total agregados', indicadores.kpis.total_agregados],
+      ['Total eliminados', indicadores.kpis.total_eliminados],
+      ['Total modificados', indicadores.kpis.total_modificados],
+      ['Modificados (+)', indicadores.kpis.modificados_mas],
+      ['Modificados (-)', indicadores.kpis.modificados_menos],
+      ['Impacto absoluto total', indicadores.kpis.impacto_absoluto_total],
+      ['Porcentaje modificados', indicadores.kpis.porcentaje_modificados],
+      ['Porcentaje agregados', indicadores.kpis.porcentaje_agregados],
+      ['Porcentaje eliminados', indicadores.kpis.porcentaje_eliminados],
+      ['Nivel de variación', indicadores.kpis.riesgo_global],
+      [],
+      ['Distribucion de acciones'],
+      ['Accion', 'Valor'],
+      ...indicadores.charts.distribucion_acciones.map((item) => [item.label, item.value]),
+      [],
+      ['Top unidades por diferencias'],
+      ['CLUESIMB', 'Nombre de unidad', 'Total diferencias'],
+      ...indicadores.charts.top_unidades_por_diferencias.map((item) => [item.cluesimb, item.nombre_de_unidad, item.total_diferencias]),
+      [],
+      ['Top unidades por impacto'],
+      ['CLUESIMB', 'Nombre de unidad', 'Impacto absoluto total'],
+      ...indicadores.charts.top_unidades_por_impacto.map((item) => [item.cluesimb, item.nombre_de_unidad, item.impacto_absoluto_total]),
+      [],
+      ['Composicion por unidad'],
+      ['CLUESIMB', 'Nombre de unidad', 'Agregados', 'Eliminados', 'Modificados (+)', 'Modificados (-)', 'Total diferencias'],
+      ...indicadores.charts.composicion_por_unidad.map((item) => [
+        item.cluesimb,
+        item.nombre_de_unidad,
+        item.agregados,
+        item.eliminados,
+        item.modificados_mas,
+        item.modificados_menos,
+        item.total_diferencias,
+      ]),
+    ];
+
+    if (indicadores.tutorial_excel) {
+      rows.push(
+        [],
+        [indicadores.tutorial_excel.titulo],
+        ['Paso', 'Descripción'],
+        ...indicadores.tutorial_excel.pasos.map((paso, index) => [`Paso ${index + 1}`, paso]),
+        [],
+        ['Recomendación'],
+        [indicadores.tutorial_excel.recomendacion],
+      );
+    }
+
+    return XLSX.utils.aoa_to_sheet(rows);
   }
 }

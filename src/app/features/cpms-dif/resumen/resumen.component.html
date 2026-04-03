@@ -47,20 +47,21 @@
             <th class="px-4 py-4 font-semibold text-right">Total</th>
             <th class="px-4 py-4 font-semibold text-right text-emerald-200">Agregados</th>
             <th class="px-4 py-4 font-semibold text-right text-rose-200">Eliminados</th>
-            <th class="px-4 py-4 font-semibold text-right text-amber-200">Modificados</th>
+            <th class="px-4 py-4 font-semibold text-right text-emerald-200">Modif. (+)</th>
+            <th class="px-4 py-4 font-semibold text-right text-rose-200">Modif. (-)</th>
             <th class="px-4 py-4 font-semibold text-right">Impacto</th>
           </tr>
         </thead>
         <tbody>
           @if (cargando()) {
             <tr>
-              <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-500">
+              <td colspan="8" class="px-4 py-10 text-center text-sm text-slate-500">
                 Cargando resumen...
               </td>
             </tr>
           } @else if ((data()?.rows?.length ?? 0) === 0) {
             <tr>
-              <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-500">
+              <td colspan="8" class="px-4 py-10 text-center text-sm text-slate-500">
                 No hay información de resumen disponible.
               </td>
             </tr>
@@ -72,7 +73,8 @@
                 <td class="px-4 py-4 text-right align-top font-semibold tabular-nums text-slate-900">{{ r.total_diferencias }}</td>
                 <td class="px-4 py-4 text-right align-top tabular-nums text-emerald-700">{{ r.agregados }}</td>
                 <td class="px-4 py-4 text-right align-top tabular-nums text-rose-700">{{ r.eliminados }}</td>
-                <td class="px-4 py-4 text-right align-top tabular-nums text-amber-700">{{ r.modificados }}</td>
+                <td class="px-4 py-4 text-right align-top tabular-nums text-emerald-700">{{ getModificadosPositivos(r.cluesimb) }}</td>
+                <td class="px-4 py-4 text-right align-top tabular-nums text-rose-700">{{ getModificadosNegativos(r.cluesimb) }}</td>
                 <td class="px-4 py-4 text-right align-top tabular-nums text-slate-700">{{ r.impacto_absoluto_total }}</td>
               </tr>
             }

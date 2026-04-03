@@ -53,6 +53,15 @@
             (click)="tab = 'resumen'">
             Resumen
           </button>
+          <button
+            type="button"
+            class="rounded-xl px-4 py-2 text-sm font-semibold transition"
+            [ngClass]="tab === 'indicadores'
+              ? 'bg-white text-emerald-800 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'"
+            (click)="tab = 'indicadores'">
+            Indicadores
+          </button>
         </div>
       </div>
 
@@ -61,6 +70,8 @@
           <app-detalle></app-detalle>
         } @else if (tab === 'resumen') {
           <app-resumen></app-resumen>
+        } @else if (tab === 'indicadores') {
+          <app-kpis></app-kpis>
         }
       </div>
     </div>
