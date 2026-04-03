@@ -10,6 +10,11 @@ export const routes: Routes = [
       .then(m => m.DashboardAbastoComponent)
   },
   {
+    path: 'cpms-dif',
+    loadComponent: () => import('./features/cpms-dif/cpms-dif-page.component')
+      .then(m => m.CpmsDifPageComponent)
+  },
+  {
     path: 'poc-finanzas-ev-smi-sg',
     loadComponent: () => import('./features/poc-finanzas-ev-smi-sg/poc-finanzas-ev-smi-sg.component')
       .then(m => m.PocFinanzasEvSmiSgComponent)
@@ -153,12 +158,12 @@ export const routes: Routes = [
           .then(m => m.OrdenesPendientesComponent),
         title: 'Dashboard Abasto · Ordenes Pendientes'
       },
-   /*   {
-        path: 'resumen-citas',
-        loadComponent: () => import('./features/dashboard-abasto/resumen-citas/resumen-citas.component')
-          .then(m => m.ResumenCitasComponent),
-        title: 'Dashboard Abasto · Resumen Citas'
-      },*/
+      /*   {
+           path: 'resumen-citas',
+           loadComponent: () => import('./features/dashboard-abasto/resumen-citas/resumen-citas.component')
+             .then(m => m.ResumenCitasComponent),
+           title: 'Dashboard Abasto · Resumen Citas'
+         },*/
       {
         path: 'existencias',
         loadComponent: () => import('./features/dashboard-abasto/inventario-tab/inventario-tab.component')

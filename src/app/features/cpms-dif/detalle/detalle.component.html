@@ -1,0 +1,149 @@
+<section class="space-y-5">
+  <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div class="flex flex-col gap-3 xl:flex-row xl:items-center">
+      <div class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+        <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+          <lucide-angular [img]="FilterIcon" class="h-4 w-4"></lucide-angular>
+          Filtros
+        </span>
+        <span class="hidden text-slate-400 xl:inline">|</span>
+        <span class="hidden text-slate-500 xl:inline">
+          {{ rowsFiltradas().length }} visibles · Página {{ data()?.page ?? 1 }} de {{ data()?.totalPages ?? 1 }}
+        </span>
+      </div>
+
+      <div class="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center">
+        <label class="block flex-1">
+          <span class="sr-only">Buscar en resultados</span>
+          <div class="relative">
+            <lucide-angular [img]="SearchIcon" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></lucide-angular>
+            <input
+              type="text"
+              class="w-full rounded-xl border border-slate-300 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+              placeholder="CLUES, nombre de unidad o clave CNIS"
+              [ngModel]="filtroTexto()"
+              (ngModelChange)="onFiltroTextoChange($event)" />
+          </div>
+        </label>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <lucide-angular [img]="SlidersHorizontalIcon" class="h-4 w-4"></lucide-angular>
+            Tipo
+          </span>
+          <button
+            type="button"
+            class="rounded-full px-3 py-2 text-sm font-semibold transition"
+            [ngClass]="filtroObservacion() === ''
+              ? 'bg-slate-900 text-white shadow-sm'
+              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+            (click)="setFiltroObservacion('')">
+            Todos
+          </button>
+          @for (option of observacionOptions; track option) {
+            <button
+              type="button"
+              class="rounded-full px-3 py-2 text-sm font-semibold transition"
+              [ngClass]="badgeClasses(option)"
+              [class.ring-2]="filtroObservacion() === option"
+              [class.ring-offset-2]="filtroObservacion() === option"
+              [class.ring-emerald-400]="filtroObservacion() === option"
+              (click)="setFiltroObservacion(option)">
+              {{ option }}
+            </button>
+          }
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
+            (click)="load()">
+            <lucide-angular [img]="RefreshCcwIcon" class="h-4 w-4"></lucide-angular>
+            Recargar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-slate-900 text-left text-xs uppercase tracking-[0.18em] text-slate-200">
+          <tr>
+            <th class="px-4 py-4 font-semibold">Unidad</th>
+            <th class="px-4 py-4 font-semibold">Nombre</th>
+            <th class="px-4 py-4 font-semibold">Clave</th>
+            <th class="px-4 py-4 font-semibold">Descripción</th>
+            <th class="px-4 py-4 font-semibold text-right">CPM CDMX</th>
+            <th class="px-4 py-4 font-semibold text-right">CPM Prop.</th>
+            <th class="px-4 py-4 font-semibold text-right">Diferencia</th>
+            <th class="px-4 py-4 font-semibold">ACCION</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (cargando()) {
+            <tr>
+              <td colspan="8" class="px-4 py-10 text-center text-sm text-slate-500">
+                Cargando diferencias...
+              </td>
+            </tr>
+          } @else if (rowsFiltradas().length === 0) {
+            <tr>
+              <td colspan="8" class="px-4 py-10 text-center text-sm text-slate-500">
+                No hay registros para los filtros actuales.
+              </td>
+            </tr>
+          } @else {
+            @for (r of rowsFiltradas(); track trackByRow($index, r)) {
+              <tr class="border-t border-slate-200 transition-colors" [ngClass]="rowClasses(r.observacion)">
+                <td class="px-4 py-4 align-top font-semibold text-slate-900">{{ r.cluesimb }}</td>
+                <td class="px-4 py-4 align-top text-slate-700">{{ r.nombre_de_unidad }}</td>
+                <td class="px-4 py-4 align-top font-mono text-xs text-slate-700">{{ r.clave_cnis }}</td>
+                <td class="px-4 py-4 align-top text-xs text-slate-600">{{ r.descripcion || '-' }}</td>
+                <td class="px-4 py-4 text-right align-top tabular-nums text-slate-800">{{ r.cpm_cdmx }}</td>
+                <td class="px-4 py-4 text-right align-top tabular-nums text-slate-800">{{ r.cpm_propuesto }}</td>
+                <td class="px-4 py-4 text-right align-top font-bold tabular-nums text-slate-900">{{ r.diferencia }}</td>
+                <td class="px-4 py-4 align-top">
+                  <div class="inline-flex items-center gap-2">
+                    @if (r.observacion === 'MODIFICADO' && r.diferencia > 0) {
+                      <span class="text-base font-bold leading-none text-emerald-700" title="Incremento">↑</span>
+                    } @else if (r.observacion === 'MODIFICADO' && r.diferencia < 0) {
+                      <span class="text-base font-bold leading-none text-rose-700" title="Disminución">↓</span>
+                    }
+                    <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold tracking-wide" [ngClass]="badgeClasses(r.observacion)">
+                    {{ r.observacion }}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-sm text-slate-600">
+      Mostrando <span class="font-semibold text-slate-900">{{ rowsFiltradas().length }}</span> registros visibles de esta página.
+    </p>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        [disabled]="!data()?.hasPrevPage || cargando()"
+        (click)="prev()">
+        ← Anterior
+      </button>
+      <span class="min-w-28 text-center text-sm font-semibold text-slate-700">
+        Página {{ data()?.page ?? 1 }} / {{ data()?.totalPages ?? 1 }}
+      </span>
+      <button
+        type="button"
+        class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        [disabled]="!data()?.hasNextPage || cargando()"
+        (click)="next()">
+        Siguiente →
+      </button>
+    </div>
+  </div>
+</section>
