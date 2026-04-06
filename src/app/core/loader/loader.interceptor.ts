@@ -40,7 +40,7 @@ export const loaderInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   if (cleanReq.url.includes('all') || cleanReq.url.includes('by-cluesimb-cpm')) {
-    customMessage = 'Cargando existencias... espere un momento';
+    customMessage = 'Cargando datos... espere un momento';
   }
 
   // customizar mensaje dependiendo de la api llamada
