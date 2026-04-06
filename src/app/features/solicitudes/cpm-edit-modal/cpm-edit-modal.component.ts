@@ -116,6 +116,15 @@ export class CpmEditModalComponent {
     return null;
   }
 
+  private normalizeClave(value: string | null | undefined): string {
+    return String(value ?? '').trim().toUpperCase();
+  }
+
+  private findRowIndexByClave(clave: string): number {
+    const claveNorm = this.normalizeClave(clave);
+    return this.rows().findIndex(r => this.normalizeClave(r.clave_cnis) === claveNorm);
+  }
+
   onAutocompleteModelChange(value: string) {
     this.autocompleteModel.set(value);
   }
@@ -151,9 +160,11 @@ export class CpmEditModalComponent {
     this.error.set('');
   }
 
-  onRowCpmChange(index: number, value: number | string) {
+  onRowCpmChange(clave: string, value: number | string) {
     const n = Number(value);
     this.rows.update(list => {
+      const index = list.findIndex(r => this.normalizeClave(r.clave_cnis) === this.normalizeClave(clave));
+      if (index < 0) return list;
       const copy = [...list];
       const row = { ...copy[index] };
       row.cpm = n;
@@ -165,9 +176,11 @@ export class CpmEditModalComponent {
     this.error.set('');
   }
 
-  onRowFuenteChange(index: number, value: string) {
+  onRowFuenteChange(clave: string, value: string) {
     const fuente = (value || 'manual').trim() || 'manual';
     this.rows.update(list => {
+      const index = list.findIndex(r => this.normalizeClave(r.clave_cnis) === this.normalizeClave(clave));
+      if (index < 0) return list;
       const copy = [...list];
       const row = { ...copy[index] };
       row.fuente = fuente;
@@ -177,8 +190,9 @@ export class CpmEditModalComponent {
     });
   }
 
-  cancelRow(index: number) {
-    const row = this.rows()[index];
+  cancelRow(clave: string) {
+    const index = this.findRowIndexByClave(clave);
+    const row = index >= 0 ? this.rows()[index] : undefined;
     if (!row) return;
 
     if (row._isNew) {
@@ -207,9 +221,10 @@ export class CpmEditModalComponent {
     return !row._isNew && !!row._dirty && Number(row.cpm ?? 0) === 0;
   }
 
-  deleteRow(index: number) {
+  deleteRow(clave: string) {
     if (!this.canEdit || this.saving()) return;
-    const row = this.rows()[index];
+    const index = this.findRowIndexByClave(clave);
+    const row = index >= 0 ? this.rows()[index] : undefined;
     if (!row) return;
 
     if (row._isNew) {
@@ -233,8 +248,9 @@ export class CpmEditModalComponent {
     this.setTransientMessage(`Clave ${row.clave_cnis} marcada para eliminacion. Presiona "Guardar cambios".`);
   }
 
-  undoDeleteMark(index: number) {
-    const row = this.rows()[index];
+  undoDeleteMark(clave: string) {
+    const index = this.findRowIndexByClave(clave);
+    const row = index >= 0 ? this.rows()[index] : undefined;
     if (!row || row._isNew) return;
 
     const originalCpm = Number(row._originalCpm ?? 0);
