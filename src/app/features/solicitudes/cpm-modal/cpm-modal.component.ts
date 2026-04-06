@@ -59,6 +59,10 @@ export class CpmModalComponent {
   // helper formato
   fmt(n: number) { return (n ?? 0).toLocaleString('es-MX'); }
 
+  private normClave(clave: string | null | undefined): string {
+    return this.invSvc.normalizarClave((clave ?? '').toString().trim().toUpperCase());
+  }
+
   // Si el reorden ya viene como TOTAL X meses, no multiplicamos otra vez.
   private reordenEsTotal = false;
 
@@ -80,7 +84,7 @@ export class CpmModalComponent {
       const cpmsResp = await firstValueFrom(this.cpmApi.getByUnidadAll(this.cluesimb));
       const rowsBase: Row[] = (cpmsResp?.rows ?? [])
         .filter(r => (r.cpm ?? 0) > 0)
-        .map(r => ({ clave: r.clave_cnis, cpm: Number(r.cpm ?? 0) }));
+        .map(r => ({ clave: this.normClave(r.clave_cnis), cpm: Number(r.cpm ?? 0) }));
 
       // 2) Enriquecer con mapa de artículos local
       const mapa = await firstValueFrom(this.arts.getArticulosMapaByCluesIMBCPM(this.cluesimb));
@@ -152,7 +156,7 @@ export class CpmModalComponent {
     try {
       const ex = await firstValueFrom(this.existApi.byUnidad(this.cluesimb));
       const idx = ex ?
-        new Map<string, number>(ex!.map(r => [r.clave_cnis, r.existencia_total ?? 0]))
+        new Map<string, number>(ex!.map(r => [this.normClave(r.clave_cnis), r.existencia_total ?? 0]))
         : new Map<string, number>();
       this.rows.update(list => list.map(r => ({ ...r, exist: idx.get(r.clave) ?? 0 })));
     } finally {
@@ -166,15 +170,16 @@ export class CpmModalComponent {
 
     if (checked) {
       for (const r of visibles) {
-        if (this.sugerencia(r) > 0) next.add(r.clave);
-        else next.delete(r.clave);
+        const clave = this.normClave(r.clave);
+        if (this.sugerencia(r) > 0) next.add(clave);
+        else next.delete(clave);
       }
     } else {
-      for (const r of visibles) next.delete(r.clave);
+      for (const r of visibles) next.delete(this.normClave(r.clave));
     }
 
     this.selectedSet = next;
-    this.rows.update(list => list.map(r => ({ ...r, _sel: next.has(r.clave) })));
+    this.rows.update(list => list.map(r => ({ ...r, _sel: next.has(this.normClave(r.clave)) })));
   }
 
   eligibleVisibleCount = computed(() =>
@@ -182,8 +187,9 @@ export class CpmModalComponent {
   );
 
   toggleSelUno(clave: string, checked: boolean) {
-    if (checked) this.selectedSet.add(clave); else this.selectedSet.delete(clave);
-    this.rows.update(list => list.map(r => r.clave === clave ? ({ ...r, _sel: checked }) : r));
+    const claveNorm = this.normClave(clave);
+    if (checked) this.selectedSet.add(claveNorm); else this.selectedSet.delete(claveNorm);
+    this.rows.update(list => list.map(r => this.normClave(r.clave) === claveNorm ? ({ ...r, _sel: checked }) : r));
   }
 
   rowsFiltered = computed(() => {
@@ -233,8 +239,7 @@ export class CpmModalComponent {
   }
 
   agregarSeleccion() {
-    const visibles = this.rowsFiltered();
-    const seleccionadas = visibles.filter(r => this.selectedSet.has(r.clave));
+    const seleccionadas = this.rows().filter(r => this.selectedSet.has(this.normClave(r.clave)));
 
     if (seleccionadas.length === 0) {
       this.importIsError.set(true);
@@ -244,14 +249,15 @@ export class CpmModalComponent {
       return;
     }
 
-    const existentes = new Set((this.existingClaves || []).map(x => x.trim().toUpperCase()));
+    const existentes = new Set((this.existingClaves || []).map(x => this.normClave(x)));
 
     const nuevos: ArticuloSolicitud[] = [];
     let omitidasPorDup = 0;
     let omitidasPorQty = 0;
 
     for (const r of seleccionadas) {
-      if (existentes.has(r.clave)) { omitidasPorDup++; continue; }
+      const clave = this.normClave(r.clave);
+      if (existentes.has(clave)) { omitidasPorDup++; continue; }
       const qty = this.sugerencia(r); // ya anti-doble y con cobertura
       if (!qty || qty < 0) {
         // dejare pasar las sugeridas en cero
@@ -259,7 +265,7 @@ export class CpmModalComponent {
       }
 
       nuevos.push({
-        clave: r.clave,
+        clave,
         descripcion: r.descripcion ?? '',
         unidadMedida: r.presentacion ?? '',
         presentacion: r.presentacion ?? '',
@@ -328,11 +334,12 @@ export class CpmModalComponent {
 
   seleccionarUnoToggle(clave: string, $event: Event) {
     const input = $event.target as HTMLInputElement;
-    if (input.checked) this.selectedSet.add(clave); else this.selectedSet.delete(clave);
-    this.rows.update(list => list.map(r => r.clave === clave ? ({ ...r, _sel: input.checked }) : r));
+    const claveNorm = this.normClave(clave);
+    if (input.checked) this.selectedSet.add(claveNorm); else this.selectedSet.delete(claveNorm);
+    this.rows.update(list => list.map(r => this.normClave(r.clave) === claveNorm ? ({ ...r, _sel: input.checked }) : r));
   }
 
-  trackByClave(index: number, item: any): number {
+  trackByClave(index: number, item: any): string {
     return item.clave;
   }
 
@@ -398,20 +405,20 @@ export class CpmModalComponent {
     this.rows().some(r => (r.azm || 0) + (r.aze || 0) + (r.azt || 0) > 0)
   );
 
-  selectionCount = computed(() => this.rowsFiltered().filter(r => this.selectedSet.has(r.clave)).length);
+  selectionCount = computed(() => this.rowsFiltered().filter(r => this.selectedSet.has(this.normClave(r.clave))).length);
 
   // Todas las visibles elegibles están seleccionadas
   allFilteredSelected = computed(() => {
     const eligibles = this.rowsFiltered();//.filter(r => this.sugerencia(r) > 0);
     if (eligibles.length === 0) return false;
-    return eligibles.every(r => this.selectedSet.has(r.clave));
+    return eligibles.every(r => this.selectedSet.has(this.normClave(r.clave)));
   });
 
   // Algunas (pero no todas) visibles elegibles están seleccionadas
   someFilteredSelected = computed(() => {
     const eligibles = this.rowsFiltered();
     // if (eligibles.length === 0) return false;
-    const selected = eligibles.filter(r => this.selectedSet.has(r.clave)).length;
+    const selected = eligibles.filter(r => this.selectedSet.has(this.normClave(r.clave))).length;
     return selected > 0 && selected < eligibles.length;
   });
 
@@ -420,15 +427,17 @@ export class CpmModalComponent {
     const next = new Set(this.selectedSet);
 
     if (checked) {
-      for (const r of eligibles) next.add(r.clave);
+      for (const r of eligibles) next.add(this.normClave(r.clave));
     } else {
-      for (const r of eligibles) next.delete(r.clave);
+      for (const r of eligibles) next.delete(this.normClave(r.clave));
     }
 
     this.selectedSet = next;
     // reflejar en _sel solo lo visible (más rápido y congruente con UI)
     this.rows.update(list => list.map(r =>
-      eligibles.some(e => e.clave === r.clave) ? ({ ...r, _sel: next.has(r.clave) }) : r
+      eligibles.some(e => this.normClave(e.clave) === this.normClave(r.clave))
+        ? ({ ...r, _sel: next.has(this.normClave(r.clave)) })
+        : r
     ));
   }
 
