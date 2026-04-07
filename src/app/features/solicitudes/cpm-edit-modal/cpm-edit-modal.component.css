@@ -113,6 +113,16 @@ thead th {
   background: #fff;
 }
 
+.cpm-cell {
+  min-width: 9.5rem;
+}
+
+.cpm-input {
+  width: 8rem;
+  min-width: 8rem;
+  text-align: right;
+}
+
 .btn-primary {
   background: #047857;
   color: #fff;
