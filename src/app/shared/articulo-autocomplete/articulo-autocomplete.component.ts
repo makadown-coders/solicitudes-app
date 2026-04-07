@@ -1,6 +1,6 @@
 // src/app/shared/articulo-autocomplete/articulo-autocomplete.component.ts
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { ArticulosService } from '../../services/articulos.service';
@@ -19,8 +19,9 @@ export type ArticuloAutocompleteItem = {
   templateUrl: './articulo-autocomplete.component.html',
   styleUrls: ['./articulo-autocomplete.component.css'],
 })
-export class ArticuloAutocompleteComponent implements OnInit, OnDestroy {
+export class ArticuloAutocompleteComponent implements OnInit, OnChanges, OnDestroy {
   private articulosService = inject(ArticulosService);
+  private cdr = inject(ChangeDetectorRef);
   private onDestroy$ = new Subject<void>();
   private search$ = new Subject<string>();
 
@@ -44,6 +45,16 @@ export class ArticuloAutocompleteComponent implements OnInit, OnDestroy {
       .subscribe((texto) => this.buscarConFallback(texto));
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if ('model' in changes) {
+      const next = this.model ?? '';
+      if (next !== this.inputValue) {
+        this.inputValue = next;
+        this.cdr.markForCheck();
+      }
+    }
+  }
+
   ngOnDestroy(): void {
     this.onDestroy$.next();
     this.onDestroy$.complete();
@@ -56,8 +67,12 @@ export class ArticuloAutocompleteComponent implements OnInit, OnDestroy {
     if (t.length < this.minChars) {
       this.results = [];
       this.selectedIndex = -1;
+      this.searching = false;
+      this.cdr.markForCheck();
       return;
     }
+    this.searching = true;
+    this.cdr.markForCheck();
     this.search$.next(t);
   }
 
@@ -99,13 +114,13 @@ export class ArticuloAutocompleteComponent implements OnInit, OnDestroy {
   }
 
   private buscarConFallback(texto: string) {
-    this.searching = true;
     this.articulosService.buscarArticulos(texto).subscribe({
       next: (data) => {
         const rows = (data?.resultados ?? []) as ArticuloAutocompleteItem[];
         this.results = rows.sort((a, b) => String(a.clave).localeCompare(String(b.clave))).slice(0, 24);
         this.selectedIndex = this.results.length ? 0 : -1;
         this.searching = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.articulosService.buscarArticulosv2(texto).subscribe({
@@ -114,11 +129,13 @@ export class ArticuloAutocompleteComponent implements OnInit, OnDestroy {
             this.results = rows.sort((a, b) => String(a.clave).localeCompare(String(b.clave))).slice(0, 24);
             this.selectedIndex = this.results.length ? 0 : -1;
             this.searching = false;
+            this.cdr.markForCheck();
           },
           error: () => {
             this.results = [];
             this.selectedIndex = -1;
             this.searching = false;
+            this.cdr.markForCheck();
           },
         });
       },

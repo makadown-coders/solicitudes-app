@@ -64,10 +64,10 @@
               <tr [class.bg-yellow-50]="r._dirty" [class.bg-red-50]="r._invalid" [class.bg-rose-50]="isMarkedForDelete(r)">
                 <td class="td mono">{{ r.clave_cnis }}</td>
                 <td class="text-xs text-gray-600 td" [title]="r.descripcion">{{ (r.descripcion || '-') | slice: 0:250 }}</td>
-                <td class="td">{{ r.presentacion || '-' }}</td>
-                <td class="td">
+                <td class="td" [title]="r.presentacion">{{ (r.presentacion || '-') | slice: 0:80 }}</td>
+                <td class="td cpm-cell">
                   <input
-                    class="w-48 input"
+                    class="input cpm-input"
                     type="number"
                     min="0"
                     step="1"
