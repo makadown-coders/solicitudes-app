@@ -17,6 +17,11 @@
   font: inherit;
 }
 
+.ac-input[aria-invalid="true"] {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
 .ac-list {
   position: absolute;
   top: calc(100% + 0.25rem);

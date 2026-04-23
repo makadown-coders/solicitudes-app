@@ -1,0 +1,98 @@
+<div class="overlay" (click)="onBackdropClick($event)">
+  <div
+    #dialog
+    class="modal-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="homologo-form-title"
+    (keydown)="onDialogKeydown($event)"
+    tabindex="-1"
+  >
+    <div class="modal-head">
+      <div>
+        <h2 id="homologo-form-title">{{ title }}</h2>
+        <p>Captura la clave base, su homólogo y el factor de conversión.</p>
+      </div>
+      <button
+        type="button"
+        class="icon-btn"
+        aria-label="Cerrar formulario de homólogos"
+        (click)="cancel.emit()"
+        [disabled]="saving"
+      >
+        ×
+      </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <div class="fields">
+        <div class="field">
+          <app-articulo-autocomplete
+            #claveAutocomplete
+            label="Clave"
+            inputId="homologo-clave"
+            placeholder="Buscar artículo para la clave"
+            [model]="claveControl.value"
+            [required]="true"
+            [invalid]="!!fieldError('clave')"
+            describedBy="homologo-clave-hint homologo-clave-error"
+            (modelChange)="onClaveInput($event)"
+            (selected)="onClaveSelected($event)"
+          />
+          <p id="homologo-clave-hint" class="field-hint">Puedes escribir la clave o elegirla del autocompletado.</p>
+          @if (claveDescripcion) {
+            <div class="picked ok">{{ claveDescripcion }}</div>
+          }
+          @if (fieldError('clave'); as error) {
+            <p id="homologo-clave-error" class="field-error">{{ error }}</p>
+          }
+        </div>
+
+        <div class="field">
+          <app-articulo-autocomplete
+            label="Sustituto"
+            inputId="homologo-sustituto"
+            placeholder="Buscar artículo homólogo"
+            [model]="sustitutoControl.value"
+            [required]="true"
+            [invalid]="!!fieldError('sustituto')"
+            describedBy="homologo-sustituto-hint homologo-sustituto-error"
+            (modelChange)="onSustitutoInput($event)"
+            (selected)="onSustitutoSelected($event)"
+          />
+          <p id="homologo-sustituto-hint" class="field-hint">Selecciona el artículo alternativo que sustituye la clave base.</p>
+          @if (sustitutoDescripcion) {
+            <div class="picked ok">{{ sustitutoDescripcion }}</div>
+          }
+          @if (fieldError('sustituto'); as error) {
+            <p id="homologo-sustituto-error" class="field-error">{{ error }}</p>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="homologo-factor">Factor</label>
+          <input
+            id="homologo-factor"
+            class="text-input"
+            type="text"
+            inputmode="decimal"
+            formControlName="factor"
+            aria-describedby="homologo-factor-hint homologo-factor-error"
+            [attr.aria-invalid]="!!fieldError('factor')"
+          />
+          <p id="homologo-factor-hint" class="field-hint">Usa números enteros o decimales según la conversión requerida.</p>
+          @if (fieldError('factor'); as error) {
+            <p id="homologo-factor-error" class="field-error">{{ error }}</p>
+          }
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancel.emit()" [disabled]="saving">Cancelar</button>
+        <button type="submit" class="btn btn-primary" [disabled]="saving">
+          {{ saving ? 'Guardando...' : mode === 'create' ? 'Crear homologo' : 'Guardar cambios' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

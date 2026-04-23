@@ -68,11 +68,11 @@ export const routes: Routes = [
   },
   {
     path: 'homologos-config',
-    title: 'Configuracion de homologos',
+    title: 'Claves alternativas / Homologos',
     loadComponent: () => import('./features/homologos-config/homologos-config.component')
       .then(m => m.HomologosConfigComponent)
   },
-  {
+  { // TODO: Refactorizar este componente
     path: 'admin-kits',
     loadComponent: () => import('./features/kits/admin-kits/admin-kits.component')
       .then(m => m.AdminKitsComponent)

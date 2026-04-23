@@ -1,2 +1,11 @@
 /* confirmacion-modal.component.css */
 .preline { white-space: pre-line; }
+
+.confirm-dialog {
+  outline: none;
+}
+
+.confirm-dialog button:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.35);
+  outline-offset: 2px;
+}

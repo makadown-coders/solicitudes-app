@@ -1,6 +1,6 @@
 // src/app/shared/articulo-autocomplete/articulo-autocomplete.component.ts
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { ArticulosService } from '../../services/articulos.service';
@@ -29,9 +29,16 @@ export class ArticuloAutocompleteComponent implements OnInit, OnChanges, OnDestr
   @Input() placeholder = 'Buscar clave o descripcion (min 3)';
   @Input() minChars = 3;
   @Input() model = '';
+  @Input() inputId = '';
+  @Input() describedBy = '';
+  @Input() required = false;
+  @Input() invalid = false;
+  @Input() ariaLabel = '';
 
   @Output() modelChange = new EventEmitter<string>();
   @Output() selected = new EventEmitter<ArticuloAutocompleteItem>();
+
+  @ViewChild('inputEl') private inputEl?: ElementRef<HTMLInputElement>;
 
   inputValue = '';
   results: ArticuloAutocompleteItem[] = [];
@@ -58,6 +65,10 @@ export class ArticuloAutocompleteComponent implements OnInit, OnChanges, OnDestr
   ngOnDestroy(): void {
     this.onDestroy$.next();
     this.onDestroy$.complete();
+  }
+
+  focusInput(): void {
+    this.inputEl?.nativeElement.focus();
   }
 
   onInputChange(value: string) {
@@ -111,6 +122,23 @@ export class ArticuloAutocompleteComponent implements OnInit, OnChanges, OnDestr
     });
     this.results = [];
     this.selectedIndex = -1;
+  }
+
+  optionId(index: number): string {
+    return `${this.resolvedInputId}-option-${index}`;
+  }
+
+  get resolvedInputId(): string {
+    return this.inputId || `articulo-autocomplete-${this.label.toLowerCase().replace(/\s+/g, '-')}`;
+  }
+
+  get activeDescendant(): string | null {
+    if (this.selectedIndex < 0 || !this.results[this.selectedIndex]) return null;
+    return this.optionId(this.selectedIndex);
+  }
+
+  get listId(): string {
+    return `${this.resolvedInputId}-listbox`;
   }
 
   private buscarConFallback(texto: string) {

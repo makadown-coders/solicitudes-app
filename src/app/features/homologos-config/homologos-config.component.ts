@@ -1,8 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { HomologosCrudService, HomologoCrudUiRow } from '../../services/homologos-crud.service';
-import { ArticuloAutocompleteComponent, ArticuloAutocompleteItem } from '../../shared/articulo-autocomplete/articulo-autocomplete.component';
+import { NgFastToastService } from 'ng-fast-toast';
+import { ConfirmacionModalComponent } from '../../shared/confirmacion-modal/confirmacion-modal.component';
+import { HomologosCrudService } from '../../services/homologos-crud.service';
+import {
+  HomologoCrudUiRow,
+  HomologoCrudUpsertPayload,
+} from '../../models/homologos/homologo-crud.model';
+import { HomologosFormModalComponent } from './homologos-form-modal.component';
 
 type SortBy = 'id' | 'clave' | 'sustituto' | 'factor' | 'claveDescripcion' | 'sustitutoDescripcion';
 type SortOrder = 'ASC' | 'DESC';
@@ -11,209 +16,179 @@ type FormMode = 'create' | 'edit';
 @Component({
   selector: 'app-homologos-config',
   standalone: true,
-  imports: [CommonModule, FormsModule, ArticuloAutocompleteComponent],
+  imports: [CommonModule, ConfirmacionModalComponent, HomologosFormModalComponent],
   templateUrl: './homologos-config.component.html',
   styleUrls: ['./homologos-config.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomologosConfigComponent {
   private api = inject(HomologosCrudService);
+  private toast = inject(NgFastToastService);
 
-  loading = signal(false);
-  saving = signal(false);
+  readonly loading = signal(false);
+  readonly saving = signal(false);
+  readonly deleting = signal(false);
 
-  allItems = signal<HomologoCrudUiRow[]>([]);
-  search = signal('');
-  sortBy = signal<SortBy>('id');
-  sortOrder = signal<SortOrder>('ASC');
-  page = signal(1);
-  pageSize = signal(20);
+  readonly allItems = signal<HomologoCrudUiRow[]>([]);
+  readonly search = signal('');
+  readonly sortBy = signal<SortBy>('id');
+  readonly sortOrder = signal<SortOrder>('ASC');
+  readonly page = signal(1);
+  readonly pageSize = signal(10);
 
-  error = signal('');
-  message = signal('');
+  readonly error = signal('');
+  readonly message = signal('');
 
-  formOpen = signal(false);
-  formMode = signal<FormMode>('create');
-  editId = signal<number | null>(null);
-  formClave = signal('');
-  formSustituto = signal('');
-  formFactor = signal('');
-  formClaveDescripcion = signal<string | null>(null);
-  formSustitutoDescripcion = signal<string | null>(null);
+  readonly formOpen = signal(false);
+  readonly formMode = signal<FormMode>('create');
+  readonly editingRow = signal<HomologoCrudUiRow | null>(null);
 
-  filtered = computed(() => {
+  readonly deleteTarget = signal<HomologoCrudUiRow | null>(null);
+
+  readonly filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
-    const rows = this.allItems();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      r.clave.toLowerCase().includes(q)
-      || r.sustituto.toLowerCase().includes(q)
-      || (r.claveDescripcion ?? '').toLowerCase().includes(q)
-      || (r.sustitutoDescripcion ?? '').toLowerCase().includes(q)
-      || String(r.factor).toLowerCase().includes(q)
+    if (!q) return this.allItems();
+
+    return this.allItems().filter((row) =>
+      row.clave.toLowerCase().includes(q)
+      || row.sustituto.toLowerCase().includes(q)
+      || (row.claveDescripcion ?? '').toLowerCase().includes(q)
+      || (row.sustitutoDescripcion ?? '').toLowerCase().includes(q)
+      || row.factor.toLowerCase().includes(q)
     );
   });
 
-  sorted = computed(() => {
+  readonly sorted = computed(() => {
+    const rows = [...this.filtered()];
     const field = this.sortBy();
     const order = this.sortOrder();
-    const rows = [...this.filtered()];
+
     rows.sort((a, b) => {
-      let av: any = a[field] ?? '';
-      let bv: any = b[field] ?? '';
-
-      if (field === 'id') {
-        av = Number(a.id);
-        bv = Number(b.id);
-      } else if (field === 'factor') {
-        av = Number(a.factor);
-        bv = Number(b.factor);
-      } else {
-        av = String(av).toLowerCase();
-        bv = String(bv).toLowerCase();
-      }
-
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-      return order === 'ASC' ? cmp : -cmp;
+      const aValue = this.normalizeSortValue(a, field);
+      const bValue = this.normalizeSortValue(b, field);
+      const compare = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      return order === 'ASC' ? compare : -compare;
     });
+
     return rows;
   });
 
-  total = computed(() => this.sorted().length);
-  totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
-
-  pagedItems = computed(() => {
-    const p = this.page();
-    const s = this.pageSize();
-    const start = (p - 1) * s;
-    return this.sorted().slice(start, start + s);
+  readonly total = computed(() => this.sorted().length);
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
+  readonly pageItems = computed(() => {
+    const start = (this.page() - 1) * this.pageSize();
+    return this.sorted().slice(start, start + this.pageSize());
   });
+  readonly pageButtons = computed(() => {
+    const totalPages = this.totalPages();
+    const currentPage = this.page();
+    const start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages, start + 4);
+    const pages: number[] = [];
 
-  sinDescripcionClave = computed(() => this.allItems().filter(r => !r.claveDescripcion).length);
-  sinDescripcionSustituto = computed(() => this.allItems().filter(r => !r.sustitutoDescripcion).length);
+    for (let value = Math.max(1, end - 4); value <= end; value += 1) {
+      pages.push(value);
+    }
+
+    return pages;
+  });
+  readonly showingFrom = computed(() => (this.total() === 0 ? 0 : (this.page() - 1) * this.pageSize() + 1));
+  readonly showingTo = computed(() => Math.min(this.total(), this.page() * this.pageSize()));
+  readonly hasRows = computed(() => this.allItems().length > 0);
+  readonly hasActiveSearch = computed(() => this.search().trim().length > 0);
 
   constructor() {
     this.loadAll();
   }
 
-  loadAll() {
+  loadAll(): void {
     this.loading.set(true);
     this.error.set('');
+
     this.api.listAllEnriched().subscribe({
       next: (rows) => {
         this.allItems.set(rows ?? []);
-        const maxPage = Math.max(1, Math.ceil((rows?.length ?? 0) / this.pageSize()));
-        if (this.page() > maxPage) this.page.set(maxPage);
+        this.ensureValidPage();
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err?.error?.error ?? 'No fue posible cargar homologos.');
+        const message = err?.error?.error ?? 'No fue posible cargar los homólogos.';
+        this.error.set(message);
         this.loading.set(false);
       },
     });
   }
 
-  onBuscar() {
+  onSearchInput(value: string): void {
+    this.search.set(value);
     this.page.set(1);
+    this.message.set('');
   }
 
-  clearSearch() {
+  clearSearch(): void {
     this.search.set('');
     this.page.set(1);
   }
 
-  toggleSort(field: SortBy) {
+  toggleSort(field: SortBy): void {
     if (this.sortBy() === field) {
       this.sortOrder.set(this.sortOrder() === 'ASC' ? 'DESC' : 'ASC');
     } else {
       this.sortBy.set(field);
       this.sortOrder.set('ASC');
     }
+
     this.page.set(1);
   }
 
-  prevPage() {
-    if (this.page() <= 1) return;
-    this.page.set(this.page() - 1);
-  }
-
-  nextPage() {
-    if (this.page() >= this.totalPages()) return;
-    this.page.set(this.page() + 1);
-  }
-
-  changePageSize(value: number | string) {
-    const n = Number(value);
-    this.pageSize.set(Number.isFinite(n) && n > 0 ? n : 20);
+  changePageSize(value: number | string): void {
+    const parsed = Number(value);
+    this.pageSize.set(Number.isFinite(parsed) && parsed > 0 ? parsed : 10);
     this.page.set(1);
   }
 
-  openCreate() {
+  goToPage(nextPage: number): void {
+    if (nextPage < 1 || nextPage > this.totalPages()) return;
+    this.page.set(nextPage);
+  }
+
+  openCreate(): void {
     this.formMode.set('create');
-    this.editId.set(null);
-    this.formClave.set('');
-    this.formSustituto.set('');
-    this.formFactor.set('');
-    this.formClaveDescripcion.set(null);
-    this.formSustitutoDescripcion.set(null);
+    this.editingRow.set(null);
     this.formOpen.set(true);
     this.message.set('');
     this.error.set('');
   }
 
-  openEdit(row: HomologoCrudUiRow) {
+  openEdit(row: HomologoCrudUiRow): void {
     this.formMode.set('edit');
-    this.editId.set(row.id);
-    this.formClave.set(row.clave);
-    this.formSustituto.set(row.sustituto);
-    this.formFactor.set(row.factor);
-    this.formClaveDescripcion.set(row.claveDescripcion ?? null);
-    this.formSustitutoDescripcion.set(row.sustitutoDescripcion ?? null);
+    this.editingRow.set(row);
     this.formOpen.set(true);
     this.message.set('');
     this.error.set('');
   }
 
-  closeForm() {
+  closeForm(): void {
+    if (this.saving()) return;
     this.formOpen.set(false);
+    this.editingRow.set(null);
   }
 
-  onClaveModelChange(value: string) {
-    this.formClave.set(value);
-    this.formClaveDescripcion.set(null);
+  requestDelete(row: HomologoCrudUiRow): void {
+    this.deleteTarget.set(row);
+    this.message.set('');
+    this.error.set('');
   }
 
-  onSustitutoModelChange(value: string) {
-    this.formSustituto.set(value);
-    this.formSustitutoDescripcion.set(null);
+  cancelDelete(): void {
+    if (this.deleting()) return;
+    this.deleteTarget.set(null);
   }
 
-  onClaveSelected(item: ArticuloAutocompleteItem) {
-    this.formClave.set((item?.clave ?? '').trim().toUpperCase());
-    this.formClaveDescripcion.set((item?.descripcion ?? '').trim() || null);
-  }
-
-  onSustitutoSelected(item: ArticuloAutocompleteItem) {
-    this.formSustituto.set((item?.clave ?? '').trim().toUpperCase());
-    this.formSustitutoDescripcion.set((item?.descripcion ?? '').trim() || null);
-  }
-
-  saveForm() {
-    const clave = this.formClave().trim().toUpperCase();
-    const sustituto = this.formSustituto().trim().toUpperCase();
-    const factorRaw = this.formFactor().trim();
-    const factor = Number(factorRaw);
-
-    if (!clave) {
-      this.error.set('La clave es requerida.');
-      return;
-    }
-    if (!sustituto) {
-      this.error.set('El sustituto es requerido.');
-      return;
-    }
-    if (!Number.isFinite(factor) || factor <= 0) {
-      this.error.set('El factor debe ser numerico y mayor a 0.');
+  saveRow(payload: HomologoCrudUpsertPayload): void {
+    const factor = Number(payload.factor);
+    if (!Number.isFinite(factor)) {
+      this.error.set('El factor debe ser numérico.');
       return;
     }
 
@@ -221,58 +196,103 @@ export class HomologosConfigComponent {
     this.error.set('');
 
     if (this.formMode() === 'create') {
-      this.api.create({ clave, sustituto, factor }).subscribe({
+      this.api.create({ ...payload, factor }).subscribe({
         next: () => {
-          this.saving.set(false);
-          this.formOpen.set(false);
-          this.message.set('Homologo creado.');
-          this.loadAll();
+          this.handleMutationSuccess('Homólogo creado correctamente.');
         },
         error: (err) => {
-          this.saving.set(false);
-          this.error.set(err?.error?.error ?? 'No fue posible crear el homologo.');
+          this.handleMutationError(err?.error?.error ?? 'No fue posible crear el homólogo.');
         },
       });
       return;
     }
 
-    const id = this.editId();
+    const id = this.editingRow()?.id;
     if (!id) {
-      this.saving.set(false);
-      this.error.set('No se encontro id para actualizar.');
+      this.handleMutationError('No se encontró el registro a editar.');
       return;
     }
 
-    this.api.update(id, { clave, sustituto, factor }).subscribe({
+    this.api.update(id, { ...payload, factor }).subscribe({
       next: () => {
-        this.saving.set(false);
-        this.formOpen.set(false);
-        this.message.set('Homologo actualizado.');
-        this.loadAll();
+        this.handleMutationSuccess('Homólogo actualizado correctamente.');
       },
       error: (err) => {
-        this.saving.set(false);
-        this.error.set(err?.error?.error ?? 'No fue posible actualizar el homologo.');
+        this.handleMutationError(err?.error?.error ?? 'No fue posible actualizar el homólogo.');
       },
     });
   }
 
-  deleteRow(row: HomologoCrudUiRow) {
-    if (!confirm(`Eliminar homologo ${row.id} (${row.clave} -> ${row.sustituto})?`)) return;
+  confirmDelete(): void {
+    const target = this.deleteTarget();
+    if (!target) return;
 
-    this.api.delete(row.id).subscribe({
+    this.deleting.set(true);
+    this.error.set('');
+
+    this.api.delete(target.id).subscribe({
       next: () => {
-        this.message.set('Homologo eliminado.');
+        this.deleting.set(false);
+        this.deleteTarget.set(null);
+        this.message.set('Homólogo eliminado correctamente.');
+        this.toast.success({
+          title: 'Homólogo eliminado',
+          content: `${target.clave} -> ${target.sustituto} fue eliminado.`,
+          duration: 5,
+        });
         this.loadAll();
       },
       error: (err) => {
-        this.error.set(err?.error?.error ?? 'No fue posible eliminar el homologo.');
+        const message = err?.error?.error ?? 'No fue posible eliminar el homólogo.';
+        this.deleting.set(false);
+        this.error.set(message);
+        this.toast.error({
+          title: 'No se pudo eliminar',
+          content: message,
+          duration: 7,
+        });
       },
     });
   }
 
   sortLabel(field: SortBy): string {
     if (this.sortBy() !== field) return '';
-    return this.sortOrder() === 'ASC' ? '?' : '?';
+    return this.sortOrder() === 'ASC' ? '↑' : '↓';
+  }
+
+  private handleMutationSuccess(message: string): void {
+    this.saving.set(false);
+    this.formOpen.set(false);
+    this.editingRow.set(null);
+    this.message.set(message);
+    this.toast.success({
+      title: 'Operación exitosa',
+      content: message,
+      duration: 5,
+    });
+    this.loadAll();
+  }
+
+  private handleMutationError(message: string): void {
+    this.saving.set(false);
+    this.error.set(message);
+    this.toast.error({
+      title: 'Operación fallida',
+      content: message,
+      duration: 7,
+    });
+  }
+
+  private ensureValidPage(): void {
+    const totalPages = Math.max(1, Math.ceil(this.filtered().length / this.pageSize()));
+    if (this.page() > totalPages) {
+      this.page.set(totalPages);
+    }
+  }
+
+  private normalizeSortValue(row: HomologoCrudUiRow, field: SortBy): number | string {
+    if (field === 'id') return Number(row.id);
+    if (field === 'factor') return Number(row.factor);
+    return String(row[field] ?? '').toLowerCase();
   }
 }
