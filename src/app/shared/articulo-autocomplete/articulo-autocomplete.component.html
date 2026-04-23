@@ -1,20 +1,35 @@
 <div class="ac-wrap">
-  <label class="ac-label">{{ label }}</label>
+  <label class="ac-label" [attr.for]="resolvedInputId">{{ label }}</label>
   <input
+    #inputEl
     class="ac-input"
     type="text"
+    [id]="resolvedInputId"
     [placeholder]="placeholder"
     [ngModel]="inputValue"
+    [attr.aria-describedby]="describedBy || null"
+    [attr.aria-invalid]="invalid"
+    [attr.aria-label]="ariaLabel || null"
+    [attr.aria-required]="required"
+    [attr.aria-autocomplete]="'list'"
+    [attr.aria-expanded]="results.length > 0"
+    [attr.aria-controls]="results.length > 0 ? listId : null"
+    [attr.aria-activedescendant]="activeDescendant"
+    [attr.role]="'combobox'"
+    [required]="required"
     (ngModelChange)="onInputChange($event)"
     (keydown)="onInputKeyDown($event)"
   />
 
   @if (results.length) {
-    <ul class="ac-list">
+    <ul class="ac-list" [id]="listId" role="listbox">
       @for (item of results; track item.clave; let i = $index) {
         <li
+          [id]="optionId(i)"
           class="ac-item"
           [class.active]="i === selectedIndex"
+          [attr.aria-selected]="i === selectedIndex"
+          role="option"
           (click)="selectItem(item)"
         >
           <div class="ac-clave">{{ item.clave }}</div>

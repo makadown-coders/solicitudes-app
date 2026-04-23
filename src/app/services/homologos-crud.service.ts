@@ -3,18 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { map, Observable, switchMap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ArticulosService } from './articulos.service';
-
-export interface HomologoCrudRow {
-  id: number;
-  clave: string;
-  sustituto: string;
-  factor: string;
-}
-
-export interface HomologoCrudUiRow extends HomologoCrudRow {
-  claveDescripcion: string | null;
-  sustitutoDescripcion: string | null;
-}
+import {
+  HomologoCrudRow,
+  HomologoCrudUiRow,
+  HomologoCrudUpsertPayload,
+} from '../models/homologos/homologo-crud.model';
 
 @Injectable({ providedIn: 'root' })
 export class HomologosCrudService {
@@ -33,13 +26,13 @@ export class HomologosCrudService {
     );
   }
 
-  create(payload: { clave: string; sustituto: string; factor: string | number }): Observable<HomologoCrudRow> {
+  create(payload: HomologoCrudUpsertPayload): Observable<HomologoCrudRow> {
     return this.http
       .post<{ row: HomologoCrudRow }>(this.baseUrl, payload)
       .pipe(map(resp => resp.row));
   }
 
-  update(id: number, payload: { clave?: string; sustituto?: string; factor?: string | number }): Observable<HomologoCrudRow> {
+  update(id: number, payload: Partial<HomologoCrudUpsertPayload>): Observable<HomologoCrudRow> {
     return this.http
       .put<{ row: HomologoCrudRow }>(`${this.baseUrl}/${id}`, payload)
       .pipe(map(resp => resp.row));

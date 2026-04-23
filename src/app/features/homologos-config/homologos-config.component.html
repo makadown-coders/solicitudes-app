@@ -1,152 +1,255 @@
-<div class="page">
-  <header class="page-head">
+<div class="page-shell">
+  <header class="hero">
     <div>
-      <h1>Configuracion de homologos</h1>
-      <p>CRUD con paginacion local y descripciones de articulos.</p>
+      <p class="eyebrow">Administración</p>
+      <h1>Claves alternativas / Homólogos</h1>
+      <p class="hero-copy">
+        Administra relaciones de sustitución entre claves con búsqueda, edición rápida y seguimiento claro del catálogo.
+      </p>
     </div>
-    <button class="btn btn-primary" (click)="openCreate()">Nuevo homologo</button>
+
+    <button type="button" class="primary-cta" (click)="openCreate()">
+      Nuevo homólogo
+    </button>
   </header>
 
-  <section class="card filters">
-    <div class="row">
-      <input
-        type="text"
-        class="input"
-        placeholder="Buscar por clave, sustituto o descripcion"
-        [ngModel]="search()"
-        (ngModelChange)="search.set($event)"
-        (keyup.enter)="onBuscar()"
-      />
-      <button class="btn" (click)="onBuscar()">Buscar</button>
-      <button class="btn" (click)="clearSearch()">Limpiar</button>
+  <section class="toolbar card" aria-label="Filtros de homólogos">
+    <div class="search-block">
+      <label class="search-label" for="homologos-search">Buscar homólogos</label>
+      <div class="search-input-wrap">
+        <input
+          id="homologos-search"
+          class="search-input"
+          type="search"
+          placeholder="Clave, descripción, sustituto o factor"
+          [value]="search()"
+          (input)="onSearchInput($any($event.target).value)"
+        />
+        @if (hasActiveSearch()) {
+          <button
+            type="button"
+            class="clear-search"
+            aria-label="Limpiar búsqueda"
+            (click)="clearSearch()"
+          >
+            Limpiar
+          </button>
+        }
+      </div>
+    </div>
 
-      <label class="inline">
-        <span>Page size</span>
-        <select class="input" [ngModel]="pageSize()" (ngModelChange)="changePageSize($event)">
-          <option [ngValue]="10">10</option>
-          <option [ngValue]="20">20</option>
-          <option [ngValue]="50">50</option>
-          <option [ngValue]="100">100</option>
+    <div class="toolbar-actions">
+      <label class="page-size" for="homologos-page-size">
+        <span>Filas por página</span>
+        <select
+          id="homologos-page-size"
+          class="page-size-select"
+          [value]="pageSize()"
+          (change)="changePageSize($any($event.target).value)"
+        >
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
         </select>
       </label>
     </div>
   </section>
 
- <!--  <section class="stats-grid">
-    <article class="card stat">
-      <h3>Total homologos</h3>
-      <strong>{{ allItems().length }}</strong>
-    </article>
-    <article class="card stat">
-      <h3>Sin descripcion (clave)</h3>
-      <strong>{{ sinDescripcionClave() }}</strong>
-    </article>
-    <article class="card stat">
-      <h3>Sin descripcion (sustituto)</h3>
-      <strong>{{ sinDescripcionSustituto() }}</strong>
-    </article>
-  </section> -->
-
   @if (message()) {
-    <div class="alert ok">{{ message() }}</div>
-  }
-  @if (error()) {
-    <div class="alert err">{{ error() }}</div>
+    <div class="status-banner status-ok" role="status">{{ message() }}</div>
   }
 
-  <section class="card">
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th (click)="toggleSort('id')">Id {{ sortLabel('id') }}</th>
-            <th (click)="toggleSort('clave')">Clave {{ sortLabel('clave') }}</th>
-            <th (click)="toggleSort('claveDescripcion')">Descripcion clave {{ sortLabel('claveDescripcion') }}</th>
-            <th (click)="toggleSort('sustituto')">Sustituto {{ sortLabel('sustituto') }}</th>
-            <th (click)="toggleSort('sustitutoDescripcion')">Descripcion sustituto {{ sortLabel('sustitutoDescripcion') }}</th>
-            <th (click)="toggleSort('factor')">Factor {{ sortLabel('factor') }}</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @if (loading()) {
-            <tr><td colspan="7" class="muted">Cargando...</td></tr>
-          } @else {
-            @for (r of pagedItems(); track r.id) {
+  @if (error()) {
+    <div class="status-banner status-error" role="alert">{{ error() }}</div>
+  }
+
+  <section class="summary-grid">
+    <article class="summary-card card">
+      <span class="summary-label">Total de homologaciones</span>
+      <strong>{{ allItems().length }}</strong>
+      <small>Catálogo cargado desde la API actual.</small>
+    </article>
+
+    <article class="summary-card card">
+      <span class="summary-label">Resultados visibles</span>
+      <strong>{{ total() }}</strong>
+      <small>
+        @if (hasActiveSearch()) {
+          Coincidencias para "{{ search() }}"
+        } @else {
+          Sin filtro activo
+        }
+      </small>
+    </article>
+
+    <article class="summary-card card">
+      <span class="summary-label">Rango actual</span>
+      <strong>{{ showingFrom() }} - {{ showingTo() }}</strong>
+      <small>Página {{ page() }} de {{ totalPages() }}</small>
+    </article>
+  </section>
+
+  <section class="card listing-card" aria-labelledby="homologos-table-title">
+    <div class="table-head">
+      <div>
+        <h2 id="homologos-table-title">Listado de homólogos</h2>
+        <p>Ordena por columna y administra cada relación desde la misma pantalla.</p>
+      </div>
+      <span class="table-count">{{ total() }} registro(s)</span>
+    </div>
+
+    @if (loading()) {
+      <div class="state-panel" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Cargando homólogos...</p>
+      </div>
+    } @else if (error() && !hasRows()) {
+      <div class="state-panel error-state" role="alert">
+        <h3>No se pudo cargar el catálogo</h3>
+        <p>{{ error() }}</p>
+        <button type="button" class="secondary-btn" (click)="loadAll()">Reintentar</button>
+      </div>
+    } @else if (!hasRows()) {
+      <div class="state-panel empty-state" role="status">
+        <h3>No hay homólogos registrados</h3>
+        <p>Cuando el catálogo tenga registros aparecerán aquí para administrarlos.</p>
+        <button type="button" class="secondary-btn" (click)="openCreate()">Crear primer homólogo</button>
+      </div>
+    } @else if (total() === 0) {
+      <div class="state-panel empty-state" role="status">
+        <h3>Sin coincidencias</h3>
+        <p>No encontramos registros para "{{ search() }}".</p>
+        <button type="button" class="secondary-btn" (click)="clearSearch()">Quitar filtro</button>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">
+                <button type="button" class="sort-btn" (click)="toggleSort('id')">
+                  ID <span class="sort-indicator">{{ sortLabel('id') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="sort-btn" (click)="toggleSort('clave')">
+                  Clave <span class="sort-indicator">{{ sortLabel('clave') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="sort-btn" (click)="toggleSort('claveDescripcion')">
+                  Descripción clave <span class="sort-indicator">{{ sortLabel('claveDescripcion') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="sort-btn" (click)="toggleSort('sustituto')">
+                  Sustituto <span class="sort-indicator">{{ sortLabel('sustituto') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="sort-btn" (click)="toggleSort('sustitutoDescripcion')">
+                  Descripción sustituto <span class="sort-indicator">{{ sortLabel('sustitutoDescripcion') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="sort-btn" (click)="toggleSort('factor')">
+                  Factor <span class="sort-indicator">{{ sortLabel('factor') }}</span>
+                </button>
+              </th>
+              <th scope="col" class="actions-col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of pageItems(); track row.id) {
               <tr>
-                <td>{{ r.id }}</td>
-                <td>{{ r.clave }}</td>
-                <td>{{ r.claveDescripcion || '-' }}</td>
-                <td>{{ r.sustituto }}</td>
-                <td>{{ r.sustitutoDescripcion || '-' }}</td>
-                <td>{{ r.factor }}</td>
-                <td class="actions">
-                  <button class="btn btn-sm" (click)="openEdit(r)">Editar</button>
-                  <button class="btn btn-sm btn-danger" (click)="deleteRow(r)">Eliminar</button>
+                <td class="mono-cell">{{ row.id }}</td>
+                <td>
+                  <span class="pill">{{ row.clave }}</span>
+                </td>
+                <td>{{ row.claveDescripcion || 'Sin descripción disponible' }}</td>
+                <td>
+                  <span class="pill alt">{{ row.sustituto }}</span>
+                </td>
+                <td>{{ row.sustitutoDescripcion || 'Sin descripción disponible' }}</td>
+                <td class="mono-cell">{{ row.factor }}</td>
+                <td class="row-actions">
+                  <button
+                    type="button"
+                    class="secondary-btn compact"
+                    (click)="openEdit(row)"
+                    [attr.aria-label]="'Editar homólogo ' + row.clave + ' a ' + row.sustituto"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    class="danger-btn compact"
+                    (click)="requestDelete(row)"
+                    [attr.aria-label]="'Eliminar homólogo ' + row.clave + ' a ' + row.sustituto"
+                  >
+                    Eliminar
+                  </button>
                 </td>
               </tr>
             }
-            @if (pagedItems().length === 0) {
-              <tr><td colspan="7" class="muted">Sin resultados</td></tr>
-            }
-          }
-        </tbody>
-      </table>
-    </div>
-
-    <footer class="pager">
-      <span>Total filtrado: {{ total() }}</span>
-      <span>Pagina {{ page() }} de {{ totalPages() }}</span>
-      <div class="pager-actions">
-        <button class="btn" (click)="prevPage()" [disabled]="page() <= 1">Anterior</button>
-        <button class="btn" (click)="nextPage()" [disabled]="page() >= totalPages()">Siguiente</button>
+          </tbody>
+        </table>
       </div>
-    </footer>
-  </section>
 
-  @if (formOpen()) {
-    <div class="overlay">
-      <div class="modal card">
-        <h2>{{ formMode() === 'create' ? 'Nuevo homologo' : 'Editar homologo' }}</h2>
+      <footer class="pagination" aria-label="Paginación de homólogos">
+        <div class="pagination-copy">
+          Mostrando {{ showingFrom() }} a {{ showingTo() }} de {{ total() }} resultados
+        </div>
 
-        <app-articulo-autocomplete
-          label="Clave"
-          placeholder="Buscar articulo para clave"
-          [model]="formClave()"
-          (modelChange)="onClaveModelChange($event)"
-          (selected)="onClaveSelected($event)"
-        />
-        @if (formClaveDescripcion()) {
-          <div class="picked ok">{{ formClaveDescripcion() }}</div>
-        } @else if (formClave().trim()) {
-          <div class="picked warn">Sin descripcion seleccionada.</div>
-        }
+        <div class="pagination-controls">
+          <button type="button" class="secondary-btn compact" (click)="goToPage(page() - 1)" [disabled]="page() === 1">
+            Anterior
+          </button>
 
-        <app-articulo-autocomplete
-          label="Sustituto"
-          placeholder="Buscar articulo para sustituto"
-          [model]="formSustituto()"
-          (modelChange)="onSustitutoModelChange($event)"
-          (selected)="onSustitutoSelected($event)"
-        />
-        @if (formSustitutoDescripcion()) {
-          <div class="picked ok">{{ formSustitutoDescripcion() }}</div>
-        } @else if (formSustituto().trim()) {
-          <div class="picked warn">Sin descripcion seleccionada.</div>
-        }
+          @for (pageNumber of pageButtons(); track pageNumber) {
+            <button
+              type="button"
+              class="page-btn"
+              [class.is-active]="pageNumber === page()"
+              [attr.aria-current]="pageNumber === page() ? 'page' : null"
+              (click)="goToPage(pageNumber)"
+            >
+              {{ pageNumber }}
+            </button>
+          }
 
-        <label>
-          Factor
-          <input class="input" type="number" step="0.0000000001" [ngModel]="formFactor()" (ngModelChange)="formFactor.set($event)" />
-        </label>
-
-        <div class="modal-actions">
-          <button class="btn" (click)="closeForm()" [disabled]="saving()">Cancelar</button>
-          <button class="btn btn-primary" (click)="saveForm()" [disabled]="saving()">
-            {{ saving() ? 'Guardando...' : 'Guardar' }}
+          <button
+            type="button"
+            class="secondary-btn compact"
+            (click)="goToPage(page() + 1)"
+            [disabled]="page() === totalPages()"
+          >
+            Siguiente
           </button>
         </div>
-      </div>
-    </div>
-  }
+      </footer>
+    }
+  </section>
 </div>
+
+@if (formOpen()) {
+  <app-homologos-form-modal
+    [mode]="formMode()"
+    [row]="editingRow()"
+    [saving]="saving()"
+    (cancel)="closeForm()"
+    (save)="saveRow($event)"
+  />
+}
+
+@if (deleteTarget(); as target) {
+  <app-confirmacion-modal
+    titulo="Eliminar homólogo"
+    [mensaje]="'Se eliminará la relación ' + target.clave + ' -> ' + target.sustituto + '. Esta acción no se puede deshacer.'"
+    textoCancelar="Cancelar"
+    [textoConfirmar]="deleting() ? 'Eliminando...' : 'Eliminar'"
+    (cancelar)="cancelDelete()"
+    (confirmar)="confirmDelete()"
+  />
+}
