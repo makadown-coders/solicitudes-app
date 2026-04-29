@@ -19,7 +19,7 @@
           </p>
         </div>
       </div>
-      <button class="grid place-items-center h-8 w-8 text-gray-500 rounded-full hover:bg-gray-100"
+      <button class="grid place-items-center h-8 w-8 text-gray-500 rounded-full cursor-pointer hover:bg-gray-100"
       (click)="close.emit()">×</button>
     </div>
 
@@ -74,24 +74,35 @@
           <input type="number" min="1" step="1" class="ml-2 px-2 py-1 w-20 border rounded"
             [ngModel]="mesesCobertura()" (ngModelChange)="setMesesCobertura($event)" />
           </label>
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" [ngModel]="showExistUnidad()"
-              (ngModelChange)="onToggleExistUnidad($event)" />
-              Ver existencias de la unidad
-            </label>
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" [disabled]="eligibleVisibleCount() === 0"
-                (change)="seleccionarTodoToggle($event)" />
-                Seleccionar visibles con cantidad sugerida &gt; 0
-              </label>
+          <div class="overflow-hidden inline-flex text-sm border rounded">
+            <button class="px-3 py-1 border-r"
+              [ngClass]="vista() === 'todos' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 hover:bg-gray-50'"
+              (click)="setVista('todos')">
+              Todos
+            </button>
+            <button class="px-3 py-1 border-r"
+              [ngClass]="vista() === 'sugeridos' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 hover:bg-gray-50'"
+              [disabled]="suggestedCount() === 0"
+              (click)="setVista('sugeridos')">
+              Sugeridos &gt; 0
+            </button>
+            <button class="px-3 py-1"
+              [ngClass]="vista() === 'existenciaCero' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 hover:bg-gray-50'"
+              [disabled]="zeroExistCount() === 0"
+              (click)="setVista('existenciaCero')">
+              Existencias en 0
+            </button>
+          </div>
               <div class="flex items-center gap-2 ml-auto">
                 <input class="px-2 py-1 w-56 text-sm border rounded" type="text"
                   placeholder="Buscar clave/desc/pres..." [ngModel]="filterText()"
-                  (ngModelChange)="filterText.set($event)" />
-                  <button class="px-3 py-2 bg-gray-100 rounded border hover:bg-gray-200"
+                  (ngModelChange)="setFilterText($event)" />
+                  <!-- Botones por lo pronto HIDDEN -->
+                  <button aria-hidden="true" hidden class="px-3 py-2 bg-gray-100 rounded border hover:bg-gray-200"
                   (click)="copyVisible()">Copiar visibles</button>
-                  <button class="px-3 py-2 bg-gray-100 rounded border hover:bg-gray-200"
+                  <button aria-hidden="true" hidden class="px-3 py-2 bg-gray-100 rounded border hover:bg-gray-200"
                   (click)="exportCsvVisible()">CSV visibles</button>
+                  <!-- Botones por lo pronto HIDDEN -->
                   <button class="px-3 py-2 text-white bg-emerald-600 rounded" (click)="agregarSeleccion()">Agregar
                   Seleccion ({{ selectionCount() }})</button>
                 </div>
@@ -109,7 +120,7 @@
                     <tr>
                       <th class="px-2 py-1 w-8 border-b">
                         <input type="checkbox" #master [checked]="allFilteredSelected()"
-                          [indeterminate]="someFilteredSelected()" [disabled]="eligibleVisibleCount() === 0"
+                          [indeterminate]="someFilteredSelected()" [disabled]="filteredCount() === 0"
                           (change)="toggleMasterSelection(master.checked)" />
                         </th>
                         <th class="px-2 py-1 text-left border-b">Clave / Descripción</th>
@@ -143,7 +154,7 @@
                                   }}</div>
                                 }
                               </td>
-                              <td class="px-2 py-1 border-b">{{ showExistUnidad() ? (r.exist ?? '—') : '—' }}</td>
+                              <td class="px-2 py-1 border-b">{{ r.exist ?? '—' }}</td>
                               <td class="px-2 py-1 border-b">{{ r.cpm || 0 }}</td>
                               @if (hasAlmacenExist()) {
                                 <td class="px-2 py-1 border-b">{{ r.azm || 0 }}</td>
@@ -165,7 +176,7 @@
                           }
                           @if (filteredRows.length === 0) {
                             <tr>
-                              <td [attr.colspan]="4 + (hasUnidadExist()?1:0) + (hasAlmacenExist()?3:0)" class="empty">
+                              <td [attr.colspan]="5 + (hasAlmacenExist()?3:0)" class="empty">
                                 Sin resultados.
                               </td>
                             </tr>
@@ -178,12 +189,10 @@
                     ⚙️ Las existencias de los almacenes AZM/AZE/AZT mostradas son de apoyo referencial y pueden cambiar
                     durante el día.
                   </p>
-                  @if (showExistUnidad()) {
-                    <p class="mt-1 text-xs text-gray-500">
+                  <p class="mt-1 text-xs text-gray-500">
                       🏥 Las existencias por <em>unidad</em> (y el reorden sugerido) se calculan con base en datos temporales
                       cargados recientemente.
-                    </p>
-                  }
+                  </p>
                 }
               </div>
             </div>

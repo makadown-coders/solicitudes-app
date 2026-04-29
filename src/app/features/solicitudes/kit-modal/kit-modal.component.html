@@ -1,7 +1,7 @@
 <!-- src/app/features/solicitudes/kit-modal/kit-modal.component.html -->
 <!-- Loader inicial (skeleton) -->
 @if (loading) {
-<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50" (click)="cerrar()">
+<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
   <div class="relative p-4 w-full max-w-4xl bg-white rounded-lg shadow-lg" (click)="$event.stopPropagation()"
     role="dialog" aria-modal="true" aria-labelledby="kit-modal-title" tabindex="-1" #modalDialog>
     <h3 class="text-lg font-semibold text-emerald-700">
@@ -40,7 +40,7 @@
 <!-- Contenido real (se muestra al terminar la carga) -->
 @if (!loading) {
 <!-- Modal: Claves del KIT (con existencias) -->
-<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50" (click)="cerrar()">
+<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
   <div class="relative p-4 w-full max-w-4xl bg-white rounded-lg shadow-lg" (click)="$event.stopPropagation()"
     role="dialog" aria-modal="true" aria-labelledby="kit-modal-title" tabindex="-1" #modalDialog>
     <!-- Top progress para tareas breves -->
@@ -64,7 +64,7 @@
           -->
       <div class="flex items-center gap-2">
         <input class="px-2 py-1 w-64 text-sm border rounded" type="text" placeholder="Buscar clave/desc/pres..."
-          [ngModel]="filterText" (ngModelChange)="filterText = $event" />
+          [ngModel]="filterText" (ngModelChange)="setFilterText($event)" />
       </div>
       <!-- Derecha: acciones -->
       <div class="flex flex-wrap items-center gap-2">
@@ -99,12 +99,6 @@
         <!-- Existencias por unidad (si hay staging en tmp_existencias) -->
 
         <div class="flex items-center gap-3">
-          @if (hasUnidadExistencias) {
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" [ngModel]="showUnidadExist" (ngModelChange)="setShowUnidadExist($event)" />
-            Ver existencias de la unidad
-          </label>
-          }
           @if (showUnidadExist) {
           <div class="flex items-center gap-2">
             <label class="block text-xs text-gray-600">Meses de cobertura</label>
@@ -133,18 +127,33 @@
           <input type="number" min="1" step="1" [ngModel]="defaultQtyNoCpm" (ngModelChange)="setDefaultQtyNoCpm($event)"
             class="px-2 py-1 w-20 text-sm border rounded" />
         </div>
-        <button class="px-3 py-1.5 text-sm rounded border" (click)="selectByContext()">
-          {{ selectionButtonLabel }}
-        </button>
-        <button class="px-3 py-1.5 text-sm rounded border" (click)="clearSelection()">Limpiar</button>
-        <span class="mx-1 text-gray-300">|</span>
-        <button class="px-3 py-1.5 text-sm cursor-pointer rounded border"
+        <div class="inline-flex overflow-hidden text-sm border rounded">
+          <button class="px-3 py-1.5 border-r"
+            [ngClass]="vista === 'todos' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 hover:bg-gray-50'"
+            (click)="setVista('todos')">
+            Todos
+          </button>
+          <button class="px-3 py-1.5 border-r"
+            [ngClass]="vista === 'sugeridos' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 hover:bg-gray-50'"
+            [disabled]="suggestedCount === 0"
+            (click)="setVista('sugeridos')">
+            Sugeridos &gt; 0
+          </button>
+          <button class="px-3 py-1.5"
+            [ngClass]="vista === 'existenciaCero' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 hover:bg-gray-50'"
+            [disabled]="zeroExistCount === 0"
+            (click)="setVista('existenciaCero')">
+            Existencias en 0
+          </button>
+        </div>
+        <button class="px-3 py-1.5 text-sm cursor-pointer rounded border" aria-hidden="true" hidden
           title="Copiar solo claves del KIT a portapapeles" (click)="copiarKitAlPortapapeles()">Copiar
           claves</button>
-        <button class="px-3 py-1.5 text-sm cursor-pointer rounded border"
+        <button class="px-3 py-1.5 text-sm cursor-pointer rounded border" aria-hidden="true" hidden
           title="Copiar información del KIT a portapapapeles" (click)="copiarTablaKitAlPortapapeles()">Copiar
           tabla</button>
-        <button class="px-3 py-1.5 text-sm cursor-pointer rounded border" (click)="exportarKitCsv()">Exportar
+        <button class="px-3 py-1.5 text-sm cursor-pointer rounded border" aria-hidden="true" hidden
+          (click)="exportarKitCsv()">Exportar
           CSV</button>
       </div>
     </div>
@@ -167,7 +176,7 @@
           <tr class="text-left">
             <th class="px-2 py-1 w-8 border-b">
               <input type="checkbox" #master [checked]="allFilteredSelected" [indeterminate]="someFilteredSelected"
-                (change)="toggleMasterSelection(master.checked)" />
+                [disabled]="filteredCount === 0" (change)="toggleMasterSelection(master.checked)" />
             </th>
             <th class="px-2 py-1 w-[28rem] border-b">Clave</th>
             @if (showUnidadExist && hasUnidadExistencias) {
