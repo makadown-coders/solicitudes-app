@@ -18,6 +18,45 @@ export class CpmEditorService {
     return this.http.get<{ rows: CpmRow[]; count?: number }>(`${this.base}/by-unidad-all`, { params });
   }
 
+  /**
+   * Invocar este metodo cuando se genere el Excel de solicitud para que se envien a almacen
+   * los cpms validados por cdmx. Esto es porque se necesitan los cpms reales.
+   * Los cpms de BC se muestran en la herramienta solo para guiar a las unidades,
+   * pero no se deben usar para la solicitud.
+   * En cambio, los cpms de BC validados por CDMX se deben usar para la solicitud.
+   * @param cluesimb
+   * @param cluessa
+   * @returns
+   */
+  getByUnidadRealAll(cluesimb?: string, cluessa?: string) {
+    const params: Record<string, string> = {};
+    if (cluesimb) params['cluesimb'] = cluesimb;
+    if (cluessa) params['cluessa'] = cluessa;
+    return this.http.get<{ rows: CpmRow[]; count?: number }>(`${this.base}/by-unidad-real-all`, { params });
+    /*
+    const params = this.buildUnidadParams(cluesimb, cluessa);
+    const cacheKey = this.buildRealAllCacheKey(cluesimb, cluessa);
+    const cached = this.readRealAllCache(cacheKey);
+    if (cached) {
+      return of(cached);
+    }
+
+    const inflight = this.inflightRealAll.get(cacheKey);
+    if (inflight) {
+      return inflight;
+    }
+
+    const request$ = this.http.get<{ rows: CpmRow[]; count?: number }>(`${this.base}/by-unidad-real-all`, { params }).pipe(
+      tap(resp => this.writeRealAllCache(cacheKey, resp)),
+      finalize(() => this.inflightRealAll.delete(cacheKey)),
+      shareReplay(1)
+    );
+
+    this.inflightRealAll.set(cacheKey, request$);
+    return request$;
+     */
+  }
+
   upsertOne(um: string, clave: string, cpm: number, fuente = 'manual') {
     return this.http.patch<{ ok: true }>(`${this.base}`, { um, clave, cpm, fuente });
   }

@@ -1,6 +1,8 @@
 ﻿// src/app/features/solicitudes/solicitudes.component.ts
 import { ArticuloSolicitud } from '../../models/articulo-solicitud';
-import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, inject, ChangeDetectorRef, AfterViewInit, ChangeDetectionStrategy, OnDestroy, signal } from '@angular/core';
+import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener,
+  ViewChild, inject, ChangeDetectorRef, AfterViewInit,
+  ChangeDetectionStrategy, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, firstValueFrom, map, Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
@@ -35,6 +37,7 @@ import { HomologosSolicitudService, SugerenciaHomologoItem, MiniBalanceHomologoC
 import { HomologoSugerenciaModalComponent } from './homologo-sugerencia-modal/homologo-sugerencia-modal.component';
 import { HomologoResumenImportacionComponent } from './homologo-resumen-importacion/homologo-resumen-importacion.component';
 import { environment } from '../../../environments/environment';
+import { CpmEditorService } from '../../services/cpm-editor.service';
 
 
 @Component({
@@ -89,6 +92,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   toast = inject(NgFastToastService);
   trazabilidadService = inject(TrazabilidadService);
   bitacoraService = inject(SolicitudesBitacoraService);
+  cpmEditorService = inject(CpmEditorService);
 
   @ViewChildren('resultItem') resultItems!: QueryList<ElementRef>;
   @ViewChild('inputClave') inputClaveRef!: ElementRef<HTMLInputElement>;

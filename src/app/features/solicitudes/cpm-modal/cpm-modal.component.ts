@@ -13,6 +13,8 @@ import { NgFastToastService } from 'ng-fast-toast';
 import { TrazabilidadService } from '../../../services/trazabilidad.service';
 import { Row } from '../Row';
 
+type VistaCpm = 'todos' | 'sugeridos' | 'existenciaCero';
+
 @Component({
   selector: 'app-cpm-modal',
   standalone: true,
@@ -46,9 +48,7 @@ export class CpmModalComponent {
   busy = signal(false);
   filterText = signal('');
   mesesCobertura = signal(1);
-
-  // TODO: QUITAR showExistUnidad
-  showExistUnidad = signal(true);
+  vista = signal<VistaCpm>('todos');
 
   hasUnidadExist = signal(false);
   totalClaves = computed(() => this.rows().length);
@@ -146,45 +146,33 @@ export class CpmModalComponent {
     return { azm, aze, azt };
   }
 
-  async onToggleExistUnidad(v: boolean) {
-    this.showExistUnidad.set(v);
-    if (!v) {
-      this.rows.update(list => list.map(r => ({ ...r, exist: undefined })));
-      return;
-    }
-    this.busy.set(true);
-    try {
-      const ex = await firstValueFrom(this.existApi.byUnidad(this.cluesimb));
-      const idx = ex ?
-        new Map<string, number>(ex!.map(r => [this.normClave(r.clave_cnis), r.existencia_total ?? 0]))
-        : new Map<string, number>();
-      this.rows.update(list => list.map(r => ({ ...r, exist: idx.get(r.clave) ?? 0 })));
-    } finally {
-      this.busy.set(false);
-    }
-  }
-
-  toggleSelTodo(checked: boolean) {
-    const next = new Set<string>(this.selectedSet);
-    const visibles = this.rowsFiltered();
-
-    if (checked) {
-      for (const r of visibles) {
-        const clave = this.normClave(r.clave);
-        if (this.sugerencia(r) > 0) next.add(clave);
-        else next.delete(clave);
-      }
-    } else {
-      for (const r of visibles) next.delete(this.normClave(r.clave));
-    }
-
-    this.selectedSet = next;
-    this.rows.update(list => list.map(r => ({ ...r, _sel: next.has(this.normClave(r.clave)) })));
-  }
-
-  eligibleVisibleCount = computed(() =>
-    this.rowsFiltered().filter(r => this.sugerencia(r) > 0).length
+  suggestedCount = computed(() =>
+    this.rows().filter(r => this.sugerencia(r) > 0).length
   );
+
+  zeroExistCount = computed(() =>
+    this.rows().filter(r => this.tieneExistenciaUnidadEnCero(r)).length
+  );
+
+  private tieneExistenciaUnidadEnCero(r: Row): boolean {
+    return r.exist !== undefined && (Number(r.exist) || 0) === 0;
+  }
+
+  setVista(vista: VistaCpm) {
+    this.vista.set(vista);
+    this.pruneSelectionToVisibleRows();
+  }
+
+  setFilterText(value: string) {
+    this.filterText.set(value);
+    this.pruneSelectionToVisibleRows();
+  }
+
+  private pruneSelectionToVisibleRows() {
+    const visibles = new Set(this.rowsFiltered().map(r => this.normClave(r.clave)));
+    this.selectedSet = new Set([...this.selectedSet].filter(clave => visibles.has(clave)));
+    this.rows.update(list => list.map(r => ({ ...r, _sel: this.selectedSet.has(this.normClave(r.clave)) })));
+  }
 
   toggleSelUno(clave: string, checked: boolean) {
     const claveNorm = this.normClave(clave);
@@ -194,12 +182,22 @@ export class CpmModalComponent {
 
   rowsFiltered = computed(() => {
     const q = this.filterText().trim().toLowerCase();
-    if (!q) return this.rows();
-    return this.rows().filter(r =>
-      r.clave.toLowerCase().includes(q) ||
-      (r.descripcion ?? '').toLowerCase().includes(q) ||
-      (r.presentacion ?? '').toLowerCase().includes(q)
-    );
+    const byText = !q
+      ? this.rows()
+      : this.rows().filter(r =>
+        r.clave.toLowerCase().includes(q) ||
+        (r.descripcion ?? '').toLowerCase().includes(q) ||
+        (r.presentacion ?? '').toLowerCase().includes(q)
+      );
+
+    switch (this.vista()) {
+      case 'sugeridos':
+        return byText.filter(r => this.sugerencia(r) > 0);
+      case 'existenciaCero':
+        return byText.filter(r => this.tieneExistenciaUnidadEnCero(r));
+      default:
+        return byText;
+    }
   });
 
   // ---------- Cantidad final (anti-doble cobertura) ----------
@@ -323,13 +321,6 @@ export class CpmModalComponent {
 
   setMesesCobertura($event: number) {
     this.mesesCobertura.set(Math.max(1, Math.floor($event || 1)));
-    // desmarca las que dejaron de requerir resurtido
-    this.toggleSelTodo(true/*this.showExistUnidad()*/);
-  }
-
-  seleccionarTodoToggle($event: Event) {
-    const input = $event.target as HTMLInputElement;
-    this.toggleSelTodo(input.checked);
   }
 
   seleccionarUnoToggle(clave: string, $event: Event) {
@@ -358,7 +349,7 @@ export class CpmModalComponent {
 
   private visibleHeaders(): string[] {
     const cols = ['Clave', 'Descripción', 'Presentación', 'CPM'];
-    if (this.hasUnidadExist()) cols.push('Exist. unidad');
+    cols.push('Exist. unidad');
     if (this.hasAlmacenExist()) cols.push('AZM', 'AZE', 'AZT'); // ← NUEVO
     cols.push('Cant. sugerida');
     return cols;
@@ -366,7 +357,7 @@ export class CpmModalComponent {
 
   private visibleRow(r: Row): any[] {
     const base = [r.clave, r.descripcion ?? '', r.presentacion ?? '', (r.cpm ?? 0)];
-    if (this.hasUnidadExist()) base.push(r.exist ?? '');
+    base.push(r.exist ?? '');
     if (this.hasAlmacenExist()) base.push(r.azm ?? 0, r.aze ?? 0, r.azt ?? 0); // ← NUEVO
     base.push(this.sugerencia(r));
     return base;
@@ -405,7 +396,9 @@ export class CpmModalComponent {
     this.rows().some(r => (r.azm || 0) + (r.aze || 0) + (r.azt || 0) > 0)
   );
 
-  selectionCount = computed(() => this.rowsFiltered().filter(r => this.selectedSet.has(this.normClave(r.clave))).length);
+  filteredCount = computed(() => this.rowsFiltered().length);
+
+  selectionCount = computed(() => this.rows().filter(r => this.selectedSet.has(this.normClave(r.clave))).length);
 
   // Todas las visibles elegibles están seleccionadas
   allFilteredSelected = computed(() => {

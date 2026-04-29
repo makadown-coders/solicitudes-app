@@ -17,6 +17,7 @@ import { KitRow } from '../../../models/KitRow';
 import { ColKey } from '../../../models/ColKey';
 import { TrazabilidadService } from '../../../services/trazabilidad.service';
 
+type VistaKit = 'todos' | 'sugeridos' | 'existenciaCero';
 
 @Component({
     selector: 'app-kit-modal',
@@ -63,6 +64,7 @@ export class KitModalComponent implements OnInit {
     verPorAlmacen = true;
     mostrarMasOpciones = false;
     showUnidadExist = true;
+    vista: VistaKit = 'todos';
 
     // existencias por unidad (staging)
     hasUnidadExistencias = false;
@@ -80,6 +82,9 @@ export class KitModalComponent implements OnInit {
     // selección
     private selectedSet = new Set<string>(); // claves normalizadas
     get selectionCount() { return this.selectedSet.size; }
+    get filteredCount() { return this.kitRowsFiltrados.length; }
+    get suggestedCount() { return this.kitRows.filter(r => this.isSugerido(r)).length; }
+    get zeroExistCount() { return this.kitRows.filter(r => this.isExistenciaCero(r)).length; }
 
     // índice inventario estatal por clave (AZM/AZE/AZT)
     private invIndex = new Map<string, InventarioDisponibles>();
@@ -255,6 +260,7 @@ export class KitModalComponent implements OnInit {
             if ((Number(r.existUnidad) || 0) > 0) this.kitStats.conExist++;
             else this.kitStats.sinExist++;
         }
+        this.pruneSelectionToVisibleRows();
         this.cdRef.markForCheck();
     }
 
@@ -496,19 +502,54 @@ export class KitModalComponent implements OnInit {
         this.saveUiPrefs();
         // if (this.hasUnidadExistencias)
         this.mergeExistenciasIntoKit();
+        this.pruneSelectionToVisibleRows();
     }
 
     // === Filtro “virtual” (por ahora no hay filtros visibles) ===
     // Si en el futuro reactivas filtros/búsqueda, aquí es donde los aplicarías.
+    setFilterText(v: string) {
+        this.filterText = v ?? '';
+        this.pruneSelectionToVisibleRows();
+        this.cdRef.markForCheck();
+    }
+
+    setVista(vista: VistaKit) {
+        this.vista = vista;
+        this.pruneSelectionToVisibleRows();
+        this.cdRef.markForCheck();
+    }
+
+    private isSugerido(r: KitRow): boolean {
+        return (Number(r.reordenSug ?? 0) || 0) > 0;
+    }
+
+    private isExistenciaCero(r: KitRow): boolean {
+        return r.existUnidad !== undefined && (Number(r.existUnidad) || 0) === 0;
+    }
+
+    private pruneSelectionToVisibleRows() {
+        const visibles = new Set(this.kitRowsFiltrados.map(r => this.normClave(r.clave)));
+        this.selectedSet = new Set([...this.selectedSet].filter(clave => visibles.has(clave)));
+    }
+
     get kitRowsFiltrados(): KitRow[] {
         const q = (this.filterText || '').trim().toLowerCase();
-        if (!q) return this.kitRows;
+        const byText = !q
+            ? this.kitRows
+            : this.kitRows.filter(r =>
+                (r.clave || '').toLowerCase().includes(q) ||
+                (r.descripcion || '').toLowerCase().includes(q) ||
+                (r.presentacion || '').toLowerCase().includes(q)
+            );
 
-        return this.kitRows.filter(r =>
-            (r.clave || '').toLowerCase().includes(q) ||
-            (r.descripcion || '').toLowerCase().includes(q) ||
-            (r.presentacion || '').toLowerCase().includes(q)
-        );
+        switch (this.vista) {
+            case 'sugeridos':
+                return byText.filter(r => this.isSugerido(r));
+            case 'existenciaCero':
+                return byText.filter(r => this.isExistenciaCero(r));
+            default:
+                return byText;
+        }
     }
 
     // === Botón inteligente de selección ===
@@ -556,6 +597,7 @@ export class KitModalComponent implements OnInit {
             this.recomputeReordenSug();
         //}
 
+        this.pruneSelectionToVisibleRows();
         this.cdRef.markForCheck();
     }
 
@@ -587,7 +629,7 @@ export class KitModalComponent implements OnInit {
             }>;
 
             if (typeof parsed.verPorAlmacen === 'boolean') this.verPorAlmacen = parsed.verPorAlmacen;
-            if (typeof parsed.showUnidadExist === 'boolean') this.showUnidadExist = parsed.showUnidadExist;
+            this.showUnidadExist = true;
             if (typeof parsed.mesesCobertura === 'number' && Number.isFinite(parsed.mesesCobertura)) {
                 this.mesesCobertura = Math.max(1, Math.floor(parsed.mesesCobertura));
             }
