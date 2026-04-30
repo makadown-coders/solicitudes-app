@@ -15,6 +15,12 @@ export const routes: Routes = [
       .then(m => m.CpmsDifPageComponent)
   },
   {
+    path: 'ib-onco',
+    title: 'IB-ONCO',
+    loadComponent: () => import('./features/ib-onco/ib-onco-page.component')
+      .then(m => m.IbOncoPageComponent)
+  },
+  {
     path: 'poc-finanzas-ev-smi-sg',
     loadComponent: () => import('./features/poc-finanzas-ev-smi-sg/poc-finanzas-ev-smi-sg.component')
       .then(m => m.PocFinanzasEvSmiSgComponent)
@@ -137,6 +143,12 @@ export const routes: Routes = [
             loadComponent: () => import('./features/dashboard-abasto/existencias/balanceo-sugerencias/balanceo-sugerencias.component')
               .then(m => m.BalanceoSugerenciasComponent),
             title: 'Dashboard Abasto · Análisis · Balanceo'
+          },
+          {
+            path: 'balanceo-v2',
+            loadComponent: () => import('./features/dashboard-abasto/existencias/balanceo-v2/balanceo-v2.component')
+              .then(m => m.BalanceoV2Component),
+            title: 'Dashboard Abasto · Análisis · Balanceo V2'
           },
           {
             path: 'homologos',

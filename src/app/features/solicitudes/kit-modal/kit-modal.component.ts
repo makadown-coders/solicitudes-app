@@ -1,6 +1,18 @@
 // src/app/features/solicitudes/kit-modal/kit-modal.component.ts
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnInit, Output, ViewChild, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnInit,
+  Output,
+  ViewChild,
+  inject
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
@@ -12,7 +24,7 @@ import { NgFastToastService } from 'ng-fast-toast';
 
 import { ArticuloSolicitud } from '../../../models/articulo-solicitud';
 import { InventarioDisponibles } from '../../../models/Inventario';
-import { CpmRowLite } from '../../../models/CpmExpectedRow';
+
 import { KitRow } from '../../../models/KitRow';
 import { ColKey } from '../../../models/ColKey';
 import { TrazabilidadService } from '../../../services/trazabilidad.service';

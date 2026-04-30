@@ -1,0 +1,312 @@
+<div class="min-h-screen bg-slate-100">
+  <section class="mx-auto px-4 py-4 max-w-7xl sm:px-6 lg:px-8">
+    <div class="space-y-4">
+      <header class="p-4 bg-white border-gray-100 rounded-2xl shadow-sm border">
+        <div class="flex flex-col items-center justify-between gap-3 lg:flex-row">
+          <div>
+            <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">Modulo de seguimiento oncologico</p>
+            <h1 class="text-2xl font-bold text-gray-900">IB-ONCO</h1>
+            <p class="text-sm text-gray-600">
+              Selecciona un hospital para revisar sus claves oncologicas y abrir el analisis por orden.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              type="button" [title]="'Exporta todo en excel'"
+              (click)="exportarExcel()"
+              [disabled]="exportando() || loadingInicial()"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-700 rounded-xl border-emerald-700 cursor-pointer border hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">
+              <lucide-angular [img]="DownloadIcon" class="w-4 h-4"></lucide-angular>
+              {{ exportando() ? 'Exportando todo...' : 'Exportar Excel' }}
+            </button>
+            <button
+              type="button"
+              (click)="refrescar()"
+              [disabled]="loadingInicial() || loadingClaves()"
+              class="px-4 py-2 text-sm font-semibold text-gray-700 border-gray-300 rounded-xl cursor-pointer border hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60">
+              Refrescar
+            </button>
+            @if (unidadSeleccionada(); as unidad) {
+              <div class="px-3 py-2 text-sm text-right text-gray-600 bg-gray-50 border-gray-100 rounded-xl border">
+                <p class="font-semibold text-gray-900">{{ unidad.nombre_de_unidad || unidad.cluesimb }}</p>
+                <p>{{ unidad.cluesimb }}</p>
+              </div>
+            }
+          </div>
+        </div>
+      </header>
+
+      @if (error(); as message) {
+        <div class="px-4 py-3 text-sm text-red-700 bg-red-50 border-red-100 rounded-2xl border">
+          {{ message }}
+        </div>
+      }
+
+      <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        @for (item of kpis(); track item.label) {
+          <div class="p-4 bg-white border-gray-100 rounded-2xl shadow-sm border">
+            <p class="text-xs font-semibold tracking-wide text-gray-500 uppercase">{{ item.label }}</p>
+            <p class="mt-2 text-2xl font-bold text-gray-900">{{ item.value | number:'1.0-0' }}</p>
+          </div>
+        }
+      </section>
+
+      <section class="p-4 bg-white border-gray-100 rounded-2xl shadow-sm border">
+        <div class="grid items-end gap-3 md:grid-cols-[minmax(280px,1.2fr)_minmax(220px,0.8fr)]">
+          <label class="text-sm font-medium text-gray-700">
+            Unidad / hospital
+            <select
+              class="px-3 py-2 mt-1 w-full text-sm bg-white border-gray-300 rounded-xl border focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              [ngModel]="cluesimb()"
+              (ngModelChange)="onUnidadChange($event)">
+              <option value="">Selecciona un hospital</option>
+              @for (unidad of unidades(); track unidad.cluesimb) {
+                <option [value]="unidad.cluesimb">
+                  {{ unidad.nombre_de_unidad || unidad.cluesimb }}
+                </option>
+              }
+            </select>
+          </label>
+
+          <label class="text-sm font-medium text-gray-700">
+            Busqueda
+            <input
+              type="search"
+              class="px-3 py-2 mt-1 w-full text-sm border-gray-300 rounded-xl border focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-50"
+              placeholder="Clave o descripcion"
+              [disabled]="!cluesimb()"
+              [ngModel]="search()"
+              (ngModelChange)="onSearchChange($event)">
+          </label>
+
+        </div>
+      </section>
+
+      <section class="p-4 bg-white border-gray-100 rounded-2xl shadow-sm border">
+        <div class="flex flex-col items-center justify-between gap-2 mb-4 lg:flex-row">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">Claves del hospital</h2>
+            <p class="text-sm text-gray-500">
+              @if (cluesimb()) {
+                {{ abasto().rows.length | number }} clave(s) cargadas para la unidad seleccionada
+              } @else {
+                Selecciona un hospital para cargar sus claves.
+              }
+            </p>
+          </div>
+        </div>
+
+        @if (!cluesimb()) {
+          <div class="px-4 py-10 text-center text-gray-500 border-dashed border-gray-200 rounded-2xl border">
+            Selecciona un hospital para iniciar el analisis.
+          </div>
+        } @else if (loadingInicial() || loadingClaves()) {
+          <div class="space-y-2">
+            <div class="h-10 bg-gray-100 rounded-xl"></div>
+            <div class="h-10 bg-gray-100 rounded-xl"></div>
+            <div class="h-10 bg-gray-100 rounded-xl"></div>
+          </div>
+        } @else if (abasto().rows.length === 0) {
+          <div class="px-4 py-10 text-center text-gray-500 border-dashed border-gray-200 rounded-2xl border">
+            No hay claves para el hospital con los filtros actuales.
+          </div>
+        } @else {
+          <div class="overflow-x-auto border-gray-100 rounded-2xl border">
+            <table class="min-w-[1180px] w-full text-sm">
+              <thead class="text-xs text-gray-600 bg-gray-50">
+                <tr>
+                  <th class="px-3 py-3 text-left">Clave CNIS</th>
+                  <th class="px-3 py-3 text-left">Descripcion</th>
+                  <th class="px-3 py-3 text-right">Existencias</th>
+                  <th class="px-3 py-3 text-right">CPM</th>
+                 <!--  <th class="px-3 py-3 text-right">CPM x 3</th>
+                  <th class="px-3 py-3 text-right">CPMs equivalentes</th> -->
+                 <!--  <th class="px-3 py-3 text-center">Estado abasto</th>
+                  <th class="px-3 py-3 text-right">Citas pendientes</th> -->
+                  <th class="px-3 py-3 text-right">Piezas pendientes</th>
+                  <th class="px-3 py-3 text-center">Sobreabasto</th>
+                  <th class="px-3 py-3 text-center">Faltantes</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                @for (row of abasto().rows; track trackAbasto(row)) {
+                  <tr class="hover:bg-emerald-50/50">
+                    <td class="px-3 py-3 font-semibold text-gray-900">{{ row.clave_cnis }}</td>
+                    <td class="px-3 py-3 text-gray-600">
+                      <span class="block max-w-md truncate" [title]="row.descripcion || ''">
+                        {{ row.descripcion || '-' }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-3 text-right">{{ row.existencias | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.cpm | number:'1.0-0' }}</td>
+                    <!-- <td class="px-3 py-3 text-right">{{ row.cpm_x_3 | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.cpms_eq | number:'1.1-1' }}</td> -->
+                   <!--  <td class="px-3 py-3 text-center">
+                      <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" [ngClass]="estadoClass(row)">
+                        {{ row.estado_abasto }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-3 text-right">{{ row.citas_pendientes | number:'1.0-0' }}</td> -->
+                    <td class="px-3 py-3 text-right">{{ row.piezas_pendientes | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-center">
+                      @if (row.tiene_citas_pendientes && esSobreabasto(row)) {
+                        <button
+                          type="button"
+                          class="inline-flex items-center justify-center w-9 h-9 text-emerald-700 bg-emerald-50 border-emerald-100 rounded-xl border hover:bg-emerald-100"
+                          title="Abrir analisis sobreabasto"
+                          aria-label="Abrir analisis sobreabasto"
+                          (click)="abrirAnalisis(row, 'sobreabasto')">
+                          <lucide-angular [img]="SearchIcon" class="w-4 h-4"></lucide-angular>
+                        </button>
+                      } @else {
+                        <span class="text-xs text-gray-400">-</span>
+                      }
+                    </td>
+                    <td class="px-3 py-3 text-center">
+                      @if (row.tiene_citas_pendientes && !esSobreabasto(row)) {
+                        <button
+                          type="button"
+                          class="inline-flex items-center justify-center w-9 h-9 text-emerald-700 bg-emerald-50 border-emerald-100 rounded-xl border hover:bg-emerald-100"
+                          title="Abrir analisis faltantes"
+                          aria-label="Abrir analisis faltantes"
+                          (click)="abrirAnalisis(row, 'faltantes')">
+                          <lucide-angular [img]="SearchIcon" class="w-4 h-4"></lucide-angular>
+                        </button>
+                      } @else {
+                        <span class="text-xs text-gray-400">-</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    </div>
+  </section>
+</div>
+
+@if (selectedRow(); as row) {
+  <div class="z-50 fixed inset-0 flex items-center justify-center p-4 bg-black/40">
+    <div class="overflow-hidden w-full max-w-6xl max-h-[90vh] bg-white rounded-2xl shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="ib-onco-modal-title">
+      <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-200">
+        <div class="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)]">
+          <div>
+            <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">{{ row.cluesimb }}</p>
+            <h2 id="ib-onco-modal-title" class="text-lg font-bold text-gray-900">{{ row.clave_cnis }}</h2>
+            <p class="text-sm text-gray-500">{{ row.descripcion || 'Sin descripcion' }}</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div class="px-3 py-2 bg-slate-50 border-slate-100 rounded-xl border">
+              <p class="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Existencias</p>
+              <p class="mt-1 text-base font-bold text-slate-900">{{ row.existencias | number:'1.0-0' }}</p>
+            </div>
+            <div class="px-3 py-2 bg-slate-50 border-slate-100 rounded-xl border">
+              <p class="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">CPM</p>
+              <p class="mt-1 text-base font-bold text-slate-900">{{ row.cpm | number:'1.0-0' }}</p>
+            </div>
+            <div class="px-3 py-2 bg-slate-50 border-slate-100 rounded-xl border">
+              <p class="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">CPM x 3</p>
+              <p class="mt-1 text-base font-bold text-slate-900">{{ row.cpm_x_3 | number:'1.0-0' }}</p>
+            </div>
+            <div class="px-3 py-2 bg-slate-50 border-slate-100 rounded-xl border">
+              <p class="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">CPMs eq.</p>
+              <p class="mt-1 text-base font-bold text-slate-900">{{ row.cpms_eq | number:'1.1-1' }}</p>
+            </div>
+            <div class="px-3 py-2 bg-slate-50 border-slate-100 rounded-xl border">
+              <p class="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Citas</p>
+              <p class="mt-1 text-base font-bold text-slate-900">{{ row.citas_pendientes | number:'1.0-0' }}</p>
+            </div>
+            <div class="px-3 py-2 bg-slate-50 border-slate-100 rounded-xl border">
+              <p class="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Piezas</p>
+              <p class="mt-1 text-base font-bold text-slate-900">{{ row.piezas_pendientes | number:'1.0-0' }}</p>
+            </div>
+            <div class="px-3 py-2 bg-slate-50 border-slate-100 rounded-xl border sm:col-span-3">
+              <p class="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Estado abasto</p>
+              <span class="inline-flex px-2 py-1 mt-1 text-xs font-semibold rounded-full" [ngClass]="estadoClass(row)">
+                {{ row.estado_abasto === 'ok' ? 'Posibles faltantes' : 'Posible sobreabasto' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="inline-flex items-center justify-center w-9 h-9 text-gray-600 border-gray-200 rounded-xl border hover:bg-gray-50"
+          aria-label="Cerrar modal"
+          (click)="cerrarModal()">
+          <lucide-angular [img]="XIcon" class="w-4 h-4"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="px-5 py-3 border-b border-gray-200">
+        <h3 class="text-base font-semibold text-gray-900">{{ modalAnalisisTitulo() }}</h3>
+      </div>
+
+      <div class="overflow-auto p-5 max-h-[68vh]">
+        @if (modalError(); as message) {
+          <div class="px-4 py-3 mb-4 text-sm text-red-700 bg-red-50 border-red-100 rounded-2xl border">
+            {{ message }}
+          </div>
+        }
+
+        @if (loadingModal()) {
+          <div class="space-y-2">
+            <div class="h-10 bg-gray-100 rounded-xl"></div>
+            <div class="h-10 bg-gray-100 rounded-xl"></div>
+            <div class="h-10 bg-gray-100 rounded-xl"></div>
+          </div>
+        } @else {
+          @if (modalAnalisisRows().length === 0) {
+            <div class="px-4 py-10 text-center text-gray-500 border-dashed border-gray-200 rounded-2xl border">
+              Sin datos
+            </div>
+          } @else {
+            <ng-container *ngTemplateOutlet="ordenesTable; context: { rows: modalAnalisisRows() }"></ng-container>
+          }
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<ng-template #ordenesTable let-rows="rows">
+  <div class="overflow-x-auto border-gray-100 rounded-2xl border">
+    <table class="min-w-[980px] w-full text-sm">
+      <thead class="text-xs text-gray-600 bg-gray-50">
+        <tr>
+          <!-- <th class="px-3 py-3 text-center">Sel.</th> -->
+          <th class="px-3 py-3 text-left">Orden de suministro</th>
+          <th class="px-3 py-3 text-left">Proveedor</th>
+          <th class="px-3 py-3 text-left">Tipo entrega</th>
+          <th class="px-3 py-3 text-right">Piezas emitidas</th>
+          <!-- <th class="px-3 py-3 text-right">Piezas recibidas</th> -->
+          <th class="px-3 py-3 text-left">Fecha limite</th>
+          <th class="px-3 py-3 text-left">Estatus</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        @for (cita of rows; track trackCita(cita)) {
+          <tr class="hover:bg-emerald-50/50">
+            <!-- <td class="px-3 py-3 text-center">
+              <input
+                type="checkbox"
+                class="w-4 h-4 text-emerald-700 border-gray-300 rounded focus:ring-emerald-500"
+                [checked]="citaChecked(cita.id)"
+                (change)="toggleCita(cita.id, $any($event.target).checked)">
+            </td> -->
+            <td class="px-3 py-3 font-semibold text-gray-900">{{ cita.orden_de_suministro || '-' }}</td>
+            <td class="px-3 py-3 text-gray-700">{{ cita.proveedor || '-' }}</td>
+            <td class="px-3 py-3 text-gray-700">{{ cita.tipo_de_entrega || '-' }}</td>
+            <td class="px-3 py-3 text-right">{{ cita.no_de_piezas_emitidas | number:'1.0-0' }}</td>
+            <!-- <td class="px-3 py-3 text-right">{{ cita.pzas_recibidas_por_la_entidad | number:'1.0-0' }}</td> -->
+            <td class="px-3 py-3 text-gray-700">{{ cita.fecha_limite_de_entrega | date:'dd/MM/yyyy' }}</td>
+            <td class="px-3 py-3 text-gray-700">{{ cita.estatus || '-' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</ng-template>
