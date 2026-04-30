@@ -1,0 +1,342 @@
+<div class="min-h-screen bg-slate-100">
+  <section class="mx-auto px-4 py-4 max-w-7xl sm:px-6 lg:px-8">
+    <div class="space-y-4">
+      <header class="p-4 bg-white border border-gray-100 shadow-sm rounded-2xl">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">Modulo de seguimiento oncologico</p>
+            <h1 class="text-2xl font-bold text-gray-900">IB-ONCO</h1>
+            <p class="text-sm text-gray-600">
+              Revision por hospital de existencias, CPM y citas pendientes recientes.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              (click)="refrescar()"
+              [disabled]="loadingInicial() || loadingAbasto() || loadingCitas()"
+              class="px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60">
+              Refrescar
+            </button>
+            @if (unidadSeleccionada(); as unidad) {
+              <div class="px-3 py-2 text-sm text-right text-gray-600 bg-gray-50 border border-gray-100 rounded-xl">
+                <p class="font-semibold text-gray-900">{{ unidad.nombre_de_unidad || unidad.cluesimb }}</p>
+                <p>{{ unidad.cluesimb }}</p>
+              </div>
+            }
+          </div>
+        </div>
+      </header>
+
+      @if (error(); as message) {
+        <div class="px-4 py-3 text-sm text-red-700 bg-red-50 border border-red-100 rounded-2xl">
+          {{ message }}
+        </div>
+      }
+
+      <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        @for (item of kpis(); track item.label) {
+          <div class="p-4 bg-white border border-gray-100 shadow-sm rounded-2xl">
+            <p class="text-xs font-semibold tracking-wide text-gray-500 uppercase">{{ item.label }}</p>
+            <p class="mt-2 text-2xl font-bold text-gray-900">{{ item.value | number:'1.0-0' }}</p>
+          </div>
+        }
+      </section>
+
+      <section class="p-4 bg-white border border-gray-100 shadow-sm rounded-2xl">
+        <div class="flex flex-col gap-2 mb-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">Filtros</h2>
+            <p class="text-sm text-gray-500">Los cambios consultan de nuevo el backend y reinician la paginacion.</p>
+          </div>
+          <button
+            type="button"
+            (click)="limpiarFiltros()"
+            class="self-start px-3 py-2 text-sm font-semibold text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 md:self-auto">
+            Limpiar filtros
+          </button>
+        </div>
+
+        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <label class="text-sm font-medium text-gray-700">
+            Unidad / hospital
+            <select
+              class="w-full px-3 py-2 mt-1 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              [ngModel]="cluesimb()"
+              (ngModelChange)="onUnidadChange($event)">
+              <option value="">Todas las unidades</option>
+              @for (unidad of unidades(); track unidad.cluesimb) {
+                <option [value]="unidad.cluesimb">
+                  {{ unidad.nombre_de_unidad || unidad.cluesimb }}
+                </option>
+              }
+            </select>
+          </label>
+
+          <label class="text-sm font-medium text-gray-700">
+            Clave onco
+            <select
+              class="w-full px-3 py-2 mt-1 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-50 disabled:text-gray-400"
+              [disabled]="!cluesimb()"
+              [ngModel]="claveCnis()"
+              (ngModelChange)="onClaveChange($event)">
+              <option value="">Todas las claves</option>
+              @for (clave of claves(); track clave.cluesimb + '-' + clave.clave_cnis) {
+                <option [value]="clave.clave_cnis">
+                  {{ clave.clave_cnis }}{{ clave.descripcion ? ' - ' + clave.descripcion : '' }}
+                </option>
+              }
+            </select>
+          </label>
+
+          <label class="text-sm font-medium text-gray-700">
+            Busqueda libre
+            <input
+              type="search"
+              class="w-full px-3 py-2 mt-1 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              placeholder="Unidad, clave o descripcion"
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event); onAbastoFiltroChange()">
+          </label>
+
+          <label class="text-sm font-medium text-gray-700">
+            Estado de abasto
+            <select
+              class="w-full px-3 py-2 mt-1 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              [ngModel]="estadoAbasto()"
+              (ngModelChange)="estadoAbasto.set($event); onAbastoFiltroChange()">
+              <option value="">Todos</option>
+              <option value="ok">OK</option>
+              <option value="posible sobre abasto">Posible sobre abasto</option>
+            </select>
+          </label>
+
+          <label class="text-sm font-medium text-gray-700">
+            Ventana citas recientes
+            <input
+              type="number"
+              min="1"
+              max="365"
+              class="w-full px-3 py-2 mt-1 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              [ngModel]="windowDays()"
+              (ngModelChange)="onWindowDaysChange($event)">
+          </label>
+        </div>
+      </section>
+
+      <section class="overflow-hidden bg-white border border-gray-100 shadow-sm rounded-2xl">
+        <div class="px-4 py-3 bg-white border-b border-gray-200">
+          <div class="inline-flex p-1 bg-slate-100 rounded-2xl">
+            <button
+              type="button"
+              class="px-4 py-2 text-sm font-semibold rounded-xl transition"
+              [ngClass]="tab() === 'abasto'
+                ? 'bg-white text-emerald-800 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'"
+              (click)="tab.set('abasto')">
+              Abasto CPM
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 text-sm font-semibold rounded-xl transition"
+              [ngClass]="tab() === 'citas'
+                ? 'bg-white text-emerald-800 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'"
+              (click)="tab.set('citas')">
+              Citas pendientes
+            </button>
+          </div>
+        </div>
+
+        @if (tab() === 'abasto') {
+          <div class="p-4">
+            <div class="flex flex-col gap-3 mb-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900">Abasto CPM</h2>
+                <p class="text-sm text-gray-500">
+                  Mostrando {{ abastoStart() }}-{{ abastoEnd() }} de {{ abasto().total | number }} registros
+                </p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2 text-sm">
+                <label class="text-gray-600">
+                  Filas
+                  <select
+                    class="px-2 py-1 ml-1 bg-white border border-gray-300 rounded-lg"
+                    [ngModel]="abastoLimit()"
+                    (ngModelChange)="onAbastoLimitChange($event)">
+                    <option [ngValue]="10">10</option>
+                    <option [ngValue]="25">25</option>
+                    <option [ngValue]="50">50</option>
+                    <option [ngValue]="100">100</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  (click)="previousAbastoPage()"
+                  [disabled]="abastoPage() <= 1 || loadingAbasto()"
+                  class="px-3 py-1 font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+                  Anterior
+                </button>
+                <span class="text-gray-600">Pagina {{ abastoPage() }} de {{ abastoTotalPages() }}</span>
+                <button
+                  type="button"
+                  (click)="nextAbastoPage()"
+                  [disabled]="abastoPage() >= abastoTotalPages() || loadingAbasto()"
+                  class="px-3 py-1 font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+                  Siguiente
+                </button>
+              </div>
+            </div>
+
+            @if (loadingInicial() || loadingAbasto()) {
+              <div class="space-y-2">
+                <div class="h-10 bg-gray-100 rounded-xl"></div>
+                <div class="h-10 bg-gray-100 rounded-xl"></div>
+                <div class="h-10 bg-gray-100 rounded-xl"></div>
+              </div>
+            } @else if (abasto().rows.length === 0) {
+              <div class="px-4 py-10 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+                No hay registros de abasto CPM con los filtros actuales.
+              </div>
+            } @else {
+              <div class="overflow-x-auto border border-gray-100 rounded-2xl">
+                <table class="min-w-[1180px] w-full text-sm">
+                  <thead class="text-xs text-gray-600 bg-gray-50">
+                    <tr>
+                      <th class="px-3 py-3 text-left">CLUESIMB</th>
+                      <th class="px-3 py-3 text-left">Unidad</th>
+                      <th class="px-3 py-3 text-left">Clave CNIS</th>
+                      <th class="px-3 py-3 text-left">Descripcion</th>
+                      <th class="px-3 py-3 text-right">Existencias</th>
+                      <th class="px-3 py-3 text-right">CPM</th>
+                      <th class="px-3 py-3 text-right">CPM x 3</th>
+                      <th class="px-3 py-3 text-right">CPMs equivalentes</th>
+                      <th class="px-3 py-3 text-center">Estado abasto</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100">
+                    @for (row of abasto().rows; track trackAbasto(row)) {
+                      <tr class="hover:bg-emerald-50/50">
+                        <td class="px-3 py-3 font-semibold text-gray-900">{{ row.cluesimb }}</td>
+                        <td class="px-3 py-3 text-gray-700">{{ row.nombre_de_unidad || '-' }}</td>
+                        <td class="px-3 py-3 font-semibold text-gray-900">{{ row.clave_cnis }}</td>
+                        <td class="px-3 py-3 text-gray-600">
+                          <span class="block max-w-sm truncate" [title]="row.descripcion || ''">
+                            {{ row.descripcion || '-' }}
+                          </span>
+                        </td>
+                        <td class="px-3 py-3 text-right">{{ row.existencias | number:'1.0-0' }}</td>
+                        <td class="px-3 py-3 text-right">{{ row.cpm | number:'1.0-0' }}</td>
+                        <td class="px-3 py-3 text-right">{{ row.cpm_x_3 | number:'1.0-0' }}</td>
+                        <td class="px-3 py-3 text-right">{{ row.cpms_eq | number:'1.1-1' }}</td>
+                        <td class="px-3 py-3 text-center">
+                          <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" [ngClass]="estadoClass(row)">
+                            {{ row.estado_abasto }}
+                          </span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+
+        @if (tab() === 'citas') {
+          <div class="p-4">
+            <div class="flex flex-col gap-3 mb-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900">Citas pendientes</h2>
+                <p class="text-sm text-gray-500">
+                  Mostrando {{ citasStart() }}-{{ citasEnd() }} de {{ citas().total | number }} registros
+                </p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2 text-sm">
+                <label class="text-gray-600">
+                  Filas
+                  <select
+                    class="px-2 py-1 ml-1 bg-white border border-gray-300 rounded-lg"
+                    [ngModel]="citasLimit()"
+                    (ngModelChange)="onCitasLimitChange($event)">
+                    <option [ngValue]="10">10</option>
+                    <option [ngValue]="25">25</option>
+                    <option [ngValue]="50">50</option>
+                    <option [ngValue]="100">100</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  (click)="previousCitasPage()"
+                  [disabled]="citasPage() <= 1 || loadingCitas()"
+                  class="px-3 py-1 font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+                  Anterior
+                </button>
+                <span class="text-gray-600">Pagina {{ citasPage() }} de {{ citasTotalPages() }}</span>
+                <button
+                  type="button"
+                  (click)="nextCitasPage()"
+                  [disabled]="citasPage() >= citasTotalPages() || loadingCitas()"
+                  class="px-3 py-1 font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+                  Siguiente
+                </button>
+              </div>
+            </div>
+
+            @if (loadingInicial() || loadingCitas()) {
+              <div class="space-y-2">
+                <div class="h-10 bg-gray-100 rounded-xl"></div>
+                <div class="h-10 bg-gray-100 rounded-xl"></div>
+                <div class="h-10 bg-gray-100 rounded-xl"></div>
+              </div>
+            } @else if (citas().rows.length === 0) {
+              <div class="px-4 py-10 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+                No hay citas pendientes con los filtros actuales.
+              </div>
+            } @else {
+              <div class="overflow-x-auto border border-gray-100 rounded-2xl">
+                <table class="min-w-[1120px] w-full text-sm">
+                  <thead class="text-xs text-gray-600 bg-gray-50">
+                    <tr>
+                      <th class="px-3 py-3 text-left">Orden de suministro</th>
+                      <th class="px-3 py-3 text-left">Unidad</th>
+                      <th class="px-3 py-3 text-left">Clave</th>
+                      <th class="px-3 py-3 text-left">Proveedor</th>
+                      <th class="px-3 py-3 text-right">Piezas emitidas</th>
+                      <th class="px-3 py-3 text-left">Fecha limite</th>
+                      <th class="px-3 py-3 text-left">Estatus</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100">
+                    @for (row of citas().rows; track trackCita(row)) {
+                      <tr class="hover:bg-emerald-50/50">
+                        <td class="px-3 py-3 font-semibold text-gray-900">{{ row.orden_de_suministro || '-' }}</td>
+                        <td class="px-3 py-3">
+                          <p class="font-semibold text-gray-900">{{ row.nombre_de_unidad || '-' }}</p>
+                          <p class="text-xs text-gray-500">{{ row.cluesimb }}</p>
+                        </td>
+                        <td class="px-3 py-3">
+                          <p class="font-semibold text-gray-900">{{ row.clave_cnis }}</p>
+                          @if (row.descripcion) {
+                            <p class="max-w-xs text-xs text-gray-500 truncate" [title]="row.descripcion">{{ row.descripcion }}</p>
+                          }
+                        </td>
+                        <td class="px-3 py-3 text-gray-700">{{ row.proveedor || '-' }}</td>
+                        <td class="px-3 py-3 text-right">{{ row.no_de_piezas_emitidas | number:'1.0-0' }}</td>
+                        <td class="px-3 py-3 text-gray-700">{{ row.fecha_limite_de_entrega | date:'dd/MM/yyyy' }}</td>
+                        <td class="px-3 py-3 text-gray-700">{{ row.estatus || '-' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    </div>
+  </section>
+</div>

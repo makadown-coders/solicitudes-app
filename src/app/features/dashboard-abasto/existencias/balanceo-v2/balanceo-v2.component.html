@@ -1,0 +1,664 @@
+<section class="space-y-4">
+  <header class="p-4 bg-white border border-gray-100 shadow-sm rounded-2xl">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">Analisis de abasto</p>
+        <h1 class="text-2xl font-bold text-gray-900">Balanceo de Existencias V2</h1>
+        <p class="text-sm text-gray-600">
+          Apartado jurisdiccional, CPM agregado y trazabilidad por ejecucion.
+        </p>
+      </div>
+
+      <div class="text-sm text-gray-600 lg:text-right">
+        <p class="font-semibold text-gray-800">Ultima ejecucion</p>
+        @if (ultimaEjecucion(); as ultima) {
+          <p>#{{ ultima.id }} - {{ ultima.estado }} - {{ ultima.fecha_inicio | date:'dd/MM/yyyy HH:mm' }}</p>
+        } @else {
+          <p class="text-gray-500">Sin ejecuciones registradas</p>
+        }
+      </div>
+    </div>
+  </header>
+
+  @if (error(); as message) {
+    <div class="px-4 py-3 text-sm text-red-700 bg-red-50 border border-red-100 rounded-2xl">
+      {{ message }}
+    </div>
+  }
+
+  @if (success(); as message) {
+    <div class="px-4 py-3 text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-2xl">
+      {{ message }}
+    </div>
+  }
+
+  <section class="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+    <div class="p-4 bg-white border border-gray-100 shadow-sm rounded-2xl">
+      <div class="grid gap-3 md:grid-cols-[minmax(260px,1fr)_auto_auto] md:items-end">
+        <label class="text-sm font-medium text-gray-700">
+          Ejecucion
+          <select
+            class="w-full px-3 py-2 mt-1 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            [ngModel]="ejecucionSeleccionadaId()"
+            (ngModelChange)="onEjecucionChange($event)">
+            <option [ngValue]="null">Selecciona una ejecucion</option>
+            @for (ejecucion of ejecuciones(); track ejecucion.id) {
+              <option [ngValue]="ejecucion.id">
+                #{{ ejecucion.id }} - {{ ejecucion.estado }} - {{ ejecucion.fecha_inicio | date:'dd/MM/yyyy HH:mm' }}
+              </option>
+            }
+          </select>
+        </label>
+
+        <button
+          type="button"
+          (click)="refrescarDatos()"
+          [disabled]="loading() || ejecutando()"
+          class="px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60">
+          Refrescar
+        </button>
+
+        <button
+          type="button"
+          (click)="ejecutarBalanceoV2()"
+          [disabled]="ejecutando() || loading()"
+          class="px-4 py-2 text-sm font-semibold text-white bg-emerald-700 rounded-xl shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">
+          {{ ejecutando() ? 'Ejecutando...' : 'Ejecutar balanceo V2' }}
+        </button>
+      </div>
+
+      @if (ejecucionSeleccionada(); as ejecucion) {
+        <div class="grid gap-2 mt-4 text-sm text-gray-600 sm:grid-cols-3">
+          <div>
+            <span class="block text-xs text-gray-500">Estado</span>
+            <span class="font-semibold text-gray-900">{{ ejecucion.estado }}</span>
+          </div>
+          <div>
+            <span class="block text-xs text-gray-500">Inicio</span>
+            <span class="font-semibold text-gray-900">{{ ejecucion.fecha_inicio | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div>
+            <span class="block text-xs text-gray-500">Procesadas</span>
+            <span class="font-semibold text-gray-900">{{ ejecucion.claves_procesadas ?? 0 }} / {{ ejecucion.total_claves ?? 0 }}</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="p-4 bg-white border border-gray-100 shadow-sm rounded-2xl">
+      <p class="mb-3 text-sm font-semibold text-gray-900">Resumen de vista</p>
+      <div class="grid grid-cols-2 gap-3">
+        @for (item of resumenDiscreto(); track item.label) {
+          <div class="px-3 py-2 border border-gray-100 rounded-xl bg-gray-50">
+            <p class="text-xs text-gray-500">{{ item.label }}</p>
+            <p class="mt-1 text-base font-bold text-gray-900">{{ item.value }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="p-4 bg-white border border-gray-100 shadow-sm rounded-2xl">
+    <div class="flex flex-col gap-2 mb-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900">Filtros</h2>
+        <p class="text-sm text-gray-500">Los filtros se aplican antes de la paginacion.</p>
+      </div>
+      <button
+        type="button"
+        (click)="limpiarFiltros()"
+        class="self-start px-3 py-2 text-sm font-semibold text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 md:self-auto">
+        Limpiar filtros
+      </button>
+    </div>
+
+    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <label class="text-sm font-medium text-gray-700">
+        Clave CNIS
+        <input
+          type="text"
+          class="w-full px-3 py-2 mt-1 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          placeholder="Buscar clave"
+          [ngModel]="filtroClave()"
+          (ngModelChange)="filtroClave.set($event); onFiltroChange()">
+      </label>
+
+      @if (tieneDescripcionesClave()) {
+        <label class="text-sm font-medium text-gray-700">
+          Descripcion
+          <input
+            type="text"
+            class="w-full px-3 py-2 mt-1 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            placeholder="Buscar descripcion"
+            [ngModel]="filtroDescripcion()"
+            (ngModelChange)="filtroDescripcion.set($event); onFiltroChange()">
+        </label>
+      }
+
+      <label class="text-sm font-medium text-gray-700">
+        Jurisdiccion
+        <select
+          class="w-full px-3 py-2 mt-1 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          [ngModel]="filtroJurisdiccion()"
+          (ngModelChange)="filtroJurisdiccion.set($event); onFiltroChange()">
+          <option value="">Todas</option>
+          @for (jurisdiccion of jurisdicciones(); track jurisdiccion) {
+            <option [value]="jurisdiccion">{{ jurisdiccion }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="text-sm font-medium text-gray-700">
+        Cobertura
+        <select
+          class="w-full px-3 py-2 mt-1 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          [ngModel]="filtroCobertura()"
+          (ngModelChange)="filtroCobertura.set($event); onFiltroChange()">
+          <option value="todas">Todas</option>
+          <option value="cubre">Cubre CPM</option>
+          <option value="no-cubre">No cubre CPM</option>
+        </select>
+      </label>
+
+      <label class="text-sm font-medium text-gray-700">
+        Movimiento
+        <select
+          class="w-full px-3 py-2 mt-1 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          [ngModel]="filtroMovimiento()"
+          (ngModelChange)="filtroMovimiento.set($event); onFiltroChange()">
+          <option value="todos">Todos</option>
+          <option value="excedente">Con excedente</option>
+          <option value="recibe">Recibe de otros</option>
+          <option value="transfiere">Transfiere a otros</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="p-4 bg-white border border-gray-100 shadow-sm rounded-2xl">
+    <div class="flex flex-col gap-3 mb-4 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900">Resumen jurisdiccional</h2>
+        <p class="text-sm text-gray-500">
+          Mostrando {{ paginationStart() }}-{{ paginationEnd() }} de {{ resumenAgrupado().length }} claves agrupadas
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 text-sm">
+        <label class="text-gray-600">
+          Filas
+          <select
+            class="px-2 py-1 ml-1 bg-white border border-gray-300 rounded-lg"
+            [ngModel]="pageSize()"
+            (ngModelChange)="onPageSizeChange($event)">
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="25">25</option>
+            <option [ngValue]="50">50</option>
+            <option [ngValue]="100">100</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          (click)="previousPage()"
+          [disabled]="currentPage() <= 1"
+          class="px-3 py-1 font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+          Anterior
+        </button>
+        <span class="text-gray-600">Pagina {{ currentPage() }} de {{ totalPages() }}</span>
+        <button
+          type="button"
+          (click)="nextPage()"
+          [disabled]="currentPage() >= totalPages()"
+          class="px-3 py-1 font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+          Siguiente
+        </button>
+      </div>
+    </div>
+
+    @if (!ejecucionSeleccionadaId()) {
+      <div class="px-4 py-10 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+        Selecciona una ejecucion para consultar el balanceo V2.
+      </div>
+    } @else if (loading()) {
+      <div class="space-y-2">
+        <div class="h-10 bg-gray-100 rounded-xl"></div>
+        <div class="h-10 bg-gray-100 rounded-xl"></div>
+        <div class="h-10 bg-gray-100 rounded-xl"></div>
+      </div>
+    } @else if (resumenJurisdiccional().length === 0) {
+      <div class="px-4 py-10 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+        La ejecucion seleccionada no tiene datos de resumen jurisdiccional.
+      </div>
+    } @else if (resumenFiltrado().length === 0) {
+      <div class="px-4 py-10 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+        No hay resultados con los filtros actuales.
+      </div>
+    } @else {
+      <div class="overflow-x-auto border border-gray-100 rounded-2xl">
+        <table class="min-w-[1180px] w-full text-sm">
+          <thead class="text-xs text-gray-600 bg-gray-50">
+            <tr>
+              <th class="px-3 py-3 text-left">Clave / descripcion</th>
+              <th class="px-3 py-3 text-left">Jurisdiccion</th>
+              <th class="px-3 py-3 text-right">CPM jurisdiccional</th>
+              <th class="px-3 py-3 text-right">Existencia almacen</th>
+              <th class="px-3 py-3 text-right">Apartado</th>
+              <th class="px-3 py-3 text-right">Disponible balanceo</th>
+              <th class="px-3 py-3 text-right">Transfiere</th>
+              <th class="px-3 py-3 text-right">Recibe</th>
+              <th class="px-3 py-3 text-right">Excedente</th>
+              <th class="px-3 py-3 text-right">Delta vs CPM</th>
+              <th class="px-3 py-3 text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            @for (group of gruposPaginados(); track group.key) {
+              <tr class="bg-gray-50">
+                <td class="px-3 py-3" colspan="2">
+                  <button
+                    type="button"
+                    (click)="toggleGrupo(group.key)"
+                    class="inline-flex items-center gap-2 text-left">
+                    <span class="text-xs text-gray-500">{{ grupoExpandido(group.key) ? 'v' : '>' }}</span>
+                    <span>
+                      <span class="font-semibold text-gray-900">{{ group.clave_cnis }}</span>
+                      <span class="ml-2 text-xs font-semibold text-gray-500">({{ group.rows.length }} jurisdicciones)</span>
+                      @if (group.descripcion) {
+                        <span class="block max-w-[360px] text-[10px] leading-tight text-gray-500 truncate" [title]="group.descripcion">
+                          {{ group.descripcion.length > 50 ? (group.descripcion | slice:0:50) + '...' : group.descripcion }}
+                        </span>
+                      }
+                    </span>
+                  </button>
+                </td>
+                <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ group.cpm_jurisdiccional | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ group.existencia_original_almacen | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ group.cantidad_apartada | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ group.existencia_balanceable_inicial | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ group.transferido_a_otros | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ group.recibido_de_otros | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ group.excedente_final | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ group.delta_vs_cpm | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-center">
+                  <span
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                    [class.text-emerald-700]="group.deficitCount === 0"
+                    [class.bg-emerald-50]="group.deficitCount === 0"
+                    [class.text-amber-800]="group.deficitCount > 0"
+                    [class.bg-amber-50]="group.deficitCount > 0">
+                    {{ group.deficitCount === 0 ? 'Cubre CPM' : group.deficitCount + ' sin cobertura' }}
+                  </span>
+                </td>
+              </tr>
+              @if (grupoExpandido(group.key)) {
+                @for (row of group.rows; track rowKey(row)) {
+              <tr
+                class="transition cursor-pointer hover:bg-emerald-50"
+                [class.bg-emerald-50]="rowSeleccionada(row)"
+                [class.ring-1]="rowSeleccionada(row)"
+                [class.ring-emerald-200]="rowSeleccionada(row)"
+                (click)="cargarDetalle(row)">
+                <td class="px-3 py-3">
+                  <p class="font-semibold text-gray-900">{{ row.clave_cnis }}</p>
+                  @if (descripcionClave(row)) {
+                    <p class="max-w-xs text-xs text-gray-500 truncate">{{ descripcionClave(row) }}</p>
+                  }
+                </td>
+                <td class="px-3 py-3 text-gray-700">{{ row.jurisdiccion }}</td>
+                <td class="px-3 py-3 text-right">{{ row.cpm_jurisdiccional | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right">{{ row.existencia_original_almacen | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right">{{ row.cantidad_apartada | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right">{{ row.existencia_balanceable_inicial | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right">{{ row.transferido_a_otros | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right">{{ row.recibido_de_otros | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right">{{ row.excedente_final | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-right">{{ row.delta_vs_cpm | number:'1.0-0' }}</td>
+                <td class="px-3 py-3 text-center">
+                  <span
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                    [class.text-emerald-700]="row.cubre_cpm_jurisdiccional"
+                    [class.bg-emerald-50]="row.cubre_cpm_jurisdiccional"
+                    [class.text-amber-800]="!row.cubre_cpm_jurisdiccional"
+                    [class.bg-amber-50]="!row.cubre_cpm_jurisdiccional">
+                    {{ row.cubre_cpm_jurisdiccional ? 'Cubre CPM' : 'No cubre CPM' }}
+                  </span>
+                </td>
+              </tr>
+              @if (rowSeleccionada(row)) {
+                <tr class="bg-emerald-50/40">
+                  <td colspan="11" class="p-0">
+                    <div class="m-3 p-4 bg-white border border-emerald-100 shadow-sm rounded-2xl">
+                      <div class="flex flex-col gap-3 mb-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <h3 class="text-base font-semibold text-gray-900">
+                            Detalle de clave {{ row.clave_cnis }} en {{ row.jurisdiccion }}
+                          </h3>
+                          @if (descripcionClave(row)) {
+                            <p class="text-sm text-gray-500">{{ descripcionClave(row) }}</p>
+                          }
+                        </div>
+                        @if (cargandoDetalle()) {
+                          <span class="text-sm font-semibold text-emerald-700">Cargando detalle...</span>
+                        }
+                      </div>
+
+                      <div class="flex flex-wrap gap-2 mb-4">
+                        <button
+                          type="button"
+                          (click)="$event.stopPropagation(); detalleTab.set('sugerencias')"
+                          class="px-3 py-2 text-sm font-semibold border rounded-xl"
+                          [class.bg-emerald-700]="detalleTab() === 'sugerencias'"
+                          [class.text-white]="detalleTab() === 'sugerencias'"
+                          [class.border-emerald-700]="detalleTab() === 'sugerencias'"
+                          [class.text-gray-700]="detalleTab() !== 'sugerencias'"
+                          [class.border-gray-300]="detalleTab() !== 'sugerencias'">
+                          Sugerencias a unidades
+                        </button>
+                        <button
+                          type="button"
+                          (click)="$event.stopPropagation(); detalleTab.set('apartado')"
+                          class="px-3 py-2 text-sm font-semibold border rounded-xl"
+                          [class.bg-emerald-700]="detalleTab() === 'apartado'"
+                          [class.text-white]="detalleTab() === 'apartado'"
+                          [class.border-emerald-700]="detalleTab() === 'apartado'"
+                          [class.text-gray-700]="detalleTab() !== 'apartado'"
+                          [class.border-gray-300]="detalleTab() !== 'apartado'">
+                          Apartado
+                        </button>
+                        <button
+                          type="button"
+                          (click)="$event.stopPropagation(); detalleTab.set('resultados')"
+                          class="px-3 py-2 text-sm font-semibold border rounded-xl"
+                          [class.bg-emerald-700]="detalleTab() === 'resultados'"
+                          [class.text-white]="detalleTab() === 'resultados'"
+                          [class.border-emerald-700]="detalleTab() === 'resultados'"
+                          [class.text-gray-700]="detalleTab() !== 'resultados'"
+                          [class.border-gray-300]="detalleTab() !== 'resultados'">
+                          Resultados macro relacionados
+                        </button>
+                      </div>
+
+                      @if (detalleTab() === 'sugerencias') {
+                        @if (detalle().length === 0 && !cargandoDetalle()) {
+                          <div class="px-4 py-8 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+                            No hay sugerencias a unidades para la fila seleccionada.
+                          </div>
+                        } @else {
+                          <div class="overflow-x-auto border border-gray-100 rounded-2xl">
+                            <table class="min-w-[860px] w-full text-sm">
+                              <thead class="text-xs text-gray-600 bg-gray-50">
+                                <tr>
+                                  <th class="px-3 py-3 text-left">Unidad destino</th>
+                                  <th class="px-3 py-3 text-left">CLUES</th>
+                                  <th class="px-3 py-3 text-left">Jurisdiccion destino</th>
+                                  <th class="px-3 py-3 text-right">Necesidad original</th>
+                                  <th class="px-3 py-3 text-right">Cantidad sugerida</th>
+                                  <th class="px-3 py-3 text-right">Prioridad</th>
+                                </tr>
+                              </thead>
+                              <tbody class="divide-y divide-gray-100">
+                                @for (detalleRow of detalle(); track detalleRow.ejecucion_id + '-' + detalleRow.clave_cnis + '-' + detalleRow.clues_destino + '-' + detalleRow.jurisdiccion_destino) {
+                                  <tr>
+                                    <td class="px-3 py-3">
+                                      <p class="font-semibold text-gray-900">{{ detalleRow.nombre_unidad_destino }}</p>
+                                      <p class="text-xs text-gray-500">{{ detalleRow.clues_destino }}</p>
+                                    </td>
+                                    <td class="px-3 py-3 text-gray-700">{{ detalleRow.clues_destino }}</td>
+                                    <td class="px-3 py-3 text-gray-700">{{ detalleRow.jurisdiccion_destino }}</td>
+                                    <td class="px-3 py-3 text-right">{{ detalleRow.necesidad_original | number:'1.0-0' }}</td>
+                                    <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ detalleRow.cantidad_sugerida | number:'1.0-0' }}</td>
+                                    <td class="px-3 py-3 text-right">{{ detalleRow.prioridad }}</td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        }
+                      }
+
+                      @if (detalleTab() === 'apartado') {
+                        @if (apartados().length === 0 && !cargandoDetalle()) {
+                          <div class="px-4 py-8 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+                            No hay apartado para la fila seleccionada.
+                          </div>
+                        } @else {
+                          <div class="overflow-x-auto border border-gray-100 rounded-2xl">
+                            <table class="min-w-[900px] w-full text-sm">
+                              <thead class="text-xs text-gray-600 bg-gray-50">
+                                <tr>
+                                  <th class="px-3 py-3 text-left">Almacen</th>
+                                  <th class="px-3 py-3 text-left">Jurisdiccion</th>
+                                  <th class="px-3 py-3 text-right">Existencia original</th>
+                                  <th class="px-3 py-3 text-right">CPM jurisdiccional</th>
+                                  <th class="px-3 py-3 text-right">Cantidad apartada</th>
+                                  <th class="px-3 py-3 text-right">Disponible balanceo</th>
+                                  <th class="px-3 py-3 text-left">Observacion</th>
+                                </tr>
+                              </thead>
+                              <tbody class="divide-y divide-gray-100">
+                                @for (apartadoRow of apartados(); track apartadoRow.id) {
+                                  <tr>
+                                    <td class="px-3 py-3">
+                                      <p class="font-semibold text-gray-900">{{ apartadoRow.nombre_almacen }}</p>
+                                      <p class="text-xs text-gray-500">{{ apartadoRow.clues_almacen }}</p>
+                                    </td>
+                                    <td class="px-3 py-3 text-gray-700">{{ apartadoRow.jurisdiccion }}</td>
+                                    <td class="px-3 py-3 text-right">{{ apartadoRow.existencia_original | number:'1.0-0' }}</td>
+                                    <td class="px-3 py-3 text-right">{{ apartadoRow.cpm_jurisdiccion | number:'1.0-0' }}</td>
+                                    <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ apartadoRow.cantidad_apartada | number:'1.0-0' }}</td>
+                                    <td class="px-3 py-3 text-right">{{ apartadoRow.existencia_disponible_balanceo | number:'1.0-0' }}</td>
+                                    <td class="px-3 py-3 text-gray-600">{{ apartadoRow.observaciones ?? '-' }}</td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        }
+                      }
+
+                      @if (detalleTab() === 'resultados') {
+                        @if (resultadosRelacionados().length === 0) {
+                          <div class="px-4 py-8 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+                            No hay resultados macro relacionados con la clave seleccionada.
+                          </div>
+                        } @else {
+                          <div class="overflow-x-auto border border-gray-100 rounded-2xl">
+                            <table class="min-w-[620px] w-full text-sm">
+                              <thead class="text-xs text-gray-600 bg-gray-50">
+                                <tr>
+                                  <th class="px-3 py-3 text-left">Origen</th>
+                                  <th class="px-3 py-3 text-left">Destino</th>
+                                  <th class="px-3 py-3 text-right">Cantidad</th>
+                                </tr>
+                              </thead>
+                              <tbody class="divide-y divide-gray-100">
+                                @for (resultadoRow of resultadosRelacionados(); track resultadoRow.ejecucion_id + '-' + resultadoRow.clave_cnis + '-' + resultadoRow.jurisdiccion_origen + '-' + resultadoRow.jurisdiccion_destino) {
+                                  <tr>
+                                    <td class="px-3 py-3 text-gray-700">{{ resultadoRow.jurisdiccion_origen }}</td>
+                                    <td class="px-3 py-3 text-gray-700">{{ resultadoRow.jurisdiccion_destino }}</td>
+                                    <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ resultadoRow.cantidad_transferir | number:'1.0-0' }}</td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        }
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+                }
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <section class="hidden p-4 bg-white border border-gray-100 shadow-sm rounded-2xl">
+    @if (filaSeleccionada(); as fila) {
+      <div class="flex flex-col gap-3 mb-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">
+            Detalle de clave {{ fila.clave_cnis }} en {{ fila.jurisdiccion }}
+          </h2>
+          @if (descripcionClave(fila)) {
+            <p class="text-sm text-gray-500">{{ descripcionClave(fila) }}</p>
+          }
+        </div>
+        @if (cargandoDetalle()) {
+          <span class="text-sm font-semibold text-emerald-700">Cargando detalle...</span>
+        }
+      </div>
+
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button
+          type="button"
+          (click)="detalleTab.set('sugerencias')"
+          class="px-3 py-2 text-sm font-semibold border rounded-xl"
+          [class.bg-emerald-700]="detalleTab() === 'sugerencias'"
+          [class.text-white]="detalleTab() === 'sugerencias'"
+          [class.border-emerald-700]="detalleTab() === 'sugerencias'"
+          [class.text-gray-700]="detalleTab() !== 'sugerencias'"
+          [class.border-gray-300]="detalleTab() !== 'sugerencias'">
+          Sugerencias a unidades
+        </button>
+        <button
+          type="button"
+          (click)="detalleTab.set('apartado')"
+          class="px-3 py-2 text-sm font-semibold border rounded-xl"
+          [class.bg-emerald-700]="detalleTab() === 'apartado'"
+          [class.text-white]="detalleTab() === 'apartado'"
+          [class.border-emerald-700]="detalleTab() === 'apartado'"
+          [class.text-gray-700]="detalleTab() !== 'apartado'"
+          [class.border-gray-300]="detalleTab() !== 'apartado'">
+          Apartado
+        </button>
+        <button
+          type="button"
+          (click)="detalleTab.set('resultados')"
+          class="px-3 py-2 text-sm font-semibold border rounded-xl"
+          [class.bg-emerald-700]="detalleTab() === 'resultados'"
+          [class.text-white]="detalleTab() === 'resultados'"
+          [class.border-emerald-700]="detalleTab() === 'resultados'"
+          [class.text-gray-700]="detalleTab() !== 'resultados'"
+          [class.border-gray-300]="detalleTab() !== 'resultados'">
+          Resultados macro relacionados
+        </button>
+      </div>
+
+      @if (detalleTab() === 'sugerencias') {
+        @if (detalle().length === 0 && !cargandoDetalle()) {
+          <div class="px-4 py-8 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+            No hay sugerencias a unidades para la fila seleccionada.
+          </div>
+        } @else {
+          <div class="overflow-x-auto border border-gray-100 rounded-2xl">
+            <table class="min-w-[860px] w-full text-sm">
+              <thead class="text-xs text-gray-600 bg-gray-50">
+                <tr>
+                  <th class="px-3 py-3 text-left">Unidad destino</th>
+                  <th class="px-3 py-3 text-left">CLUES</th>
+                  <th class="px-3 py-3 text-left">Jurisdiccion destino</th>
+                  <th class="px-3 py-3 text-right">Necesidad original</th>
+                  <th class="px-3 py-3 text-right">Cantidad sugerida</th>
+                  <th class="px-3 py-3 text-right">Prioridad</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                @for (row of detalle(); track row.ejecucion_id + '-' + row.clave_cnis + '-' + row.clues_destino + '-' + row.jurisdiccion_destino) {
+                  <tr>
+                    <td class="px-3 py-3">
+                      <p class="font-semibold text-gray-900">{{ row.nombre_unidad_destino }}</p>
+                      <p class="text-xs text-gray-500">{{ row.clues_destino }}</p>
+                    </td>
+                    <td class="px-3 py-3 text-gray-700">{{ row.clues_destino }}</td>
+                    <td class="px-3 py-3 text-gray-700">{{ row.jurisdiccion_destino }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.necesidad_original | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ row.cantidad_sugerida | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.prioridad }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      @if (detalleTab() === 'apartado') {
+        @if (apartados().length === 0 && !cargandoDetalle()) {
+          <div class="px-4 py-8 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+            No hay apartado para la fila seleccionada.
+          </div>
+        } @else {
+          <div class="overflow-x-auto border border-gray-100 rounded-2xl">
+            <table class="min-w-[900px] w-full text-sm">
+              <thead class="text-xs text-gray-600 bg-gray-50">
+                <tr>
+                  <th class="px-3 py-3 text-left">Almacen</th>
+                  <th class="px-3 py-3 text-left">Jurisdiccion</th>
+                  <th class="px-3 py-3 text-right">Existencia original</th>
+                  <th class="px-3 py-3 text-right">CPM jurisdiccional</th>
+                  <th class="px-3 py-3 text-right">Cantidad apartada</th>
+                  <th class="px-3 py-3 text-right">Disponible balanceo</th>
+                  <th class="px-3 py-3 text-left">Observacion</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                @for (row of apartados(); track row.id) {
+                  <tr>
+                    <td class="px-3 py-3">
+                      <p class="font-semibold text-gray-900">{{ row.nombre_almacen }}</p>
+                      <p class="text-xs text-gray-500">{{ row.clues_almacen }}</p>
+                    </td>
+                    <td class="px-3 py-3 text-gray-700">{{ row.jurisdiccion }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.existencia_original | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.cpm_jurisdiccion | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ row.cantidad_apartada | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.existencia_disponible_balanceo | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-gray-600">{{ row.observaciones ?? '-' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      @if (detalleTab() === 'resultados') {
+        @if (resultadosRelacionados().length === 0) {
+          <div class="px-4 py-8 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+            No hay resultados macro relacionados con la clave seleccionada.
+          </div>
+        } @else {
+          <div class="overflow-x-auto border border-gray-100 rounded-2xl">
+            <table class="min-w-[620px] w-full text-sm">
+              <thead class="text-xs text-gray-600 bg-gray-50">
+                <tr>
+                  <th class="px-3 py-3 text-left">Origen</th>
+                  <th class="px-3 py-3 text-left">Destino</th>
+                  <th class="px-3 py-3 text-right">Cantidad</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                @for (row of resultadosRelacionados(); track row.ejecucion_id + '-' + row.clave_cnis + '-' + row.jurisdiccion_origen + '-' + row.jurisdiccion_destino) {
+                  <tr>
+                    <td class="px-3 py-3 text-gray-700">{{ row.jurisdiccion_origen }}</td>
+                    <td class="px-3 py-3 text-gray-700">{{ row.jurisdiccion_destino }}</td>
+                    <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ row.cantidad_transferir | number:'1.0-0' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    } @else {
+      <div class="px-4 py-10 text-center text-gray-500 border border-dashed border-gray-200 rounded-2xl">
+        Selecciona una fila del resumen para consultar sugerencias, apartado y resultados relacionados.
+      </div>
+    }
+  </section>
+</section>
