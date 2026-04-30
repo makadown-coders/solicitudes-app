@@ -44,12 +44,17 @@ export interface IbOncoAbastoCpmRow {
   cpm_x_3: number;
   cpms_eq: number;
   estado_abasto: IbOncoEstadoAbasto | string;
+  citas_pendientes: number;
+  piezas_pendientes: number;
+  tiene_citas_pendientes: boolean;
 }
 
 export interface IbOncoCitaPendiente {
   id: number;
   ejercicio?: number | null;
   orden_de_suministro?: string | null;
+  institucion?: string | null;
+  contrato?: string | null;
   cluesimb: string;
   nombre_de_unidad?: string | null;
   clave_cnis: string;
@@ -57,6 +62,11 @@ export interface IbOncoCitaPendiente {
   proveedor?: string | null;
   compra?: string | null;
   tipo_de_entrega?: string | null;
+  fte_fmto?: string | null;
+  tipo_de_red?: string | null;
+  tipo_de_insumo?: string | null;
+  grupo_terapeutico?: string | null;
+  precio_unitario?: number | null;
   no_de_piezas_emitidas: number;
   pzas_recibidas_por_la_entidad: number;
   fecha_emision?: string | null;
@@ -82,6 +92,7 @@ export interface IbOncoAbastoCpmParams {
   clave_cnis?: string;
   estado_abasto?: IbOncoEstadoAbastoFiltro;
   search?: string;
+  window_days?: number;
   page?: number;
   limit?: number;
 }

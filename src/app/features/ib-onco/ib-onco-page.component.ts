@@ -2,18 +2,16 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
+import { LucideAngularModule, Download, Search, X } from 'lucide-angular';
+import * as XLSX from 'xlsx';
 import {
   IbOncoAbastoCpmRow,
   IbOncoCitaPendiente,
-  IbOncoClave,
-  IbOncoEstadoAbastoFiltro,
   IbOncoPaginatedResponse,
   IbOncoResumenUnidad,
   IbOncoUnidad,
 } from '../../models/ib-onco';
 import { IbOncoService } from '../../services/ib-onco.service';
-
-type IbOncoTab = 'abasto' | 'citas';
 
 interface IbOncoKpi {
   label: string;
@@ -23,63 +21,66 @@ interface IbOncoKpi {
 @Component({
   selector: 'app-ib-onco-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule],
   templateUrl: './ib-onco-page.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IbOncoPageComponent {
   private ibOncoService = inject(IbOncoService);
 
+  readonly SearchIcon = Search;
+  readonly XIcon = X;
+  readonly DownloadIcon = Download;
+
   loadingInicial = signal(false);
-  loadingAbasto = signal(false);
-  loadingCitas = signal(false);
+  loadingClaves = signal(false);
+  loadingModal = signal(false);
+  exportando = signal(false);
   error = signal<string | null>(null);
+  modalError = signal<string | null>(null);
 
   unidades = signal<IbOncoUnidad[]>([]);
-  claves = signal<IbOncoClave[]>([]);
   resumen = signal<IbOncoResumenUnidad[]>([]);
-  abasto = signal<IbOncoPaginatedResponse<IbOncoAbastoCpmRow>>(this.emptyPage<IbOncoAbastoCpmRow>(25));
-  citas = signal<IbOncoPaginatedResponse<IbOncoCitaPendiente>>(this.emptyPage<IbOncoCitaPendiente>(25));
+  abasto = signal<IbOncoPaginatedResponse<IbOncoAbastoCpmRow>>(this.emptyPage<IbOncoAbastoCpmRow>(1000));
+  modalCitas = signal<IbOncoCitaPendiente[]>([]);
 
-  tab = signal<IbOncoTab>('abasto');
   cluesimb = signal('');
-  claveCnis = signal('');
   search = signal('');
-  estadoAbasto = signal<IbOncoEstadoAbastoFiltro>('');
-  windowDays = signal(15);
-  abastoPage = signal(1);
-  abastoLimit = signal(25);
-  citasPage = signal(1);
-  citasLimit = signal(25);
+  windowDays = signal(120);
+  selectedRow = signal<IbOncoAbastoCpmRow | null>(null);
+  selectedAnalysisType = signal<'sobreabasto' | 'faltantes'>('faltantes');
+  checkedCitas = signal<number[]>([]);
+
+  unidadSeleccionada = computed(() =>
+    this.unidades().find(unidad => unidad.cluesimb === this.cluesimb()) ?? null
+  );
 
   resumenVisible = computed(() => {
     const unidad = this.cluesimb();
-    if (!unidad) return this.resumen();
+    if (!unidad) return [];
     return this.resumen().filter(row => row.cluesimb === unidad);
   });
 
   kpis = computed<IbOncoKpi[]>(() => {
     const rows = this.resumenVisible();
     return [
-      { label: 'Unidades monitoreadas', value: rows.length },
       { label: 'Claves onco', value: this.sum(rows, 'claves_onco') },
-      { label: 'Claves con posible sobre abasto', value: this.sum(rows, 'claves_posible_sobre_abasto') },
+      { label: 'Posible sobre abasto', value: this.sum(rows, 'claves_posible_sobre_abasto') },
       { label: 'Citas pendientes', value: this.sum(rows, 'citas_pendientes') },
       { label: 'Piezas pendientes', value: this.sum(rows, 'piezas_pendientes') },
     ];
   });
 
-  unidadSeleccionada = computed(() =>
-    this.unidades().find(unidad => unidad.cluesimb === this.cluesimb()) ?? null
-  );
+  modalAnalisisTitulo = computed(() => {
+    return this.selectedAnalysisType() === 'sobreabasto'
+      ? 'Analisis sobre abasto'
+      : 'Analisis faltantes';
+  });
 
-  abastoTotalPages = computed(() => Math.max(1, this.abasto().totalPages || 1));
-  citasTotalPages = computed(() => Math.max(1, this.citas().totalPages || 1));
-
-  abastoStart = computed(() => this.rangeStart(this.abasto()));
-  abastoEnd = computed(() => this.rangeEnd(this.abasto()));
-  citasStart = computed(() => this.rangeStart(this.citas()));
-  citasEnd = computed(() => this.rangeEnd(this.citas()));
+  modalAnalisisRows = computed(() => {
+    const row = this.selectedRow();
+    return row ? this.modalCitas() : [];
+  });
 
   constructor() {
     void this.cargarInicial();
@@ -97,10 +98,6 @@ export class IbOncoPageComponent {
 
       this.unidades.set(unidadesResponse.data ?? []);
       this.resumen.set(resumenResponse.data ?? []);
-      await Promise.all([
-        this.cargarAbasto(),
-        this.cargarCitas(),
-      ]);
     } catch {
       this.error.set('No se pudo cargar la informacion inicial de IB-ONCO.');
     } finally {
@@ -110,108 +107,116 @@ export class IbOncoPageComponent {
 
   async onUnidadChange(value: string): Promise<void> {
     this.cluesimb.set(value);
-    this.claveCnis.set('');
-    this.abastoPage.set(1);
-    this.citasPage.set(1);
-    this.claves.set([]);
-
-    if (value) {
-      await this.cargarClaves(value);
-    }
-
-    await Promise.all([
-      this.cargarAbasto(),
-      this.cargarCitas(),
-    ]);
-  }
-
-  async onClaveChange(value: string): Promise<void> {
-    this.claveCnis.set(value);
-    this.abastoPage.set(1);
-    this.citasPage.set(1);
-    await Promise.all([
-      this.cargarAbasto(),
-      this.cargarCitas(),
-    ]);
-  }
-
-  async onAbastoFiltroChange(): Promise<void> {
-    this.abastoPage.set(1);
-    await this.cargarAbasto();
-  }
-
-  async onWindowDaysChange(value: string | number): Promise<void> {
-    const parsed = Math.min(Math.max(Number(value) || 15, 1), 365);
-    this.windowDays.set(parsed);
-    this.citasPage.set(1);
-    await Promise.all([
-      this.cargarResumen(),
-      this.cargarCitas(),
-    ]);
-  }
-
-  async limpiarFiltros(): Promise<void> {
-    this.cluesimb.set('');
-    this.claveCnis.set('');
     this.search.set('');
-    this.estadoAbasto.set('');
-    this.abastoPage.set(1);
-    this.citasPage.set(1);
-    this.claves.set([]);
-    await Promise.all([
-      this.cargarAbasto(),
-      this.cargarCitas(),
-    ]);
+    this.abasto.set(this.emptyPage<IbOncoAbastoCpmRow>(1000));
+    this.cerrarModal();
+
+    if (!value) return;
+    await this.cargarClavesHospital();
+  }
+
+  async onSearchChange(value: string): Promise<void> {
+    this.search.set(value);
+    if (!this.cluesimb()) return;
+    await this.cargarClavesHospital();
   }
 
   async refrescar(): Promise<void> {
-    await Promise.all([
-      this.cargarResumen(),
-      this.cargarAbasto(),
-      this.cargarCitas(),
-    ]);
+    await this.cargarResumen();
+    if (this.cluesimb()) {
+      await this.cargarClavesHospital();
+    }
   }
 
-  async previousAbastoPage(): Promise<void> {
-    if (this.abastoPage() <= 1) return;
-    this.abastoPage.set(this.abastoPage() - 1);
-    await this.cargarAbasto();
+  async exportarExcel(): Promise<void> {
+    if (this.exportando()) return;
+
+    this.exportando.set(true);
+    this.error.set(null);
+
+    try {
+      const abastoRows = await this.fetchAllAbasto();
+      const sobreabastoRows: Record<string, string | number | null>[] = [];
+      const faltantesRows: Record<string, string | number | null>[] = [];
+
+      const rowsConCitas = abastoRows.filter(row => row.tiene_citas_pendientes);
+
+      for (const row of rowsConCitas) {
+        const citas = await this.fetchAllCitas(row);
+        const target = this.esSobreabasto(row) ? sobreabastoRows : faltantesRows;
+        target.push(...citas.map(cita => this.toExcelRow(row, cita)));
+      }
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(sobreabastoRows), 'Sobreabasto');
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(faltantesRows), 'Faltantes');
+
+      const stamp = this.timestamp();
+      XLSX.writeFile(workbook, `IB_ONCO_TODOS_${stamp}.xlsx`, { bookType: 'xlsx' });
+    } catch {
+      this.error.set('No se pudo generar el Excel IB-ONCO.');
+    } finally {
+      this.exportando.set(false);
+    }
   }
 
-  async nextAbastoPage(): Promise<void> {
-    if (this.abastoPage() >= this.abastoTotalPages()) return;
-    this.abastoPage.set(this.abastoPage() + 1);
-    await this.cargarAbasto();
+  async abrirAnalisis(row: IbOncoAbastoCpmRow, tipo: 'sobreabasto' | 'faltantes'): Promise<void> {
+    if (!row.tiene_citas_pendientes) return;
+
+    this.selectedRow.set(row);
+    this.selectedAnalysisType.set(tipo);
+    this.modalCitas.set([]);
+    this.checkedCitas.set([]);
+    this.modalError.set(null);
+    this.loadingModal.set(true);
+
+    try {
+      const response = await firstValueFrom(this.ibOncoService.obtenerCitasPendientes({
+        cluesimb: row.cluesimb,
+        clave_cnis: row.clave_cnis,
+        window_days: this.windowDays(),
+        page: 1,
+        limit: 1000,
+      }));
+      this.modalCitas.set(response.rows ?? []);
+    } catch {
+      this.modalError.set('No se pudo cargar el detalle de ordenes de suministro.');
+    } finally {
+      this.loadingModal.set(false);
+    }
   }
 
-  async onAbastoLimitChange(value: string | number): Promise<void> {
-    this.abastoLimit.set(Number(value) || 25);
-    this.abastoPage.set(1);
-    await this.cargarAbasto();
+  cerrarModal(): void {
+    this.selectedRow.set(null);
+    this.modalCitas.set([]);
+    this.checkedCitas.set([]);
+    this.modalError.set(null);
+    this.loadingModal.set(false);
   }
 
-  async previousCitasPage(): Promise<void> {
-    if (this.citasPage() <= 1) return;
-    this.citasPage.set(this.citasPage() - 1);
-    await this.cargarCitas();
+  toggleCita(citaId: number, checked: boolean): void {
+    const current = this.checkedCitas();
+    if (checked && !current.includes(citaId)) {
+      this.checkedCitas.set([...current, citaId]);
+      return;
+    }
+    if (!checked) {
+      this.checkedCitas.set(current.filter(id => id !== citaId));
+    }
   }
 
-  async nextCitasPage(): Promise<void> {
-    if (this.citasPage() >= this.citasTotalPages()) return;
-    this.citasPage.set(this.citasPage() + 1);
-    await this.cargarCitas();
-  }
-
-  async onCitasLimitChange(value: string | number): Promise<void> {
-    this.citasLimit.set(Number(value) || 25);
-    this.citasPage.set(1);
-    await this.cargarCitas();
+  citaChecked(citaId: number): boolean {
+    return this.checkedCitas().includes(citaId);
   }
 
   estadoClass(row: IbOncoAbastoCpmRow): string {
     return row.estado_abasto === 'posible sobre abasto'
       ? 'bg-amber-50 text-amber-800'
       : 'bg-emerald-50 text-emerald-700';
+  }
+
+  esSobreabasto(row: IbOncoAbastoCpmRow): boolean {
+    return row.estado_abasto === 'posible sobre abasto';
   }
 
   trackAbasto(row: IbOncoAbastoCpmRow): string {
@@ -222,13 +227,24 @@ export class IbOncoPageComponent {
     return `${row.id}-${row.orden_de_suministro ?? ''}`;
   }
 
-  private async cargarClaves(cluesimb: string): Promise<void> {
+  private async cargarClavesHospital(): Promise<void> {
+    this.loadingClaves.set(true);
+    this.error.set(null);
+
     try {
-      const response = await firstValueFrom(this.ibOncoService.obtenerClaves(cluesimb));
-      this.claves.set(response.data ?? []);
+      const response = await firstValueFrom(this.ibOncoService.obtenerAbastoCpm({
+        cluesimb: this.cluesimb(),
+        search: this.search().trim(),
+        window_days: this.windowDays(),
+        page: 1,
+        limit: 1000,
+      }));
+      this.abasto.set(response);
     } catch {
-      this.error.set('No se pudieron cargar las claves onco de la unidad seleccionada.');
-      this.claves.set([]);
+      this.error.set('No se pudieron cargar las claves del hospital seleccionado.');
+      this.abasto.set(this.emptyPage<IbOncoAbastoCpmRow>(1000));
+    } finally {
+      this.loadingClaves.set(false);
     }
   }
 
@@ -241,47 +257,87 @@ export class IbOncoPageComponent {
     }
   }
 
-  private async cargarAbasto(): Promise<void> {
-    this.loadingAbasto.set(true);
-    this.error.set(null);
+  private async fetchAllAbasto(limit = 1000): Promise<IbOncoAbastoCpmRow[]> {
+    const first = await firstValueFrom(this.ibOncoService.obtenerAbastoCpm({
+      window_days: this.windowDays(),
+      page: 1,
+      limit,
+    }));
+    const rows = [...(first.rows ?? [])];
 
-    try {
-      const response = await firstValueFrom(this.ibOncoService.obtenerAbastoCpm({
-        cluesimb: this.cluesimb(),
-        clave_cnis: this.claveCnis(),
-        estado_abasto: this.estadoAbasto(),
-        search: this.search().trim(),
-        page: this.abastoPage(),
-        limit: this.abastoLimit(),
+    for (let page = 2; page <= (first.totalPages || 1); page++) {
+      const next = await firstValueFrom(this.ibOncoService.obtenerAbastoCpm({
+        window_days: this.windowDays(),
+        page,
+        limit,
       }));
-      this.abasto.set(response);
-    } catch {
-      this.error.set('No se pudo cargar la tabla de abasto CPM.');
-      this.abasto.set(this.emptyPage<IbOncoAbastoCpmRow>(this.abastoLimit()));
-    } finally {
-      this.loadingAbasto.set(false);
+      rows.push(...(next.rows ?? []));
     }
+
+    return rows;
   }
 
-  private async cargarCitas(): Promise<void> {
-    this.loadingCitas.set(true);
-    this.error.set(null);
+  private async fetchAllCitas(row: IbOncoAbastoCpmRow, limit = 1000): Promise<IbOncoCitaPendiente[]> {
+    const first = await firstValueFrom(this.ibOncoService.obtenerCitasPendientes({
+      cluesimb: row.cluesimb,
+      clave_cnis: row.clave_cnis,
+      window_days: this.windowDays(),
+      page: 1,
+      limit,
+    }));
+    const rows = [...(first.rows ?? [])];
 
-    try {
-      const response = await firstValueFrom(this.ibOncoService.obtenerCitasPendientes({
-        cluesimb: this.cluesimb(),
-        clave_cnis: this.claveCnis(),
+    for (let page = 2; page <= (first.totalPages || 1); page++) {
+      const next = await firstValueFrom(this.ibOncoService.obtenerCitasPendientes({
+        cluesimb: row.cluesimb,
+        clave_cnis: row.clave_cnis,
         window_days: this.windowDays(),
-        page: this.citasPage(),
-        limit: this.citasLimit(),
+        page,
+        limit,
       }));
-      this.citas.set(response);
-    } catch {
-      this.error.set('No se pudo cargar la tabla de citas pendientes.');
-      this.citas.set(this.emptyPage<IbOncoCitaPendiente>(this.citasLimit()));
-    } finally {
-      this.loadingCitas.set(false);
+      rows.push(...(next.rows ?? []));
     }
+
+    return rows;
+  }
+
+  private toExcelRow(row: IbOncoAbastoCpmRow, cita: IbOncoCitaPendiente): Record<string, string | number | null> {
+    return {
+      'CLUES IMB': row.cluesimb,
+      'Unidad Medica': row.nombre_de_unidad ?? '',
+      'Clave CNIS': row.clave_cnis,
+      'Descripcion': row.descripcion ?? '',
+      CPM: row.cpm,
+      CPMx3: row.cpm_x_3,
+      Existencias: row.existencias,
+      CPMS_EQ: row.cpms_eq,
+      'c.orden_de_suministro': cita.orden_de_suministro ?? '',
+      'c.institucion': cita.institucion ?? '',
+      'c.contrato': cita.contrato ?? '',
+      'c.tipo_de_entrega': cita.tipo_de_entrega ?? '',
+      'c.fte_fmto': cita.fte_fmto ?? '',
+      'c.proveedor': cita.proveedor ?? '',
+      'c.compra': cita.compra ?? '',
+      'c.tipo_de_red': cita.tipo_de_red ?? '',
+      'c.tipo_de_insumo': cita.tipo_de_insumo ?? '',
+      'c.grupo_terapeutico': cita.grupo_terapeutico ?? '',
+      'c.precio_unitario': cita.precio_unitario ?? 0,
+      'c.no_de_piezas_emitidas': cita.no_de_piezas_emitidas ?? 0,
+      'c.fecha_emision': this.formatDateForExcel(cita.fecha_emision),
+      'c.fecha_limite_de_entrega': this.formatDateForExcel(cita.fecha_limite_de_entrega),
+      checkbox: '',
+    };
+  }
+
+  private formatDateForExcel(value?: string | null): string {
+    if (!value) return '';
+    return String(value).slice(0, 10);
+  }
+
+  private timestamp(): string {
+    const now = new Date();
+    const pad = (value: number) => value.toString().padStart(2, '0');
+    return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
   }
 
   private emptyPage<T>(limit: number): IbOncoPaginatedResponse<T> {
@@ -300,13 +356,5 @@ export class IbOncoPageComponent {
 
   private sum(rows: IbOncoResumenUnidad[], key: keyof IbOncoResumenUnidad): number {
     return rows.reduce((total, row) => total + Number(row[key] ?? 0), 0);
-  }
-
-  private rangeStart<T>(page: IbOncoPaginatedResponse<T>): number {
-    return page.total === 0 ? 0 : page.offset + 1;
-  }
-
-  private rangeEnd<T>(page: IbOncoPaginatedResponse<T>): number {
-    return Math.min(page.offset + page.rows.length, page.total);
   }
 }
