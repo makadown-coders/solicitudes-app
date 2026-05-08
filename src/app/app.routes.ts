@@ -213,6 +213,12 @@ export const routes: Routes = [
         title: 'Dashboard Abasto - Radar de Riesgo de Desabasto'
       },
       {
+        path: 'ib-onco',
+        title: 'IB-ONCO',
+        loadComponent: () => import('./features/ib-onco/ib-onco-page.component')
+          .then(m => m.IbOncoPageComponent)
+      },
+      {
         path: 'acerca',
         loadComponent: () => import('./features/dashboard-abasto/acerca/acerca.component')
           .then(m => m.AcercaComponent),
