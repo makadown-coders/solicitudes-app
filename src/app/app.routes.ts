@@ -21,6 +21,45 @@ export const routes: Routes = [
       .then(m => m.IbOncoPageComponent)
   },
   {
+    path: 'dashboard-estatal',
+    title: 'Dashboard Estatal',
+    loadComponent: () => import('./features/dashboard-estatal/dashboard-estatal-shell.component')
+      .then(m => m.DashboardEstatalShellComponent),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'resumen' },
+      {
+        path: 'resumen',
+        title: 'Dashboard Estatal · Priorización',
+        loadComponent: () => import('./features/dashboard-estatal/dashboard-estatal-page.component')
+          .then(m => m.DashboardEstatalPageComponent)
+      },
+      {
+        path: 'roadmap-backend',
+        title: 'Dashboard Estatal · Roadmap Backend',
+        loadComponent: () => import('./features/dashboard-estatal/backend-roadmap/dashboard-estatal-backend-roadmap.component')
+          .then(m => m.DashboardEstatalBackendRoadmapComponent)
+      },
+      {
+        path: 'jurisdicciones',
+        title: 'Dashboard Estatal · Jurisdicciones',
+        loadComponent: () => import('./features/dashboard-estatal/backend-roadmap/dashboard-estatal-backend-roadmap.component')
+          .then(m => m.DashboardEstatalBackendRoadmapComponent)
+      },
+      {
+        path: 'unidades',
+        title: 'Dashboard Estatal · Unidades',
+        loadComponent: () => import('./features/dashboard-estatal/backend-roadmap/dashboard-estatal-backend-roadmap.component')
+          .then(m => m.DashboardEstatalBackendRoadmapComponent)
+      },
+      {
+        path: 'ordenes-pendientes',
+        title: 'Dashboard Estatal · Órdenes Pendientes',
+        loadComponent: () => import('./features/dashboard-estatal/backend-roadmap/dashboard-estatal-backend-roadmap.component')
+          .then(m => m.DashboardEstatalBackendRoadmapComponent)
+      },
+    ],
+  },
+  {
     path: 'poc-finanzas-ev-smi-sg',
     loadComponent: () => import('./features/poc-finanzas-ev-smi-sg/poc-finanzas-ev-smi-sg.component')
       .then(m => m.PocFinanzasEvSmiSgComponent)
@@ -211,6 +250,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/dashboard-abasto/radar-abasto/radar-abasto.component')
           .then(m => m.RadarAbastoComponent),
         title: 'Dashboard Abasto - Radar de Riesgo de Desabasto'
+      },
+      {
+        path: 'ib-onco',
+        title: 'IB-ONCO',
+        loadComponent: () => import('./features/ib-onco/ib-onco-page.component')
+          .then(m => m.IbOncoPageComponent)
       },
       {
         path: 'acerca',

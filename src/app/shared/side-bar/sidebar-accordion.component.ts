@@ -19,6 +19,7 @@ export class SidebarAccordionComponent {
   items = signal<NavItem[]>([
     { type: 'group', id: 'dashboard', label: 'Dashboard', children: [
       { type: 'link', id: 'resumen', label: 'Resumen', route: 'resumen' },
+      { type: 'link', id: 'dashboard-estatal', label: 'Dashboard Estatal', route: '/dashboard-estatal' },
       { type: 'link', id: 'citas-pend', label: 'Órdenes Pendientes', route: 'ordenes-pendientes' },
       { type: 'link', id: 'citas-comp', label: 'Órdenes Completadas', route: 'ordenes-completadas' },
     ]},
@@ -31,7 +32,7 @@ export class SidebarAccordionComponent {
         { type: 'link', id: 'homologos', label: 'Homologos', route: 'analisis/homologos' },
         { type: 'link', id: 'balanceo', label: 'Balanceo (beta)', route: 'analisis/balanceo' },
         { type: 'link', id: 'balanceo-v2', label: 'Balanceo V2', route: 'analisis/balanceo-v2' },
-        { type: 'link', id: 'ib-onco', label: 'IB-ONCO', route: '/ib-onco' },
+        { type: 'link', id: 'ib-onco', label: 'IB-ONCO', route: 'ib-onco' },
       ]},
     ]},
      { type: 'group', id: 'solicitudes-unidades', label: 'Solicitudes', children: [

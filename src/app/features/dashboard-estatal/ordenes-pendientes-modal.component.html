@@ -1,0 +1,88 @@
+@if (visible) {
+  <div class="z-50 fixed inset-0 p-4 bg-slate-900/50" (click)="close()">
+    <section
+      class="overflow-hidden flex flex-col mx-auto max-h-[90vh] w-full max-w-6xl bg-white rounded-2xl shadow-2xl"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ordenes-pendientes-title"
+      (click)="$event.stopPropagation()">
+      <header class="flex items-start justify-between gap-4 p-4 border-b border-gray-100">
+        <div>
+          <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">Órdenes pendientes</p>
+          <h2 id="ordenes-pendientes-title" class="text-xl font-bold text-gray-900">{{ claveCnis }}</h2>
+          <p class="text-sm text-gray-500">{{ descripcion || 'Sin descripción' }}</p>
+        </div>
+
+        <button
+          type="button"
+          class="inline-flex items-center justify-center h-9 w-9 text-gray-500 rounded-xl border-gray-200 border hover:bg-gray-50"
+          aria-label="Cerrar"
+          (click)="close()">
+          <lucide-angular [img]="CloseIcon" class="h-4 w-4"></lucide-angular>
+        </button>
+      </header>
+
+      <div class="grid gap-3 p-4 border-b border-gray-100 sm:grid-cols-3">
+        <div class="p-3 bg-slate-50 rounded-2xl">
+          <p class="text-xs font-semibold tracking-wide text-gray-500 uppercase">Órdenes</p>
+          <p class="mt-1 text-2xl font-bold text-gray-900">{{ ordenes().length | number:'1.0-0' }}</p>
+        </div>
+        <div class="p-3 bg-slate-50 rounded-2xl">
+          <p class="text-xs font-semibold tracking-wide text-gray-500 uppercase">Piezas pendientes</p>
+          <p class="mt-1 text-2xl font-bold text-gray-900">{{ totalPiezas() | number:'1.0-0' }}</p>
+        </div>
+        <div class="p-3 bg-slate-50 rounded-2xl">
+          <p class="text-xs font-semibold tracking-wide text-gray-500 uppercase">Importe pendiente</p>
+          <p class="mt-1 text-2xl font-bold text-gray-900">{{ totalImporte() | currency:'MXN':'symbol':'1.2-2' }}</p>
+        </div>
+      </div>
+
+      <div class="overflow-auto flex-1 p-4 min-h-0">
+        @if (loading()) {
+          <div class="space-y-2">
+            <div class="h-10 bg-gray-100 rounded-xl"></div>
+            <div class="h-10 bg-gray-100 rounded-xl"></div>
+            <div class="h-10 bg-gray-100 rounded-xl"></div>
+          </div>
+        } @else if (error(); as message) {
+          <div class="px-4 py-3 text-sm text-red-700 bg-red-50 rounded-2xl border-red-100 border">{{ message }}</div>
+        } @else if (ordenes().length === 0) {
+          <div class="px-4 py-10 text-center text-gray-500 rounded-2xl border-dashed border-gray-200 border">
+            No se encontraron órdenes pendientes para esta clave.
+          </div>
+        } @else {
+          <div class="overflow-x-auto rounded-2xl border-gray-100 border">
+            <table class="min-w-[1100px] w-full text-sm">
+              <thead class="text-xs text-gray-600 bg-gray-50">
+                <tr>
+                  <th class="px-3 py-3 text-left">Orden / folio</th>
+                  <th class="px-3 py-3 text-left">Proveedor</th>
+                  <th class="px-3 py-3 text-left">Emisión</th>
+                  <th class="px-3 py-3 text-right">Días</th>
+                  <th class="px-3 py-3 text-right">Piezas</th>
+                  <th class="px-3 py-3 text-right">Importe</th>
+                  <th class="px-3 py-3 text-left">unidad</th>
+                  <th class="px-3 py-3 text-left">Estatus</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                @for (row of ordenes(); track trackOrden($index, row)) {
+                  <tr class="hover:bg-emerald-50/50">
+                    <td class="px-3 py-3 font-semibold text-gray-900">{{ row.orden_compra || row.folio || '-' }}</td>
+                    <td class="px-3 py-3 text-gray-700">{{ row.proveedor || '-' }}</td>
+                    <td class="px-3 py-3 text-gray-700">{{ row.fecha_emision || '-' }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.dias_pendiente ?? '-' }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.piezas_pendientes | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right">{{ (row.importe_pendiente ?? 0) | currency:'MXN':'symbol':'1.2-2' }}</td>
+                    <td class="px-3 py-3 text-gray-700">{{ row.jurisdiccion || row.unidad || '-' }}</td>
+                    <td class="px-3 py-3 text-gray-700">{{ row.estatus || '-' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+}

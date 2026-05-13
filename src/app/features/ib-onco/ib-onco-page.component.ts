@@ -239,7 +239,8 @@ export class IbOncoPageComponent {
         page: 1,
         limit: 1000,
       }));
-      this.abasto.set(response);
+      // ordenar por clave_cnis para facilitar la busqueda de claves en el modal de citas pendientes
+      this.abasto.set(response.rows ? { ...response, rows: response.rows.sort((a, b) => a.clave_cnis.localeCompare(b.clave_cnis)) } : this.emptyPage<IbOncoAbastoCpmRow>(1000));
     } catch {
       this.error.set('No se pudieron cargar las claves del hospital seleccionado.');
       this.abasto.set(this.emptyPage<IbOncoAbastoCpmRow>(1000));
