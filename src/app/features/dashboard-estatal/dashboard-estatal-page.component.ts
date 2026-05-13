@@ -1,7 +1,8 @@
+// src/app/features/dashboard-estatal/dashboard-estatal-page.component.ts
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { catchError, debounceTime, distinctUntilChanged, of, Subject, switchMap } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map, of, Subject, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
 import { LucideAngularModule, Search } from 'lucide-angular';
@@ -37,6 +38,7 @@ export class DashboardEstatalPageComponent {
 
   searchText = signal('');
   suggestions = signal<DashboardEstatalClave[]>([]);
+  searchedTerm = signal('');
   selectedClave = signal<DashboardEstatalClave | null>(null);
   resumen = signal<DashboardEstatalResumenClave | null>(null);
   topSobreabasto = signal<DashboardEstatalResumenClave[]>([]);
@@ -48,6 +50,23 @@ export class DashboardEstatalPageComponent {
   errorSearch = signal<string | null>(null);
   errorResumen = signal<string | null>(null);
   errorTop = signal<string | null>(null);
+
+  hasNoSearchResults = computed(() => {
+    const term = this.searchText().trim();
+
+    return term.length >= 2
+      && this.searchedTerm() === term
+      && !this.loadingSearch()
+      && !this.errorSearch()
+      && this.suggestions().length === 0;
+  });
+
+  hasSearchPanel = computed(() =>
+    this.suggestions().length > 0
+    || this.loadingSearch()
+    || !!this.errorSearch()
+    || this.hasNoSearchResults()
+  );
 
   kpis = computed<DashboardEstatalKpi[]>(() => {
     const row = this.resumen();
@@ -75,20 +94,23 @@ export class DashboardEstatalPageComponent {
 
         if (cleanTerm.length < 2) {
           this.loadingSearch.set(false);
-          return of({ ok: true, count: 0, data: [] });
+          this.searchedTerm.set('');
+          return of({ term: cleanTerm, response: { ok: true, count: 0, data: [] } });
         }
 
         this.loadingSearch.set(true);
         return this.dashboardEstatalService.buscarClaves(cleanTerm, 20).pipe(
+          map(response => ({ term: cleanTerm, response })),
           catchError(() => {
             this.errorSearch.set('No se pudieron buscar claves.');
-            return of({ ok: false, count: 0, data: [] });
+            return of({ term: cleanTerm, response: { ok: false, count: 0, data: [] } });
           })
         );
       }),
       takeUntilDestroyed(this.destroyRef)
-    ).subscribe(response => {
+    ).subscribe(({ term, response }) => {
       this.suggestions.set(response.data ?? []);
+      this.searchedTerm.set(term);
       this.loadingSearch.set(false);
     });
 
@@ -97,6 +119,8 @@ export class DashboardEstatalPageComponent {
 
   onSearchChange(value: string): void {
     this.searchText.set(value);
+    this.suggestions.set([]);
+    this.searchedTerm.set('');
     this.selectedClave.set(null);
     this.resumen.set(null);
     this.searchTerms.next(value);
