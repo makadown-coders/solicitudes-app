@@ -23,8 +23,41 @@ export const routes: Routes = [
   {
     path: 'dashboard-estatal',
     title: 'Dashboard Estatal',
-    loadComponent: () => import('./features/dashboard-estatal/dashboard-estatal-page.component')
-      .then(m => m.DashboardEstatalPageComponent)
+    loadComponent: () => import('./features/dashboard-estatal/dashboard-estatal-shell.component')
+      .then(m => m.DashboardEstatalShellComponent),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'resumen' },
+      {
+        path: 'resumen',
+        title: 'Dashboard Estatal · Priorización',
+        loadComponent: () => import('./features/dashboard-estatal/dashboard-estatal-page.component')
+          .then(m => m.DashboardEstatalPageComponent)
+      },
+      {
+        path: 'roadmap-backend',
+        title: 'Dashboard Estatal · Roadmap Backend',
+        loadComponent: () => import('./features/dashboard-estatal/backend-roadmap/dashboard-estatal-backend-roadmap.component')
+          .then(m => m.DashboardEstatalBackendRoadmapComponent)
+      },
+      {
+        path: 'jurisdicciones',
+        title: 'Dashboard Estatal · Jurisdicciones',
+        loadComponent: () => import('./features/dashboard-estatal/backend-roadmap/dashboard-estatal-backend-roadmap.component')
+          .then(m => m.DashboardEstatalBackendRoadmapComponent)
+      },
+      {
+        path: 'unidades',
+        title: 'Dashboard Estatal · Unidades',
+        loadComponent: () => import('./features/dashboard-estatal/backend-roadmap/dashboard-estatal-backend-roadmap.component')
+          .then(m => m.DashboardEstatalBackendRoadmapComponent)
+      },
+      {
+        path: 'ordenes-pendientes',
+        title: 'Dashboard Estatal · Órdenes Pendientes',
+        loadComponent: () => import('./features/dashboard-estatal/backend-roadmap/dashboard-estatal-backend-roadmap.component')
+          .then(m => m.DashboardEstatalBackendRoadmapComponent)
+      },
+    ],
   },
   {
     path: 'poc-finanzas-ev-smi-sg',

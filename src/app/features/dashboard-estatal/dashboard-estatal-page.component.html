@@ -1,24 +1,9 @@
-<div class="min-h-screen bg-slate-100">
-  <section class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-    <div class="space-y-4">
-      <header class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Vista estatal de abasto</p>
-            <h1 class="text-2xl font-bold text-gray-900">Dashboard Estatal</h1>
-            <p class="text-sm text-gray-600">
-              Consulta riesgo estatal por clave CNIS con CPM, existencia y ordenes pendientes.
-            </p>
-          </div>
-
-          <div class="text-sm text-gray-500 lg:text-right">
-            <p class="font-semibold text-gray-800">Periodo operativo</p>
-            <p>Ordenes emitidas en los ultimos {{ windowDays() }} dias</p>
-          </div>
-        </div>
-      </header>
-
+<div class="space-y-4">
       <section class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div class="mb-3 flex flex-col gap-1 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+          <p class="font-semibold text-gray-800">Priorización por clave</p>
+          <p>Órdenes emitidas en los últimos {{ windowDays() }} días</p>
+        </div>
         <label class="block text-sm font-medium text-gray-700" for="dashboard-estatal-search">
           Buscar clave
         </label>
@@ -230,6 +215,4 @@
           }
         </div>
       </section>
-    </div>
-  </section>
 </div>
