@@ -22,6 +22,25 @@ export interface DashboardEstatalResumenClave {
   lectura: string;
 }
 
+export interface DashboardEstatalOrdenPendiente {
+  clave_cnis: string;
+  descripcion?: string | null;
+  orden_compra?: string | null;
+  folio?: string | null;
+  proveedor?: string | null;
+  fecha_emision?: string | null;
+  fecha_entrega?: string | null;
+  dias_pendiente?: number | null;
+  piezas_pendientes: number;
+  precio_unitario?: number | null;
+  importe_pendiente?: number | null;
+  jurisdiccion?: string | null;
+  almacen?: string | null;
+  unidad?: string | null;
+  estatus?: string | null;
+  contrato?: string | null;
+}
+
 export interface DashboardEstatalClavesResponse {
   ok: boolean;
   count: number;
@@ -39,4 +58,10 @@ export interface DashboardEstatalTopResponse {
     top_sobreabasto: DashboardEstatalResumenClave[];
     top_faltantes: DashboardEstatalResumenClave[];
   };
+}
+
+export interface DashboardEstatalOrdenesPendientesResponse {
+  ok: boolean;
+  count: number;
+  data: DashboardEstatalOrdenPendiente[];
 }

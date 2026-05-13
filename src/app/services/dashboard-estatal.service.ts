@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   DashboardEstatalClavesResponse,
+  DashboardEstatalOrdenesPendientesResponse,
   DashboardEstatalResumenResponse,
   DashboardEstatalTopResponse,
 } from '../models/dashboard-estatal';
@@ -31,6 +32,16 @@ export class DashboardEstatalService {
   obtenerTop(windowDays = 120, limit = 10): Observable<DashboardEstatalTopResponse> {
     return this.http.get<DashboardEstatalTopResponse>(`${this.baseUrl}/top`, {
       params: this.toParams({ window_days: windowDays, limit }),
+    });
+  }
+
+  obtenerOrdenesPendientes(
+    claveCnis: string,
+    windowDays = 120,
+    limit = 200
+  ): Observable<DashboardEstatalOrdenesPendientesResponse> {
+    return this.http.get<DashboardEstatalOrdenesPendientesResponse>(`${this.baseUrl}/ordenes-pendientes`, {
+      params: this.toParams({ clave_cnis: claveCnis, window_days: windowDays, limit }),
     });
   }
 

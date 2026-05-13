@@ -2,17 +2,20 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { catchError, debounceTime, distinctUntilChanged, map, of, Subject, switchMap } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, forkJoin, map, of, Subject, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
-import { LucideAngularModule, Search } from 'lucide-angular';
+import { Download, LucideAngularModule, Search } from 'lucide-angular';
 import {
   DashboardEstatalClave,
+  DashboardEstatalOrdenPendiente,
   DashboardEstatalResumenClave,
   RiesgoFaltante,
   RiesgoSobreabasto,
 } from '../../models/dashboard-estatal';
 import { DashboardEstatalService } from '../../services/dashboard-estatal.service';
+import { OrdenesPendientesModalComponent } from './ordenes-pendientes-modal.component';
+import { DashboardEstatalExcelExporter } from '../../services/excel/dashboard-estatal-excel-exporter';
 
 interface DashboardEstatalKpi {
   label: string;
@@ -24,7 +27,7 @@ interface DashboardEstatalKpi {
 @Component({
   selector: 'app-dashboard-estatal-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, OrdenesPendientesModalComponent],
   templateUrl: './dashboard-estatal-page.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -34,6 +37,7 @@ export class DashboardEstatalPageComponent {
   private searchTerms = new Subject<string>();
 
   readonly SearchIcon = Search;
+  readonly DownloadIcon = Download;
   readonly windowDays = signal(120);
 
   searchText = signal('');
@@ -43,13 +47,16 @@ export class DashboardEstatalPageComponent {
   resumen = signal<DashboardEstatalResumenClave | null>(null);
   topSobreabasto = signal<DashboardEstatalResumenClave[]>([]);
   topFaltantes = signal<DashboardEstatalResumenClave[]>([]);
+  modalOrdenesClave = signal<DashboardEstatalClave | null>(null);
 
   loadingSearch = signal(false);
   loadingResumen = signal(false);
   loadingTop = signal(false);
+  exportingExcel = signal(false);
   errorSearch = signal<string | null>(null);
   errorResumen = signal<string | null>(null);
   errorTop = signal<string | null>(null);
+  errorExport = signal<string | null>(null);
 
   hasNoSearchResults = computed(() => {
     const term = this.searchText().trim();
@@ -80,7 +87,7 @@ export class DashboardEstatalPageComponent {
       { label: 'CPM estatal', value: row.cpm_estatal },
       { label: 'CPM x3 estatal', value: row.cpm_x_3_estatal },
       { label: 'CPMs equivalentes', value: row.cpms_equivalentes ?? 'N/A' },
-      { label: 'Ordenes pendientes', value: row.ordenes_pendientes },
+      { label: 'Órdenes pendientes', value: row.ordenes_pendientes },
     ];
   });
 
@@ -169,6 +176,49 @@ export class DashboardEstatalPageComponent {
     }
   }
 
+  abrirOrdenesPendientes(row: DashboardEstatalResumenClave): void {
+    if (!row.ordenes_pendientes || row.ordenes_pendientes <= 0) return;
+    this.modalOrdenesClave.set({ clave_cnis: row.clave_cnis, descripcion: row.descripcion });
+  }
+
+  cerrarOrdenesPendientes(): void {
+    this.modalOrdenesClave.set(null);
+  }
+
+  async exportarExcel(): Promise<void> {
+    this.exportingExcel.set(true);
+    this.errorExport.set(null);
+
+    try {
+      const [ordenesFaltantes, ordenesSobreabasto] = await Promise.all([
+        this.cargarOrdenesParaExport(this.topFaltantes()),
+        this.cargarOrdenesParaExport(this.topSobreabasto()),
+      ]);
+
+      const notas: string[] = [];
+      if (ordenesFaltantes.errorCount + ordenesSobreabasto.errorCount > 0) {
+        notas.push('No se pudieron cargar algunas órdenes pendientes. Verifica que el endpoint /dashboard-estatal/ordenes-pendientes esté disponible en backend.');
+      }
+
+      const exporter = new DashboardEstatalExcelExporter();
+      await exporter.exportar(
+        `Dashboard_Estatal_${this.dateStamp()}.xlsx`,
+        {
+          windowDays: this.windowDays(),
+          topFaltantes: this.topFaltantes(),
+          topSobreabasto: this.topSobreabasto(),
+          ordenesFaltantes: ordenesFaltantes.rows,
+          ordenesSobreabasto: ordenesSobreabasto.rows,
+          notas,
+        }
+      );
+    } catch {
+      this.errorExport.set('No se pudo generar el Excel del dashboard estatal.');
+    } finally {
+      this.exportingExcel.set(false);
+    }
+  }
+
   riskClass(risk: RiesgoFaltante | RiesgoSobreabasto | string | null | undefined): string {
     if (risk === 'CRITICO') return 'bg-red-100 text-red-900 border-red-200';
     if (risk === 'ALTO') return 'bg-red-50 text-red-800 border-red-200';
@@ -189,5 +239,42 @@ export class DashboardEstatalPageComponent {
 
   trackResumen(row: DashboardEstatalResumenClave): string {
     return row.clave_cnis;
+  }
+
+  private async cargarOrdenesParaExport(rows: DashboardEstatalResumenClave[]): Promise<{
+    rows: DashboardEstatalOrdenPendiente[];
+    errorCount: number;
+  }> {
+    const rowsConOrdenes = rows.filter(row => row.ordenes_pendientes > 0);
+    if (rowsConOrdenes.length === 0) {
+      return { rows: [], errorCount: 0 };
+    }
+
+    const requests = rowsConOrdenes.map(row =>
+      this.dashboardEstatalService.obtenerOrdenesPendientes(row.clave_cnis, this.windowDays()).pipe(
+        map(response => ({
+          rows: (response.data ?? []).map(order => ({
+            ...order,
+            clave_cnis: order.clave_cnis || row.clave_cnis,
+            descripcion: order.descripcion ?? row.descripcion,
+          })),
+          failed: false,
+        })),
+        catchError(() => of({ rows: [] as DashboardEstatalOrdenPendiente[], failed: true }))
+      )
+    );
+
+    const responses = await firstValueFrom(forkJoin(requests));
+    return {
+      rows: responses.flatMap(response => response.rows),
+      errorCount: responses.filter(response => response.failed).length,
+    };
+  }
+
+  private dateStamp(): string {
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, '0');
+
+    return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
   }
 }
