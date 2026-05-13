@@ -1,0 +1,227 @@
+<div class="min-h-screen bg-slate-100">
+  <section class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+    <div class="space-y-4">
+      <header class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Vista estatal de abasto</p>
+            <h1 class="text-2xl font-bold text-gray-900">Dashboard Estatal</h1>
+            <p class="text-sm text-gray-600">
+              Consulta riesgo estatal por clave CNIS con CPM, existencia y ordenes pendientes.
+            </p>
+          </div>
+
+          <div class="text-sm text-gray-500 lg:text-right">
+            <p class="font-semibold text-gray-800">Periodo operativo</p>
+            <p>Ordenes emitidas en los ultimos {{ windowDays() }} dias</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+        <label class="block text-sm font-medium text-gray-700">
+          Buscar clave
+          <div class="relative mt-1">
+            <lucide-angular [img]="SearchIcon" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400"></lucide-angular>
+            <input
+              type="search"
+              class="w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              placeholder="Captura clave CNIS o descripcion"
+              [ngModel]="searchText()"
+              (ngModelChange)="onSearchChange($event)">
+
+            @if (suggestions().length > 0 || loadingSearch() || errorSearch()) {
+              <div class="absolute z-20 mt-2 max-h-80 w-full overflow-auto rounded-2xl border border-gray-200 bg-white shadow-xl">
+                @if (loadingSearch()) {
+                  <div class="px-4 py-3 text-sm text-gray-500">Buscando claves...</div>
+                }
+
+                @if (errorSearch(); as message) {
+                  <div class="px-4 py-3 text-sm text-red-700">{{ message }}</div>
+                }
+
+                @for (item of suggestions(); track trackClave(item)) {
+                  <button
+                    type="button"
+                    class="block w-full px-4 py-3 text-left hover:bg-emerald-50"
+                    (click)="seleccionarClave(item)">
+                    <span class="block font-semibold text-gray-900">{{ item.clave_cnis }}</span>
+                    <span class="block text-xs text-gray-500">{{ item.descripcion || 'Sin descripcion' }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </label>
+      </section>
+
+      @if (errorResumen(); as message) {
+        <div class="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {{ message }}
+        </div>
+      }
+
+      <section class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+        @if (loadingResumen()) {
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="h-24 rounded-2xl bg-gray-100"></div>
+            <div class="h-24 rounded-2xl bg-gray-100"></div>
+            <div class="h-24 rounded-2xl bg-gray-100"></div>
+            <div class="h-24 rounded-2xl bg-gray-100"></div>
+          </div>
+        } @else if (resumen(); as row) {
+          <div class="mb-4 flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Clave seleccionada</p>
+              <h2 class="text-xl font-bold text-gray-900">{{ row.clave_cnis }}</h2>
+              <p class="text-sm text-gray-500">{{ row.descripcion || 'Sin descripcion' }}</p>
+            </div>
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            @for (item of kpis(); track item.label) {
+              <div class="rounded-2xl border border-gray-100 bg-slate-50 p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ item.label }}</p>
+                @if (item.emphasis === 'risk') {
+                  <span class="mt-2 inline-flex rounded-full border px-3 py-1 text-sm font-bold" [ngClass]="riskClass(item.risk)">
+                    {{ item.value }}
+                  </span>
+                } @else {
+                  <p class="mt-2 text-2xl font-bold text-gray-900">
+                    {{ item.value === 'N/A' ? item.value : (item.value | number:'1.0-2') }}
+                  </p>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            {{ row.lectura }}
+          </div>
+        } @else {
+          <div class="rounded-2xl border border-dashed border-gray-200 px-4 py-10 text-center text-gray-500">
+            Busca y selecciona una clave para ver su resumen estatal.
+          </div>
+        }
+      </section>
+
+      @if (errorTop(); as message) {
+        <div class="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {{ message }}
+        </div>
+      }
+
+      <section class="grid gap-4 xl:grid-cols-2">
+        <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div class="mb-3">
+            <h2 class="text-lg font-semibold text-gray-900">Top 10 posible sobreabasto estatal</h2>
+            <p class="text-sm text-gray-500">Ordenado por sobreabasto estimado y cobertura.</p>
+          </div>
+
+          @if (loadingTop()) {
+            <div class="space-y-2">
+              <div class="h-10 rounded-xl bg-gray-100"></div>
+              <div class="h-10 rounded-xl bg-gray-100"></div>
+              <div class="h-10 rounded-xl bg-gray-100"></div>
+            </div>
+          } @else if (topSobreabasto().length === 0) {
+            <div class="rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center text-gray-500">
+              Sin datos de sobreabasto.
+            </div>
+          } @else {
+            <div class="overflow-x-auto rounded-2xl border border-gray-100">
+              <table class="min-w-[860px] w-full text-sm">
+                <thead class="bg-gray-50 text-xs text-gray-600">
+                  <tr>
+                    <th class="px-3 py-3 text-left">Clave / descripcion</th>
+                    <th class="px-3 py-3 text-right">Existencia</th>
+                    <th class="px-3 py-3 text-right">CPM</th>
+                    <th class="px-3 py-3 text-right">CPMs eq.</th>
+                    <th class="px-3 py-3 text-right">Piezas pendientes</th>
+                    <th class="px-3 py-3 text-right">Sobreabasto</th>
+                    <th class="px-3 py-3 text-center">Riesgo</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  @for (item of topSobreabasto(); track trackResumen(item)) {
+                    <tr class="cursor-pointer hover:bg-emerald-50/60" [ngClass]="riskRowClass(item.riesgo_sobreabasto)" (click)="seleccionarClave({ clave_cnis: item.clave_cnis, descripcion: item.descripcion })">
+                      <td class="px-3 py-3">
+                        <p class="font-semibold text-gray-900">{{ item.clave_cnis }}</p>
+                        <p class="max-w-xs truncate text-xs text-gray-500">{{ item.descripcion || '-' }}</p>
+                      </td>
+                      <td class="px-3 py-3 text-right">{{ item.existencia_estatal | number:'1.0-0' }}</td>
+                      <td class="px-3 py-3 text-right">{{ item.cpm_estatal | number:'1.0-0' }}</td>
+                      <td class="px-3 py-3 text-right">{{ item.cpms_equivalentes ?? 0 | number:'1.0-2' }}</td>
+                      <td class="px-3 py-3 text-right">{{ item.piezas_pendientes | number:'1.0-0' }}</td>
+                      <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ item.sobreabasto_estimado | number:'1.0-0' }}</td>
+                      <td class="px-3 py-3 text-center">
+                        <span class="rounded-full border px-2 py-1 text-xs font-semibold" [ngClass]="riskClass(item.riesgo_sobreabasto)">
+                          {{ item.riesgo_sobreabasto }}
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+
+        <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div class="mb-3">
+            <h2 class="text-lg font-semibold text-gray-900">Top 10 posible faltante estatal</h2>
+            <p class="text-sm text-gray-500">Ordenado por faltante estimado y piezas pendientes.</p>
+          </div>
+
+          @if (loadingTop()) {
+            <div class="space-y-2">
+              <div class="h-10 rounded-xl bg-gray-100"></div>
+              <div class="h-10 rounded-xl bg-gray-100"></div>
+              <div class="h-10 rounded-xl bg-gray-100"></div>
+            </div>
+          } @else if (topFaltantes().length === 0) {
+            <div class="rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center text-gray-500">
+              Sin datos de faltantes.
+            </div>
+          } @else {
+            <div class="overflow-x-auto rounded-2xl border border-gray-100">
+              <table class="min-w-[860px] w-full text-sm">
+                <thead class="bg-gray-50 text-xs text-gray-600">
+                  <tr>
+                    <th class="px-3 py-3 text-left">Clave / descripcion</th>
+                    <th class="px-3 py-3 text-right">Existencia</th>
+                    <th class="px-3 py-3 text-right">CPM</th>
+                    <th class="px-3 py-3 text-right">CPMs eq.</th>
+                    <th class="px-3 py-3 text-right">Piezas pendientes</th>
+                    <th class="px-3 py-3 text-right">Faltante</th>
+                    <th class="px-3 py-3 text-center">Riesgo</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  @for (item of topFaltantes(); track trackResumen(item)) {
+                    <tr class="cursor-pointer hover:bg-emerald-50/60" [ngClass]="riskRowClass(item.riesgo_faltante)" (click)="seleccionarClave({ clave_cnis: item.clave_cnis, descripcion: item.descripcion })">
+                      <td class="px-3 py-3">
+                        <p class="font-semibold text-gray-900">{{ item.clave_cnis }}</p>
+                        <p class="max-w-xs truncate text-xs text-gray-500">{{ item.descripcion || '-' }}</p>
+                      </td>
+                      <td class="px-3 py-3 text-right">{{ item.existencia_estatal | number:'1.0-0' }}</td>
+                      <td class="px-3 py-3 text-right">{{ item.cpm_estatal | number:'1.0-0' }}</td>
+                      <td class="px-3 py-3 text-right">{{ item.cpms_equivalentes ?? 0 | number:'1.0-2' }}</td>
+                      <td class="px-3 py-3 text-right">{{ item.piezas_pendientes | number:'1.0-0' }}</td>
+                      <td class="px-3 py-3 text-right font-semibold text-gray-900">{{ item.faltante_estimado | number:'1.0-0' }}</td>
+                      <td class="px-3 py-3 text-center">
+                        <span class="rounded-full border px-2 py-1 text-xs font-semibold" [ngClass]="riskClass(item.riesgo_faltante)">
+                          {{ item.riesgo_faltante }}
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+  </section>
+</div>

@@ -21,6 +21,12 @@ export const routes: Routes = [
       .then(m => m.IbOncoPageComponent)
   },
   {
+    path: 'dashboard-estatal',
+    title: 'Dashboard Estatal',
+    loadComponent: () => import('./features/dashboard-estatal/dashboard-estatal-page.component')
+      .then(m => m.DashboardEstatalPageComponent)
+  },
+  {
     path: 'poc-finanzas-ev-smi-sg',
     loadComponent: () => import('./features/poc-finanzas-ev-smi-sg/poc-finanzas-ev-smi-sg.component')
       .then(m => m.PocFinanzasEvSmiSgComponent)
