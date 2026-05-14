@@ -182,12 +182,14 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       total: this.articulosSolicitados.length,
       cpmCero: 0,
       menorCpm: 0,
+      igualCpm: 0,
       mayorCpm: 0
     };
 
     for (const art of this.articulosSolicitados) {
       const clave = this.normClave(art.clave);
-      const cpm = Number(art.cpm ?? this.cpmIndex.get(clave) ?? 0) || 0;
+      const cpmCapturado = Number(art.cpm ?? 0) || 0;
+      const cpm = cpmCapturado > 0 ? cpmCapturado : (this.cpmIndex.get(clave) ?? 0);
       const cantidad = Number(art.cantidad ?? 0) || 0;
 
       if (cpm <= 0) {
@@ -196,6 +198,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       }
 
       if (cantidad < cpm) stats.menorCpm++;
+      if (cantidad === cpm) stats.igualCpm++;
       if (cantidad > cpm) stats.mayorCpm++;
     }
 

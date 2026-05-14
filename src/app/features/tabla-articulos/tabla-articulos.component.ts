@@ -30,7 +30,7 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
   @Input() cantidadTemporal: number = 0;
   @Input() inventario: InventarioDisponibles[] = [];
   @Input() cluesimbActual: string = '';
-  @Input() capturaStats: { total: number; cpmCero: number; menorCpm: number; mayorCpm: number } | null = null;
+  @Input() capturaStats: { total: number; cpmCero: number; menorCpm: number; igualCpm: number; mayorCpm: number } | null = null;
 
   cpmsDeCluesActual: CPMS[] = [];
   private cpmIndex = new Map<string, number>();

@@ -23,7 +23,7 @@ export class DashboardEstatalExcelExporter {
     workbook.created = new Date();
 
     this.addResumen(workbook, payload);
-    this.addTopSheet(workbook, 'Top Faltantes', payload.topFaltantes, 'faltante');
+    this.addTopSheet(workbook, 'Faltantes CPM<1', payload.topFaltantes, 'faltante');
     this.addTopSheet(workbook, 'Top Sobreabasto', payload.topSobreabasto, 'sobreabasto');
     this.addDetalleClaves(workbook, payload);
     this.addOrdenesSheet(workbook, 'Ordenes Faltantes', payload.ordenesFaltantes);
@@ -48,7 +48,7 @@ export class DashboardEstatalExcelExporter {
     const rows: [string, string | number][] = [
       ['Fecha de generación', new Date().toLocaleString()],
       ['Ventana operativa', `${payload.windowDays} días`],
-      ['Claves en top faltantes', payload.topFaltantes.length],
+      ['Claves faltantes exportadas (CPMs eq. >= 0 y < 1)', payload.topFaltantes.length],
       ['Claves en top sobreabasto', payload.topSobreabasto.length],
       ['Piezas faltantes estimadas', this.sum(payload.topFaltantes, 'faltante_estimado')],
       ['Piezas sobreabasto estimadas', this.sum(payload.topSobreabasto, 'sobreabasto_estimado')],
@@ -139,7 +139,7 @@ export class DashboardEstatalExcelExporter {
       });
     };
 
-    addRows('Faltantes', payload.topFaltantes);
+    addRows('Faltantes CPM<1', payload.topFaltantes);
     addRows('Sobreabasto', payload.topSobreabasto);
     this.finishTable(sheet);
   }

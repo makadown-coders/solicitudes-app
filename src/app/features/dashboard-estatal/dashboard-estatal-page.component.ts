@@ -35,6 +35,7 @@ export class DashboardEstatalPageComponent {
   private dashboardEstatalService = inject(DashboardEstatalService);
   private destroyRef = inject(DestroyRef);
   private searchTerms = new Subject<string>();
+  private readonly excelFaltantesLimit = 10000;
 
   readonly SearchIcon = Search;
   readonly DownloadIcon = Download;
@@ -190,12 +191,17 @@ export class DashboardEstatalPageComponent {
     this.errorExport.set(null);
 
     try {
+      const faltantesParaExport = await this.cargarFaltantesParaExport();
       const [ordenesFaltantes, ordenesSobreabasto] = await Promise.all([
-        this.cargarOrdenesParaExport(this.topFaltantes()),
+        this.cargarOrdenesParaExport(faltantesParaExport),
         this.cargarOrdenesParaExport(this.topSobreabasto()),
       ]);
 
       const notas: string[] = [];
+      notas.push('La hoja de faltantes incluye claves con CPMs equivalentes >= 0 y < 1, solicitadas al backend con un limite amplio para exportacion.');
+      if (faltantesParaExport.length >= this.excelFaltantesLimit) {
+        notas.push(`El listado de faltantes llego al limite de ${this.excelFaltantesLimit} registros; podria requerir un endpoint paginado/dedicado para garantizar universo completo.`);
+      }
       if (ordenesFaltantes.errorCount + ordenesSobreabasto.errorCount > 0) {
         notas.push('No se pudieron cargar algunas órdenes pendientes. Verifica que el endpoint /dashboard-estatal/ordenes-pendientes esté disponible en backend.');
       }
@@ -205,7 +211,7 @@ export class DashboardEstatalPageComponent {
         `Dashboard_Estatal_${this.dateStamp()}.xlsx`,
         {
           windowDays: this.windowDays(),
-          topFaltantes: this.topFaltantes(),
+          topFaltantes: faltantesParaExport,
           topSobreabasto: this.topSobreabasto(),
           ordenesFaltantes: ordenesFaltantes.rows,
           ordenesSobreabasto: ordenesSobreabasto.rows,
@@ -269,6 +275,20 @@ export class DashboardEstatalPageComponent {
       rows: responses.flatMap(response => response.rows),
       errorCount: responses.filter(response => response.failed).length,
     };
+  }
+
+  private async cargarFaltantesParaExport(): Promise<DashboardEstatalResumenClave[]> {
+    const response = await firstValueFrom(
+      this.dashboardEstatalService.obtenerTop(this.windowDays(), this.excelFaltantesLimit)
+    );
+
+    return (response.data?.top_faltantes ?? [])
+      .filter(row => this.esFaltantePorCpmsEquivalentes(row));
+  }
+
+  private esFaltantePorCpmsEquivalentes(row: DashboardEstatalResumenClave): boolean {
+    const cpmsEquivalentes = Number(row.cpms_equivalentes);
+    return Number.isFinite(cpmsEquivalentes) && cpmsEquivalentes >= 0 && cpmsEquivalentes < 1;
   }
 
   private dateStamp(): string {
