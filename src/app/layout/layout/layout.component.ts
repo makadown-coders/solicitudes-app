@@ -95,22 +95,7 @@ export class LayoutComponent implements OnInit, OnChanges {
    * Recarga las existencias en los almacenes
    */
   refrescarInventario() {
-    // EN PRUEBA PILOTO (INVENTARIO - SAS / SACIA / SIAN )
-    const timestampFallback = localStorage.getItem('ultimaVezRefrescadoInventario');
-    const ahora = Date.now();
-    const medioDiaMs = 12 * 60 * 60 * 1000;
-
-    if (!timestampFallback ||
-      ahora - Number(timestampFallback) > medioDiaMs
-    ) {
-      // this.inventarioService.refrescarDatosInventario();
-      this.inventarioService.refrescarExistenciaAlmacenesDesdePostgres();
-      // Esperar 12 horas para refrescar inventario despues de la última vez
-      localStorage.setItem('ultimaVezRefrescadoInventario', ahora.toString());
-    } else {
-      const inventario = this.storageSolicitudService.getInventarioFromLocalStorage();
-      this.inventarioService.emitirInventario(inventario);
-    }
+    this.inventarioService.initExistenciaAlmacenes();
   }
 
   /** Sólo inventario; CPM pasa a CpmService (legacy mientras tanto) */
