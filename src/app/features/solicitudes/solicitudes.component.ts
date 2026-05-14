@@ -177,6 +177,34 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   cpmsDeCluesActual: CPMS[] = [];
   canEditCpms = false;
 
+  get capturaStats() {
+    const stats = {
+      total: this.articulosSolicitados.length,
+      cpmCero: 0,
+      menorCpm: 0,
+      igualCpm: 0,
+      mayorCpm: 0
+    };
+
+    for (const art of this.articulosSolicitados) {
+      const clave = this.normClave(art.clave);
+      const cpmCapturado = Number(art.cpm ?? 0) || 0;
+      const cpm = cpmCapturado > 0 ? cpmCapturado : (this.cpmIndex.get(clave) ?? 0);
+      const cantidad = Number(art.cantidad ?? 0) || 0;
+
+      if (cpm <= 0) {
+        stats.cpmCero++;
+        continue;
+      }
+
+      if (cantidad < cpm) stats.menorCpm++;
+      if (cantidad === cpm) stats.igualCpm++;
+      if (cantidad > cpm) stats.mayorCpm++;
+    }
+
+    return stats;
+  }
+
   async ngOnInit() {
     if (this.router.url === '/solicitudv1') {
       this.modoStandalone = true;

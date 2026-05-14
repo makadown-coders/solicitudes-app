@@ -1,5 +1,17 @@
 <!-- src/app/features/tabla-articulos/tabla-articulos.component.html -->
-<h2 class="font-bold text-green-800">Artículos capturados</h2>
+<div class="flex flex-col items-end justify-between gap-1 sm:flex-row">
+  <h2 class="font-bold text-green-800">Artículos capturados</h2>
+
+  @if (capturaStats) {
+    <div class="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-600 sm:justify-end">
+      <span>Total Solicitadas: <strong class="text-gray-800">{{ capturaStats.total }}</strong></span>
+      <span>sol. CPM 0: <strong class="text-gray-800">{{ capturaStats.cpmCero }}</strong></span>
+      <span>sol. &lt; CPM: <strong class="text-gray-800">{{ capturaStats.menorCpm }}</strong></span>
+      <span>sol. = CPM: <strong class="text-gray-800">{{ capturaStats.igualCpm }}</strong></span>
+      <span>sol. &gt; CPM: <strong class="text-gray-800">{{ capturaStats.mayorCpm }}</strong></span>
+    </div>
+  }
+</div>
 
 <table class="mt-2 w-full text-sm">
   <thead class="text-white bg-green-600">

@@ -1,6 +1,6 @@
 <div class="space-y-4">
       <section class="p-4 bg-white rounded-2xl border-gray-100 shadow-sm border">
-        <div class="flex flex-col gap-3 mb-3 sm:flex-row items-center justify-between">
+        <div class="flex flex-col items-center justify-between gap-3 mb-3 sm:flex-row">
           <div class="text-sm text-gray-500">
             <p class="font-semibold text-gray-800">Priorización por clave</p>
             <p>Órdenes emitidas en los últimos {{ windowDays() }} días</p>
@@ -8,7 +8,7 @@
 
           <button
             type="button"
-            class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-700 rounded-xl hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+            class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-700 rounded-xl cursor-pointer hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
             [disabled]="loadingTop() || exportingExcel()"
             (click)="exportarExcel()">
             <lucide-angular [img]="DownloadIcon" class="h-4 w-4"></lucide-angular>
@@ -80,7 +80,7 @@
             <div class="h-24 bg-gray-100 rounded-2xl"></div>
           </div>
         } @else if (resumen(); as row) {
-          <div class="flex flex-col gap-2 mb-4 lg:flex-row items-start justify-between">
+          <div class="flex flex-col items-start justify-between gap-2 mb-4 lg:flex-row">
             <div>
               <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">Clave seleccionada</p>
               <h2 class="text-xl font-bold text-gray-900">{{ row.clave_cnis }}</h2>

@@ -155,7 +155,7 @@
         <div class="mt-4 p-2 border rounded" [hidden]="!articulosSolicitados || articulosSolicitados.length===0">
           <app-tabla-articulos [articulosSolicitados]="articulosSolicitados" [modoEdicionIndex]="modoEdicionIndex"
             [cluesimbActual]="cluesimbActual" [cantidadTemporal]="cantidadTemporal"
-            (cantidadTemporalChange)="cambiarCantidad($event)" [inventario]="inventarioDisponible"
+            [capturaStats]="capturaStats" (cantidadTemporalChange)="cambiarCantidad($event)" [inventario]="inventarioDisponible"
             (confirmar)="confirmarEdicion($event)" (cancelar)="cancelarEdicion()" (editar)="activarEdicion($event)"
             (eliminar)="eliminarArticuloConConfirmacion($event)"
             (CPMsPorUnidadActualizado)="actualizarCPMsPorUnidad($event)" />

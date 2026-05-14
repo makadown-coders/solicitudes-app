@@ -185,7 +185,6 @@ export class InventarioService {
   refrescarDatosInventario(skipLoader = true): void {
     //    console.info('🔄 InventarioService.refrescarDatosInventario() - Actualizando datos de inventario temporal...');
     this.cargandoInventarioBehaviorSubject.next(true);
-    // purgar todo el localStorage
     this.limpiarInventario();
     const url = this.apiUrl;
     this.http.get<InventarioFull>(url, skipLoader ? {
@@ -196,16 +195,8 @@ export class InventarioService {
         const inventario = this.obtenerInventarioDeBase64(response.inventario);
         const inventarioNormalizado = this.normalizarClavesInventario(inventario);
 
-        // 1) Serializar y comprimir
-        const raw = JSON.stringify(inventarioNormalizado);
-        const compressed = LZString.compress(raw);
-        try {
-          localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO, compressed);
-          localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO_TS, new Date().toISOString());
-        } catch {
-          console.warn('😱 InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
-        }
-        // 2) Emitir
+        // Mantener el inventario de almacenes solo en memoria. Si el usuario hace F5,
+        // la app volvera a solicitar /api/inventario.
         //        console.info('✅ InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
         this.inventarioSubject.next(inventarioNormalizado as Inventario[]);
         this.cargandoInventarioBehaviorSubject.next(false);
@@ -590,27 +581,10 @@ export class InventarioService {
   }
 
   initExistenciaAlmacenes(): void {
-    const comprimido = localStorage.getItem(StorageVariables.SOLICITUD_INVENTARIO);
-    let inventario: Inventario[] = [];
+    const inventarioEnMemoria = this.inventarioSubject.getValue();
+    if (inventarioEnMemoria.length > 0) return;
 
-    if (comprimido) {
-      const raw = LZString.decompress(comprimido);
-      inventario = raw ? JSON.parse(raw) : [];
-    }
-
-    // Emitimos lo que haya en cache, aunque esté viejo, para que la UI pinte algo rápido
-    this.inventarioSubject.next(inventario);
-
-    const tsStr = localStorage.getItem(StorageVariables.SOLICITUD_INVENTARIO_TS);
-    const expired = this.isExpired(tsStr);
-    const noData = !inventario || inventario.length === 0;
-
-    if (noData || expired) {
-      // ⏱ sin datos o expirado → pegamos al nuevo endpoint PG
-      this.refrescarExistenciaAlmacenesDesdePostgres();
-    } else {
-      // console.info('✅ initInventario(): usando inventario de almacenes desde localStorage (vigente)');
-    }
+    this.refrescarDatosInventario();
   }
 
   /**
