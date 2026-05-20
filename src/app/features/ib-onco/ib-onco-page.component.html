@@ -5,7 +5,7 @@
         <div class="flex flex-col items-center justify-between gap-3 lg:flex-row">
           <div>
             <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">Modulo de seguimiento oncologico</p>
-            <h1 class="text-2xl font-bold text-gray-900">IB-ONCO</h1>
+            <img src="/ib-onco-logo.png" alt="IB-ONCO" class="h-12 w-auto">
             <p class="text-sm text-gray-600">
               Selecciona un hospital para revisar sus claves oncologicas y abrir el analisis por orden.
             </p>
@@ -116,21 +116,21 @@
             <table class="min-w-[1180px] w-full text-sm">
               <thead class="text-xs text-gray-600 bg-gray-50">
                 <tr>
-                  <th class="px-3 py-3 text-left">Clave CNIS</th>
-                  <th class="px-3 py-3 text-left">Descripcion</th>
-                  <th class="px-3 py-3 text-right">Existencias</th>
-                  <th class="px-3 py-3 text-right">CPM</th>
+                  <th class="px-3 py-3 text-left cursor-pointer" (click)="sortAbastoBy('clave_cnis')">Clave CNIS{{ abastoSortIndicator('clave_cnis') }}</th>
+                  <th class="px-3 py-3 text-left cursor-pointer" (click)="sortAbastoBy('descripcion')">Descripcion{{ abastoSortIndicator('descripcion') }}</th>
+                  <th class="px-3 py-3 text-right cursor-pointer" (click)="sortAbastoBy('cpm')">CPM{{ abastoSortIndicator('cpm') }}</th>
+                  <th class="px-3 py-3 text-right cursor-pointer" (click)="sortAbastoBy('existencias')">Existencias{{ abastoSortIndicator('existencias') }}</th>
                  <!--  <th class="px-3 py-3 text-right">CPM x 3</th>
                   <th class="px-3 py-3 text-right">CPMs equivalentes</th> -->
                  <!--  <th class="px-3 py-3 text-center">Estado abasto</th>
                   <th class="px-3 py-3 text-right">Citas pendientes</th> -->
-                  <th class="px-3 py-3 text-right">Piezas pendientes</th>
-                  <th class="px-3 py-3 text-center">Sobreabasto</th>
-                  <th class="px-3 py-3 text-center">Faltantes</th>
+                  <th class="px-3 py-3 text-right cursor-pointer" (click)="sortAbastoBy('piezas_pendientes')">Piezas pendientes{{ abastoSortIndicator('piezas_pendientes') }}</th>
+                  <th class="px-3 py-3 text-center cursor-pointer" (click)="sortAbastoBy('sobreabasto')">Sobreabasto{{ abastoSortIndicator('sobreabasto') }}</th>
+                  <th class="px-3 py-3 text-center cursor-pointer" (click)="sortAbastoBy('faltantes')">Faltantes{{ abastoSortIndicator('faltantes') }}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100">
-                @for (row of abasto().rows; track trackAbasto(row)) {
+                @for (row of sortedAbastoRows(); track trackAbasto(row)) {
                   <tr class="hover:bg-emerald-50/50">
                     <td class="px-3 py-3 font-semibold text-gray-900">{{ row.clave_cnis }}</td>
                     <td class="px-3 py-3 text-gray-600">
@@ -138,8 +138,8 @@
                         {{ row.descripcion || '-' }}
                       </span>
                     </td>
-                    <td class="px-3 py-3 text-right">{{ row.existencias | number:'1.0-0' }}</td>
                     <td class="px-3 py-3 text-right">{{ row.cpm | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.existencias | number:'1.0-0' }}</td>
                     <!-- <td class="px-3 py-3 text-right">{{ row.cpm_x_3 | number:'1.0-0' }}</td>
                     <td class="px-3 py-3 text-right">{{ row.cpms_eq | number:'1.1-1' }}</td> -->
                    <!--  <td class="px-3 py-3 text-center">
@@ -264,7 +264,7 @@
               Sin datos
             </div>
           } @else {
-            <ng-container *ngTemplateOutlet="ordenesTable; context: { rows: modalAnalisisRows() }"></ng-container>
+            <ng-container *ngTemplateOutlet="ordenesTable; context: { rows: sortedModalAnalisisRows() }"></ng-container>
           }
         }
       </div>
@@ -278,13 +278,14 @@
       <thead class="text-xs text-gray-600 bg-gray-50">
         <tr>
           <!-- <th class="px-3 py-3 text-center">Sel.</th> -->
-          <th class="px-3 py-3 text-left">Orden de suministro</th>
-          <th class="px-3 py-3 text-left">Proveedor</th>
-          <th class="px-3 py-3 text-left">Tipo entrega</th>
-          <th class="px-3 py-3 text-right">Piezas emitidas</th>
+          <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('orden_de_suministro')">Orden de suministro{{ citasSortIndicator('orden_de_suministro') }}</th>
+          <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('proveedor')">Proveedor{{ citasSortIndicator('proveedor') }}</th>
+          <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('tipo_de_entrega')">Tipo entrega{{ citasSortIndicator('tipo_de_entrega') }}</th>
+          <th class="px-3 py-3 text-right cursor-pointer" (click)="sortCitasBy('no_de_piezas_emitidas')">Piezas emitidas{{ citasSortIndicator('no_de_piezas_emitidas') }}</th>
+          <th class="px-3 py-3 text-right cursor-pointer" (click)="sortCitasBy('nombre_de_unidad')">Destino{{ citasSortIndicator('nombre_de_unidad') }}</th>
           <!-- <th class="px-3 py-3 text-right">Piezas recibidas</th> -->
-          <th class="px-3 py-3 text-left">Fecha limite</th>
-          <th class="px-3 py-3 text-left">Estatus</th>
+          <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('fecha_limite_de_entrega')">Fecha limite{{ citasSortIndicator('fecha_limite_de_entrega') }}</th>
+          <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('estatus')">Estatus{{ citasSortIndicator('estatus') }}</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
@@ -301,6 +302,7 @@
             <td class="px-3 py-3 text-gray-700">{{ cita.proveedor || '-' }}</td>
             <td class="px-3 py-3 text-gray-700">{{ cita.tipo_de_entrega || '-' }}</td>
             <td class="px-3 py-3 text-right">{{ cita.no_de_piezas_emitidas | number:'1.0-0' }}</td>
+            <td class="px-3 py-3 text-right">{{ cita.nombre_de_unidad || '-' }}</td>
             <!-- <td class="px-3 py-3 text-right">{{ cita.pzas_recibidas_por_la_entidad | number:'1.0-0' }}</td> -->
             <td class="px-3 py-3 text-gray-700">{{ cita.fecha_limite_de_entrega | date:'dd/MM/yyyy' }}</td>
             <td class="px-3 py-3 text-gray-700">{{ cita.estatus || '-' }}</td>
