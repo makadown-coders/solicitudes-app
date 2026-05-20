@@ -18,6 +18,15 @@ interface IbOncoKpi {
   value: number;
 }
 
+type SortDirection = 'asc' | 'desc';
+type AbastoSortKey = 'clave_cnis' | 'descripcion' | 'cpm' | 'existencias' | 'piezas_pendientes' | 'sobreabasto' | 'faltantes';
+type CitaSortKey = 'orden_de_suministro' | 'proveedor' | 'tipo_de_entrega' | 'no_de_piezas_emitidas' | 'nombre_de_unidad' | 'fecha_limite_de_entrega' | 'estatus';
+
+interface SortState<T extends string> {
+  key: T;
+  direction: SortDirection;
+}
+
 @Component({
   selector: 'app-ib-onco-page',
   standalone: true,
@@ -50,6 +59,8 @@ export class IbOncoPageComponent {
   selectedRow = signal<IbOncoAbastoCpmRow | null>(null);
   selectedAnalysisType = signal<'sobreabasto' | 'faltantes'>('faltantes');
   checkedCitas = signal<number[]>([]);
+  abastoSort = signal<SortState<AbastoSortKey> | null>({ key: 'clave_cnis', direction: 'asc' });
+  citasSort = signal<SortState<CitaSortKey> | null>(null);
 
   unidadSeleccionada = computed(() =>
     this.unidades().find(unidad => unidad.cluesimb === this.cluesimb()) ?? null
@@ -80,6 +91,14 @@ export class IbOncoPageComponent {
   modalAnalisisRows = computed(() => {
     const row = this.selectedRow();
     return row ? this.modalCitas() : [];
+  });
+
+  sortedAbastoRows = computed(() => {
+    return this.sortRows(this.abasto().rows, this.abastoSort(), (row, key) => this.abastoSortValue(row, key));
+  });
+
+  sortedModalAnalisisRows = computed(() => {
+    return this.sortRows(this.modalAnalisisRows(), this.citasSort(), (row, key) => this.citaSortValue(row, key));
   });
 
   constructor() {
@@ -219,6 +238,22 @@ export class IbOncoPageComponent {
     return row.estado_abasto === 'posible sobre abasto';
   }
 
+  sortAbastoBy(key: AbastoSortKey): void {
+    this.abastoSort.update(current => this.nextSortState(current, key));
+  }
+
+  sortCitasBy(key: CitaSortKey): void {
+    this.citasSort.update(current => this.nextSortState(current, key));
+  }
+
+  abastoSortIndicator(key: AbastoSortKey): string {
+    return this.sortIndicator(this.abastoSort(), key);
+  }
+
+  citasSortIndicator(key: CitaSortKey): string {
+    return this.sortIndicator(this.citasSort(), key);
+  }
+
   trackAbasto(row: IbOncoAbastoCpmRow): string {
     return `${row.cluesimb}-${row.clave_cnis}`;
   }
@@ -239,8 +274,7 @@ export class IbOncoPageComponent {
         page: 1,
         limit: 1000,
       }));
-      // ordenar por clave_cnis para facilitar la busqueda de claves en el modal de citas pendientes
-      this.abasto.set(response.rows ? { ...response, rows: response.rows.sort((a, b) => a.clave_cnis.localeCompare(b.clave_cnis)) } : this.emptyPage<IbOncoAbastoCpmRow>(1000));
+      this.abasto.set(response.rows ? { ...response, rows: [...response.rows] } : this.emptyPage<IbOncoAbastoCpmRow>(1000));
     } catch {
       this.error.set('No se pudieron cargar las claves del hospital seleccionado.');
       this.abasto.set(this.emptyPage<IbOncoAbastoCpmRow>(1000));
@@ -324,6 +358,7 @@ export class IbOncoPageComponent {
       'c.grupo_terapeutico': cita.grupo_terapeutico ?? '',
       'c.precio_unitario': cita.precio_unitario ?? 0,
       'c.no_de_piezas_emitidas': cita.no_de_piezas_emitidas ?? 0,
+      'c.nombre_de_unidad': cita.nombre_de_unidad ?? '',
       'c.fecha_emision': this.formatDateForExcel(cita.fecha_emision),
       'c.fecha_limite_de_entrega': this.formatDateForExcel(cita.fecha_limite_de_entrega),
       checkbox: '',
@@ -357,5 +392,55 @@ export class IbOncoPageComponent {
 
   private sum(rows: IbOncoResumenUnidad[], key: keyof IbOncoResumenUnidad): number {
     return rows.reduce((total, row) => total + Number(row[key] ?? 0), 0);
+  }
+
+  private nextSortState<T extends string>(current: SortState<T> | null, key: T): SortState<T> {
+    if (current?.key !== key) {
+      return { key, direction: 'asc' };
+    }
+
+    return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+  }
+
+  private sortIndicator<T extends string>(state: SortState<T> | null, key: T): string {
+    if (state?.key !== key) return '';
+    return state.direction === 'asc' ? ' ^' : ' v';
+  }
+
+  private sortRows<T, K extends string>(
+    rows: T[],
+    state: SortState<K> | null,
+    valueSelector: (row: T, key: K) => string | number | boolean | null | undefined
+  ): T[] {
+    if (!state) return rows;
+
+    const direction = state.direction === 'asc' ? 1 : -1;
+    return [...rows].sort((a, b) => this.compareValues(valueSelector(a, state.key), valueSelector(b, state.key)) * direction);
+  }
+
+  private compareValues(a: string | number | boolean | null | undefined, b: string | number | boolean | null | undefined): number {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+
+    if (typeof a === 'number' || typeof b === 'number') {
+      return Number(a) - Number(b);
+    }
+
+    if (typeof a === 'boolean' || typeof b === 'boolean') {
+      return Number(a) - Number(b);
+    }
+
+    return String(a).localeCompare(String(b), 'es', { numeric: true, sensitivity: 'base' });
+  }
+
+  private abastoSortValue(row: IbOncoAbastoCpmRow, key: AbastoSortKey): string | number | boolean | null | undefined {
+    if (key === 'sobreabasto') return row.tiene_citas_pendientes && this.esSobreabasto(row);
+    if (key === 'faltantes') return row.tiene_citas_pendientes && !this.esSobreabasto(row);
+    return row[key];
+  }
+
+  private citaSortValue(row: IbOncoCitaPendiente, key: CitaSortKey): string | number | boolean | null | undefined {
+    return row[key];
   }
 }

@@ -151,8 +151,8 @@
                 <thead class="text-xs text-gray-600 bg-gray-50">
                   <tr>
                     <th class="px-3 py-3 text-left">Clave / descripcion</th>
-                    <th class="px-3 py-3 text-right">Existencia</th>
                     <th class="px-3 py-3 text-right">CPM</th>
+                    <th class="px-3 py-3 text-right">Existencia</th>
                     <th class="px-3 py-3 text-right">CPMs eq.</th>
                     <th class="px-3 py-3 text-right">Órdenes</th>
                     <th class="px-3 py-3 text-right">Piezas pendientes</th>
@@ -167,8 +167,8 @@
                         <p class="font-semibold text-gray-900">{{ item.clave_cnis }}</p>
                         <p class="max-w-xs text-xs text-gray-500 truncate">{{ item.descripcion || '-' }}</p>
                       </td>
-                      <td class="px-3 py-3 text-right">{{ item.existencia_estatal | number:'1.0-0' }}</td>
                       <td class="px-3 py-3 text-right">{{ item.cpm_estatal | number:'1.0-0' }}</td>
+                      <td class="px-3 py-3 text-right">{{ item.existencia_estatal | number:'1.0-0' }}</td>
                       <td class="px-3 py-3 text-right">{{ item.cpms_equivalentes ?? 0 | number:'1.0-2' }}</td>
                       <td class="px-3 py-3 text-right">
                         @if (item.ordenes_pendientes > 0) {
