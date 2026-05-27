@@ -97,9 +97,14 @@ export class IbOncoPageComponent {
 
   kpis = computed<IbOncoKpi[]>(() => {
     const rows = this.resumenVisible();
+    const posiblesFaltantes = this.abasto().rows
+      .filter(row => row.tiene_citas_pendientes && this.esFaltante(row))
+      .length;
+
     return [
       { label: 'Claves onco', value: this.sum(rows, 'claves_onco') },
       { label: 'Posible sobre abasto', value: this.sum(rows, 'claves_posible_sobre_abasto') },
+      { label: 'Posibles faltantes', value: posiblesFaltantes },
       { label: 'Citas pendientes', value: this.sum(rows, 'citas_pendientes') },
       { label: 'Piezas pendientes', value: this.sum(rows, 'piezas_pendientes') },
     ];
