@@ -1,3 +1,4 @@
+// src/app/features/ib-onco/ib-onco-page.component.ts
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -12,6 +13,8 @@ import {
   IbOncoUnidad,
 } from '../../models/ib-onco';
 import { IbOncoService } from '../../services/ib-onco.service';
+import { CitasService } from '../../services/citas.service';
+import { Cita } from '../../models/Cita';
 
 interface IbOncoKpi {
   label: string;
@@ -21,6 +24,14 @@ interface IbOncoKpi {
 type SortDirection = 'asc' | 'desc';
 type AbastoSortKey = 'clave_cnis' | 'descripcion' | 'cpm' | 'existencias' | 'piezas_pendientes' | 'sobreabasto' | 'faltantes';
 type CitaSortKey = 'orden_de_suministro' | 'proveedor' | 'tipo_de_entrega' | 'no_de_piezas_emitidas' | 'nombre_de_unidad' | 'fecha_limite_de_entrega' | 'estatus';
+
+interface IbOncoEstatalRow {
+  clave_cnis: string;
+  descripcion?: string | null;
+  cpm: number;
+  existencias: number;
+  piezas_pendientes: number;
+}
 
 interface SortState<T extends string> {
   key: T;
@@ -36,6 +47,8 @@ interface SortState<T extends string> {
 })
 export class IbOncoPageComponent {
   private ibOncoService = inject(IbOncoService);
+  private citasService = inject(CitasService);
+  private readonly estatalValue = '__ESTATAL__';
 
   readonly SearchIcon = Search;
   readonly XIcon = X;
@@ -44,20 +57,27 @@ export class IbOncoPageComponent {
   loadingInicial = signal(false);
   loadingClaves = signal(false);
   loadingModal = signal(false);
+  loadingOrdenesDetalleEstatal = signal(false);
   exportando = signal(false);
+  exportProgress = signal<string | null>(null);
   error = signal<string | null>(null);
   modalError = signal<string | null>(null);
+  ordenesDetalleEstatalError = signal<string | null>(null);
 
   unidades = signal<IbOncoUnidad[]>([]);
   resumen = signal<IbOncoResumenUnidad[]>([]);
   abasto = signal<IbOncoPaginatedResponse<IbOncoAbastoCpmRow>>(this.emptyPage<IbOncoAbastoCpmRow>(1000));
+  abastoEstatal = signal<IbOncoEstatalRow[]>([]);
+  abastoEstatalDetalle = signal<IbOncoAbastoCpmRow[]>([]);
+  ordenesRecientesDetalleEstatal = signal<Record<string, IbOncoCitaPendiente[]>>({});
   modalCitas = signal<IbOncoCitaPendiente[]>([]);
 
   cluesimb = signal('');
   search = signal('');
   windowDays = signal(120);
   selectedRow = signal<IbOncoAbastoCpmRow | null>(null);
-  selectedAnalysisType = signal<'sobreabasto' | 'faltantes'>('faltantes');
+  selectedEstatalRow = signal<IbOncoEstatalRow | null>(null);
+  selectedAnalysisType = signal<'sobreabasto' | 'faltantes' | 'recientes'>('faltantes');
   checkedCitas = signal<number[]>([]);
   abastoSort = signal<SortState<AbastoSortKey> | null>({ key: 'clave_cnis', direction: 'asc' });
   citasSort = signal<SortState<CitaSortKey> | null>(null);
@@ -66,9 +86,12 @@ export class IbOncoPageComponent {
     this.unidades().find(unidad => unidad.cluesimb === this.cluesimb()) ?? null
   );
 
+  esVistaEstatal = computed(() => this.cluesimb() === this.estatalValue);
+
   resumenVisible = computed(() => {
     const unidad = this.cluesimb();
     if (!unidad) return [];
+    if (this.esVistaEstatal()) return this.resumen();
     return this.resumen().filter(row => row.cluesimb === unidad);
   });
 
@@ -83,6 +106,9 @@ export class IbOncoPageComponent {
   });
 
   modalAnalisisTitulo = computed(() => {
+    if (this.selectedAnalysisType() === 'recientes') {
+      return `Ordenes completadas / pendientes (ultimos ${this.windowDays()} dias)`;
+    }
     return this.selectedAnalysisType() === 'sobreabasto'
       ? 'Analisis sobre abasto'
       : 'Analisis faltantes';
@@ -95,6 +121,17 @@ export class IbOncoPageComponent {
 
   sortedAbastoRows = computed(() => {
     return this.sortRows(this.abasto().rows, this.abastoSort(), (row, key) => this.abastoSortValue(row, key));
+  });
+
+  sortedAbastoEstatalRows = computed(() => {
+    return this.sortRows(this.abastoEstatal(), this.abastoSort(), (row, key) => {
+      if (key === 'sobreabasto' || key === 'faltantes') return null;
+      return row[key];
+    });
+  });
+
+  sortedDetalleEstatalRows = computed(() => {
+    return this.sortRows(this.abastoEstatalDetalle(), this.abastoSort(), (row, key) => this.abastoSortValue(row, key));
   });
 
   sortedModalAnalisisRows = computed(() => {
@@ -128,22 +165,26 @@ export class IbOncoPageComponent {
     this.cluesimb.set(value);
     this.search.set('');
     this.abasto.set(this.emptyPage<IbOncoAbastoCpmRow>(1000));
+    this.abastoEstatal.set([]);
+    this.abastoEstatalDetalle.set([]);
+    this.ordenesRecientesDetalleEstatal.set({});
+    this.selectedEstatalRow.set(null);
     this.cerrarModal();
 
     if (!value) return;
-    await this.cargarClavesHospital();
+    await this.cargarClaves();
   }
 
   async onSearchChange(value: string): Promise<void> {
     this.search.set(value);
     if (!this.cluesimb()) return;
-    await this.cargarClavesHospital();
+    await this.cargarClaves();
   }
 
   async refrescar(): Promise<void> {
     await this.cargarResumen();
     if (this.cluesimb()) {
-      await this.cargarClavesHospital();
+      await this.cargarClaves();
     }
   }
 
@@ -151,16 +192,24 @@ export class IbOncoPageComponent {
     if (this.exportando()) return;
 
     this.exportando.set(true);
+    this.exportProgress.set(this.esVistaEstatal() ? 'Preparando exportacion estatal...' : 'Preparando exportacion...');
     this.error.set(null);
 
     try {
+      if (this.esVistaEstatal()) {
+        await this.exportarExcelEstatal();
+        return;
+      }
+
       const abastoRows = await this.fetchAllAbasto();
       const sobreabastoRows: Record<string, string | number | null>[] = [];
       const faltantesRows: Record<string, string | number | null>[] = [];
 
       const rowsConCitas = abastoRows.filter(row => row.tiene_citas_pendientes);
 
-      for (const row of rowsConCitas) {
+      for (let index = 0; index < rowsConCitas.length; index++) {
+        const row = rowsConCitas[index];
+        this.exportProgress.set(`Cargando ordenes ${index + 1}/${rowsConCitas.length}...`);
         const citas = await this.fetchAllCitas(row);
         const target = this.esSobreabasto(row) ? sobreabastoRows : faltantesRows;
         target.push(...citas.map(cita => this.toExcelRow(row, cita)));
@@ -176,6 +225,7 @@ export class IbOncoPageComponent {
       this.error.set('No se pudo generar el Excel IB-ONCO.');
     } finally {
       this.exportando.set(false);
+      this.exportProgress.set(null);
     }
   }
 
@@ -203,6 +253,65 @@ export class IbOncoPageComponent {
     } finally {
       this.loadingModal.set(false);
     }
+  }
+
+  async abrirOrdenesRecientes(row: IbOncoAbastoCpmRow): Promise<void> {
+    if (!this.esSinAlerta(row)) return;
+
+    this.selectedRow.set(row);
+    this.selectedAnalysisType.set('recientes');
+    this.modalCitas.set([]);
+    this.checkedCitas.set([]);
+    this.modalError.set(null);
+    this.loadingModal.set(true);
+
+    const precargadas = this.ordenesRecientesDetalleEstatal()[this.trackAbasto(row)];
+    if (precargadas) {
+      this.modalCitas.set(precargadas);
+      this.loadingModal.set(false);
+      return;
+    }
+
+    try {
+      const response = await firstValueFrom(this.citasService.getCitasPorClaveXClave({
+        clave: row.clave_cnis,
+        windowDays: this.windowDays(),
+        incluyeNoRecibidas: true,
+        limit: 200,
+      }));
+
+      const rows = (response.rows ?? [])
+        .filter((cita: Cita) => this.esOrdenDelHospital(cita, row))
+        .filter((cita: Cita) => this.esOrdenRecienteOPendiente(cita))
+        .sort((a: Cita, b: Cita) => this.fechaOrden(b) - this.fechaOrden(a))
+        .slice(0, 10)
+        .map((cita: Cita, index: number) => this.mapCitaToOrden(cita, row, index));
+
+      this.modalCitas.set(rows);
+    } catch {
+      this.modalError.set('No se pudieron cargar las ordenes completadas o pendientes recientes.');
+    } finally {
+      this.loadingModal.set(false);
+    }
+  }
+
+  abrirDetalleEstatal(row: IbOncoEstatalRow): void {
+    const detalle = this.abasto().rows.filter(item => item.clave_cnis === row.clave_cnis);
+    this.selectedEstatalRow.set(row);
+    this.abastoEstatalDetalle.set(detalle);
+    this.ordenesRecientesDetalleEstatal.set({});
+    this.ordenesDetalleEstatalError.set(null);
+    this.cerrarModal();
+    void this.cargarOrdenesDetalleEstatal(row, detalle);
+  }
+
+  cerrarDetalleEstatal(): void {
+    this.selectedEstatalRow.set(null);
+    this.abastoEstatalDetalle.set([]);
+    this.ordenesRecientesDetalleEstatal.set({});
+    this.ordenesDetalleEstatalError.set(null);
+    this.loadingOrdenesDetalleEstatal.set(false);
+    this.cerrarModal();
   }
 
   cerrarModal(): void {
@@ -235,7 +344,27 @@ export class IbOncoPageComponent {
   }
 
   esSobreabasto(row: IbOncoAbastoCpmRow): boolean {
-    return row.estado_abasto === 'posible sobre abasto';
+    return this.normalizarEstado(row).includes('sobre');
+  }
+
+  esSinAlerta(row: IbOncoAbastoCpmRow): boolean {
+    const estado = this.normalizarEstado(row);
+    const estadoExplicito = estado === 'sin alerta' || estado === 'sin alertas' || estado === 'sin_alerta' || estado === 'normal';
+    return estadoExplicito || (!row.tiene_citas_pendientes && !this.esSobreabasto(row));
+  }
+
+  esFaltante(row: IbOncoAbastoCpmRow): boolean {
+    return !this.esSobreabasto(row) && !this.esSinAlerta(row);
+  }
+
+  estadoLabel(row: IbOncoAbastoCpmRow): string {
+    if (this.esSobreabasto(row)) return 'Posible sobreabasto';
+    if (this.esSinAlerta(row)) return 'Sin alerta';
+    return 'Posibles faltantes';
+  }
+
+  tieneOrdenesRecientesPrecargadas(row: IbOncoAbastoCpmRow): boolean {
+    return (this.ordenesRecientesDetalleEstatal()[this.trackAbasto(row)]?.length ?? 0) > 0;
   }
 
   sortAbastoBy(key: AbastoSortKey): void {
@@ -262,22 +391,39 @@ export class IbOncoPageComponent {
     return `${row.id}-${row.orden_de_suministro ?? ''}`;
   }
 
-  private async cargarClavesHospital(): Promise<void> {
+  private async cargarClaves(): Promise<void> {
     this.loadingClaves.set(true);
     this.error.set(null);
 
     try {
       const response = await firstValueFrom(this.ibOncoService.obtenerAbastoCpm({
-        cluesimb: this.cluesimb(),
+        cluesimb: this.esVistaEstatal() ? undefined : this.cluesimb(),
         search: this.search().trim(),
         window_days: this.windowDays(),
         page: 1,
         limit: 1000,
       }));
-      this.abasto.set(response.rows ? { ...response, rows: [...response.rows] } : this.emptyPage<IbOncoAbastoCpmRow>(1000));
+      const rows = [...(response.rows ?? [])];
+      if (this.esVistaEstatal()) {
+        for (let page = 2; page <= (response.totalPages || 1); page++) {
+          const next = await firstValueFrom(this.ibOncoService.obtenerAbastoCpm({
+            search: this.search().trim(),
+            window_days: this.windowDays(),
+            page,
+            limit: 1000,
+          }));
+          rows.push(...(next.rows ?? []));
+        }
+      }
+
+      this.abasto.set({ ...response, rows });
+      this.abastoEstatal.set(this.esVistaEstatal() ? this.agruparAbastoEstatal(this.abasto().rows) : []);
     } catch {
-      this.error.set('No se pudieron cargar las claves del hospital seleccionado.');
+      this.error.set(this.esVistaEstatal()
+        ? 'No se pudieron cargar las claves estatales.'
+        : 'No se pudieron cargar las claves del hospital seleccionado.');
       this.abasto.set(this.emptyPage<IbOncoAbastoCpmRow>(1000));
+      this.abastoEstatal.set([]);
     } finally {
       this.loadingClaves.set(false);
     }
@@ -336,6 +482,90 @@ export class IbOncoPageComponent {
     return rows;
   }
 
+  private async exportarExcelEstatal(): Promise<void> {
+    this.exportProgress.set('Cargando claves estatales...');
+    const abastoRows = await this.fetchAllAbasto();
+    const resumenEstatal = this.agruparAbastoEstatal(abastoRows);
+    const rowsConCitas = abastoRows.filter(row => row.tiene_citas_pendientes);
+    const rowsSinAlerta = abastoRows.filter(row => this.esSinAlerta(row));
+    const sobreabastoRows: Record<string, string | number | null>[] = [];
+    const faltantesRows: Record<string, string | number | null>[] = [];
+    const recientesRows: Record<string, string | number | null>[] = [];
+    const notas: Record<string, string | number>[] = [
+      { Nota: 'Exportacion estatal completa de IB-ONCO.', Valor: '' },
+      { Nota: 'Ventana de ordenes recientes en dias.', Valor: this.windowDays() },
+      { Nota: 'Generado.', Valor: new Date().toISOString() },
+    ];
+    let erroresOrdenesPendientes = 0;
+    let erroresOrdenesRecientes = 0;
+
+    for (let index = 0; index < rowsConCitas.length; index++) {
+      const row = rowsConCitas[index];
+      this.exportProgress.set(`Cargando ordenes con analisis ${index + 1}/${rowsConCitas.length}...`);
+      try {
+        const citas = await this.fetchAllCitas(row);
+        const target = this.esSobreabasto(row) ? sobreabastoRows : faltantesRows;
+        target.push(...citas.map(cita => this.toExcelRow(row, cita)));
+      } catch {
+        erroresOrdenesPendientes++;
+      }
+    }
+
+    const rowsSinAlertaPorClave = new Map<string, IbOncoAbastoCpmRow[]>();
+    rowsSinAlerta.forEach(row => {
+      const rows = rowsSinAlertaPorClave.get(row.clave_cnis) ?? [];
+      rows.push(row);
+      rowsSinAlertaPorClave.set(row.clave_cnis, rows);
+    });
+
+    const clavesSinAlerta = [...rowsSinAlertaPorClave.keys()];
+    for (let index = 0; index < clavesSinAlerta.length; index++) {
+      const clave = clavesSinAlerta[index];
+      this.exportProgress.set(`Cargando ordenes recientes ${index + 1}/${clavesSinAlerta.length}...`);
+
+      try {
+        const response = await firstValueFrom(this.citasService.getCitasPorClaveXClave({
+          clave,
+          windowDays: this.windowDays(),
+          incluyeNoRecibidas: true,
+          limit: 1000,
+        }));
+        const citas = (response.rows ?? []) as Cita[];
+        const rowsClave = rowsSinAlertaPorClave.get(clave) ?? [];
+
+        rowsClave.forEach(row => {
+          const ordenes = citas
+            .filter(cita => this.esOrdenDelHospital(cita, row))
+            .filter(cita => this.esOrdenRecienteOPendiente(cita))
+            .sort((a, b) => this.fechaOrden(b) - this.fechaOrden(a))
+            .map((cita, citaIndex) => this.mapCitaToOrden(cita, row, citaIndex));
+
+          recientesRows.push(...ordenes.map(cita => this.toExcelRow(row, cita)));
+        });
+      } catch {
+        erroresOrdenesRecientes++;
+      }
+    }
+
+    if (erroresOrdenesPendientes > 0) {
+      notas.push({ Nota: 'Claves/unidades con error al cargar ordenes de sobreabasto/faltantes.', Valor: erroresOrdenesPendientes });
+    }
+    if (erroresOrdenesRecientes > 0) {
+      notas.push({ Nota: 'Claves con error al cargar ordenes recientes.', Valor: erroresOrdenesRecientes });
+    }
+
+    this.exportProgress.set('Armando archivo Excel estatal...');
+    const workbook = XLSX.utils.book_new();
+    this.appendJsonSheet(workbook, 'Resumen estatal', resumenEstatal.map(row => this.toExcelEstatalResumenRow(row)));
+    this.appendJsonSheet(workbook, 'Detalle hospitales', abastoRows.map(row => this.toExcelDetalleHospitalRow(row)));
+    this.appendJsonSheet(workbook, 'Sobreabasto ordenes', sobreabastoRows);
+    this.appendJsonSheet(workbook, 'Faltantes ordenes', faltantesRows);
+    this.appendJsonSheet(workbook, 'Ordenes recientes', recientesRows);
+    this.appendJsonSheet(workbook, 'Notas', notas);
+
+    XLSX.writeFile(workbook, `IB_ONCO_ESTATAL_${this.timestamp()}.xlsx`, { bookType: 'xlsx' });
+  }
+
   private toExcelRow(row: IbOncoAbastoCpmRow, cita: IbOncoCitaPendiente): Record<string, string | number | null> {
     return {
       'CLUES IMB': row.cluesimb,
@@ -358,11 +588,53 @@ export class IbOncoPageComponent {
       'c.grupo_terapeutico': cita.grupo_terapeutico ?? '',
       'c.precio_unitario': cita.precio_unitario ?? 0,
       'c.no_de_piezas_emitidas': cita.no_de_piezas_emitidas ?? 0,
+      'c.pzas_recibidas_por_la_entidad': cita.pzas_recibidas_por_la_entidad ?? 0,
       'c.nombre_de_unidad': cita.nombre_de_unidad ?? '',
       'c.fecha_emision': this.formatDateForExcel(cita.fecha_emision),
       'c.fecha_limite_de_entrega': this.formatDateForExcel(cita.fecha_limite_de_entrega),
+      'c.fecha_recepcion_almacen': this.formatDateForExcel(cita.fecha_recepcion_almacen),
+      'c.estatus': cita.estatus ?? '',
       checkbox: '',
     };
+  }
+
+  private toExcelEstatalResumenRow(row: IbOncoEstatalRow): Record<string, string | number | null> {
+    return {
+      'Clave CNIS': row.clave_cnis,
+      Descripcion: row.descripcion ?? '',
+      CPM: row.cpm,
+      Existencias: row.existencias,
+      'Piezas pendientes': row.piezas_pendientes,
+    };
+  }
+
+  private toExcelDetalleHospitalRow(row: IbOncoAbastoCpmRow): Record<string, string | number | null> {
+    return {
+      'CLUES IMB': row.cluesimb,
+      'Unidad Medica': row.nombre_de_unidad ?? '',
+      'Clave CNIS': row.clave_cnis,
+      Descripcion: row.descripcion ?? '',
+      CPM: row.cpm,
+      'CPM x 3': row.cpm_x_3,
+      Existencias: row.existencias,
+      'CPMs eq.': row.cpms_eq,
+      'Estado abasto': this.estadoLabel(row),
+      'Citas pendientes': row.citas_pendientes,
+      'Piezas pendientes': row.piezas_pendientes,
+      'Tiene citas pendientes': row.tiene_citas_pendientes ? 'SI' : 'NO',
+    };
+  }
+
+  private appendJsonSheet(
+    workbook: XLSX.WorkBook,
+    name: string,
+    rows: Record<string, string | number | null>[]
+  ): void {
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.json_to_sheet(rows.length ? rows : [{ Mensaje: 'Sin datos' }]),
+      name
+    );
   }
 
   private formatDateForExcel(value?: string | null): string {
@@ -436,11 +708,165 @@ export class IbOncoPageComponent {
 
   private abastoSortValue(row: IbOncoAbastoCpmRow, key: AbastoSortKey): string | number | boolean | null | undefined {
     if (key === 'sobreabasto') return row.tiene_citas_pendientes && this.esSobreabasto(row);
-    if (key === 'faltantes') return row.tiene_citas_pendientes && !this.esSobreabasto(row);
+    if (key === 'faltantes') return row.tiene_citas_pendientes && this.esFaltante(row);
     return row[key];
   }
 
   private citaSortValue(row: IbOncoCitaPendiente, key: CitaSortKey): string | number | boolean | null | undefined {
     return row[key];
+  }
+
+  private agruparAbastoEstatal(rows: IbOncoAbastoCpmRow[]): IbOncoEstatalRow[] {
+    const byClave = new Map<string, IbOncoEstatalRow>();
+
+    rows.forEach(row => {
+      const current = byClave.get(row.clave_cnis);
+      if (current) {
+        current.cpm += Number(row.cpm ?? 0);
+        current.existencias += Number(row.existencias ?? 0);
+        current.piezas_pendientes += Number(row.piezas_pendientes ?? 0);
+        return;
+      }
+
+      byClave.set(row.clave_cnis, {
+        clave_cnis: row.clave_cnis,
+        descripcion: row.descripcion,
+        cpm: Number(row.cpm ?? 0),
+        existencias: Number(row.existencias ?? 0),
+        piezas_pendientes: Number(row.piezas_pendientes ?? 0),
+      });
+    });
+
+    return [...byClave.values()];
+  }
+
+  private async cargarOrdenesDetalleEstatal(
+    selectedRow: IbOncoEstatalRow,
+    detalle: IbOncoAbastoCpmRow[]
+  ): Promise<void> {
+    const rowsSinAlerta = detalle.filter(row => this.esSinAlerta(row));
+    if (rowsSinAlerta.length === 0) return;
+
+    this.loadingOrdenesDetalleEstatal.set(true);
+    this.ordenesDetalleEstatalError.set(null);
+
+    try {
+      const response = await firstValueFrom(this.citasService.getCitasPorClaveXClave({
+        clave: selectedRow.clave_cnis,
+        windowDays: this.windowDays(),
+        incluyeNoRecibidas: true,
+        limit: Math.max(200, rowsSinAlerta.length * 10),
+      }));
+
+      if (this.selectedEstatalRow()?.clave_cnis !== selectedRow.clave_cnis) return;
+
+      const citas = (response.rows ?? []) as Cita[];
+      const ordenesByHospital: Record<string, IbOncoCitaPendiente[]> = {};
+
+      rowsSinAlerta.forEach(row => {
+        ordenesByHospital[this.trackAbasto(row)] = citas
+          .filter(cita => this.esOrdenDelHospital(cita, row))
+          .filter(cita => this.esOrdenRecienteOPendiente(cita))
+          .sort((a, b) => this.fechaOrden(b) - this.fechaOrden(a))
+          .slice(0, 10)
+          .map((cita, index) => this.mapCitaToOrden(cita, row, index));
+      });
+
+      this.ordenesRecientesDetalleEstatal.set(ordenesByHospital);
+    } catch {
+      if (this.selectedEstatalRow()?.clave_cnis === selectedRow.clave_cnis) {
+        this.ordenesDetalleEstatalError.set('No se pudieron comprobar las ordenes recientes.');
+      }
+    } finally {
+      if (this.selectedEstatalRow()?.clave_cnis === selectedRow.clave_cnis) {
+        this.loadingOrdenesDetalleEstatal.set(false);
+      }
+    }
+  }
+
+  private normalizarEstado(row: IbOncoAbastoCpmRow): string {
+    return String(row.estado_abasto ?? '').trim().toLocaleLowerCase();
+  }
+
+  private esOrdenDelHospital(cita: Cita, row: IbOncoAbastoCpmRow): boolean {
+    const clues = String(cita.clues_destino ?? '').trim().toLocaleUpperCase();
+    if (clues && clues === row.cluesimb.trim().toLocaleUpperCase()) return true;
+
+    return String(cita.unidad ?? '').trim().toLocaleUpperCase()
+      === String(row.nombre_de_unidad ?? '').trim().toLocaleUpperCase();
+  }
+
+  private esOrdenRecienteOPendiente(cita: Cita): boolean {
+    const today = new Date();
+    const past = new Date(today);
+    const future = new Date(today);
+    past.setDate(today.getDate() - this.windowDays());
+    future.setDate(today.getDate() + this.windowDays());
+
+    const recepcion = this.fechaRecepcion(cita);
+    const emision = this.toDate(cita.fecha_emision);
+    const limite = this.toDate(cita.fecha_limite_de_entrega);
+    const emitidas = Number(cita.no_de_piezas_emitidas ?? 0);
+    const recibidas = Number(cita.pzas_recibidas_por_la_entidad ?? 0);
+    const pendiente = !recepcion || recibidas < emitidas;
+
+    if (recepcion && recepcion >= past && recepcion <= today) return true;
+    if (!pendiente) return false;
+    return (!!emision && emision >= past && emision <= today)
+      || (!!limite && limite >= past && limite <= future);
+  }
+
+  private fechaOrden(cita: Cita): number {
+    return this.fechaRecepcion(cita)?.getTime()
+      ?? this.toDate(cita.fecha_emision)?.getTime()
+      ?? this.toDate(cita.fecha_limite_de_entrega)?.getTime()
+      ?? 0;
+  }
+
+  private mapCitaToOrden(cita: Cita, row: IbOncoAbastoCpmRow, index: number): IbOncoCitaPendiente {
+    return {
+      id: -(index + 1),
+      ejercicio: cita.ejercicio,
+      orden_de_suministro: cita.orden_de_suministro,
+      institucion: cita.institucion,
+      contrato: cita.contrato,
+      cluesimb: row.cluesimb,
+      nombre_de_unidad: row.nombre_de_unidad ?? cita.unidad,
+      clave_cnis: row.clave_cnis,
+      descripcion: row.descripcion,
+      proveedor: cita.proveedor,
+      compra: cita.compra,
+      tipo_de_entrega: cita.tipo_de_entrega,
+      fte_fmto: cita.fte_fmto,
+      tipo_de_red: cita.tipo_de_red,
+      tipo_de_insumo: cita.tipo_de_insumo,
+      grupo_terapeutico: cita.grupo_terapeutico,
+      precio_unitario: cita.precio_unitario,
+      no_de_piezas_emitidas: Number(cita.no_de_piezas_emitidas ?? 0),
+      pzas_recibidas_por_la_entidad: Number(cita.pzas_recibidas_por_la_entidad ?? 0),
+      fecha_emision: this.toIsoString(cita.fecha_emision),
+      fecha_limite_de_entrega: this.toIsoString(cita.fecha_limite_de_entrega),
+      fecha_recepcion_almacen: this.toIsoString(this.fechaRecepcion(cita)),
+      fecha_de_cita: this.toIsoString(cita.fecha_de_cita),
+      estatus: cita.estatus,
+      folio_abasto: cita.folio_abasto,
+    };
+  }
+
+  private toDate(value: string | Date | null | undefined): Date | null {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private fechaRecepcion(cita: Cita): Date | null {
+    return this.toDate(cita.fecha_recepcion_almacen)
+      ?? this.toDate(cita.fecha_recepcion_lista?.[0])
+      ?? this.toDate(cita.fecha_recepcion_min);
+  }
+
+  private toIsoString(value: string | Date | null | undefined): string | null {
+    const date = this.toDate(value);
+    return date?.toISOString() ?? null;
   }
 }

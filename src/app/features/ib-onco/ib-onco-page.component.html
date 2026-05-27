@@ -13,12 +13,12 @@
 
           <div class="flex flex-wrap items-center gap-2">
             <button
-              type="button" [title]="'Exporta todo en excel'"
+              type="button" [title]="esVistaEstatal() ? 'Exporta todo el detalle estatal en excel' : 'Exporta todo en excel'"
               (click)="exportarExcel()"
               [disabled]="exportando() || loadingInicial()"
               class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-700 rounded-xl border-emerald-700 cursor-pointer border hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">
               <lucide-angular [img]="DownloadIcon" class="w-4 h-4"></lucide-angular>
-              {{ exportando() ? 'Exportando todo...' : 'Exportar Excel' }}
+              {{ exportando() ? 'Exportando...' : (esVistaEstatal() ? 'Exportar Excel (Estatal)' : 'Exportar Excel') }}
             </button>
             <button
               type="button"
@@ -43,6 +43,18 @@
         </div>
       }
 
+      @if (esVistaEstatal()) {
+        <div class="px-4 py-3 text-sm text-amber-900 bg-amber-50 border-amber-100 rounded-2xl border">
+          La exportacion estatal genera un archivo con resumen, detalle por hospital y ordenes asociadas. Puede tardar varios minutos segun el volumen de claves.
+        </div>
+      }
+
+      @if (exportProgress(); as message) {
+        <div class="px-4 py-3 text-sm text-emerald-800 bg-emerald-50 border-emerald-100 rounded-2xl border">
+          {{ message }}
+        </div>
+      }
+
       <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         @for (item of kpis(); track item.label) {
           <div class="p-4 bg-white border-gray-100 rounded-2xl shadow-sm border">
@@ -61,6 +73,7 @@
               [ngModel]="cluesimb()"
               (ngModelChange)="onUnidadChange($event)">
               <option value="">Selecciona un hospital</option>
+              <option value="__ESTATAL__">ESTATAL</option>
               @for (unidad of unidades(); track unidad.cluesimb) {
                 <option [value]="unidad.cluesimb">
                   {{ unidad.nombre_de_unidad || unidad.cluesimb }}
@@ -86,10 +99,10 @@
       <section class="p-4 bg-white border-gray-100 rounded-2xl shadow-sm border">
         <div class="flex flex-col items-center justify-between gap-2 mb-4 lg:flex-row">
           <div>
-            <h2 class="text-lg font-semibold text-gray-900">Claves del hospital</h2>
+            <h2 class="text-lg font-semibold text-gray-900">{{ esVistaEstatal() ? 'Claves estatales' : 'Claves del hospital' }}</h2>
             <p class="text-sm text-gray-500">
               @if (cluesimb()) {
-                {{ abasto().rows.length | number }} clave(s) cargadas para la unidad seleccionada
+                {{ (esVistaEstatal() ? abastoEstatal().length : abasto().rows.length) | number }} clave(s) cargadas para {{ esVistaEstatal() ? 'ESTATAL' : 'la unidad seleccionada' }}
               } @else {
                 Selecciona un hospital para cargar sus claves.
               }
@@ -107,9 +120,47 @@
             <div class="h-10 bg-gray-100 rounded-xl"></div>
             <div class="h-10 bg-gray-100 rounded-xl"></div>
           </div>
-        } @else if (abasto().rows.length === 0) {
+        } @else if ((esVistaEstatal() ? abastoEstatal().length : abasto().rows.length) === 0) {
           <div class="px-4 py-10 text-center text-gray-500 border-dashed border-gray-200 rounded-2xl border">
-            No hay claves para el hospital con los filtros actuales.
+            No hay claves para {{ esVistaEstatal() ? 'ESTATAL' : 'el hospital' }} con los filtros actuales.
+          </div>
+        } @else if (esVistaEstatal()) {
+          <div class="overflow-x-auto border-gray-100 rounded-2xl border">
+            <table class="min-w-[850px] w-full text-sm">
+              <thead class="text-xs text-gray-600 bg-gray-50">
+                <tr>
+                  <th class="px-3 py-3 text-left cursor-pointer" (click)="sortAbastoBy('clave_cnis')">Clave CNIS{{ abastoSortIndicator('clave_cnis') }}</th>
+                  <th class="px-3 py-3 text-left cursor-pointer" (click)="sortAbastoBy('descripcion')">Descripcion{{ abastoSortIndicator('descripcion') }}</th>
+                  <th class="px-3 py-3 text-right cursor-pointer" (click)="sortAbastoBy('cpm')">CPM{{ abastoSortIndicator('cpm') }}</th>
+                  <th class="px-3 py-3 text-right cursor-pointer" (click)="sortAbastoBy('existencias')">Existencias{{ abastoSortIndicator('existencias') }}</th>
+                  <th class="px-3 py-3 text-right cursor-pointer" (click)="sortAbastoBy('piezas_pendientes')">Piezas pendientes{{ abastoSortIndicator('piezas_pendientes') }}</th>
+                  <th class="px-3 py-3 text-center">Ver detalle</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                @for (row of sortedAbastoEstatalRows(); track row.clave_cnis) {
+                  <tr class="cursor-pointer hover:bg-emerald-50/50" (click)="abrirDetalleEstatal(row)">
+                    <td class="px-3 py-3 font-semibold text-gray-900">{{ row.clave_cnis }}</td>
+                    <td class="px-3 py-3 text-gray-600">
+                      <span class="block max-w-md truncate" [title]="row.descripcion || ''">{{ row.descripcion || '-' }}</span>
+                    </td>
+                    <td class="px-3 py-3 text-right">{{ row.cpm | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.existencias | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.piezas_pendientes | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-center">
+                      <button
+                        type="button"
+                        class="inline-flex items-center justify-center w-9 h-9 text-emerald-700 bg-emerald-50 border-emerald-100 rounded-xl border hover:bg-emerald-100"
+                        title="Ver detalle por hospital"
+                        aria-label="Ver detalle por hospital"
+                        (click)="$event.stopPropagation(); abrirDetalleEstatal(row)">
+                        <lucide-angular [img]="SearchIcon" class="w-4 h-4"></lucide-angular>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
         } @else {
           <div class="overflow-x-auto border-gray-100 rounded-2xl border">
@@ -164,7 +215,7 @@
                       }
                     </td>
                     <td class="px-3 py-3 text-center">
-                      @if (row.tiene_citas_pendientes && !esSobreabasto(row)) {
+                      @if (row.tiene_citas_pendientes && esFaltante(row)) {
                         <button
                           type="button"
                           class="inline-flex items-center justify-center w-9 h-9 text-emerald-700 bg-emerald-50 border-emerald-100 rounded-xl border hover:bg-emerald-100"
@@ -188,8 +239,85 @@
   </section>
 </div>
 
+@if (selectedEstatalRow(); as estatal) {
+  <div class="z-40 fixed inset-0 flex items-center justify-center p-4 bg-black/40">
+    <div class="overflow-hidden w-full max-w-7xl max-h-[90vh] bg-white rounded-2xl shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="ib-onco-estatal-modal-title">
+      <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-200">
+        <div>
+          <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">Detalle estatal por hospital</p>
+          <h2 id="ib-onco-estatal-modal-title" class="text-lg font-bold text-gray-900">{{ estatal.clave_cnis }}</h2>
+          <p class="text-sm text-gray-500">{{ estatal.descripcion || 'Sin descripcion' }}</p>
+        </div>
+        <button
+          type="button"
+          class="inline-flex items-center justify-center w-9 h-9 text-gray-600 border-gray-200 rounded-xl cursor-pointer border hover:bg-gray-50"
+          aria-label="Cerrar detalle estatal"
+          (click)="cerrarDetalleEstatal()">
+          <lucide-angular [img]="XIcon" class="w-4 h-4"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="overflow-auto p-5 max-h-[72vh]">
+        @if (ordenesDetalleEstatalError(); as message) {
+          <div class="px-4 py-3 mb-4 text-sm text-amber-800 bg-amber-50 border-amber-100 rounded-2xl border">
+            {{ message }}
+          </div>
+        }
+        <div class="overflow-x-auto border-gray-100 rounded-2xl border">
+          <table class="min-w-[1050px] w-full text-sm">
+            <thead class="text-xs text-gray-600 bg-gray-50">
+              <tr>
+                <th class="px-3 py-3 text-left">Hospital</th>
+                <th class="px-3 py-3 text-right">CPM</th>
+                <th class="px-3 py-3 text-right">Existencias</th>
+                <th class="px-3 py-3 text-right">Piezas pendientes</th>
+                <th class="px-3 py-3 text-center">Ordenes que provocarían sobreabasto</th>
+                <th class="px-3 py-3 text-center">Ordenes faltantes</th>
+                <th class="px-3 py-3 text-center">Ordenes recientes</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              @for (row of sortedDetalleEstatalRows(); track trackAbasto(row)) {
+                <tr class="hover:bg-emerald-50/50">
+                  <td class="px-3 py-3 text-gray-700">{{ row.nombre_de_unidad || row.cluesimb }}</td>
+                  <td class="px-3 py-3 text-right">{{ row.cpm | number:'1.0-0' }}</td>
+                  <td class="px-3 py-3 text-right">{{ row.existencias | number:'1.0-0' }}</td>
+                  <td class="px-3 py-3 text-right">{{ row.piezas_pendientes | number:'1.0-0' }}</td>
+                  <td class="px-3 py-3 text-center">
+                    @if (row.tiene_citas_pendientes && esSobreabasto(row)) {
+                      <button type="button" class="px-3 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border-emerald-100 border" (click)="abrirAnalisis(row, 'sobreabasto')">
+                        VerS
+                      </button>
+                    } @else { <span class="text-xs text-gray-400">-</span> }
+                  </td>
+                  <td class="px-3 py-3 text-center">
+                    @if (row.tiene_citas_pendientes && esFaltante(row)) {
+                      <button type="button" class="px-3 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border-emerald-100 cursor-pointer border" (click)="abrirAnalisis(row, 'faltantes')">
+                        VerF
+                      </button>
+                    } @else { <span class="text-xs text-gray-400">-</span> }
+                  </td>
+                  <td class="px-3 py-3 text-center">
+                    @if (esSinAlerta(row) && loadingOrdenesDetalleEstatal()) {
+                      <span class="text-xs text-gray-400">Consultando...</span>
+                    } @else if (esSinAlerta(row) && tieneOrdenesRecientesPrecargadas(row)) {
+                      <button type="button" class="px-3 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border-emerald-100 cursor-pointer border" (click)="abrirOrdenesRecientes(row)">
+                        Ver
+                      </button>
+                    } @else { <span class="text-xs text-gray-400">-</span> }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
 @if (selectedRow(); as row) {
-  <div class="z-50 fixed inset-0 flex items-center justify-center p-4 bg-black/40">
+  <div class="z-[60] fixed inset-0 flex items-center justify-center p-4 bg-black/40">
     <div class="overflow-hidden w-full max-w-6xl max-h-[90vh] bg-white rounded-2xl shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="ib-onco-modal-title">
       <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-200">
         <div class="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)]">
@@ -227,7 +355,7 @@
             <div class="px-3 py-2 bg-slate-50 border-slate-100 rounded-xl border sm:col-span-3">
               <p class="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Estado abasto</p>
               <span class="inline-flex px-2 py-1 mt-1 text-xs font-semibold rounded-full" [ngClass]="estadoClass(row)">
-                {{ row.estado_abasto === 'ok' ? 'Posibles faltantes' : 'Posible sobreabasto' }}
+                {{ estadoLabel(row) }}
               </span>
             </div>
           </div>
@@ -282,9 +410,15 @@
           <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('proveedor')">Proveedor{{ citasSortIndicator('proveedor') }}</th>
           <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('tipo_de_entrega')">Tipo entrega{{ citasSortIndicator('tipo_de_entrega') }}</th>
           <th class="px-3 py-3 text-right cursor-pointer" (click)="sortCitasBy('no_de_piezas_emitidas')">Piezas emitidas{{ citasSortIndicator('no_de_piezas_emitidas') }}</th>
+          <!-- @if (selectedAnalysisType() === 'recientes') {
+            <th class="px-3 py-3 text-right">Piezas recibidas</th>
+          } -->
           <th class="px-3 py-3 text-right cursor-pointer" (click)="sortCitasBy('nombre_de_unidad')">Destino{{ citasSortIndicator('nombre_de_unidad') }}</th>
           <!-- <th class="px-3 py-3 text-right">Piezas recibidas</th> -->
           <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('fecha_limite_de_entrega')">Fecha limite{{ citasSortIndicator('fecha_limite_de_entrega') }}</th>
+          @if (selectedAnalysisType() === 'recientes') {
+            <th class="px-3 py-3 text-left">Fecha rec.</th>
+          }
           <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('estatus')">Estatus{{ citasSortIndicator('estatus') }}</th>
         </tr>
       </thead>
@@ -302,10 +436,18 @@
             <td class="px-3 py-3 text-gray-700">{{ cita.proveedor || '-' }}</td>
             <td class="px-3 py-3 text-gray-700">{{ cita.tipo_de_entrega || '-' }}</td>
             <td class="px-3 py-3 text-right">{{ cita.no_de_piezas_emitidas | number:'1.0-0' }}</td>
+           <!--  @if (selectedAnalysisType() === 'recientes') {
+              <td class="px-3 py-3 text-right">{{ cita.pzas_recibidas_por_la_entidad | number:'1.0-0' }}</td>
+            } -->
             <td class="px-3 py-3 text-right">{{ cita.nombre_de_unidad || '-' }}</td>
             <!-- <td class="px-3 py-3 text-right">{{ cita.pzas_recibidas_por_la_entidad | number:'1.0-0' }}</td> -->
             <td class="px-3 py-3 text-gray-700">{{ cita.fecha_limite_de_entrega | date:'dd/MM/yyyy' }}</td>
-            <td class="px-3 py-3 text-gray-700">{{ cita.estatus || '-' }}</td>
+            @if (selectedAnalysisType() === 'recientes') {
+              <td class="px-3 py-3 text-gray-700">{{ (cita.fecha_recepcion_almacen | date:'dd/MM/yyyy') || '-' }}</td>
+            }
+            <!-- si cita.estatus === 'Incompleto' mostrar cita.pzas_recibidas_por_la_entidad -->
+            <td class="px-3 py-3 text-gray-700">
+{{ (cita.estatus === 'Incompleto' ? 'Incompleto (recibidas: ' + cita.pzas_recibidas_por_la_entidad + ')' : cita.estatus) || '-' }}</td>
           </tr>
         }
       </tbody>
