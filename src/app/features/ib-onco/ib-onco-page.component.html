@@ -99,7 +99,7 @@
       <section class="p-4 bg-white border-gray-100 rounded-2xl shadow-sm border">
         <div class="flex flex-col items-center justify-between gap-2 mb-4 lg:flex-row">
           <div>
-            <h2 class="text-lg font-semibold text-gray-900">{{ esVistaEstatal() ? 'Claves estatales' : 'Claves del hospital' }}</h2>
+            <h2 class="text-lg font-semibold text-gray-900">{{ esVistaEstatal() ? 'Claves en unidades oncologicas' : 'Claves del hospital' }}</h2>
             <p class="text-sm text-gray-500">
               @if (cluesimb()) {
                 {{ (esVistaEstatal() ? abastoEstatal().length : abasto().rows.length) | number }} clave(s) cargadas para {{ esVistaEstatal() ? 'ESTATAL' : 'la unidad seleccionada' }}

@@ -102,7 +102,7 @@ export class IbOncoPageComponent {
       .length;
 
     return [
-      { label: 'Claves onco', value: this.sum(rows, 'claves_onco') },
+      { label: 'Total registros', value: this.sum(rows, 'claves_onco') },
       { label: 'Posible sobre abasto', value: this.sum(rows, 'claves_posible_sobre_abasto') },
       { label: 'Posibles faltantes', value: posiblesFaltantes },
       { label: 'Citas pendientes', value: this.sum(rows, 'citas_pendientes') },
@@ -425,7 +425,7 @@ export class IbOncoPageComponent {
       this.abastoEstatal.set(this.esVistaEstatal() ? this.agruparAbastoEstatal(this.abasto().rows) : []);
     } catch {
       this.error.set(this.esVistaEstatal()
-        ? 'No se pudieron cargar las claves estatales.'
+        ? 'No se pudieron cargar las claves a nivel estado.'
         : 'No se pudieron cargar las claves del hospital seleccionado.');
       this.abasto.set(this.emptyPage<IbOncoAbastoCpmRow>(1000));
       this.abastoEstatal.set([]);
