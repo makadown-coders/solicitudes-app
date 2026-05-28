@@ -379,7 +379,11 @@
                     </span>
                     a <span class="font-semibold">{{ movimiento.hacia.nombre_de_unidad || movimiento.hacia.cluesimb }}</span>
                     <span class="text-emerald-800">
-                      (avance CPM x 3: {{ movimiento.acumuladoDestino | number:'1.0-0' }}/{{ movimiento.faltanteDestino | number:'1.0-0' }})
+                      @if (movimiento.acumuladoPrevioDestino > 0) {
+                        (avance CPM x 3: ({{ movimiento.piezas | number:'1.0-0' }} + ({{ movimiento.acumuladoPrevioDestino | number:'1.0-0' }} + {{ movimiento.existenciaDestino | number:'1.0-0' }}))/{{ movimiento.objetivoDestino | number:'1.0-0' }})
+                      } @else {
+                        (avance CPM x 3: ({{ movimiento.piezas | number:'1.0-0' }} + {{ movimiento.existenciaDestino | number:'1.0-0' }})/{{ movimiento.objetivoDestino | number:'1.0-0' }})
+                      }
                     </span>.
                   </li>
                 }

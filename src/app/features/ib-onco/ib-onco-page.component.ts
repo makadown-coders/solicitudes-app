@@ -53,8 +53,11 @@ interface IbOncoBalanceMovimiento {
   desde: IbOncoBalanceDonador;
   hacia: IbOncoAbastoCpmRow;
   piezas: number;
+  acumuladoPrevioDestino: number;
   acumuladoDestino: number;
   faltanteDestino: number;
+  existenciaDestino: number;
+  objetivoDestino: number;
 }
 
 interface IbOncoBalanceEstatal {
@@ -716,7 +719,12 @@ export class IbOncoPageComponent {
           Origen: almacen.almacen,
           Destino: '',
           Piezas: almacen.piezas,
-          'Avance destino': null,
+          'Existencia destino': null,
+          'Transferencia previa destino': null,
+          'Transferencia acumulada destino': null,
+          'Avance CPM x 3 texto': '',
+          'Cobertura CPM x 3 destino': null,
+          'Objetivo CPM x 3 destino': null,
           'Faltante destino': null,
           Nota: balance.cpmTotal <= 0
             ? 'Insumo sin CPM estatal configurado; existencia en almacen solo informativa.'
@@ -739,7 +747,12 @@ export class IbOncoPageComponent {
         Origen: movimiento.desde.nombre,
         Destino: movimiento.hacia.nombre_de_unidad || movimiento.hacia.cluesimb,
         Piezas: movimiento.piezas,
-        'Avance destino': movimiento.acumuladoDestino,
+        'Existencia destino': movimiento.existenciaDestino,
+        'Transferencia previa destino': movimiento.acumuladoPrevioDestino,
+        'Transferencia acumulada destino': movimiento.acumuladoDestino,
+        'Avance CPM x 3 texto': this.avanceCpmX3Texto(movimiento),
+        'Cobertura CPM x 3 destino': movimiento.existenciaDestino + movimiento.acumuladoDestino,
+        'Objetivo CPM x 3 destino': movimiento.objetivoDestino,
         'Faltante destino': movimiento.faltanteDestino,
         Nota: 'Sugerencia informativa sujeta a validacion operativa, normativa, lote, caducidad, conservacion, documentacion y autorizaciones aplicables.',
         });
@@ -747,6 +760,23 @@ export class IbOncoPageComponent {
     });
 
     return balanceRows;
+  }
+
+  private avanceCpmX3Texto(movimiento: IbOncoBalanceMovimiento): string {
+    const piezas = this.formatInteger(movimiento.piezas);
+    const existencia = this.formatInteger(movimiento.existenciaDestino);
+    const objetivo = this.formatInteger(movimiento.objetivoDestino);
+
+    if (movimiento.acumuladoPrevioDestino > 0) {
+      const previo = this.formatInteger(movimiento.acumuladoPrevioDestino);
+      return `(${piezas} + (${previo} + ${existencia}))/${objetivo}`;
+    }
+
+    return `(${piezas} + ${existencia})/${objetivo}`;
+  }
+
+  private formatInteger(value: number): string {
+    return Math.round(Number(value ?? 0)).toLocaleString('es-MX');
   }
 
   private appendJsonSheet(
@@ -971,8 +1001,11 @@ export class IbOncoPageComponent {
           desde: donador,
           hacia: receptor.row,
           piezas,
+          acumuladoPrevioDestino: (necesidades[receptorIndex] ?? 0) - necesidadesRestantes[receptorIndex],
           acumuladoDestino: (necesidades[receptorIndex] ?? 0) - necesidadesRestantes[receptorIndex] + piezas,
           faltanteDestino: necesidades[receptorIndex] ?? receptor.piezas,
+          existenciaDestino: Number(receptor.row.existencias ?? 0),
+          objetivoDestino: receptor.objetivo,
         });
         disponibles[donadorIndex] -= piezas;
         necesidadesRestantes[receptorIndex] -= piezas;
@@ -990,8 +1023,11 @@ export class IbOncoPageComponent {
           desde: donadores[donadorIndex],
           hacia: receptor.row,
           piezas,
+          acumuladoPrevioDestino: (necesidades[receptorIndex] ?? 0) - restante,
           acumuladoDestino: (necesidades[receptorIndex] ?? 0) - restante + piezas,
           faltanteDestino: necesidades[receptorIndex] ?? receptor.piezas,
+          existenciaDestino: Number(receptor.row.existencias ?? 0),
+          objetivoDestino: receptor.objetivo,
         });
         disponibles[donadorIndex] -= piezas;
         restante -= piezas;
