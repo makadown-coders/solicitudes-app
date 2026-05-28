@@ -13,12 +13,20 @@
 
           <div class="flex flex-wrap items-center gap-2">
             <button
-              type="button" [title]="'Exporta todo en excel'"
+              type="button"
+              title="Acerca de IB-Onco"
+              aria-label="Acerca de IB-Onco"
+              (click)="mostrarAcercaDeIbOnco()"
+              class="inline-flex items-center justify-center w-9 h-9 text-emerald-700 bg-emerald-50 border-emerald-100 rounded-xl cursor-pointer border hover:bg-emerald-100">
+              <lucide-angular [img]="InfoIcon" class="w-4 h-4"></lucide-angular>
+            </button>
+            <button
+              type="button" [title]="esVistaEstatal() ? 'Exporta todo el detalle estatal en excel' : 'Exporta todo en excel'"
               (click)="exportarExcel()"
               [disabled]="exportando() || loadingInicial()"
               class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-700 rounded-xl border-emerald-700 cursor-pointer border hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">
               <lucide-angular [img]="DownloadIcon" class="w-4 h-4"></lucide-angular>
-              {{ exportando() ? 'Exportando todo...' : 'Exportar Excel' }}
+              {{ exportando() ? 'Exportando...' : (esVistaEstatal() ? 'Exportar Excel (Estatal)' : 'Exportar Excel') }}
             </button>
             <button
               type="button"
@@ -43,7 +51,19 @@
         </div>
       }
 
-      <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      @if (esVistaEstatal()) {
+        <div class="px-4 py-3 text-sm text-amber-900 bg-amber-50 border-amber-100 rounded-2xl border">
+          La exportacion estatal genera un archivo con resumen, detalle por hospital y ordenes asociadas. Puede tardar varios minutos segun el volumen de claves.
+        </div>
+      }
+
+      @if (exportProgress(); as message) {
+        <div class="px-4 py-3 text-sm text-emerald-800 bg-emerald-50 border-emerald-100 rounded-2xl border">
+          {{ message }}
+        </div>
+      }
+
+      <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
         @for (item of kpis(); track item.label) {
           <div class="p-4 bg-white border-gray-100 rounded-2xl shadow-sm border">
             <p class="text-xs font-semibold tracking-wide text-gray-500 uppercase">{{ item.label }}</p>
@@ -61,6 +81,7 @@
               [ngModel]="cluesimb()"
               (ngModelChange)="onUnidadChange($event)">
               <option value="">Selecciona un hospital</option>
+              <option value="__ESTATAL__">ESTATAL</option>
               @for (unidad of unidades(); track unidad.cluesimb) {
                 <option [value]="unidad.cluesimb">
                   {{ unidad.nombre_de_unidad || unidad.cluesimb }}
@@ -86,10 +107,10 @@
       <section class="p-4 bg-white border-gray-100 rounded-2xl shadow-sm border">
         <div class="flex flex-col items-center justify-between gap-2 mb-4 lg:flex-row">
           <div>
-            <h2 class="text-lg font-semibold text-gray-900">Claves del hospital</h2>
+            <h2 class="text-lg font-semibold text-gray-900">{{ esVistaEstatal() ? 'Claves en unidades oncologicas' : 'Claves del hospital' }}</h2>
             <p class="text-sm text-gray-500">
               @if (cluesimb()) {
-                {{ abasto().rows.length | number }} clave(s) cargadas para la unidad seleccionada
+                {{ (esVistaEstatal() ? abastoEstatal().length : abasto().rows.length) | number }} clave(s) cargadas para {{ esVistaEstatal() ? 'ESTATAL' : 'la unidad seleccionada' }}
               } @else {
                 Selecciona un hospital para cargar sus claves.
               }
@@ -107,9 +128,47 @@
             <div class="h-10 bg-gray-100 rounded-xl"></div>
             <div class="h-10 bg-gray-100 rounded-xl"></div>
           </div>
-        } @else if (abasto().rows.length === 0) {
+        } @else if ((esVistaEstatal() ? abastoEstatal().length : abasto().rows.length) === 0) {
           <div class="px-4 py-10 text-center text-gray-500 border-dashed border-gray-200 rounded-2xl border">
-            No hay claves para el hospital con los filtros actuales.
+            No hay claves para {{ esVistaEstatal() ? 'ESTATAL' : 'el hospital' }} con los filtros actuales.
+          </div>
+        } @else if (esVistaEstatal()) {
+          <div class="overflow-x-auto border-gray-100 rounded-2xl border">
+            <table class="min-w-[850px] w-full text-sm">
+              <thead class="text-xs text-gray-600 bg-gray-50">
+                <tr>
+                  <th class="px-3 py-3 text-left cursor-pointer" (click)="sortAbastoBy('clave_cnis')">Clave CNIS{{ abastoSortIndicator('clave_cnis') }}</th>
+                  <th class="px-3 py-3 text-left cursor-pointer" (click)="sortAbastoBy('descripcion')">Descripcion{{ abastoSortIndicator('descripcion') }}</th>
+                  <th class="px-3 py-3 text-right cursor-pointer" (click)="sortAbastoBy('cpm')">CPM{{ abastoSortIndicator('cpm') }}</th>
+                  <th class="px-3 py-3 text-right cursor-pointer" (click)="sortAbastoBy('existencias')">Existencias{{ abastoSortIndicator('existencias') }}</th>
+                  <th class="px-3 py-3 text-right cursor-pointer" (click)="sortAbastoBy('piezas_pendientes')">Piezas pendientes{{ abastoSortIndicator('piezas_pendientes') }}</th>
+                  <th class="px-3 py-3 text-center">Ver detalle</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                @for (row of sortedAbastoEstatalRows(); track row.clave_cnis) {
+                  <tr class="cursor-pointer hover:bg-emerald-50/50" (click)="abrirDetalleEstatal(row)">
+                    <td class="px-3 py-3 font-semibold text-gray-900">{{ row.clave_cnis }}</td>
+                    <td class="px-3 py-3 text-gray-600">
+                      <span class="block max-w-md truncate" [title]="row.descripcion || ''">{{ row.descripcion || '-' }}</span>
+                    </td>
+                    <td class="px-3 py-3 text-right">{{ row.cpm | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.existencias | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-right">{{ row.piezas_pendientes | number:'1.0-0' }}</td>
+                    <td class="px-3 py-3 text-center">
+                      <button
+                        type="button"
+                        class="inline-flex items-center justify-center w-9 h-9 text-emerald-700 bg-emerald-50 border-emerald-100 rounded-xl border hover:bg-emerald-100"
+                        title="Ver detalle por hospital"
+                        aria-label="Ver detalle por hospital"
+                        (click)="$event.stopPropagation(); abrirDetalleEstatal(row)">
+                        <lucide-angular [img]="SearchIcon" class="w-4 h-4"></lucide-angular>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
         } @else {
           <div class="overflow-x-auto border-gray-100 rounded-2xl border">
@@ -164,7 +223,7 @@
                       }
                     </td>
                     <td class="px-3 py-3 text-center">
-                      @if (row.tiene_citas_pendientes && !esSobreabasto(row)) {
+                      @if (row.tiene_citas_pendientes && esFaltante(row)) {
                         <button
                           type="button"
                           class="inline-flex items-center justify-center w-9 h-9 text-emerald-700 bg-emerald-50 border-emerald-100 rounded-xl border hover:bg-emerald-100"
@@ -188,10 +247,177 @@
   </section>
 </div>
 
-@if (selectedRow(); as row) {
-  <div class="z-50 fixed inset-0 flex items-center justify-center p-4 bg-black/40">
-    <div class="overflow-hidden w-full max-w-6xl max-h-[90vh] bg-white rounded-2xl shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="ib-onco-modal-title">
+@if (selectedEstatalRow(); as estatal) {
+  <div class="z-40 fixed inset-0 flex items-center justify-center p-4 bg-black/40">
+    <div class="overflow-hidden w-full max-w-7xl max-h-[90vh] bg-white rounded-2xl shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="ib-onco-estatal-modal-title">
       <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-200">
+        <div>
+          <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">Detalle estatal por hospital</p>
+          <h2 id="ib-onco-estatal-modal-title" class="text-lg font-bold text-gray-900">{{ estatal.clave_cnis }}</h2>
+          <p class="text-sm text-gray-500">{{ estatal.descripcion || 'Sin descripcion' }}</p>
+        </div>
+        <button
+          type="button"
+          class="inline-flex items-center justify-center w-9 h-9 text-gray-600 border-gray-200 rounded-xl cursor-pointer border hover:bg-gray-50"
+          aria-label="Cerrar detalle estatal"
+          (click)="cerrarDetalleEstatal()">
+          <lucide-angular [img]="XIcon" class="w-4 h-4"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="overflow-auto p-5 max-h-[72vh]">
+        @if (ordenesDetalleEstatalError(); as message) {
+          <div class="px-4 py-3 mb-4 text-sm text-amber-800 bg-amber-50 border-amber-100 rounded-2xl border">
+            {{ message }}
+          </div>
+        }
+        <div class="overflow-x-auto border-gray-100 rounded-2xl border">
+          <table class="min-w-[1050px] w-full text-sm">
+            <thead class="text-xs text-gray-600 bg-gray-50">
+              <tr>
+                <th class="px-3 py-3 text-left">Hospital</th>
+                <th class="px-3 py-3 text-right">CPM</th>
+                <th class="px-3 py-3 text-right">Existencias</th>
+                <th class="px-3 py-3 text-right">Piezas pendientes</th>
+                <th class="px-3 py-3 text-center">Ordenes que provocarían sobreabasto</th>
+                <th class="px-3 py-3 text-center">Ordenes faltantes</th>
+                <th class="px-3 py-3 text-center">Ordenes recientes</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              @for (row of sortedDetalleEstatalRows(); track trackAbasto(row)) {
+                <tr class="hover:bg-emerald-50/50">
+                  <td class="px-3 py-3 text-gray-700">{{ row.nombre_de_unidad || row.cluesimb }}</td>
+                  <td class="px-3 py-3 text-right">{{ row.cpm | number:'1.0-0' }}</td>
+                  <td class="px-3 py-3 text-right">{{ row.existencias | number:'1.0-0' }}</td>
+                  <td class="px-3 py-3 text-right">{{ row.piezas_pendientes | number:'1.0-0' }}</td>
+                  <td class="px-3 py-3 text-center">
+                    @if (row.tiene_citas_pendientes && esSobreabasto(row)) {
+                      <button type="button" class="px-3 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border-emerald-100 border" (click)="abrirAnalisis(row, 'sobreabasto')">
+                        VerS
+                      </button>
+                    } @else { <span class="text-xs text-gray-400">-</span> }
+                  </td>
+                  <td class="px-3 py-3 text-center">
+                    @if (row.tiene_citas_pendientes && esFaltante(row)) {
+                      <button type="button" class="px-3 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border-emerald-100 cursor-pointer border" (click)="abrirAnalisis(row, 'faltantes')">
+                        VerF
+                      </button>
+                    } @else { <span class="text-xs text-gray-400">-</span> }
+                  </td>
+                  <td class="px-3 py-3 text-center">
+                    @if (esSinAlerta(row) && loadingOrdenesDetalleEstatal()) {
+                      <span class="text-xs text-gray-400">Consultando...</span>
+                    } @else if (esSinAlerta(row) && tieneOrdenesRecientesPrecargadas(row)) {
+                      <button type="button" class="px-3 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border-emerald-100 cursor-pointer border" (click)="abrirOrdenesRecientes(row)">
+                        Ver
+                      </button>
+                    } @else { <span class="text-xs text-gray-400">-</span> }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (balanceDetalleEstatal(); as balance) {
+          <div class="mt-4 px-4 py-3 text-sm text-emerald-900 bg-emerald-50 border-emerald-100 rounded-2xl border">
+            <p class="font-semibold">Sugerencia de rebalanceo</p>
+
+            @if (balance.cpmTotal <= 0) {
+              <p class="mt-1">
+                Este insumo no tiene CPM estatal configurado en las unidades mostradas.
+                @if (balance.almacenesTotal > 0) {
+                  Se detectaron {{ balance.almacenesTotal | number:'1.0-0' }} pieza(s) disponibles en almacenes para revision.
+                }
+              </p>
+            } @else {
+              <p class="mt-1">
+                @if (balance.almacenesTotal > 0) {
+                  Se detectaron {{ balance.almacenesTotal | number:'1.0-0' }} pieza(s) disponibles en almacenes para este insumo.
+                }
+                @if (balance.excedenteTotal > 0) {
+                  Hay {{ balance.excedenteTotal | number:'1.0-0' }} pieza(s) excedentes sobre CPM x 3 en hospitales.
+                }
+                @if (balance.faltanteTotal > 0) {
+                  Las unidades tienen {{ balance.faltanteTotal | number:'1.0-0' }} pieza(s) faltantes para completar CPM x 3.
+                }
+                @if (balance.piezasSugeridas > 0) {
+                  Se sugiere mover {{ balance.piezasSugeridas | number:'1.0-0' }} pieza(s)
+                  @if (balance.piezasSugeridasAlmacenes > 0 && balance.piezasSugeridasHospitales > 0) {
+                    usando primero existencias de almacenes segun su jurisdiccion y despues excedentes hospitalarios
+                  } @else if (balance.piezasSugeridasAlmacenes > 0) {
+                    usando existencias de almacenes segun su jurisdiccion
+                  } @else {
+                    usando excedentes hospitalarios
+                  }
+                  @if ((balance.excedenteTotal + balance.almacenesTotal) < balance.faltanteTotal) {
+                    y distribuyendo sobrantes proporcionalmente entre las unidades con faltante.
+                  } @else {
+                    para cubrir las unidades con faltante.
+                  }
+                } @else if (balance.almacenesTotal > 0) {
+                  No hay faltante contra CPM x 3; solo se informa la existencia en almacenes.
+                }
+              </p>
+            }
+
+            @if (balance.almacenes.length > 0) {
+              <div class="mt-3">
+                <p class="text-xs font-semibold tracking-wide text-emerald-800 uppercase">Existencias en almacenes</p>
+                <ul class="mt-1 space-y-1">
+                  @for (almacen of balance.almacenes; track almacen.almacen) {
+                    <li>
+                      <span class="font-semibold">{{ almacen.almacen }}</span>:
+                      {{ almacen.piezas | number:'1.0-0' }} pieza(s).
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (balance.movimientos.length > 0) {
+              <ul class="mt-3 space-y-1">
+                @for (movimiento of balance.movimientos; track movimiento.desde.nombre + '-' + movimiento.hacia.cluesimb) {
+                  <li>
+                    Transferir <span class="font-semibold">{{ movimiento.piezas | number:'1.0-0' }}</span>
+                    pieza(s) de
+                    <span class="font-semibold">
+                      {{ movimiento.desde.nombre }}{{ movimiento.desde.tipo === 'almacen' ? ' (almacen)' : '' }}
+                    </span>
+                    a <span class="font-semibold">{{ movimiento.hacia.nombre_de_unidad || movimiento.hacia.cluesimb }}</span>
+                    <span class="text-emerald-800">
+                      @if (movimiento.acumuladoPrevioDestino > 0) {
+                        (avance CPM x 3: ({{ movimiento.piezas | number:'1.0-0' }} + ({{ movimiento.acumuladoPrevioDestino | number:'1.0-0' }} + {{ movimiento.existenciaDestino | number:'1.0-0' }}))/{{ movimiento.objetivoDestino | number:'1.0-0' }})
+                      } @else {
+                        (avance CPM x 3: ({{ movimiento.piezas | number:'1.0-0' }} + {{ movimiento.existenciaDestino | number:'1.0-0' }})/{{ movimiento.objetivoDestino | number:'1.0-0' }})
+                      }
+                    </span>.
+                  </li>
+                }
+              </ul>
+            }
+
+            <p class="mt-3 text-xs leading-relaxed text-emerald-800">
+              Esta sugerencia es informativa y de apoyo para el analisis operativo. Antes de realizar cualquier movimiento,
+              la unidad responsable debe validar disponibilidad real, lote, caducidad, condiciones de conservacion,
+              documentacion aplicable y autorizaciones correspondientes conforme a sus procedimientos vigentes.
+            </p>
+          </div>
+        } @else if (loadingAlmacenes()) {
+          <div class="mt-4 px-4 py-3 text-sm text-slate-700 bg-slate-50 border-slate-100 rounded-2xl border">
+            Consultando existencias en almacenes para detectar posibles apoyos.
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+@if (selectedRow(); as row) {
+  <div class="z-[60] overflow-y-auto fixed inset-0 flex items-start justify-center p-3 p-4 bg-black/40 sm:items-center">
+    <div class="overflow-hidden flex flex-col my-3 w-full max-w-6xl max-h-[calc(100dvh-1.5rem)] max-h-[90vh] bg-white rounded-2xl shadow-2xl sm:my-4" role="dialog" aria-modal="true" aria-labelledby="ib-onco-modal-title">
+      <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-200 shrink-0">
         <div class="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)]">
           <div>
             <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">{{ row.cluesimb }}</p>
@@ -227,7 +453,7 @@
             <div class="px-3 py-2 bg-slate-50 border-slate-100 rounded-xl border sm:col-span-3">
               <p class="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Estado abasto</p>
               <span class="inline-flex px-2 py-1 mt-1 text-xs font-semibold rounded-full" [ngClass]="estadoClass(row)">
-                {{ row.estado_abasto === 'ok' ? 'Posibles faltantes' : 'Posible sobreabasto' }}
+                {{ estadoLabel(row) }}
               </span>
             </div>
           </div>
@@ -241,11 +467,11 @@
         </button>
       </div>
 
-      <div class="px-5 py-3 border-b border-gray-200">
+      <div class="px-5 py-3 border-b border-gray-200 shrink-0">
         <h3 class="text-base font-semibold text-gray-900">{{ modalAnalisisTitulo() }}</h3>
       </div>
 
-      <div class="overflow-auto p-5 max-h-[68vh]">
+      <div class="overflow-auto flex-1 p-5 min-h-0">
         @if (modalError(); as message) {
           <div class="px-4 py-3 mb-4 text-sm text-red-700 bg-red-50 border-red-100 rounded-2xl border">
             {{ message }}
@@ -282,9 +508,15 @@
           <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('proveedor')">Proveedor{{ citasSortIndicator('proveedor') }}</th>
           <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('tipo_de_entrega')">Tipo entrega{{ citasSortIndicator('tipo_de_entrega') }}</th>
           <th class="px-3 py-3 text-right cursor-pointer" (click)="sortCitasBy('no_de_piezas_emitidas')">Piezas emitidas{{ citasSortIndicator('no_de_piezas_emitidas') }}</th>
+          <!-- @if (selectedAnalysisType() === 'recientes') {
+            <th class="px-3 py-3 text-right">Piezas recibidas</th>
+          } -->
           <th class="px-3 py-3 text-right cursor-pointer" (click)="sortCitasBy('nombre_de_unidad')">Destino{{ citasSortIndicator('nombre_de_unidad') }}</th>
           <!-- <th class="px-3 py-3 text-right">Piezas recibidas</th> -->
           <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('fecha_limite_de_entrega')">Fecha limite{{ citasSortIndicator('fecha_limite_de_entrega') }}</th>
+          @if (selectedAnalysisType() === 'recientes') {
+            <th class="px-3 py-3 text-left">Fecha rec.</th>
+          }
           <th class="px-3 py-3 text-left cursor-pointer" (click)="sortCitasBy('estatus')">Estatus{{ citasSortIndicator('estatus') }}</th>
         </tr>
       </thead>
@@ -302,13 +534,104 @@
             <td class="px-3 py-3 text-gray-700">{{ cita.proveedor || '-' }}</td>
             <td class="px-3 py-3 text-gray-700">{{ cita.tipo_de_entrega || '-' }}</td>
             <td class="px-3 py-3 text-right">{{ cita.no_de_piezas_emitidas | number:'1.0-0' }}</td>
+           <!--  @if (selectedAnalysisType() === 'recientes') {
+              <td class="px-3 py-3 text-right">{{ cita.pzas_recibidas_por_la_entidad | number:'1.0-0' }}</td>
+            } -->
             <td class="px-3 py-3 text-right">{{ cita.nombre_de_unidad || '-' }}</td>
             <!-- <td class="px-3 py-3 text-right">{{ cita.pzas_recibidas_por_la_entidad | number:'1.0-0' }}</td> -->
             <td class="px-3 py-3 text-gray-700">{{ cita.fecha_limite_de_entrega | date:'dd/MM/yyyy' }}</td>
-            <td class="px-3 py-3 text-gray-700">{{ cita.estatus || '-' }}</td>
+            @if (selectedAnalysisType() === 'recientes') {
+              <td class="px-3 py-3 text-gray-700">{{ (cita.fecha_recepcion_almacen | date:'dd/MM/yyyy') || '-' }}</td>
+            }
+            <!-- si cita.estatus === 'Incompleto' mostrar cita.pzas_recibidas_por_la_entidad -->
+            <td class="px-3 py-3 text-gray-700">
+{{ (cita.estatus === 'Incompleto' ? 'Incompleto (recibidas: ' + cita.pzas_recibidas_por_la_entidad + ')' : cita.estatus) || '-' }}</td>
           </tr>
         }
       </tbody>
     </table>
   </div>
 </ng-template>
+
+@if (acercaDeIbOncoVisible) {
+  <div class="z-[100] overflow-y-auto fixed inset-0 grid place-items-center p-4 bg-black/50 backdrop-blur-sm">
+    @let anio = anioActual();
+    <div role="dialog" aria-modal="true" aria-labelledby="ib-onco-about-title"
+      class="relative my-4 w-[min(92vw,800px)] bg-white rounded-2xl border-gray-200 shadow-xl border">
+      <button
+        type="button"
+        (click)="cerrarAcercaDeIbOnco()"
+        aria-label="Cerrar"
+        class="absolute top-3 right-3 grid place-items-center h-8 w-8 text-gray-500 rounded-full cursor-pointer hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500">x</button>
+
+      <div class="px-6 pt-8 pb-6 sm:px-8">
+        <div class="flex items-center justify-center gap-3 mb-4">
+          <div class="grid place-items-center h-10 w-10 text-emerald-700 bg-emerald-100 rounded-full">
+            <lucide-angular [img]="InfoIcon" class="w-5 h-5"></lucide-angular>
+          </div>
+          <h2 id="ib-onco-about-title" class="text-3xl font-bold text-emerald-800">
+            Acerca de IB-Onco
+          </h2>
+        </div>
+
+        <div class="text-sm text-center text-gray-700 space-y-2">
+          <p>
+            IB-Onco es una herramienta de apoyo operativo para el seguimiento de insumos oncológicos en
+            IMSS-Bienestar Baja California.
+          </p>
+          <p class="font-medium text-gray-800">
+            No sustituye sistemas institucionales oficiales, criterios tecnico-sanitarios, validaciones de farmacia,
+            ni autorizaciones administrativas. Las decisiones deben sustentarse en la información emitida por las areas
+            responsables y en los procedimientos vigentes.
+          </p>
+        </div>
+
+        <div class="mt-4 p-4 text-amber-900 bg-amber-50 rounded-lg border-amber-200 border sm:p-5">
+          <p class="mb-1 font-semibold">Alcance e intención</p>
+          <p class="text-sm">
+            La herramienta busca facilitar la lectura de existencias, CPM, ordenes asociadas y posibles escenarios de
+            rebalanceo. Sus resultados son cortes informativos y orientativos; pueden presentar desfases respecto a
+            inventario real, recepciones, lotes, caducidades, condiciones de conservacion o registros oficiales.
+          </p>
+          <p class="mt-2 text-xs opacity-90">
+            En caso de discrepancia, prevalece la información proporcionada por los sistemas institucionales oficiales,
+            los registros patrimoniales de almacen y la validación del responsable sanitario, farmacia o personal
+            quimico autorizado.
+          </p>
+        </div>
+
+        <div class="mt-6 p-5 bg-emerald-50/60 rounded-xl border-emerald-200 border">
+          <p class="mb-4 text-sm text-gray-700">
+            Desarrollo en conjunto de la Oficina de Proyectos de Salud y la Oficina de Administración de Sistemas de Información de Baja California, con el
+            proposito de apoyar a la Coordinacion Estatal.
+          </p>
+          <dl class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <dt class="font-semibold text-gray-800">Coordinación de proyecto</dt>
+              <dd class="text-gray-700">Q.B.C. Perla Itzel Troyo Vega</dd>
+            </div>
+            <div>
+              <dt class="font-semibold text-gray-800">Acompañamiento de Gestión en Salud</dt>
+              <dd class="text-gray-700">Dr. Octavio Francisco Sicilia Villeda</dd>
+            </div>
+            <div>
+              <dt class="font-semibold text-gray-800">Acompañamiento de Abasto</dt>
+              <dd class="text-gray-700 space-y-1">
+                <span class="block">Lic. Hector Manuel Avelar Morales</span>
+                <span class="block">Lic. Elia Del Carmen Rojas Villalas</span>
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold text-gray-800">Diseño y desarrollo tecnológico</dt>
+              <dd class="text-gray-700">Ing. Mario Arturo Serrano Flores</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="mt-6 text-center text-xs text-gray-500">
+          &copy; {{ anio }} IMSS Bienestar - Baja California
+        </div>
+      </div>
+    </div>
+  </div>
+}

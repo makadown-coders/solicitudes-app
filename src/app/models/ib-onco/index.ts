@@ -31,7 +31,7 @@ export interface IbOncoClave {
   descripcion?: string | null;
 }
 
-export type IbOncoEstadoAbasto = 'ok' | 'posible sobre abasto';
+export type IbOncoEstadoAbasto = 'ok' | 'posible sobre abasto' | 'sin alerta';
 export type IbOncoEstadoAbastoFiltro = '' | IbOncoEstadoAbasto;
 
 export interface IbOncoAbastoCpmRow {
@@ -71,6 +71,7 @@ export interface IbOncoCitaPendiente {
   pzas_recibidas_por_la_entidad: number;
   fecha_emision?: string | null;
   fecha_limite_de_entrega?: string | null;
+  fecha_recepcion_almacen?: string | null;
   fecha_de_cita?: string | null;
   estatus?: string | null;
   folio_abasto?: string | null;
