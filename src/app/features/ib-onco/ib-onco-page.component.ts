@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
-import { LucideAngularModule, Download, Search, X } from 'lucide-angular';
+import { LucideAngularModule, Download, Info, Search, X } from 'lucide-angular';
 import * as XLSX from 'xlsx';
 import {
   IbOncoAbastoCpmRow,
@@ -95,7 +95,9 @@ export class IbOncoPageComponent {
   readonly SearchIcon = Search;
   readonly XIcon = X;
   readonly DownloadIcon = Download;
+  readonly InfoIcon = Info;
 
+  acercaDeIbOncoVisible = false;
   loadingInicial = signal(false);
   loadingClaves = signal(false);
   loadingModal = signal(false);
@@ -397,6 +399,18 @@ export class IbOncoPageComponent {
 
   citaChecked(citaId: number): boolean {
     return this.checkedCitas().includes(citaId);
+  }
+
+  mostrarAcercaDeIbOnco(): void {
+    this.acercaDeIbOncoVisible = true;
+  }
+
+  cerrarAcercaDeIbOnco(): void {
+    this.acercaDeIbOncoVisible = false;
+  }
+
+  anioActual(): number {
+    return new Date().getFullYear();
   }
 
   estadoClass(row: IbOncoAbastoCpmRow): string {
