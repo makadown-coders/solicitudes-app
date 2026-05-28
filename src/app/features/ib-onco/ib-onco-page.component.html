@@ -311,15 +311,101 @@
             </tbody>
           </table>
         </div>
+
+        @if (balanceDetalleEstatal(); as balance) {
+          <div class="mt-4 px-4 py-3 text-sm text-emerald-900 bg-emerald-50 border-emerald-100 rounded-2xl border">
+            <p class="font-semibold">Sugerencia de rebalanceo</p>
+
+            @if (balance.cpmTotal <= 0) {
+              <p class="mt-1">
+                Este insumo no tiene CPM estatal configurado en las unidades mostradas.
+                @if (balance.almacenesTotal > 0) {
+                  Se detectaron {{ balance.almacenesTotal | number:'1.0-0' }} pieza(s) disponibles en almacenes para revision.
+                }
+              </p>
+            } @else {
+              <p class="mt-1">
+                @if (balance.almacenesTotal > 0) {
+                  Se detectaron {{ balance.almacenesTotal | number:'1.0-0' }} pieza(s) disponibles en almacenes para este insumo.
+                }
+                @if (balance.excedenteTotal > 0) {
+                  Hay {{ balance.excedenteTotal | number:'1.0-0' }} pieza(s) excedentes sobre CPM x 3 en hospitales.
+                }
+                @if (balance.faltanteTotal > 0) {
+                  Las unidades tienen {{ balance.faltanteTotal | number:'1.0-0' }} pieza(s) faltantes para completar CPM x 3.
+                }
+                @if (balance.piezasSugeridas > 0) {
+                  Se sugiere mover {{ balance.piezasSugeridas | number:'1.0-0' }} pieza(s)
+                  @if (balance.piezasSugeridasAlmacenes > 0 && balance.piezasSugeridasHospitales > 0) {
+                    usando primero existencias de almacenes segun su jurisdiccion y despues excedentes hospitalarios
+                  } @else if (balance.piezasSugeridasAlmacenes > 0) {
+                    usando existencias de almacenes segun su jurisdiccion
+                  } @else {
+                    usando excedentes hospitalarios
+                  }
+                  @if ((balance.excedenteTotal + balance.almacenesTotal) < balance.faltanteTotal) {
+                    y distribuyendo sobrantes proporcionalmente entre las unidades con faltante.
+                  } @else {
+                    para cubrir las unidades con faltante.
+                  }
+                } @else if (balance.almacenesTotal > 0) {
+                  No hay faltante contra CPM x 3; solo se informa la existencia en almacenes.
+                }
+              </p>
+            }
+
+            @if (balance.almacenes.length > 0) {
+              <div class="mt-3">
+                <p class="text-xs font-semibold tracking-wide text-emerald-800 uppercase">Existencias en almacenes</p>
+                <ul class="mt-1 space-y-1">
+                  @for (almacen of balance.almacenes; track almacen.almacen) {
+                    <li>
+                      <span class="font-semibold">{{ almacen.almacen }}</span>:
+                      {{ almacen.piezas | number:'1.0-0' }} pieza(s).
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (balance.movimientos.length > 0) {
+              <ul class="mt-3 space-y-1">
+                @for (movimiento of balance.movimientos; track movimiento.desde.nombre + '-' + movimiento.hacia.cluesimb) {
+                  <li>
+                    Transferir <span class="font-semibold">{{ movimiento.piezas | number:'1.0-0' }}</span>
+                    pieza(s) de
+                    <span class="font-semibold">
+                      {{ movimiento.desde.nombre }}{{ movimiento.desde.tipo === 'almacen' ? ' (almacen)' : '' }}
+                    </span>
+                    a <span class="font-semibold">{{ movimiento.hacia.nombre_de_unidad || movimiento.hacia.cluesimb }}</span>
+                    <span class="text-emerald-800">
+                      (avance CPM x 3: {{ movimiento.acumuladoDestino | number:'1.0-0' }}/{{ movimiento.faltanteDestino | number:'1.0-0' }})
+                    </span>.
+                  </li>
+                }
+              </ul>
+            }
+
+            <p class="mt-3 text-xs leading-relaxed text-emerald-800">
+              Esta sugerencia es informativa y de apoyo para el analisis operativo. Antes de realizar cualquier movimiento,
+              la unidad responsable debe validar disponibilidad real, lote, caducidad, condiciones de conservacion,
+              documentacion aplicable y autorizaciones correspondientes conforme a sus procedimientos vigentes.
+            </p>
+          </div>
+        } @else if (loadingAlmacenes()) {
+          <div class="mt-4 px-4 py-3 text-sm text-slate-700 bg-slate-50 border-slate-100 rounded-2xl border">
+            Consultando existencias en almacenes para detectar posibles apoyos.
+          </div>
+        }
       </div>
     </div>
   </div>
 }
 
 @if (selectedRow(); as row) {
-  <div class="z-[60] fixed inset-0 flex items-center justify-center p-4 bg-black/40">
-    <div class="overflow-hidden w-full max-w-6xl max-h-[90vh] bg-white rounded-2xl shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="ib-onco-modal-title">
-      <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-200">
+  <div class="z-[60] fixed inset-0 flex items-start justify-center overflow-y-auto p-3 bg-black/40 sm:p-4 sm:items-center">
+    <div class="flex flex-col overflow-hidden my-3 w-full max-w-6xl max-h-[calc(100dvh-1.5rem)] bg-white rounded-2xl shadow-2xl sm:my-4 sm:max-h-[90vh]" role="dialog" aria-modal="true" aria-labelledby="ib-onco-modal-title">
+      <div class="shrink-0 flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-200">
         <div class="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)]">
           <div>
             <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">{{ row.cluesimb }}</p>
@@ -369,11 +455,11 @@
         </button>
       </div>
 
-      <div class="px-5 py-3 border-b border-gray-200">
+      <div class="shrink-0 px-5 py-3 border-b border-gray-200">
         <h3 class="text-base font-semibold text-gray-900">{{ modalAnalisisTitulo() }}</h3>
       </div>
 
-      <div class="overflow-auto p-5 max-h-[68vh]">
+      <div class="min-h-0 flex-1 overflow-auto p-5">
         @if (modalError(); as message) {
           <div class="px-4 py-3 mb-4 text-sm text-red-700 bg-red-50 border-red-100 rounded-2xl border">
             {{ message }}

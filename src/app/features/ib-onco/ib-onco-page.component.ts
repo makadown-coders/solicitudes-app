@@ -2,6 +2,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
 import { LucideAngularModule, Download, Search, X } from 'lucide-angular';
 import * as XLSX from 'xlsx';
@@ -12,8 +13,10 @@ import {
   IbOncoResumenUnidad,
   IbOncoUnidad,
 } from '../../models/ib-onco';
+import { Inventario } from '../../models/Inventario';
 import { IbOncoService } from '../../services/ib-onco.service';
 import { CitasService } from '../../services/citas.service';
+import { InventarioService } from '../../services/inventario.service';
 import { Cita } from '../../models/Cita';
 
 interface IbOncoKpi {
@@ -33,6 +36,41 @@ interface IbOncoEstatalRow {
   piezas_pendientes: number;
 }
 
+interface IbOncoBalanceUnidad {
+  row: IbOncoAbastoCpmRow;
+  objetivo: number;
+  piezas: number;
+}
+
+interface IbOncoBalanceDonador {
+  nombre: string;
+  piezas: number;
+  tipo: 'hospital' | 'almacen';
+  row?: IbOncoAbastoCpmRow;
+}
+
+interface IbOncoBalanceMovimiento {
+  desde: IbOncoBalanceDonador;
+  hacia: IbOncoAbastoCpmRow;
+  piezas: number;
+  acumuladoDestino: number;
+  faltanteDestino: number;
+}
+
+interface IbOncoBalanceEstatal {
+  cpmTotal: number;
+  excedenteTotal: number;
+  faltanteTotal: number;
+  piezasSugeridas: number;
+  almacenesTotal: number;
+  piezasSugeridasAlmacenes: number;
+  piezasSugeridasHospitales: number;
+  almacenes: { almacen: string; piezas: number }[];
+  donadores: IbOncoBalanceDonador[];
+  receptores: IbOncoBalanceUnidad[];
+  movimientos: IbOncoBalanceMovimiento[];
+}
+
 interface SortState<T extends string> {
   key: T;
   direction: SortDirection;
@@ -48,6 +86,7 @@ interface SortState<T extends string> {
 export class IbOncoPageComponent {
   private ibOncoService = inject(IbOncoService);
   private citasService = inject(CitasService);
+  private inventarioService = inject(InventarioService);
   private readonly estatalValue = '__ESTATAL__';
 
   readonly SearchIcon = Search;
@@ -58,6 +97,7 @@ export class IbOncoPageComponent {
   loadingClaves = signal(false);
   loadingModal = signal(false);
   loadingOrdenesDetalleEstatal = signal(false);
+  loadingAlmacenes = signal(false);
   exportando = signal(false);
   exportProgress = signal<string | null>(null);
   error = signal<string | null>(null);
@@ -69,6 +109,7 @@ export class IbOncoPageComponent {
   abasto = signal<IbOncoPaginatedResponse<IbOncoAbastoCpmRow>>(this.emptyPage<IbOncoAbastoCpmRow>(1000));
   abastoEstatal = signal<IbOncoEstatalRow[]>([]);
   abastoEstatalDetalle = signal<IbOncoAbastoCpmRow[]>([]);
+  inventarioAlmacenes = signal<Inventario[]>([]);
   ordenesRecientesDetalleEstatal = signal<Record<string, IbOncoCitaPendiente[]>>({});
   modalCitas = signal<IbOncoCitaPendiente[]>([]);
 
@@ -139,11 +180,21 @@ export class IbOncoPageComponent {
     return this.sortRows(this.abastoEstatalDetalle(), this.abastoSort(), (row, key) => this.abastoSortValue(row, key));
   });
 
+  balanceDetalleEstatal = computed(() => this.calcularBalanceDetalleEstatal(this.abastoEstatalDetalle()));
+
   sortedModalAnalisisRows = computed(() => {
     return this.sortRows(this.modalAnalisisRows(), this.citasSort(), (row, key) => this.citaSortValue(row, key));
   });
 
   constructor() {
+    this.inventarioService.inventario$
+      .pipe(takeUntilDestroyed())
+      .subscribe(rows => this.inventarioAlmacenes.set(rows ?? []));
+
+    this.inventarioService.cargandoInventario$
+      .pipe(takeUntilDestroyed())
+      .subscribe(loading => this.loadingAlmacenes.set(loading));
+
     void this.cargarInicial();
   }
 
@@ -177,6 +228,9 @@ export class IbOncoPageComponent {
     this.cerrarModal();
 
     if (!value) return;
+    if (value === this.estatalValue) {
+      this.inventarioService.initExistenciaAlmacenes();
+    }
     await this.cargarClaves();
   }
 
@@ -496,6 +550,7 @@ export class IbOncoPageComponent {
     const sobreabastoRows: Record<string, string | number | null>[] = [];
     const faltantesRows: Record<string, string | number | null>[] = [];
     const recientesRows: Record<string, string | number | null>[] = [];
+    const balanceRows = this.toExcelBalanceEstatalRows(abastoRows);
     const notas: Record<string, string | number>[] = [
       { Nota: 'Exportacion estatal completa de IB-ONCO.', Valor: '' },
       { Nota: 'Ventana de ordenes recientes en dias.', Valor: this.windowDays() },
@@ -563,6 +618,7 @@ export class IbOncoPageComponent {
     const workbook = XLSX.utils.book_new();
     this.appendJsonSheet(workbook, 'Resumen estatal', resumenEstatal.map(row => this.toExcelEstatalResumenRow(row)));
     this.appendJsonSheet(workbook, 'Detalle hospitales', abastoRows.map(row => this.toExcelDetalleHospitalRow(row)));
+    this.appendJsonSheet(workbook, 'Balance sugerido', balanceRows);
     this.appendJsonSheet(workbook, 'Sobreabasto ordenes', sobreabastoRows);
     this.appendJsonSheet(workbook, 'Faltantes ordenes', faltantesRows);
     this.appendJsonSheet(workbook, 'Ordenes recientes', recientesRows);
@@ -628,6 +684,69 @@ export class IbOncoPageComponent {
       'Piezas pendientes': row.piezas_pendientes,
       'Tiene citas pendientes': row.tiene_citas_pendientes ? 'SI' : 'NO',
     };
+  }
+
+  private toExcelBalanceEstatalRows(abastoRows: IbOncoAbastoCpmRow[]): Record<string, string | number | null>[] {
+    const byClave = new Map<string, IbOncoAbastoCpmRow[]>();
+
+    abastoRows.forEach(row => {
+      const rows = byClave.get(row.clave_cnis) ?? [];
+      rows.push(row);
+      byClave.set(row.clave_cnis, rows);
+    });
+
+    const balanceRows: Record<string, string | number | null>[] = [];
+
+    [...byClave.values()].forEach(rows => {
+      const balance = this.calcularBalanceDetalleEstatal(rows);
+      if (!balance) return;
+
+      const claveRow = rows[0];
+      if (balance.movimientos.length === 0) {
+        balance.almacenes.forEach(almacen => {
+          balanceRows.push({
+          'Clave CNIS': claveRow.clave_cnis,
+          Descripcion: claveRow.descripcion ?? '',
+          'CPM estatal': balance.cpmTotal,
+          'Faltante CPM x 3': balance.faltanteTotal,
+          'Existencia almacenes': balance.almacenesTotal,
+          'Excedente hospitales': balance.excedenteTotal,
+          'Piezas sugeridas': balance.piezasSugeridas,
+          'Origen tipo': 'ALMACEN',
+          Origen: almacen.almacen,
+          Destino: '',
+          Piezas: almacen.piezas,
+          'Avance destino': null,
+          'Faltante destino': null,
+          Nota: balance.cpmTotal <= 0
+            ? 'Insumo sin CPM estatal configurado; existencia en almacen solo informativa.'
+            : 'Existencia en almacen sin movimiento sugerido.',
+          });
+        });
+        return;
+      }
+
+      balance.movimientos.forEach(movimiento => {
+        balanceRows.push({
+        'Clave CNIS': claveRow.clave_cnis,
+        Descripcion: claveRow.descripcion ?? '',
+        'CPM estatal': balance.cpmTotal,
+        'Faltante CPM x 3': balance.faltanteTotal,
+        'Existencia almacenes': balance.almacenesTotal,
+        'Excedente hospitales': balance.excedenteTotal,
+        'Piezas sugeridas': balance.piezasSugeridas,
+        'Origen tipo': movimiento.desde.tipo === 'almacen' ? 'ALMACEN' : 'HOSPITAL',
+        Origen: movimiento.desde.nombre,
+        Destino: movimiento.hacia.nombre_de_unidad || movimiento.hacia.cluesimb,
+        Piezas: movimiento.piezas,
+        'Avance destino': movimiento.acumuladoDestino,
+        'Faltante destino': movimiento.faltanteDestino,
+        Nota: 'Sugerencia informativa sujeta a validacion operativa, normativa, lote, caducidad, conservacion, documentacion y autorizaciones aplicables.',
+        });
+      });
+    });
+
+    return balanceRows;
   }
 
   private appendJsonSheet(
@@ -715,6 +834,218 @@ export class IbOncoPageComponent {
     if (key === 'sobreabasto') return row.tiene_citas_pendientes && this.esSobreabasto(row);
     if (key === 'faltantes') return row.tiene_citas_pendientes && this.esFaltante(row);
     return row[key];
+  }
+
+  private calcularBalanceDetalleEstatal(rows: IbOncoAbastoCpmRow[]): IbOncoBalanceEstatal | null {
+    const cpmTotal = rows.reduce((total, row) => total + Number(row.cpm ?? 0), 0);
+    const donadoresHospital = rows
+      .map(row => {
+        const objetivo = this.objetivoAbasto(row);
+        return {
+          nombre: row.nombre_de_unidad || row.cluesimb,
+          piezas: Math.max(0, Number(row.existencias ?? 0) - objetivo),
+          tipo: 'hospital' as const,
+          row,
+        };
+      })
+      .filter(item => item.piezas > 0)
+      .sort((a, b) => b.piezas - a.piezas);
+
+    const almacenes = this.obtenerExistenciasAlmacenDetalleEstatal(rows);
+    const donadoresAlmacen = almacenes
+      .map(item => ({
+        nombre: item.almacen,
+        piezas: item.piezas,
+        tipo: 'almacen' as const,
+      }))
+      .filter(item => item.piezas > 0)
+      .sort((a, b) => b.piezas - a.piezas);
+
+    const donadores = [...donadoresAlmacen, ...donadoresHospital];
+
+    const receptores = rows
+      .map(row => {
+        const objetivo = this.objetivoAbasto(row);
+        return {
+          row,
+          objetivo,
+          piezas: Math.max(0, objetivo - Number(row.existencias ?? 0)),
+        };
+      })
+      .filter(item => item.piezas > 0)
+      .sort((a, b) => b.piezas - a.piezas);
+
+    const excedenteTotal = donadoresHospital.reduce((total, item) => total + item.piezas, 0);
+    const almacenesTotal = donadoresAlmacen.reduce((total, item) => total + item.piezas, 0);
+    const disponibleTotal = excedenteTotal + almacenesTotal;
+    const faltanteTotal = receptores.reduce((total, item) => total + item.piezas, 0);
+    const piezasSugeridas = Math.min(disponibleTotal, faltanteTotal);
+
+    if (piezasSugeridas <= 0 && almacenesTotal <= 0) return null;
+
+    const necesidades = piezasSugeridas > 0
+      ? this.distribuirNecesidades(receptores, piezasSugeridas, faltanteTotal)
+      : [];
+    const movimientos = necesidades.length > 0
+      ? this.asignarMovimientos(donadores, receptores, necesidades)
+      : [];
+    const piezasSugeridasAlmacenes = movimientos
+      .filter(movimiento => movimiento.desde.tipo === 'almacen')
+      .reduce((total, movimiento) => total + movimiento.piezas, 0);
+    const piezasSugeridasHospitales = movimientos
+      .filter(movimiento => movimiento.desde.tipo === 'hospital')
+      .reduce((total, movimiento) => total + movimiento.piezas, 0);
+
+    return {
+      cpmTotal,
+      excedenteTotal,
+      faltanteTotal,
+      piezasSugeridas,
+      almacenesTotal,
+      piezasSugeridasAlmacenes,
+      piezasSugeridasHospitales,
+      almacenes,
+      donadores,
+      receptores,
+      movimientos,
+    };
+  }
+
+  private objetivoAbasto(row: IbOncoAbastoCpmRow): number {
+    return Math.max(0, Math.ceil(Number(row.cpm_x_3 ?? Number(row.cpm ?? 0) * 3)));
+  }
+
+  private distribuirNecesidades(
+    receptores: IbOncoBalanceUnidad[],
+    piezasDisponibles: number,
+    faltanteTotal: number
+  ): number[] {
+    if (piezasDisponibles >= faltanteTotal) {
+      return receptores.map(item => item.piezas);
+    }
+
+    const asignaciones = receptores.map((item, index) => {
+      const proporcion = (item.piezas / faltanteTotal) * piezasDisponibles;
+      return {
+        index,
+        piezasBase: Math.floor(proporcion),
+        residuo: proporcion - Math.floor(proporcion),
+      };
+    });
+
+    let restantes = piezasDisponibles - asignaciones.reduce((total, item) => total + item.piezasBase, 0);
+    asignaciones
+      .sort((a, b) => b.residuo - a.residuo)
+      .forEach(item => {
+        if (restantes <= 0) return;
+        item.piezasBase++;
+        restantes--;
+      });
+
+    return asignaciones
+      .sort((a, b) => a.index - b.index)
+      .map(item => item.piezasBase);
+  }
+
+  private asignarMovimientos(
+    donadores: IbOncoBalanceDonador[],
+    receptores: IbOncoBalanceUnidad[],
+    necesidades: number[]
+  ): IbOncoBalanceMovimiento[] {
+    const disponibles = donadores.map(item => item.piezas);
+    const necesidadesRestantes = [...necesidades];
+    const movimientos: IbOncoBalanceMovimiento[] = [];
+
+    donadores.forEach((donador, donadorIndex) => {
+      if (donador.tipo !== 'almacen') return;
+
+      receptores.forEach((receptor, receptorIndex) => {
+        if (disponibles[donadorIndex] <= 0) return;
+        if (necesidadesRestantes[receptorIndex] <= 0) return;
+        if (!this.esPrioridadJurisdiccionalAlmacen(donador.nombre, receptor.row)) return;
+
+        const piezas = Math.min(disponibles[donadorIndex], necesidadesRestantes[receptorIndex]);
+        if (piezas <= 0) return;
+
+        movimientos.push({
+          desde: donador,
+          hacia: receptor.row,
+          piezas,
+          acumuladoDestino: (necesidades[receptorIndex] ?? 0) - necesidadesRestantes[receptorIndex] + piezas,
+          faltanteDestino: necesidades[receptorIndex] ?? receptor.piezas,
+        });
+        disponibles[donadorIndex] -= piezas;
+        necesidadesRestantes[receptorIndex] -= piezas;
+      });
+    });
+
+    receptores.forEach((receptor, receptorIndex) => {
+      let restante = necesidadesRestantes[receptorIndex] ?? 0;
+
+      for (let donadorIndex = 0; donadorIndex < donadores.length && restante > 0; donadorIndex++) {
+        const piezas = Math.min(disponibles[donadorIndex], restante);
+        if (piezas <= 0) continue;
+
+        movimientos.push({
+          desde: donadores[donadorIndex],
+          hacia: receptor.row,
+          piezas,
+          acumuladoDestino: (necesidades[receptorIndex] ?? 0) - restante + piezas,
+          faltanteDestino: necesidades[receptorIndex] ?? receptor.piezas,
+        });
+        disponibles[donadorIndex] -= piezas;
+        restante -= piezas;
+      }
+    });
+
+    return movimientos;
+  }
+
+  private esPrioridadJurisdiccionalAlmacen(almacen: string, row: IbOncoAbastoCpmRow): boolean {
+    const almacenNorm = this.normalizarTextoBalance(almacen);
+    const unidadNorm = this.normalizarTextoBalance(row.nombre_de_unidad || row.cluesimb);
+
+    if (almacenNorm.includes('MEXICALI')) {
+      return unidadNorm.includes('MEXICALI') || unidadNorm.includes('UNEME');
+    }
+    if (almacenNorm.includes('ENSENADA')) {
+      return unidadNorm.includes('ENSENADA');
+    }
+    if (almacenNorm.includes('TIJUANA')) {
+      return unidadNorm.includes('TIJUANA');
+    }
+
+    return false;
+  }
+
+  private normalizarTextoBalance(value: string): string {
+    return String(value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLocaleUpperCase();
+  }
+
+  private obtenerExistenciasAlmacenDetalleEstatal(rows: IbOncoAbastoCpmRow[]): { almacen: string; piezas: number }[] {
+    const selected = this.selectedEstatalRow();
+    const clave = selected?.clave_cnis ?? rows[0]?.clave_cnis ?? '';
+    const claveNormalizada = this.inventarioService.normalizarClave(clave);
+    if (!claveNormalizada) return [];
+
+    const byAlmacen = new Map<string, number>();
+
+    this.inventarioAlmacenes().forEach(item => {
+      const itemClave = this.inventarioService.normalizarClave(String(item.clave ?? ''));
+      if (itemClave !== claveNormalizada) return;
+
+      const piezas = Math.max(0, Number(item.disponible ?? 0) - Number(item.comprometidos ?? 0));
+      if (piezas <= 0) return;
+
+      const almacen = String(item.almacen ?? 'Almacen').trim() || 'Almacen';
+      byAlmacen.set(almacen, (byAlmacen.get(almacen) ?? 0) + piezas);
+    });
+
+    return [...byAlmacen.entries()].map(([almacen, piezas]) => ({ almacen, piezas }));
   }
 
   private citaSortValue(row: IbOncoCitaPendiente, key: CitaSortKey): string | number | boolean | null | undefined {
