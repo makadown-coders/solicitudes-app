@@ -21,7 +21,8 @@ import { Cita } from '../../models/Cita';
 
 interface IbOncoKpi {
   label: string;
-  value: number;
+  value: number | null;
+  format?: 'number' | 'percent';
 }
 
 type SortDirection = 'asc' | 'desc';
@@ -143,14 +144,21 @@ export class IbOncoPageComponent {
 
   kpis = computed<IbOncoKpi[]>(() => {
     const rows = this.resumenVisible();
+    const abastoRows = this.abasto().rows;
+    const porcentajeClavesConExistencia = this.calcularPorcentajeClavesConExistencia(abastoRows);
+    const cpmCeroConExistencia = abastoRows.filter(row => Number(row.cpm ?? 0) <= 0 && Number(row.existencias ?? 0) > 0).length;
+    const cpmCeroSinExistencia = abastoRows.filter(row => Number(row.cpm ?? 0) <= 0 && Number(row.existencias ?? 0) <= 0).length;
     const posiblesFaltantes = this.abasto().rows
       .filter(row => row.tiene_citas_pendientes && this.esFaltante(row))
       .length;
 
     return [
       { label: 'Total registros', value: this.sum(rows, 'claves_onco') },
+      { label: '% abasto', value: porcentajeClavesConExistencia, format: 'percent' },
       { label: 'Posible sobre abasto', value: this.sum(rows, 'claves_posible_sobre_abasto') },
       { label: 'Posibles faltantes', value: posiblesFaltantes },
+      { label: 'CPM 0 con existencia', value: cpmCeroConExistencia },
+      { label: 'CPM 0 sin existencia', value: cpmCeroSinExistencia },
       { label: 'Citas pendientes', value: this.sum(rows, 'citas_pendientes') },
       { label: 'Piezas pendientes', value: this.sum(rows, 'piezas_pendientes') },
     ];
@@ -265,7 +273,8 @@ export class IbOncoPageComponent {
         return;
       }
 
-      const abastoRows = await this.fetchAllAbasto();
+      const abastoRows = (await this.fetchAllAbasto())
+        .filter(row => row.cluesimb === this.cluesimb());
       const sobreabastoRows: Record<string, string | number | null>[] = [];
       const faltantesRows: Record<string, string | number | null>[] = [];
 
@@ -280,8 +289,9 @@ export class IbOncoPageComponent {
       }
 
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(sobreabastoRows), 'Sobreabasto');
-      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(faltantesRows), 'Faltantes');
+      this.appendJsonSheet(workbook, 'KPIs', this.toExcelKpiRows(abastoRows));
+      this.appendJsonSheet(workbook, 'Sobreabasto', sobreabastoRows);
+      this.appendJsonSheet(workbook, 'Faltantes', faltantesRows);
 
       const stamp = this.timestamp();
       XLSX.writeFile(workbook, `IB_ONCO_TODOS_${stamp}.xlsx`, { bookType: 'xlsx' });
@@ -633,6 +643,7 @@ export class IbOncoPageComponent {
 
     this.exportProgress.set('Armando archivo Excel estatal...');
     const workbook = XLSX.utils.book_new();
+    this.appendJsonSheet(workbook, 'KPIs', this.toExcelKpiRows(abastoRows));
     this.appendJsonSheet(workbook, 'Resumen estatal', resumenEstatal.map(row => this.toExcelEstatalResumenRow(row)));
     this.appendJsonSheet(workbook, 'Detalle hospitales', abastoRows.map(row => this.toExcelDetalleHospitalRow(row)));
     this.appendJsonSheet(workbook, 'Balance sugerido', balanceRows);
@@ -701,6 +712,54 @@ export class IbOncoPageComponent {
       'Piezas pendientes': row.piezas_pendientes,
       'Tiene citas pendientes': row.tiene_citas_pendientes ? 'SI' : 'NO',
     };
+  }
+
+  private toExcelKpiRows(rows: IbOncoAbastoCpmRow[]): Record<string, string | number | null>[] {
+    const porcentajeClavesConExistencia = this.calcularPorcentajeClavesConExistencia(rows);
+    const cpmCeroConExistencia = rows.filter(row => Number(row.cpm ?? 0) <= 0 && Number(row.existencias ?? 0) > 0).length;
+    const cpmCeroSinExistencia = rows.filter(row => Number(row.cpm ?? 0) <= 0 && Number(row.existencias ?? 0) <= 0).length;
+    const rowsConCpm = rows.filter(row => Number(row.cpm ?? 0) > 0);
+    const rowsConCpmYExistencia = rowsConCpm.filter(row => Number(row.existencias ?? 0) > 0).length;
+    const rowsConCpmSinExistencia = rowsConCpm.filter(row => Number(row.existencias ?? 0) <= 0).length;
+
+    return [
+      {
+        KPI: '% abasto',
+        Valor: porcentajeClavesConExistencia,
+        Unidad: porcentajeClavesConExistencia === null ? 'N/A' : '%',
+        Nota: 'Mide cuantas claves/unidades con CPM > 0 tienen alguna existencia. No mide suficiencia contra CPM; solo separa registros con existencia mayor a cero contra registros en cero. Las claves con CPM 0 se reportan aparte.',
+      },
+      {
+        KPI: 'Registros con CPM > 0 y existencia',
+        Valor: rowsConCpmYExistencia,
+        Unidad: 'registros',
+        Nota: 'Numerador del porcentaje de claves con existencia.',
+      },
+      {
+        KPI: 'Registros con CPM > 0 sin existencia',
+        Valor: rowsConCpmSinExistencia,
+        Unidad: 'registros',
+        Nota: 'Registros con CPM configurado y existencia igual a cero.',
+      },
+      {
+        KPI: 'Registros con CPM > 0',
+        Valor: rowsConCpm.length,
+        Unidad: 'registros',
+        Nota: 'Denominador del porcentaje de claves con existencia.',
+      },
+      {
+        KPI: 'CPM 0 con existencia',
+        Valor: cpmCeroConExistencia,
+        Unidad: 'registros',
+        Nota: 'Registros del universo onco sin CPM configurado pero con existencias.',
+      },
+      {
+        KPI: 'CPM 0 sin existencia',
+        Valor: cpmCeroSinExistencia,
+        Unidad: 'registros',
+        Nota: 'Registros del universo onco sin CPM configurado y sin existencias.',
+      },
+    ];
   }
 
   private toExcelBalanceEstatalRows(abastoRows: IbOncoAbastoCpmRow[]): Record<string, string | number | null>[] {
@@ -832,6 +891,45 @@ export class IbOncoPageComponent {
 
   private sum(rows: IbOncoResumenUnidad[], key: keyof IbOncoResumenUnidad): number {
     return rows.reduce((total, row) => total + Number(row[key] ?? 0), 0);
+  }
+
+  private calcularPorcentajeAbasto(rows: IbOncoAbastoCpmRow[], objetivoTipo: 'cpm' | 'cpm_x_3'): number | null {
+    const rowsConCpm = rows.filter(row => Number(row.cpm ?? 0) > 0);
+    const objetivoTotal = this.sumarObjetivoAbasto(rowsConCpm, objetivoTipo);
+
+    if (objetivoTotal <= 0) return null;
+
+    const coberturaTotal = this.sumarCoberturaAbasto(rowsConCpm, objetivoTipo);
+
+    return (coberturaTotal / objetivoTotal) * 100;
+  }
+
+  private calcularPorcentajeClavesConExistencia(rows: IbOncoAbastoCpmRow[]): number | null {
+    const rowsConCpm = rows.filter(row => Number(row.cpm ?? 0) > 0);
+    if (rowsConCpm.length === 0) return null;
+
+    const rowsConExistencia = rowsConCpm.filter(row => Number(row.existencias ?? 0) > 0);
+    return (rowsConExistencia.length / rowsConCpm.length) * 100;
+  }
+
+  private sumarObjetivoAbasto(rows: IbOncoAbastoCpmRow[], objetivoTipo: 'cpm' | 'cpm_x_3'): number {
+    return rows.reduce((total, row) => total + this.objetivoPorTipo(row, objetivoTipo), 0);
+  }
+
+  private sumarCoberturaAbasto(rows: IbOncoAbastoCpmRow[], objetivoTipo: 'cpm' | 'cpm_x_3'): number {
+    return rows.reduce((total, row) => {
+      const objetivo = this.objetivoPorTipo(row, objetivoTipo);
+      const existencias = Math.max(0, Number(row.existencias ?? 0));
+      return total + Math.min(existencias, objetivo);
+    }, 0);
+  }
+
+  private objetivoPorTipo(row: IbOncoAbastoCpmRow, objetivoTipo: 'cpm' | 'cpm_x_3'): number {
+    if (objetivoTipo === 'cpm') {
+      return Math.max(0, Math.ceil(Number(row.cpm ?? 0)));
+    }
+
+    return this.objetivoAbasto(row);
   }
 
   private nextSortState<T extends string>(current: SortState<T> | null, key: T): SortState<T> {

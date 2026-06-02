@@ -61,7 +61,7 @@ export class InventarioService {
   private cargandoInventarioBehaviorSubject = new BehaviorSubject<boolean>(false);
   public cargandoInventario$ = this.cargandoInventarioBehaviorSubject.asObservable();
 
-  // crear un Map de BehaviorSubject<Inventario[]> para cada uno de estos elementos: 
+  // crear un Map de BehaviorSubject<Inventario[]> para cada uno de estos elementos:
   //  HGENS, HGMXL, HGTKT, HGTIJ, HMITIJ, HGPR, HMIMXL, UOMXL, HGTZE
   private existenciasSubject: Map<Existencias, BehaviorSubject<Inventario[]>> = new Map<Existencias, BehaviorSubject<Inventario[]>>();
   public existencias$: Map<Existencias, Observable<Inventario[]>> = new Map<Existencias, Observable<Inventario[]>>();
@@ -210,14 +210,14 @@ export class InventarioService {
   }
 
   /*
-  HGENS 
+  HGENS
   HGMXL
   HGTKT
   HGTIJ
-  HMITIJ 
-  HGPR 
+  HMITIJ
+  HGPR
   HMIMXL
-  UOMXL 
+  UOMXL
   HGTZE
    */
   refrescarDatosExistenciasDeLocalStorage(existencia: Existencias = Existencias.HGENS): void {
@@ -235,11 +235,11 @@ export class InventarioService {
    * Refresca datos de existencias de una unidad (aplica solo segundo nivel)
    * LEGACY: en vías de deprecación para usar un endpoint específico por unidad que ya regresa datos normalizados (sin necesidad de pasar por Power Automate ni normalizaciones extra).
    * Nueva versión: refrescarDatosExistencias(), que ya no usa Power Automate ni ExcelService, sino que pega directo a un endpoint que regresa datos normalizados.
-   * 
-   * En caso de emergencia, regresar a usar esta version. Ya que la nueva versión trae datos de 
+   *
+   * En caso de emergencia, regresar a usar esta version. Ya que la nueva versión trae datos de
    * existencias de farmacias de los hospitales
-   * 
-   * @param existencia 
+   *
+   * @param existencia
    */
   refrescarDatosExistenciasLegacy(existencia: Existencias = Existencias.HGENS): void {
     // console.info('🔄 InventarioService.refrescarDatosExistencias() - Actualizando existencias de ' + existencia + '...');
@@ -302,7 +302,7 @@ export class InventarioService {
     }
   }
 
-  
+
 /**
  * Refresca datos de existencias de una unidad.
  * Nueva versión sin power automate.
@@ -328,7 +328,7 @@ export class InventarioService {
           nuevoRegistro.partida = ''; // item.lote || '';
           nuevoRegistro.descripcion = '';
           nuevoRegistro.disponible = item.existencia;
-          nuevoRegistro.almacen = (existencia === Existencias.HGSF) ? 
+          nuevoRegistro.almacen = (existencia === Existencias.HGSF) ?
                                     'HOSPITAL COMUNITARIO SAN FELIPE' : item.alias_sas!;
           nuevoRegistro.fuente = '';
           nuevoRegistro.comprometidos = 0;
@@ -584,7 +584,8 @@ export class InventarioService {
     const inventarioEnMemoria = this.inventarioSubject.getValue();
     if (inventarioEnMemoria.length > 0) return;
 
-    this.refrescarDatosInventario();
+    this.refrescarExistenciaAlmacenesDesdePostgres();
+    // this.refrescarDatosInventario();
   }
 
   /**

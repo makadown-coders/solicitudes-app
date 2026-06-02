@@ -68,7 +68,15 @@
         @for (item of kpis(); track item.label) {
           <div class="p-4 bg-white border-gray-100 rounded-2xl shadow-sm border">
             <p class="text-xs font-semibold tracking-wide text-gray-500 uppercase">{{ item.label }}</p>
-            <p class="mt-2 text-2xl font-bold text-gray-900">{{ item.value | number:'1.0-0' }}</p>
+            <p class="mt-2 text-2xl font-bold text-gray-900">
+              @if (item.value === null) {
+                N/A
+              } @else if (item.format === 'percent') {
+                {{ item.value | number:'1.1-1' }}%
+              } @else {
+                {{ item.value | number:'1.0-0' }}
+              }
+            </p>
           </div>
         }
       </section>

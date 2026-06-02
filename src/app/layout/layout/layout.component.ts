@@ -100,7 +100,8 @@ export class LayoutComponent implements OnInit, OnChanges {
 
   /** Sólo inventario; CPM pasa a CpmService (legacy mientras tanto) */
   refrescarExistenciasYCPMS(): void {
-    this.inventarioService.refrescarDatosInventario();
+    // this.inventarioService.refrescarDatosInventario();
+    this.inventarioService.refrescarExistenciaAlmacenesDesdePostgres();
     // CPM: preferimos cargarlo on-demand por clues con el nuevo servicio
     if (this.datosClues?.hospital?.cluesimb) {
       this.refrescarCPMSPorClues(this.datosClues.hospital.cluesimb, /*force*/ true);
