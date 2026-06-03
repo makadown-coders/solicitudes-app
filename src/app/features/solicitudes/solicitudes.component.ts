@@ -328,11 +328,11 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       const disponiblesNetos = item.disponible - item.comprometidos;
       const almacen = (item.almacen || '').toLowerCase();
 
-      if (almacen.includes('almacen estatal zona mexicali') || almacen.includes('almacen zona mexicali')) {
+      if (almacen.includes('almacen estatal zona mexicali') || almacen.includes('almacen zona mexicali') || almacen.includes('almacen imss bienestar mexicali')) {
         existencia.existenciasAZM += disponiblesNetos;
-      } else if (almacen.includes('almacen zona ensenada')) {
+      } else if (almacen.includes('almacen zona ensenada') || almacen.includes('almacen imss bienestar ensenada')) {
         existencia.existenciasAZE += disponiblesNetos;
-      } else if (almacen.includes('almacen zona tijuana')) {
+      } else if (almacen.includes('almacen zona tijuana') || almacen.includes('almacen imss bienestar tijuana')) {
         existencia.existenciasAZT += disponiblesNetos;
       }
     }

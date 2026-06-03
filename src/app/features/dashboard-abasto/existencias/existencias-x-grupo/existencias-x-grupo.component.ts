@@ -17,7 +17,7 @@ import { LucideAngularModule, SheetIcon } from 'lucide-angular';
 import { ArticulosService } from '../../../../services/articulos.service';
 
 /**
- * @deprecated 
+ * @deprecated
  * Se analizará su posible eliminación en futuras versiones.
  */
 @Component({
@@ -103,12 +103,15 @@ export class ExistenciasXGrupoComponent implements OnInit {
         existenciaAlmacenes.existenciasAZT = 0;
         inventarioItems.forEach(item => {
             if (item.almacen.toLowerCase().includes('almacen estatal zona mexicali') ||
+                item.almacen.toLowerCase().includes('almacen imss bienestar mexicali') ||
                 item.almacen.toLowerCase().includes('almacen zona mexicali')) {
-                existenciaAlmacenes.existenciasAZM += item.disponible - item.comprometidos;
-            } else if (item.almacen.toLowerCase().includes('almacen zona ensenada')) {
-                existenciaAlmacenes.existenciasAZE += item.disponible - item.comprometidos;
-            } else if (item.almacen.toLowerCase().includes('almacen zona tijuana')) {
-                existenciaAlmacenes.existenciasAZT += item.disponible - item.comprometidos;
+                this.existenciaAlmacenes.existenciasAZM += item.disponible - item.comprometidos;
+            } else if (item.almacen.toLowerCase().includes('almacen imss bienestar ensenada') ||
+                       item.almacen.toLowerCase().includes('almacen zona ensenada')) {
+                this.existenciaAlmacenes.existenciasAZE += item.disponible - item.comprometidos;
+            } else if (item.almacen.toLowerCase().includes('almacen imss bienestar tijuana') ||
+                       item.almacen.toLowerCase().includes('almacen zona tijuana')) {
+                this.existenciaAlmacenes.existenciasAZT += item.disponible - item.comprometidos;
             }
         });
         return existenciaAlmacenes;

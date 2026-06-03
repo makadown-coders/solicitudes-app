@@ -216,7 +216,7 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             // cargar existenciaUnidadesElegidas de this.existenciaUnidades
             this.existenciaUnidadesElegidas = this.existenciaUnidades.get(unidad.key) || [];
             console.log('this.existenciaUnidadesElegidas', this.existenciaUnidadesElegidas);
-            /* si this.existenciaUnidadesElegidas no tiene el resumen estatal 
+            /* si this.existenciaUnidadesElegidas no tiene el resumen estatal
                 lo agregamos a this.existenciaUnidadesElegidas y a this.existenciaUnidades con esa key */
             if (this.existenciaUnidadesElegidas.length === 0) {
                 // para crear el resumen estatal "peino" todas las keys de this.existenciaUnidades y acumulo cada clave en this.existenciaUnidadesElegidas
@@ -272,9 +272,9 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
             if (comprimidoUnidadesElegidasGuardadas) {
                 console.log('Cargando existenciaUnidadesElegidas guardadas de existencias x unidad');
                 console.log('comprimidoUnidadesElegidasGuardadas', comprimidoUnidadesElegidasGuardadas);
-                // descomprimir 
-                // ESTA PARTE NO FUNCIONA!!! NO SE PORQUE, 
-                // PUEDO VER EL COMPRIMIDO PERO NO LOGRO DESCOMPRIMIRLO, ANTES SI PODIA 
+                // descomprimir
+                // ESTA PARTE NO FUNCIONA!!! NO SE PORQUE,
+                // PUEDO VER EL COMPRIMIDO PERO NO LOGRO DESCOMPRIMIRLO, ANTES SI PODIA
                 const unidadesElegidasGuardadas = LZString.decompress(comprimidoUnidadesElegidasGuardadas);
                 console.log('unidadesElegidasGuardadas', unidadesElegidasGuardadas);
                 this.existenciaUnidadesElegidas = JSON.parse(unidadesElegidasGuardadas) as Inventario[];
@@ -326,7 +326,7 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
     cargarArticulosMapDeLocalStorage() {
         const articulosMapComprimido = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_EXU_ARTICULOS_MAP);
         if (articulosMapComprimido) {
-            // descomprimir 
+            // descomprimir
             const articulosMapGuardados = LZString.decompress(articulosMapComprimido);
             this.articulosMap = new Map(JSON.parse(articulosMapGuardados));
         }
@@ -387,12 +387,15 @@ export class ExistenciasXUnidadComponent implements OnInit, OnChanges, OnDestroy
         existenciaAlmacenes.existenciasAZT = 0;
         inventarioItems.forEach(item => {
             if (item.almacen.toLowerCase().includes('almacen estatal zona mexicali') ||
+                item.almacen.toLowerCase().includes('almacen imss bienestar mexicali') ||
                 item.almacen.toLowerCase().includes('almacen zona mexicali')) {
-                existenciaAlmacenes.existenciasAZM += item.disponible - item.comprometidos;
-            } else if (item.almacen.toLowerCase().includes('almacen zona ensenada')) {
-                existenciaAlmacenes.existenciasAZE += item.disponible - item.comprometidos;
-            } else if (item.almacen.toLowerCase().includes('almacen zona tijuana')) {
-                existenciaAlmacenes.existenciasAZT += item.disponible - item.comprometidos;
+                this.existenciaAlmacenes.existenciasAZM += item.disponible - item.comprometidos;
+            } else if (item.almacen.toLowerCase().includes('almacen imss bienestar ensenada') ||
+                       item.almacen.toLowerCase().includes('almacen zona ensenada')) {
+                this.existenciaAlmacenes.existenciasAZE += item.disponible - item.comprometidos;
+            } else if (item.almacen.toLowerCase().includes('almacen imss bienestar tijuana') ||
+                       item.almacen.toLowerCase().includes('almacen zona tijuana')) {
+                this.existenciaAlmacenes.existenciasAZT += item.disponible - item.comprometidos;
             }
         });
         // console.log('existenciaAlmacenes', existenciaAlmacenes);
