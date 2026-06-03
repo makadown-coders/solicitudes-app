@@ -167,12 +167,13 @@ export class ExistenciasHomologosComponent implements OnInit, OnDestroy {
 
       if (
         almacenNorm.includes('almacen estatal zona mexicali') ||
-        almacenNorm.includes('almacen zona mexicali')
+        almacenNorm.includes('almacen zona mexicali') ||
+        almacenNorm.includes('almacen imss bienestar mexicali')
       ) {
         item.existenciasAZM += neto;
-      } else if (almacenNorm.includes('almacen zona ensenada')) {
+      } else if (almacenNorm.includes('almacen zona ensenada') || almacenNorm.includes('almacen imss bienestar ensenada')) {
         item.existenciasAZE += neto;
-      } else if (almacenNorm.includes('almacen zona tijuana')) {
+      } else if (almacenNorm.includes('almacen zona tijuana') || almacenNorm.includes('almacen imss bienestar tijuana')) {
         item.existenciasAZT += neto;
       }
     }
