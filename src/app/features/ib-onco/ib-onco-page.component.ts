@@ -6,6 +6,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
 import { LucideAngularModule, Download, Info, Search, X } from 'lucide-angular';
 import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import {
   IbOncoAbastoCpmRow,
   IbOncoCitaPendiente,
@@ -75,6 +76,14 @@ interface IbOncoBalanceEstatal {
   movimientos: IbOncoBalanceMovimiento[];
 }
 
+interface IbOncoPropuestaRedistribucionRow {
+  origen: string;
+  claveCnis: string;
+  descripcion: string;
+  cantidad: number;
+  destino: string;
+}
+
 interface SortState<T extends string> {
   key: T;
   direction: SortDirection;
@@ -104,6 +113,7 @@ export class IbOncoPageComponent {
   loadingModal = signal(false);
   loadingOrdenesDetalleEstatal = signal(false);
   loadingAlmacenes = signal(false);
+  generandoPropuestas = signal(false);
   exportando = signal(false);
   exportProgress = signal<string | null>(null);
   error = signal<string | null>(null);
@@ -299,6 +309,41 @@ export class IbOncoPageComponent {
       this.error.set('No se pudo generar el Excel IB-ONCO.');
     } finally {
       this.exportando.set(false);
+      this.exportProgress.set(null);
+    }
+  }
+
+  async generarPropuestasRedistribucion(): Promise<void> {
+    if (!this.esVistaEstatal() || this.generandoPropuestas()) return;
+
+    this.generandoPropuestas.set(true);
+    this.exportProgress.set('Preparando propuestas de redistribucion...');
+    this.error.set(null);
+
+    try {
+      const abastoRows = await this.fetchAllAbasto();
+      const balanceRows = this.toExcelBalanceEstatalRows(abastoRows);
+      const propuestaRows = this.toPropuestaRedistribucionRows(balanceRows);
+
+      if (propuestaRows.length === 0) {
+        this.error.set('No hay movimientos sugeridos para generar propuestas de redistribucion.');
+        return;
+      }
+
+      const rowsByOrigen = this.groupBy(propuestaRows, row => row.origen);
+      const templateBuffer = await this.fetchTemplateIbOnco();
+      const total = rowsByOrigen.size;
+      let index = 0;
+
+      for (const [origen, rows] of rowsByOrigen.entries()) {
+        index++;
+        this.exportProgress.set(`Generando propuesta ${index}/${total}: ${origen}`);
+        await this.generarArchivoPropuesta(origen, this.sortPropuestaRows(rows), templateBuffer);
+      }
+    } catch {
+      this.error.set('No se pudieron generar las propuestas de redistribucion.');
+    } finally {
+      this.generandoPropuestas.set(false);
       this.exportProgress.set(null);
     }
   }
@@ -833,6 +878,128 @@ export class IbOncoPageComponent {
     });
 
     return balanceRows;
+  }
+
+  private toPropuestaRedistribucionRows(
+    balanceRows: Record<string, string | number | null>[]
+  ): IbOncoPropuestaRedistribucionRow[] {
+    return balanceRows
+      .map(row => ({
+        origen: String(row['Origen'] ?? '').trim(),
+        claveCnis: String(row['Clave CNIS'] ?? '').trim(),
+        descripcion: String(row['Descripcion'] ?? '').trim(),
+        cantidad: Number(row['Piezas'] ?? 0),
+        destino: String(row['Destino'] ?? '').trim(),
+      }))
+      .filter(row => row.origen.length > 0 && row.destino.length > 0 && row.cantidad > 0);
+  }
+
+  private async fetchTemplateIbOnco(): Promise<ArrayBuffer> {
+    const response = await fetch('/template-ib-onco.xlsx');
+    if (!response.ok) {
+      throw new Error('No se pudo cargar la plantilla IB-Onco.');
+    }
+
+    return response.arrayBuffer();
+  }
+
+  private async generarArchivoPropuesta(
+    origen: string,
+    rows: IbOncoPropuestaRedistribucionRow[],
+    templateBuffer: ArrayBuffer
+  ): Promise<void> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(templateBuffer.slice(0));
+
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
+      throw new Error('La plantilla no contiene hojas.');
+    }
+
+    worksheet.getCell('B4').value = origen;
+    worksheet.getCell('D4').value = 'PROPUESTA DE REDISTRIBUCIÓN ESTATAL DE ONCOLÓGICOS';
+    worksheet.getCell('E5').value = 'Aqui va nombre de responsable farmacia de unidad o responsable de almacen';
+
+    rows.forEach((row, index) => {
+      const rowNumber = 11 + index;
+      this.copyExcelRowStyle(worksheet, 11, rowNumber, 2, 6);
+
+      worksheet.getCell(`B${rowNumber}`).value = index + 1;
+      worksheet.getCell(`C${rowNumber}`).value = row.claveCnis;
+      worksheet.getCell(`D${rowNumber}`).value = row.descripcion;
+      worksheet.getCell(`E${rowNumber}`).value = row.cantidad;
+      worksheet.getCell(`F${rowNumber}`).value = row.destino;
+    });
+
+    const disclaimerRow = 10 + rows.length + 2;
+    worksheet.getCell(`B${disclaimerRow}`).value =
+      'Documento de apoyo operativo. No constituye autorización de traslado hasta contar con validación correspondiente.';
+    worksheet.getCell(`B${disclaimerRow}`).alignment = { wrapText: true, vertical: 'top' };
+    worksheet.getCell(`B${disclaimerRow}`).font = { italic: true, color: { argb: '92400E' } };
+
+    await this.downloadExcelJsWorkbook(
+      workbook,
+      `IB_ONCO_PROPUESTA_${this.safeFilename(origen)}_${this.timestamp()}.xlsx`
+    );
+  }
+
+  private sortPropuestaRows(rows: IbOncoPropuestaRedistribucionRow[]): IbOncoPropuestaRedistribucionRow[] {
+    return [...rows].sort((a, b) => {
+      const destinoCompare = a.destino.localeCompare(b.destino, 'es', { numeric: true, sensitivity: 'base' });
+      if (destinoCompare !== 0) return destinoCompare;
+
+      return a.claveCnis.localeCompare(b.claveCnis, 'es', { numeric: true, sensitivity: 'base' });
+    });
+  }
+
+  private copyExcelRowStyle(
+    worksheet: ExcelJS.Worksheet,
+    sourceRow: number,
+    targetRow: number,
+    startColumn: number,
+    endColumn: number
+  ): void {
+    if (sourceRow === targetRow) return;
+
+    for (let column = startColumn; column <= endColumn; column++) {
+      const sourceCell = worksheet.getCell(sourceRow, column);
+      const targetCell = worksheet.getCell(targetRow, column);
+      targetCell.style = { ...sourceCell.style };
+      targetCell.numFmt = sourceCell.numFmt;
+    }
+  }
+
+  private async downloadExcelJsWorkbook(workbook: ExcelJS.Workbook, filename: string): Promise<void> {
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private groupBy<T>(rows: T[], keySelector: (row: T) => string): Map<string, T[]> {
+    const grouped = new Map<string, T[]>();
+
+    rows.forEach(row => {
+      const key = keySelector(row);
+      const current = grouped.get(key) ?? [];
+      current.push(row);
+      grouped.set(key, current);
+    });
+
+    return grouped;
+  }
+
+  private safeFilename(value: string): string {
+    return this.normalizarTextoBalance(value)
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 80) || 'ORIGEN';
   }
 
   private avanceCpmX3Texto(movimiento: IbOncoBalanceMovimiento): string {

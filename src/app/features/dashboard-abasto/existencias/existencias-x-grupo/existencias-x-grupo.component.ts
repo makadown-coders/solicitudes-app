@@ -105,13 +105,13 @@ export class ExistenciasXGrupoComponent implements OnInit {
             if (item.almacen.toLowerCase().includes('almacen estatal zona mexicali') ||
                 item.almacen.toLowerCase().includes('almacen imss bienestar mexicali') ||
                 item.almacen.toLowerCase().includes('almacen zona mexicali')) {
-                this.existenciaAlmacenes.existenciasAZM += item.disponible - item.comprometidos;
+                existenciaAlmacenes.existenciasAZM += item.disponible - item.comprometidos;
             } else if (item.almacen.toLowerCase().includes('almacen imss bienestar ensenada') ||
                        item.almacen.toLowerCase().includes('almacen zona ensenada')) {
-                this.existenciaAlmacenes.existenciasAZE += item.disponible - item.comprometidos;
+                existenciaAlmacenes.existenciasAZE += item.disponible - item.comprometidos;
             } else if (item.almacen.toLowerCase().includes('almacen imss bienestar tijuana') ||
                        item.almacen.toLowerCase().includes('almacen zona tijuana')) {
-                this.existenciaAlmacenes.existenciasAZT += item.disponible - item.comprometidos;
+                existenciaAlmacenes.existenciasAZT += item.disponible - item.comprometidos;
             }
         });
         return existenciaAlmacenes;
