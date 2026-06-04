@@ -33,12 +33,12 @@
   <tbody>
     @for (articulo of articulosSolicitados; track articulo.clave; let i = $index)
       {
-      <tr class="border-b transition-all duration-300 ease-in-out" [class.bg-yellow-100]="modoEdicionIndex === i"
+      <tr class="border-b transition-all duration-300 ease-in-out" [attr.data-cantidad-pendiente]="modoEdicionIndex !== i && articulo.cantidad <= 0 ? 'true' : null"
+        [class.bg-yellow-100]="modoEdicionIndex === i"
         [class.opacity-50]="modoEdicionIndex !== null && modoEdicionIndex !== i"
-        [class.animate-pulse]="modoEdicionIndex !== i && articulo.cantidad <= 0"
-        [class.bg-red-950!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
-        [class.text-gray-100!]="modoEdicionIndex !== i && articulo.cantidad <= 0"
-        [class.text-xl.font-semibold.text-center.border.rounded]="modoEdicionIndex !== i && articulo.cantidad <= 0">
+        [class.bg-amber-50]="modoEdicionIndex !== i && articulo.cantidad <= 0"
+        [class.border-l-4]="modoEdicionIndex !== i && articulo.cantidad <= 0"
+        [class.border-l-amber-500]="modoEdicionIndex !== i && articulo.cantidad <= 0">
 
         <td class="p-2 w-[1%] text-center font-semibold text-gray-700 whitespace-nowrap">{{ i + 1 }}</td>
 
@@ -114,6 +114,9 @@
               </div>
             } @else {
               {{ articulo.cantidad }}
+              @if (articulo.cantidad <= 0) {
+                <p class="mt-1 text-[11px] font-semibold text-amber-700">Cantidad requerida</p>
+              }
             }
           </td>
 

@@ -150,6 +150,10 @@ export class CpmModalComponent {
     this.rows().filter(r => this.sugerencia(r) > 0).length
   );
 
+  selectedZeroSuggestionCount = computed(() =>
+    this.rows().filter(r => r._sel && this.sugerencia(r) <= 0).length
+  );
+
   zeroExistCount = computed(() =>
     this.rows().filter(r => this.tieneExistenciaUnidadEnCero(r)).length
   );
@@ -242,7 +246,7 @@ export class CpmModalComponent {
     if (seleccionadas.length === 0) {
       this.importIsError.set(true);
       this.importMsg.set('Sin selección');
-      this.importDetail.set('Elige al menos una clave con cantidad sugerida > 0.');
+      this.importDetail.set('Elige al menos una clave.');
       this.procesarToastDesdeAgregarSeleccion();
       return;
     }
@@ -251,16 +255,18 @@ export class CpmModalComponent {
 
     const nuevos: ArticuloSolicitud[] = [];
     let omitidasPorDup = 0;
-    let omitidasPorQty = 0;
+    let ajustadasPorQtyCero = 0;
 
     for (const r of seleccionadas) {
       const clave = this.normClave(r.clave);
       if (existentes.has(clave)) { omitidasPorDup++; continue; }
-      const qty = this.sugerencia(r); // ya anti-doble y con cobertura
-      if (!qty || qty < 0) {
-        // dejare pasar las sugeridas en cero
-        omitidasPorQty++; // continue;
-      }
+      const qtySugerida = this.sugerencia(r); // ya anti-doble y con cobertura
+      const qty = qtySugerida > 0 ? qtySugerida : 1;
+      const observaciones = qtySugerida > 0
+        ? ''
+        : 'Cantidad sugerida original en 0; se predetermino en 1 para permitir revision. Validar antes de exportar.';
+
+      if (qtySugerida <= 0) ajustadasPorQtyCero++;
 
       nuevos.push({
         clave,
@@ -269,7 +275,7 @@ export class CpmModalComponent {
         presentacion: r.presentacion ?? '',
         cantidad: qty,
         cpm: Number(r.cpm ?? 0),
-        observaciones: '',
+        observaciones,
       });
     }
 
@@ -290,9 +296,11 @@ export class CpmModalComponent {
     const partes: string[] = [];
     const partes2: string[] = [];
     if (omitidasPorDup > 0) partes.push(`${omitidasPorDup} duplicada${omitidasPorDup > 1 ? 's' : ''}`);
-    if (omitidasPorQty > 0) partes2.push(`${omitidasPorQty} sin cantidad (ajustar haciendo click en icono de edición)`);
+    if (ajustadasPorQtyCero > 0) {
+      partes2.push(`${ajustadasPorQtyCero} con cantidad sugerida 0 se agregaron con cantidad 1 para revision`);
+    }
     const detalle = partes.length ? `Omitidas: ${partes.join(' · ')} / ` : '';
-    const detalle2 = partes2.length ? `Corregir: ${partes2.join(' · ')}` : '';
+    const detalle2 = partes2.length ? `Aviso: ${partes2.join(' · ')}` : '';
     /*if (omitidasPorDup > 0) partes.push(`${omitidasPorDup} duplicada${omitidasPorDup > 1 ? 's' : ''}`);
     if (omitidasPorQty > 0) partes.push(`${omitidasPorQty} sin cantidad (ajustar haciendo click en icono de edición)`);
     const detalle = partes.length ? `Omitidas: ${partes.join(' · ')}` : '';*/

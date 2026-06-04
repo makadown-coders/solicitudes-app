@@ -29,6 +29,17 @@
               <lucide-angular [img]="DownloadIcon" class="w-4 h-4"></lucide-angular>
               {{ exportando() ? 'Exportando...' : (esVistaEstatal() ? 'Exportar Excel (Estatal)' : 'Exportar Excel') }}
             </button>
+            @if (esVistaEstatal()) {
+              <button
+                type="button"
+                title="Generar propuestas de redistribucion"
+                (click)="generarPropuestasRedistribucion()"
+                [disabled]="generandoPropuestas() || exportando() || loadingInicial() || loadingClaves()"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-emerald-700 bg-emerald-50 border-emerald-100 rounded-xl cursor-pointer border hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">
+                <lucide-angular [img]="DownloadIcon" class="w-4 h-4"></lucide-angular>
+                {{ generandoPropuestas() ? 'Generando...' : 'Generar Propuestas' }}
+              </button>
+            }
             <button
               type="button"
               (click)="refrescar()"
