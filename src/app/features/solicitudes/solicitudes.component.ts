@@ -96,6 +96,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChildren('resultItem') resultItems!: QueryList<ElementRef>;
   @ViewChild('inputClave') inputClaveRef!: ElementRef<HTMLInputElement>;
+  @ViewChild(TablaArticulosComponent) tablaArticulosComponent?: TablaArticulosComponent;
 
   modoEdicionIndex: number | null = null;
   cantidadTemporal: number = 0;
@@ -941,6 +942,14 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   todosLosArticulosConCantidadMayorACero(): boolean {
     return this.articulosSolicitados.every(articulo => articulo.cantidad > 0);
+  }
+
+  cantidadArticulosPendientes(): number {
+    return this.articulosSolicitados.filter(articulo => Number(articulo.cantidad ?? 0) <= 0).length;
+  }
+
+  verArticulosPendientes(): void {
+    this.tablaArticulosComponent?.scrollPrimerPendiente();
   }
 
   iniciales(original: string): string {

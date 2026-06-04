@@ -322,6 +322,7 @@ export class IbOncoPageComponent {
 
     try {
       const abastoRows = await this.fetchAllAbasto();
+      console.log('abastoRows', abastoRows);
       const balanceRows = this.toExcelBalanceEstatalRows(abastoRows);
       const propuestaRows = this.toPropuestaRedistribucionRows(balanceRows);
 
@@ -569,7 +570,7 @@ export class IbOncoPageComponent {
     }
   }
 
-  private async fetchAllAbasto(limit = 1000): Promise<IbOncoAbastoCpmRow[]> {
+  private async fetchAllAbasto(limit = 10000): Promise<IbOncoAbastoCpmRow[]> {
     const first = await firstValueFrom(this.ibOncoService.obtenerAbastoCpm({
       window_days: this.windowDays(),
       page: 1,
@@ -589,7 +590,7 @@ export class IbOncoPageComponent {
     return rows;
   }
 
-  private async fetchAllCitas(row: IbOncoAbastoCpmRow, limit = 1000): Promise<IbOncoCitaPendiente[]> {
+  private async fetchAllCitas(row: IbOncoAbastoCpmRow, limit = 10000): Promise<IbOncoCitaPendiente[]> {
     const first = await firstValueFrom(this.ibOncoService.obtenerCitasPendientes({
       cluesimb: row.cluesimb,
       clave_cnis: row.clave_cnis,
@@ -826,27 +827,27 @@ export class IbOncoPageComponent {
       if (balance.movimientos.length === 0) {
         balance.almacenes.forEach(almacen => {
           balanceRows.push({
-          'Clave CNIS': claveRow.clave_cnis,
-          Descripcion: claveRow.descripcion ?? '',
-          'CPM estatal': balance.cpmTotal,
-          'Faltante CPM x 3': balance.faltanteTotal,
-          'Existencia almacenes': balance.almacenesTotal,
-          'Excedente hospitales': balance.excedenteTotal,
-          'Piezas sugeridas': balance.piezasSugeridas,
-          'Origen tipo': 'ALMACEN',
-          Origen: almacen.almacen,
-          Destino: '',
-          Piezas: almacen.piezas,
-          'Existencia destino': null,
-          'Transferencia previa destino': null,
-          'Transferencia acumulada destino': null,
-          'Avance CPM x 3 texto': '',
-          'Cobertura CPM x 3 destino': null,
-          'Objetivo CPM x 3 destino': null,
-          'Faltante destino': null,
-          Nota: balance.cpmTotal <= 0
-            ? 'Insumo sin CPM estatal configurado; existencia en almacen solo informativa.'
-            : 'Existencia en almacen sin movimiento sugerido.',
+            'Clave CNIS': claveRow.clave_cnis,
+            Descripcion: claveRow.descripcion ?? '',
+            'CPM estatal': balance.cpmTotal,
+            'Faltante CPM x 3': balance.faltanteTotal,
+            'Existencia almacenes': balance.almacenesTotal,
+            'Excedente hospitales': balance.excedenteTotal,
+            'Piezas sugeridas': balance.piezasSugeridas,
+            'Origen tipo': 'ALMACEN',
+            Origen: almacen.almacen,
+            Destino: '',
+            Piezas: almacen.piezas,
+            'Existencia destino': null,
+            'Transferencia previa destino': null,
+            'Transferencia acumulada destino': null,
+            'Avance CPM x 3 texto': '',
+            'Cobertura CPM x 3 destino': null,
+            'Objetivo CPM x 3 destino': null,
+            'Faltante destino': null,
+            Nota: balance.cpmTotal <= 0
+              ? 'Insumo sin CPM estatal configurado; existencia en almacen solo informativa.'
+              : 'Existencia en almacen sin movimiento sugerido.',
           });
         });
         return;
@@ -854,25 +855,25 @@ export class IbOncoPageComponent {
 
       balance.movimientos.forEach(movimiento => {
         balanceRows.push({
-        'Clave CNIS': claveRow.clave_cnis,
-        Descripcion: claveRow.descripcion ?? '',
-        'CPM estatal': balance.cpmTotal,
-        'Faltante CPM x 3': balance.faltanteTotal,
-        'Existencia almacenes': balance.almacenesTotal,
-        'Excedente hospitales': balance.excedenteTotal,
-        'Piezas sugeridas': balance.piezasSugeridas,
-        'Origen tipo': movimiento.desde.tipo === 'almacen' ? 'ALMACEN' : 'HOSPITAL',
-        Origen: movimiento.desde.nombre,
-        Destino: movimiento.hacia.nombre_de_unidad || movimiento.hacia.cluesimb,
-        Piezas: movimiento.piezas,
-        'Existencia destino': movimiento.existenciaDestino,
-        'Transferencia previa destino': movimiento.acumuladoPrevioDestino,
-        'Transferencia acumulada destino': movimiento.acumuladoDestino,
-        'Avance CPM x 3 texto': this.avanceCpmX3Texto(movimiento),
-        'Cobertura CPM x 3 destino': movimiento.existenciaDestino + movimiento.acumuladoDestino,
-        'Objetivo CPM x 3 destino': movimiento.objetivoDestino,
-        'Faltante destino': movimiento.faltanteDestino,
-        Nota: 'Sugerencia informativa sujeta a validacion operativa, normativa, lote, caducidad, conservacion, documentacion y autorizaciones aplicables.',
+          'Clave CNIS': claveRow.clave_cnis,
+          Descripcion: claveRow.descripcion ?? '',
+          'CPM estatal': balance.cpmTotal,
+          'Faltante CPM x 3': balance.faltanteTotal,
+          'Existencia almacenes': balance.almacenesTotal,
+          'Excedente hospitales': balance.excedenteTotal,
+          'Piezas sugeridas': balance.piezasSugeridas,
+          'Origen tipo': movimiento.desde.tipo === 'almacen' ? 'ALMACEN' : 'HOSPITAL',
+          Origen: movimiento.desde.nombre,
+          Destino: movimiento.hacia.nombre_de_unidad || movimiento.hacia.cluesimb,
+          Piezas: movimiento.piezas,
+          'Existencia destino': movimiento.existenciaDestino,
+          'Transferencia previa destino': movimiento.acumuladoPrevioDestino,
+          'Transferencia acumulada destino': movimiento.acumuladoDestino,
+          'Avance CPM x 3 texto': this.avanceCpmX3Texto(movimiento),
+          'Cobertura CPM x 3 destino': movimiento.existenciaDestino + movimiento.acumuladoDestino,
+          'Objetivo CPM x 3 destino': movimiento.objetivoDestino,
+          'Faltante destino': movimiento.faltanteDestino,
+          Nota: 'Sugerencia informativa sujeta a validacion operativa, normativa, lote, caducidad, conservacion, documentacion y autorizaciones aplicables.',
         });
       });
     });
@@ -916,9 +917,25 @@ export class IbOncoPageComponent {
       throw new Error('La plantilla no contiene hojas.');
     }
 
+    const imgBuffer = await fetch('ib-onco-logo.png')
+      .then(res => res.arrayBuffer())
+      .then(buffer => new Uint8Array(buffer));
+
+    const imageId = workbook.addImage({
+      buffer: imgBuffer.buffer,
+      extension: 'png',
+    });
+    worksheet!.getCell('B1').value = '';
+    worksheet.addImage(imageId, {
+      tl: { col: 1, row: 0 },
+      ext: { width: 150, height: 40 },
+      editAs: 'oneCell',
+    });
+
     worksheet.getCell('B4').value = origen;
-    worksheet.getCell('D4').value = 'PROPUESTA DE REDISTRIBUCIÓN ESTATAL DE ONCOLÓGICOS';
-    worksheet.getCell('E5').value = 'Aqui va nombre de responsable farmacia de unidad o responsable de almacen';
+    worksheet.getCell('D4').value = 'IMPLEMENTACIÓN DE REDISTRIBUCIÓN ESTATAL';
+    // Aqui va nombre de responsable farmacia de unidad o responsable de almacen
+    worksheet.getCell('E5').value = '';
 
     rows.forEach((row, index) => {
       const rowNumber = 11 + index;
@@ -932,10 +949,16 @@ export class IbOncoPageComponent {
     });
 
     const disclaimerRow = 10 + rows.length + 2;
-    worksheet.getCell(`B${disclaimerRow}`).value =
+    const disclaimerCell = worksheet.getCell(`B${disclaimerRow}`);
+
+    worksheet.mergeCells(`B${disclaimerRow}:F${disclaimerRow}`);
+
+    disclaimerCell.value =
       'Documento de apoyo operativo. No constituye autorización de traslado hasta contar con validación correspondiente.';
-    worksheet.getCell(`B${disclaimerRow}`).alignment = { wrapText: true, vertical: 'top' };
-    worksheet.getCell(`B${disclaimerRow}`).font = { italic: true, color: { argb: '92400E' } };
+    disclaimerCell.alignment = { wrapText: true, vertical: 'top' };
+    disclaimerCell.font = { italic: true, color: { argb: '92400E' } };
+
+    worksheet.getRow(disclaimerRow).height = 30;
 
     await this.downloadExcelJsWorkbook(
       workbook,

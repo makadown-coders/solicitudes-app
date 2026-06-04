@@ -137,14 +137,38 @@
           }
 
           @let todosMayorACero = todosLosArticulosConCantidadMayorACero();
+          @let articulosPendientes = cantidadArticulosPendientes();
 
-          @if (articulosSolicitados.length > 0 && todosMayorACero) {
-            <button (click)="mostrarModalExportar()"
-              class="p-2 mt-4 ml-2 text-white bg-green-600 rounded hover:bg-green-700"
-              [disabled]="modoEdicionIndex !== null || !todosMayorACero"
-              [ngClass]="modoEdicionIndex !== null || !todosMayorACero ? 'opacity-50 cursor-not-allowed' : ''">
-              Exportar Captura
-            </button>
+          @if (articulosSolicitados.length > 0) {
+            <div class="inline-flex flex-col gap-2 mt-4 ml-2 align-top">
+              <div class="flex flex-wrap items-center gap-2">
+                <button (click)="mostrarModalExportar()"
+                  class="p-2 text-white bg-green-600 rounded hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-600"
+                  [disabled]="modoEdicionIndex !== null || !todosMayorACero"
+                  [ngClass]="modoEdicionIndex !== null || !todosMayorACero ? 'opacity-80 cursor-not-allowed' : ''">
+                  Exportar Captura
+                </button>
+
+                @if (!todosMayorACero) {
+                  <button
+                    type="button"
+                    (click)="verArticulosPendientes()"
+                    class="p-2 text-sm font-semibold text-amber-800 bg-amber-50 border-amber-200 rounded border hover:bg-amber-100">
+                    Ver pendientes
+                  </button>
+                }
+              </div>
+
+              @if (modoEdicionIndex !== null) {
+                <p class="max-w-md text-xs text-amber-800">
+                  Guarda o cancela la edición actual para habilitar la exportación.
+                </p>
+              } @else if (!todosMayorACero) {
+                <p class="max-w-md text-xs text-amber-800">
+                  No puedes exportar todavía: {{ articulosPendientes }} clave(s) tienen cantidad pendiente o en cero.
+                </p>
+              }
+            </div>
           }
           <input title="archivo" type="file" #fileInput accept=".xlsx,.xls,.csv" class="hidden" (change)="manejarArchivoPrecarga($event)">
           <button class="p-2 mt-4 ml-2 text-white align-self-end bg-green-800 rounded hover:bg-green-900 float-right"
@@ -161,12 +185,36 @@
             (CPMsPorUnidadActualizado)="actualizarCPMsPorUnidad($event)" />
           </div>
 
-          @if (articulosSolicitados.length > 0 && todosMayorACero) {
-            <button (click)="mostrarModalExportar()"
-              class="p-2 mt-4 ml-2 text-white bg-green-600 rounded hover:bg-green-700" [disabled]="modoEdicionIndex !== null"
-              [ngClass]="modoEdicionIndex !== null ? 'opacity-50 cursor-not-allowed' : ''">
-              Exportar Captura
-            </button>
+          @if (articulosSolicitados.length > 0) {
+            <div class="inline-flex flex-col gap-2 mt-4 ml-2 align-top">
+              <div class="flex flex-wrap items-center gap-2">
+                <button (click)="mostrarModalExportar()"
+                  class="p-2 text-white bg-green-600 rounded hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-600"
+                  [disabled]="modoEdicionIndex !== null || !todosMayorACero"
+                  [ngClass]="modoEdicionIndex !== null || !todosMayorACero ? 'opacity-80 cursor-not-allowed' : ''">
+                  Exportar Captura
+                </button>
+
+                @if (!todosMayorACero) {
+                  <button
+                    type="button"
+                    (click)="verArticulosPendientes()"
+                    class="p-2 text-sm font-semibold text-amber-800 bg-amber-50 border-amber-200 rounded border hover:bg-amber-100">
+                    Ver pendientes
+                  </button>
+                }
+              </div>
+
+              @if (modoEdicionIndex !== null) {
+                <p class="max-w-md text-xs text-amber-800">
+                  Guarda o cancela la edición actual para habilitar la exportación.
+                </p>
+              } @else if (!todosMayorACero) {
+                <p class="max-w-md text-xs text-amber-800">
+                  No puedes exportar todavía: {{ articulosPendientes }} clave(s) tienen cantidad pendiente o en cero.
+                </p>
+              }
+            </div>
           }
 
         </div>

@@ -1,5 +1,5 @@
 // src/app/features/tabla-articulos/tabla-articulos.component.ts
-import { Component, Input, Output, EventEmitter, inject, ChangeDetectorRef, AfterContentChecked, AfterContentInit, OnChanges, SimpleChange, SimpleChanges, Sanitizer, SecurityContext, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, ChangeDetectorRef, AfterContentChecked, AfterContentInit, OnChanges, SimpleChange, SimpleChanges, Sanitizer, SecurityContext, OnInit, OnDestroy, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { clasificacionMedicamentosData } from '../../models/clasificacionMedicamentosData';
@@ -39,6 +39,7 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
   triangleAlertIcon = TriangleAlertIcon;
 
   private cdRef = inject(ChangeDetectorRef);
+  private elementRef = inject(ElementRef<HTMLElement>);
 
   @Output() cantidadTemporalChange = new EventEmitter<number>();
   @Output() confirmar = new EventEmitter<number>();
@@ -196,6 +197,13 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
   public buscarCPM(clave: string): number {
     const cpm = this.cpmsDeCluesActual.find(cpmItem => cpmItem.clave.trim() + '' === clave.trim() + '');
     return cpm ? cpm.cantidad : 0;
+  }
+
+  scrollPrimerPendiente(): void {
+    const row = this.elementRef.nativeElement.querySelector('[data-cantidad-pendiente="true"]') as HTMLElement | null;
+    row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row?.classList.add('ring-2', 'ring-amber-500');
+    window.setTimeout(() => row?.classList.remove('ring-2', 'ring-amber-500'), 1800);
   }
 
   /**
