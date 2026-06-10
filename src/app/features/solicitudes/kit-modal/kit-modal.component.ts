@@ -28,6 +28,7 @@ import { InventarioDisponibles } from '../../../models/Inventario';
 import { KitRow } from '../../../models/KitRow';
 import { ColKey } from '../../../models/ColKey';
 import { TrazabilidadService } from '../../../services/trazabilidad.service';
+import { aplicarFactorConversion } from '../../../models/factor-unidad';
 
 type VistaKit = 'todos' | 'sugeridos' | 'existenciaCero';
 
@@ -223,12 +224,10 @@ export class KitModalComponent implements OnInit {
                     // obteniendo factor de conversion
                     const factor = await this.trazabilidadService
                         .getFactorConversionPorUnidad(r.clave_cnis, this.cluesimb);
-                    if (factor && factor.cantidad_fc > 0 && r.existencia_total > 0) {
-                        const existenciaConvertida = (r.existencia_total) / factor.cantidad_fc;
-                        this.existUnidadIndex.set(k, Math.floor(existenciaConvertida));
-                    } else {
-                        this.existUnidadIndex.set(k, Number(r.existencia_total) || 0);
-                    }
+                    this.existUnidadIndex.set(
+                        k,
+                        aplicarFactorConversion(Number(r.existencia_total ?? 0), factor)
+                    );
                 }
                 this.hasUnidadExistencias = this.existUnidadIndex.size > 0;
                 this.mergeExistenciasIntoKit();

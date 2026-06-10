@@ -22,7 +22,7 @@ import { KitsService } from '../../../services/kits.service';
 import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
 import { ActivatedRoute } from '@angular/router';
 import { TrazabilidadService } from '../../../services/trazabilidad.service';
-import { FactorUnidad } from '../../../models';
+import { aplicarFactorConversion, FactorUnidad } from '../../../models';
 import { CpmService } from '../../../services/cpm.service';
 
 // Subconjunto de RdlsRow sólo para campos CPM
@@ -355,18 +355,18 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
           // aplicar factor de conversión sin es necesario
           if (cluesimb && cluesimb.length > 0) {
             const factor = await this.trazSrv.getFactorConversionPorUnidad(it.clave, cluesimb);
-            if (factor && factor.en_dispensacion === 1 && factor.cantidad_fc > 1) {
-              disp = Math.floor(disp / factor.cantidad_fc);
-            }
+            disp = aplicarFactorConversion(disp, factor);
           }
-          idx.set(k, (idx.get(k) || 0) + disp);
+          idx.set(k, this.roundToTwo((idx.get(k) || 0) + disp));
         }
         const rows = this.filteredRows(); //this.rows(); // .slice();
         for (const r of rows) {
           const keyNorm = this.inventario.normalizarClave(r.clave);
           const val = idx.get(keyNorm) ?? 0;
           assign(r, val);
-          r.totalHospitales = r.HGTK + r.HMIT + r.HGTZOE + r.HGT + r.HGPR + r.HGM + r.HMIM + r.UNEME + r.HGSF + r.HGE + r.HGSF;
+          r.totalHospitales = this.roundToTwo(
+            r.HGTK + r.HMIT + r.HGTZOE + r.HGT + r.HGPR + r.HGM + r.HMIM + r.UNEME + r.HGSF + r.HGE
+          );
         }
         this.rows.set(rows);
       });
@@ -436,9 +436,13 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
       r.AZM = b?.AZM ?? 0;
       r.AZE = b?.AZE ?? 0;
       r.AZT = b?.AZT ?? 0;
-      r.totalAlmacenes = (r.AZM || 0) + (r.AZE || 0) + (r.AZT || 0);
+      r.totalAlmacenes = this.roundToTwo((r.AZM || 0) + (r.AZE || 0) + (r.AZT || 0));
     }
     this.rows.set(rows);
+  }
+
+  private roundToTwo(value: number): number {
+    return Math.round((Number(value ?? 0) + Number.EPSILON) * 100) / 100;
   }
 
   async exportarExcelRdlS(todo: boolean = true) {    
@@ -478,7 +482,7 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
       'AZM': r.AZM ?? 0,
       'AZE': r.AZE ?? 0,
       'AZT': r.AZT ?? 0,
-      'TOTAL ALMACENES': r.totalAlmacenes ?? ((r.AZM || 0) + (r.AZE || 0) + (r.AZT || 0)),
+      'TOTAL ALMACENES': r.totalAlmacenes ?? this.roundToTwo((r.AZM || 0) + (r.AZE || 0) + (r.AZT || 0)),
 
       'HGTK': r.HGTK ?? 0,
       'HMIT': r.HMIT ?? 0,
@@ -490,7 +494,7 @@ export class RdlSComponent extends AbstractTabComponent implements OnInit, OnDes
       'UNEME': r.UNEME ?? 0,
       'HGSF': r.HGSF ?? 0,
       'HGE': r.HGE ?? 0,
-      'TOTAL HOSPITALES': r.totalHospitales ?? (
+      'TOTAL HOSPITALES': r.totalHospitales ?? this.roundToTwo(
         (r.HGTK || 0) + (r.HMIT || 0) + (r.HGTZOE || 0) + (r.HGT || 0) + (r.HGPR || 0) +
         (r.HGM || 0) + (r.HMIM || 0) + (r.UNEME || 0) + (r.HGSF || 0) + (r.HGE || 0)
       ),

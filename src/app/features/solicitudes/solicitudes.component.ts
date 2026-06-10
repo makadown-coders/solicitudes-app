@@ -30,7 +30,7 @@ import { KitModalComponent } from './kit-modal/kit-modal.component';
 import { CpmUnionRow } from '../../models/CpmUnionRow';
 import { CpmModalComponent } from './cpm-modal/cpm-modal.component';
 import { CpmEditModalComponent } from './cpm-edit-modal/cpm-edit-modal.component';
-import { FactorUnidad } from '../../models';
+import { aplicarFactorConversion } from '../../models';
 import { TrazabilidadService } from '../../services/trazabilidad.service';
 import { SolicitudesBitacoraService } from '../../services/solicitudes/solicitudes-bitacora.service';
 import { HomologosSolicitudService, SugerenciaHomologoItem, MiniBalanceHomologoCand } from '../../services/homologos-solicitud.service';
@@ -1320,11 +1320,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       const entries = await Promise.all(rows.map(async r => {
         const factor = await this.trazabilidadService
           .getFactorConversionPorUnidad(r.clave_cnis, cluesimb);
-        if (factor && factor.cantidad_fc > 0 && r.existencia_total > 0) {
-          const existenciaConvertida = (r.existencia_total) / factor.cantidad_fc;
-          return [r.clave_cnis, Math.floor(existenciaConvertida)] as const;
-        }
-        return [r.clave_cnis, r.existencia_total ?? 0] as const;
+        return [r.clave_cnis, aplicarFactorConversion(Number(r.existencia_total ?? 0), factor)] as const;
       }));
       const idx = new Map<string, number>(entries);
       this.existUnidadIndex = idx;

@@ -10,6 +10,7 @@ export interface FactorUnidad {
  * Respuesta cruda del backend
  */
 export interface FactorConversion {
+    clave: string;
     cluesimb: string;
     factor: number;
 }
@@ -19,6 +20,17 @@ export interface FactorConversion {
  */
 export interface FactoresResponse {
     success: boolean;
-    data: { [key: string]: FactorConversion };
+    data: FactorConversion[];
     timestamp?: string;
+}
+
+export function aplicarFactorConversion(value: number, factor?: FactorUnidad | null): number {
+    const cantidad = Number(value ?? 0);
+    const cantidadFc = Math.max(1, Number(factor?.cantidad_fc ?? 1));
+    const aplicaFactor = Number(factor?.en_dispensacion ?? 0) === 1 && cantidadFc > 1;
+
+    if (!Number.isFinite(cantidad)) return 0;
+    if (!aplicaFactor) return cantidad;
+
+    return Math.round(((cantidad / cantidadFc) + Number.EPSILON) * 100) / 100;
 }

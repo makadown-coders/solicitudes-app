@@ -187,11 +187,12 @@
                       <td class="px-2 py-1 text-right">{{ unidad.clave.cpm }}</td>
                       <!-- Existencia base con tooltip mostrando dispensación -->
                       @let tooltip = getTooltipExistencia(unidad);
-                      <td class="px-2 py-1 text-right" [title]="tooltip">
-                        {{ unidad.clave.existencia }} {{ tooltip.length > 1 ? 'ℹ️' : '' }}
+                      <td class="px-2 py-1 text-right" [title]="tooltip"
+                        [ngClass]="{ 'cursor-pointer': tooltip.length > 1 }">
+                        {{ unidad.clave.existencia | number:'1.0-2' }} {{ tooltip.length > 1 ? 'ℹ️' : '' }}
                       </td>
                       <td class="px-2 py-1 text-right" [ngClass]="{ 'text-red-700 font-bold': unidad.clave.reposicion > 0 }">
-                        {{ unidad.clave.reposicion }}
+                        {{ unidad.clave.reposicion | number:'1.0-2' }}
                       </td>
                     </tr>
                   }

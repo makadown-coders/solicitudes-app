@@ -322,7 +322,6 @@ export class IbOncoPageComponent {
 
     try {
       const abastoRows = await this.fetchAllAbasto();
-      console.log('abastoRows', abastoRows);
       const balanceRows = this.toExcelBalanceEstatalRows(abastoRows);
       const propuestaRows = this.toPropuestaRedistribucionRows(balanceRows);
 
