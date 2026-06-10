@@ -23,7 +23,7 @@ import { Inventario } from '../../../models/Inventario';
 import { combineLatest } from 'rxjs';
 import { UnidadesService } from '../../../services/unidades.service';
 import { TrazabilidadService } from '../../../services/trazabilidad.service';
-import { FactorUnidad } from '../../../models/factor-unidad';
+import { aplicarFactorConversion, FactorUnidad } from '../../../models/factor-unidad';
 import { ProveedoresService } from '../../../services/proveedores.service';
 import { GruposClavesService } from '../../../services/grupo-clases.service';
 import * as XLSX from 'xlsx';
@@ -682,7 +682,7 @@ function aplicarFactor(disponible: number, factor?: FactorUnidad): number {
     if (!factor) return disponible; // aún no cargado → muestra base (se actualizará cuando llegue)
     // en_dispensacion: 1/0, cantidad_fc: >0
     if ((factor.en_dispensacion ?? 0) === 1 && toNum(factor.cantidad_fc) > 0) {
-        return Math.floor( disponible / Number(factor.cantidad_fc) );
+        return aplicarFactorConversion(disponible, factor);
     }
     return disponible;
 }

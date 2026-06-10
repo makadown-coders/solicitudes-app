@@ -7,7 +7,7 @@ import { ExistenciasTempService } from '../../../services/existencias-temp.servi
 import { CpmEditorService } from '../../../services/cpm-editor.service'; // usa tu servicio actual de CPM
 import { ArticuloSolicitud } from '../../../models/articulo-solicitud';
 import { firstValueFrom } from 'rxjs';
-import { InventarioDisponibles } from '../../../models';
+import { aplicarFactorConversion, InventarioDisponibles } from '../../../models';
 import { InventarioService } from '../../../services/inventario.service';
 import { NgFastToastService } from 'ng-fast-toast';
 import { TrazabilidadService } from '../../../services/trazabilidad.service';
@@ -102,10 +102,7 @@ export class CpmModalComponent {
           // obteniendo factor de conversion
           const factor = await this.trazabilidadService
             .getFactorConversionPorUnidad(x.clave_cnis, this.cluesimb);
-          if (factor && factor.cantidad_fc > 0 && x.existencia_total > 0) {
-            return [x.clave_cnis, Math.floor((x.existencia_total) / factor.cantidad_fc)] as const;
-          }
-          return [x.clave_cnis, x.existencia_total ?? 0] as const;
+          return [x.clave_cnis, aplicarFactorConversion(Number(x.existencia_total ?? 0), factor)] as const;
         }));
         idx = new Map<string, number>(entries);
       } catch { /* sin existencias es válido */ }

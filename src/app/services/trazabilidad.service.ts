@@ -2,24 +2,25 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { first, firstValueFrom, Observable } from 'rxjs';
-import { FactoresResponse, FactorUnidad } from '../models/factor-unidad';
+import { firstValueFrom } from 'rxjs';
+import { FactoresResponse, FactorConversion, FactorUnidad } from '../models/factor-unidad';
 import { MovimientoTrazabilidad } from '../models';
 
 type RawFactor = { en_dispensacion: number | boolean; cantidad_fc: number };
-type CachedFactor = RawFactor & { ts: number }; // timestamp guardado
+type CachedFactor = RawFactor & { ts: number };
 
 @Injectable({ providedIn: 'root' })
 export class TrazabilidadService {
-  private memCache = new Map<string, FactorUnidad>();              // caché en memoria (rápida)
-  private pending = new Map<string, Promise<FactorUnidad>>();       // de-dup de llamadas concurrentes
-  private readonly STORAGE_KEY = 'TRAZA_FACTOR_CACHE_V1';           // nombre en localStorage
-  private readonly TTL_MS = 24 * 60 * 60 * 1000;                    // 24h; ajústalo si quieres
+  private memCache = new Map<string, FactorUnidad>();
+  private pending = new Map<string, Promise<FactorUnidad>>();
+  private readonly STORAGE_KEY = 'TRAZA_FACTOR_CACHE_V2';
+  private readonly TTL_MS = 24 * 60 * 60 * 1000;
+  private allFactoresPromise: Promise<void>;
 
   constructor(private http: HttpClient) {
-    this.restoreFromStorage();     // precarga a memCache desde localStorage
-    this.pruneExpiredInStorage();  // limpia expirados (no bloqueante)
-    this.cargarAllFactoresConversion(); // precarga todos los factores desde el backend
+    this.restoreFromStorage();
+    this.pruneExpiredInStorage();
+    this.allFactoresPromise = this.cargarAllFactoresConversion();
   }
 
   obtenerPorClaveYClues(clave: string, cluesimb: string) {
@@ -31,33 +32,27 @@ export class TrazabilidadService {
     );
   }
 
-  // (LEGACY) — lo mantienes igual
   getFactorConversion(clave: string) {
     return this.http.get<{ clave: string; en_dispensacion: boolean; cantidad_fc: number }>(
       `${environment.apiUrl}/factores/${encodeURIComponent(clave)}`
     );
   }
 
-  // **Legacy**: con caché persistente + de-dup
   async getFactorConversionPorUnidadLegacy(clave: string, cluesimb: string): Promise<FactorUnidad> {
-    const key = `${clave}|${cluesimb}`;
+    const key = this.getFactorKey(clave, cluesimb);
 
-    // 1) Mem cache
     const hitMem = this.memCache.get(key);
     if (hitMem) return hitMem;
 
-    // 2) Storage cache (con TTL)
     const hitStore = this.getFromStorage(key);
     if (hitStore) {
       this.memCache.set(key, hitStore);
       return hitStore;
     }
 
-    // 3) De-dupe si ya hay una llamada en progreso para el mismo key
     const pendingHit = this.pending.get(key);
     if (pendingHit) return pendingHit;
 
-    // 4) Llamada al backend (y guardar en memoria + storage)
     const p = (async () => {
       try {
         const params = new HttpParams().set('clave', clave).set('clues', cluesimb);
@@ -70,16 +65,14 @@ export class TrazabilidadService {
         const factor: FactorUnidad = {
           clave,
           cluesimb,
-          en_dispensacion: typeof raw.en_dispensacion === 'boolean' ? (raw.en_dispensacion ? 1 : 0)
-                              : (raw.en_dispensacion ?? 0),
-          cantidad_fc: raw.cantidad_fc ?? 1
+          en_dispensacion: this.toDispensacionFlag(raw.en_dispensacion),
+          cantidad_fc: Math.max(1, Number(raw.cantidad_fc ?? 1))
         };
 
         this.memCache.set(key, factor);
         this.saveToStorage(key, { en_dispensacion: factor.en_dispensacion, cantidad_fc: factor.cantidad_fc, ts: Date.now() });
         return factor;
       } catch {
-        // Fallback suave + TTL corto (evita loops si el backend está caído)
         const fallback: FactorUnidad = { clave, cluesimb, en_dispensacion: 0, cantidad_fc: 1 };
         this.memCache.set(key, fallback);
         this.saveToStorage(key, { en_dispensacion: 0, cantidad_fc: 1, ts: Date.now() });
@@ -93,63 +86,81 @@ export class TrazabilidadService {
     return p;
   }
 
-  /**
-   * Tiene la misma funcionalidad que getFactorConversionPorUnidadLegacy, pero en lugar de hacer la llamada al backend,
-   * busca el factor en memoria o en caché persistente. 
-   * Si no lo halla, regresa fallback ({ clave, cluesimb, en_dispensacion: 0, cantidad_fc: 1 }).
-   * @param clave 
-   * @param cluesimb 
-   */
   async getFactorConversionPorUnidad(clave: string, cluesimb: string): Promise<FactorUnidad> {
-    const key = `${clave}|${cluesimb}`;
+    const key = this.getFactorKey(clave, cluesimb);
 
-    // 1) Mem cache
     const hitMem = this.memCache.get(key);
     if (hitMem) return hitMem;
-    // 2) Storage cache (con TTL)
+
     const hitStore = this.getFromStorage(key);
     if (hitStore) {
       this.memCache.set(key, hitStore);
       return hitStore;
     }
 
+    await this.allFactoresPromise;
+
+    const hitPostLoad = this.memCache.get(key);
+    if (hitPostLoad) return hitPostLoad;
+
     return { clave, cluesimb, en_dispensacion: 0, cantidad_fc: 1 };
   }
 
-  /**
-   * Metodo a ejecutar cuando se inicia la aplicacion para precargar todos los factores de conversion.
-   * Afortunadamente la bd no es tan grande y podemos traerlos todos de una sola vez.
-   * Esto ayuda a reducir la latencia y evitar llamadas al backend.
-   * @returns 
-   */
   private async cargarAllFactoresConversion() {
-    const allFactores = await firstValueFrom(
-        this.http
-        .get<FactoresResponse>(`${environment.apiUrl}/trazabilidad/all-factores-conversion`));
+    try {
+      const allFactores = await firstValueFrom(
+        this.http.get<FactoresResponse>(`${environment.apiUrl}/trazabilidad/all-factores-conversion-v2`)
+      );
 
-    if (!allFactores.success || !allFactores.data) {
-      // limpiar caché si la carga falla
-      this.memCache.clear();
-      // limpiar this.STORAGE_KEY
-      localStorage.removeItem(this.STORAGE_KEY);
-      return;
-    }
+      if (!allFactores.success || !Array.isArray(allFactores.data)) {
+        this.memCache.clear();
+        localStorage.removeItem(this.STORAGE_KEY);
+        return;
+      }
 
-    // Procesar los factores y guardarlos en caché
-    for (const [clave, factor] of Object.entries(allFactores.data)) {
-      const key = `${clave}|${factor.cluesimb}`;
-      const factorUnidad: FactorUnidad = {
-        clave,
-        cluesimb: factor.cluesimb,
-        en_dispensacion: typeof factor.factor === 'boolean' ? (factor.factor ? 1 : 0) : factor.factor,
-        cantidad_fc: factor.factor ?? 1
-      };
-      this.memCache.set(key, factorUnidad);
-      this.saveToStorage(key, { en_dispensacion: factorUnidad.en_dispensacion, cantidad_fc: factorUnidad.cantidad_fc, ts: Date.now() });
+      this.saveAllToCache(allFactores.data);
+    } catch {
+      // Keep any restored localStorage cache; callers fall back to factor 1 if needed.
     }
   }
 
-  // ---------- Helpers de caché persistente ----------
+  private saveAllToCache(factores: FactorConversion[]) {
+    const now = Date.now();
+    const storage: Record<string, CachedFactor> = {};
+
+    for (const factor of factores) {
+      const factorUnidad = this.toFactorUnidad(factor);
+      if (!factorUnidad) continue;
+
+      const key = this.getFactorKey(factorUnidad.clave, factorUnidad.cluesimb);
+      this.memCache.set(key, factorUnidad);
+      storage[key] = {
+        en_dispensacion: factorUnidad.en_dispensacion,
+        cantidad_fc: factorUnidad.cantidad_fc,
+        ts: now
+      };
+    }
+
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(storage));
+    } catch { /* noop */ }
+  }
+
+  private toFactorUnidad(factor: FactorConversion): FactorUnidad | null {
+    const clave = `${factor?.clave ?? ''}`.trim();
+    const cluesimb = `${factor?.cluesimb ?? ''}`.trim();
+    const cantidadFc = Math.max(1, Number(factor?.factor ?? 1));
+
+    if (!clave || !cluesimb || !Number.isFinite(cantidadFc)) return null;
+
+    return {
+      clave,
+      cluesimb,
+      en_dispensacion: cantidadFc > 1 ? 1 : 0,
+      cantidad_fc: cantidadFc
+    };
+  }
+
   private restoreFromStorage() {
     try {
       const raw = localStorage.getItem(this.STORAGE_KEY);
@@ -162,8 +173,8 @@ export class TrazabilidadService {
           this.memCache.set(k, {
             clave,
             cluesimb,
-            en_dispensacion: typeof v.en_dispensacion === 'boolean' ? (v.en_dispensacion ? 1 : 0) : v.en_dispensacion,
-            cantidad_fc: v.cantidad_fc ?? 1
+            en_dispensacion: this.toDispensacionFlag(v.en_dispensacion),
+            cantidad_fc: Math.max(1, Number(v.cantidad_fc ?? 1))
           });
         }
       }
@@ -178,12 +189,13 @@ export class TrazabilidadService {
       const item = obj[key];
       if (!item) return null;
       if (Date.now() - item.ts > this.TTL_MS) return null;
+
       const [clave, cluesimb] = key.split('|');
       return {
         clave,
         cluesimb,
-        en_dispensacion: typeof item.en_dispensacion === 'boolean' ? (item.en_dispensacion ? 1 : 0) : item.en_dispensacion,
-        cantidad_fc: item.cantidad_fc ?? 1
+        en_dispensacion: this.toDispensacionFlag(item.en_dispensacion),
+        cantidad_fc: Math.max(1, Number(item.cantidad_fc ?? 1))
       };
     } catch {
       return null;
@@ -195,14 +207,14 @@ export class TrazabilidadService {
       const raw = localStorage.getItem(this.STORAGE_KEY);
       const obj: Record<string, CachedFactor> = raw ? JSON.parse(raw) : {};
       obj[key] = value;
-      // (Opcional) límite de tamaño simple: si supera 10k entradas, purga por antigüedad
+
       const MAX = 10000;
       const keys = Object.keys(obj);
       if (keys.length > MAX) {
         keys
           .map(k => [k, obj[k]?.ts ?? 0] as const)
           .sort((a, b) => a[1] - b[1])
-          .slice(0, keys.length - MAX + 100) // purga un colchón
+          .slice(0, keys.length - MAX + 100)
           .forEach(([k]) => delete obj[k]);
       }
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(obj));
@@ -224,5 +236,14 @@ export class TrazabilidadService {
       }
       if (changed) localStorage.setItem(this.STORAGE_KEY, JSON.stringify(obj));
     } catch { /* noop */ }
+  }
+
+  private toDispensacionFlag(value: number | boolean | undefined | null) {
+    if (typeof value === 'boolean') return value ? 1 : 0;
+    return Number(value ?? 0) > 0 ? 1 : 0;
+  }
+
+  private getFactorKey(clave: string, cluesimb: string) {
+    return `${clave}|${cluesimb}`;
   }
 }

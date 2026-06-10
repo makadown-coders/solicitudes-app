@@ -48,7 +48,7 @@ La referencia por numero puede cambiar con el tiempo; el criterio oficial es sie
     `getCpmForClave(clave, cluesimb?)`, `isClaveInKit(clave, cluesimb?)`, `getKitCountFor(cluesimb)`, `getKitCodigosFor(cluesimb)`;  
     mantiene API **legacy** (`cpms$`) para compatibilidad.
   - `FeatureFlagsService`: `GET /solicitudes-config/effective`, `GET /solicitudes-config/allowlist-unidades`, `PATCH /solicitudes-config`.
-  - `TrazabilidadService`: `GET /trazabilidad`, `GET /trazabilidad/all-factores-conversion`, `GET /factores/factor` (legacy).
+  - `TrazabilidadService`: `GET /trazabilidad`, `GET /trazabilidad/all-factores-conversion-v2`, `GET /factores/factor` (legacy).
 - **Robustez**:
   - Getter `cluesimbActual` **defensivo** para evitar warnings de Angular.
   - **Bugs resueltos**:
@@ -97,7 +97,7 @@ styles.css                # Tailwind, utilidades y estilos globales
 - **CPMs esperados vs. unidad**: `GET /api/cpms/expected-vs?cluesimb=...`
 - **Existencias temporales**: `GET /api/existencias-temp/by-unidad?cluesimb=...`
 - **Trazabilidad**: `GET /api/trazabilidad?clave=...&cluesimb=...`
-- **Factores de conversión**: `GET /api/trazabilidad/all-factores-conversion`, `GET /api/factores/factor?clave=...&clues=...`
+- **Factores de conversión**: `GET /api/trazabilidad/all-factores-conversion-v2`, `GET /api/factores/factor?clave=...&clues=...`
 - **Feature flags**: `GET /api/solicitudes-config/effective?cluesimb=...&nivel=...`
 - **Allowlist de unidades**: `GET /api/solicitudes-config/allowlist-unidades`
 

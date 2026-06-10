@@ -206,21 +206,34 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     }
 
     private async getFactor(clave: string, cluesimb: string): Promise<FactorUnidad> {
-        const key = `${clave}|${cluesimb}`;
-        const cached = this.factorMap.get(key);
-        if (cached) return cached;
-
-        const resp = await this.trazabilidadService.getFactorConversionPorUnidad(clave, cluesimb);
-
-        const factor: FactorUnidad = {
+        const factor = this.normalizeFactor(
+            await this.trazabilidadService.getFactorConversionPorUnidad(clave, cluesimb),
             clave,
-            cluesimb,
-            en_dispensacion: (!!(resp as any)?.en_dispensacion) ? 1 : 0,
-            cantidad_fc: Math.max(1, Number((resp as any)?.cantidad_fc ?? 1)),
-        };
+            cluesimb
+        );
 
-        this.factorMap.set(key, factor);
+        this.factorMap.set(this.factorKey(clave, cluesimb), factor);
         return factor;
+    }
+
+    private normalizeFactor(resp: FactorUnidad | null | undefined, clave: string, cluesimb: string): FactorUnidad {
+        const cantidadFc = Math.max(1, Number(resp?.cantidad_fc ?? 1));
+        const enDispensacion = Number(resp?.en_dispensacion ?? 0) > 0 || cantidadFc > 1;
+
+        return {
+            clave: resp?.clave || clave,
+            cluesimb: resp?.cluesimb || cluesimb,
+            en_dispensacion: enDispensacion ? 1 : 0,
+            cantidad_fc: cantidadFc,
+        };
+    }
+
+    private factorKey(clave: string, cluesimb: string): string {
+        return `${clave.trim()}|${cluesimb.trim()}`;
+    }
+
+    private roundToTwo(value: number): number {
+        return Math.round((value + Number.EPSILON) * 100) / 100;
     }
 
     reiniciarBusquedaClave() {
@@ -334,6 +347,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
         for (const municipio of JURISDICCION_ALMACENES) {
             const hospitalesDeJurisdiccion = hospitalesPorJurisdiccion.get(municipio) ?? [];
             const unidadesResumen: UnidadClaveResumen[] = [];
+            console.log('Procesando municipio', municipio, 'con', hospitalesDeJurisdiccion.length, 'hospitales');
             agrupadoPorAlmacen.set(municipio, unidadesResumen);
 
             for (const hospital of hospitalesDeJurisdiccion) {
@@ -352,20 +366,32 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
                 unidadResumen.clave.cpm = cpm;
                 unidadResumen.clave.existencia = existenciaDisp;
 
+                if (clave === '010.000.0254.00' ) {
+                    console.log('Existencia en unidad', hospitalClues, existenciaDisp, 'CPM:', cpm);
+                }
+
                 const factorTask = this.getFactor(clave, hospitalClues).then((factor) => {
                     const enDisp = !!factor.en_dispensacion;
                     const fc = factor.cantidad_fc;
 
+                    if (clave === '010.000.0254.00' ) {
+                      console.log('Factor para unidad', hospitalClues, factor);
+                      console.log('Existencia en unidad', existenciaDisp, 'CPM:', cpm);
+                    }
+
                     const existenciaBase = enDisp && fc > 1
-                        ? Math.floor(existenciaDisp / fc)
+                        ? this.roundToTwo(existenciaDisp / fc)
                         : existenciaDisp;
 
                     unidadResumen.clave.existencia = existenciaBase;
                     unidadResumen.clave.reposicion = cpm > existenciaBase ? (cpm - existenciaBase) : 0;
+                    unidadResumen.factorConversion = factor;
+                    unidadResumen.existenciaDispensacion = existenciaDisp;
                     (unidadResumen as any)._existenciaDisp = existenciaDisp;
                 });
                 factorTasks.push(factorTask);
 
+                console.log('unidadesResumen', unidadesResumen);
                 unidadesResumen.push(unidadResumen);
             }
             // calcular existencia de almacen
@@ -382,6 +408,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
             }
         }
 
+        console.log('Ejecutando tareas de factor de conversión para cada unidad...');
         await Promise.all(factorTasks);
 
         // Construir estructura final
@@ -410,11 +437,21 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     }
 
     private mostrarQueEstoyViendo() {
-        this.mostrarNotaFactor = Array.from(this.factorMap.entries())
-            .some(([key, f]) => key.startsWith(`${this.claveFiltrada}|`) &&
-                f.en_dispensacion === 1 &&
-                (f.cantidad_fc ?? 1) > 1
-            );
+        this.mostrarNotaFactor = this.getFactoresDeClaveActual()
+            .some(f => f.en_dispensacion === 1 && (f.cantidad_fc ?? 1) > 1);
+    }
+
+    private getFactoresDeClaveActual(): FactorUnidad[] {
+        const factoresPorUnidad = this.datosAgrupados
+            .flatMap(almacen => almacen.unidades)
+            .map(unidad => unidad.factorConversion)
+            .filter((factor): factor is FactorUnidad => !!factor);
+
+        if (factoresPorUnidad.length) return factoresPorUnidad;
+
+        return Array.from(this.factorMap.entries())
+            .filter(([key]) => key.startsWith(`${this.claveFiltrada}|`))
+            .map(([, factor]) => factor);
     }
 
     /**
@@ -584,7 +621,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     getTooltipExistencia(unidad: any): string {
         if (!unidad) return '—';
 
-        const key = `${this.claveFiltrada}|${unidad.cluesimb}`;
+        const key = this.factorKey(this.claveFiltrada, unidad.cluesimb);
         const factor = this.factorMap.get(key);  // 👈 usar el map real
 
         if (!factor) return '—';
