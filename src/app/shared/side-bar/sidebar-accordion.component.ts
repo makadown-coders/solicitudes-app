@@ -30,7 +30,7 @@ export class SidebarAccordionComponent {
       { type: 'group', id: 'analisis', label: 'Análisis de Abasto', children: [
         { type: 'link', id: 'xclave', label: 'xClave', route: 'analisis/xclave' },
         { type: 'link', id: 'homologos', label: 'Homologos', route: 'analisis/homologos' },
-        { type: 'link', id: 'balanceo', label: 'Balanceo (beta)', route: 'analisis/balanceo' },
+        /*{ type: 'link', id: 'balanceo', label: 'Balanceo (beta)', route: 'analisis/balanceo' },*/
         { type: 'link', id: 'balanceo-v2', label: 'Balanceo V2', route: 'analisis/balanceo-v2' },
         { type: 'link', id: 'ib-onco', label: 'IB-ONCO', route: 'ib-onco' },
       ]},

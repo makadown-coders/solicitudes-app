@@ -95,6 +95,11 @@ export const routes: Routes = [
       .then(m => m.CargaExistenciasComponent)
   },
   {
+    path: 'carga-masiva-reportes-cpm',
+    loadComponent: () => import('./features/carga-masiva/carga-reportes-cpm.component')
+      .then(m => m.CargaReportesCpmComponent)
+  },
+  {
     path: 'carga-masiva-citas',
     loadComponent: () => import('./features/carga-masiva/carga-citas.component')
       .then(m => m.CargaCitasComponent)
