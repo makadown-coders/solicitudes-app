@@ -1,0 +1,122 @@
+<div class="p-6 mx-auto max-w-5xl space-y-6">
+  <div>
+    <h1 class="text-2xl font-bold text-green-800">📊 Carga de reportes semanales CPM</h1>
+    <p class="mt-2 text-sm text-gray-600">
+      Selecciona uno o varios archivos con nombre
+      <code>Reporte_cpm_YYYY-MM-DD.xls</code> o <code>.xlsx</code>.
+      La fecha de corte se obtiene del nombre del archivo.
+    </p>
+  </div>
+
+  <div class="p-5 bg-white rounded-lg shadow border space-y-4">
+    <input
+      type="file"
+      multiple
+      accept=".xls,.xlsx"
+      id="filesReporteCpm"
+      class="hidden"
+      (change)="onFilesSelected($event)"
+    />
+
+    <div class="flex flex-wrap items-center gap-4">
+      <label
+        for="filesReporteCpm"
+        class="px-4 py-2 text-white bg-emerald-700 cursor-pointer rounded hover:bg-emerald-800"
+      >
+        Seleccionar archivo(s)
+      </label>
+
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" [(ngModel)]="truncateTable" />
+        Limpiar toda la tabla antes de cargar
+      </label>
+    </div>
+
+    <p class="text-xs text-gray-500">
+      Con la opción apagada se conserva el historial. Si ya existe la misma fecha y CLUES,
+      el registro se actualiza en lugar de duplicarse.
+    </p>
+  </div>
+
+  @if (files.length > 0) {
+    <div class="overflow-x-auto bg-white rounded-lg shadow border">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-100 text-left">
+          <tr>
+            <th class="px-4 py-3">Archivo</th>
+            <th class="px-4 py-3">Fecha</th>
+            <th class="px-4 py-3 text-right">Filas</th>
+            <th class="px-4 py-3">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (file of files; track file.name) {
+            <tr class="border-t">
+              <td class="px-4 py-3">{{ file.name }}</td>
+              <td class="px-4 py-3">{{ file.fechaCorte || 'No detectada' }}</td>
+              <td class="px-4 py-3 text-right">{{ file.rowCount }}</td>
+              <td class="px-4 py-3">
+                @if (file.valid) {
+                  <span class="font-medium text-emerald-700">Válido</span>
+                } @else {
+                  <span class="font-medium text-red-700">Revisar</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (warnings.length > 0) {
+    <div class="p-4 border border-amber-300 bg-amber-50 rounded-lg">
+      <h2 class="font-semibold text-amber-900">Advertencias</h2>
+      <ul class="mt-2 pl-5 list-disc text-sm text-amber-900 space-y-1">
+        @for (warning of warnings; track $index) {
+          <li>{{ warning }}</li>
+        }
+      </ul>
+    </div>
+  }
+
+  @if (errors.length > 0) {
+    <div class="p-4 border border-red-300 bg-red-50 rounded-lg">
+      <h2 class="font-semibold text-red-900">Errores</h2>
+      <ul class="mt-2 pl-5 list-disc text-sm text-red-900 space-y-1">
+        @for (error of errors; track $index) {
+          <li>{{ error }}</li>
+        }
+      </ul>
+    </div>
+  }
+
+  <div class="flex items-center justify-between gap-4">
+    <p class="text-sm text-gray-600">{{ statusText }}</p>
+
+    <button
+      type="button"
+      (click)="upload()"
+      [disabled]="!canUpload"
+      class="px-6 py-2 text-white font-semibold bg-green-700 rounded-lg cursor-pointer shadow hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      ⬆️ Cargar {{ rows.length }} filas
+    </button>
+  </div>
+
+  @if (isParsing || isUploading) {
+    <div class="z-50 fixed inset-0 flex items-center justify-center bg-black/50">
+      <div class="p-6 w-96 text-center bg-white rounded-lg shadow-lg">
+        <h2 class="mb-4 text-lg font-semibold">
+          {{ isParsing ? 'Leyendo archivos...' : 'Subiendo datos...' }}
+        </h2>
+        <div class="overflow-hidden w-full h-4 bg-gray-200 rounded-full">
+          <div class="h-4 bg-emerald-600" [style.width.%]="isParsing ? 100 : progress"></div>
+        </div>
+        <p class="mt-3 text-sm text-gray-600">
+          {{ isParsing ? statusText : (progress | number:'1.0-0') + '%' }}
+        </p>
+      </div>
+    </div>
+  }
+</div>
