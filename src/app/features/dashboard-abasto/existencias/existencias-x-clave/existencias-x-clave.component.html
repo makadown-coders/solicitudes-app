@@ -53,7 +53,13 @@
               @if (esControlado) {
                 <p class="text-red-700"> Medicamento Controlado </p>
               }
-              <p class="text-sm"> <strong>Clasif. VEN:</strong> {{ clasificacion }}</p>
+              @if (cpmEstatal > 0) {
+                <p class="text-sm">
+                  <strong>CPM estatal:</strong> {{ cpmEstatal | number:'1.0-2' }}
+                </p>
+              } @else {
+                <p class="text-sm"><strong>Sin CPM en el estado</strong></p>
+              }
               @if (citaParaDescripcionDeClave)
                 {
                 <p class="text-sm">
