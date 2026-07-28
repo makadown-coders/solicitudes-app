@@ -10,8 +10,6 @@ import { hospitalesData } from '../../../../models/hospitalesData';
 import { AlmacenClaveResumen } from '../../../../models/almacen-clave-resumen.model';
 import { UnidadClaveResumen } from '../../../../models/unidad-clave-resumen.model';
 import { ArticulosService } from '../../../../services/articulos.service';
-import { clasificacionMedicamentosData } from '../../../../models/clasificacionMedicamentosData';
-import { ClasificadorVEN } from '../../../../models/clasificador-ven';
 import { InventarioService } from '../../../../services/inventario.service';
 import { StorageVariables } from '../../../../shared/storage-variables';
 import { Articulo } from '../../../../models/articulo-solicitud';
@@ -75,10 +73,15 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     claveFiltrada = '';
     descripcion = '';
     unidad = '';
-    clasificacion = ''; // aún no disponible
     claveConfirmada = false;
 
     datosAgrupados: AlmacenClaveResumen[] = [];
+
+    get cpmEstatal(): number {
+        return this.datosAgrupados
+            .flatMap(almacen => almacen.unidades)
+            .reduce((total, unidad) => total + Math.max(0, Number(unidad.clave.cpm) || 0), 0);
+    }
 
     autocompleteResults: any[] = [];
     moreResults = false;
@@ -193,8 +196,6 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
             }
             this.descripcion = item.descripcion;
             this.unidad = item.unidadMedida ?? item.presentacion ?? '';
-            const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
-            this.clasificacion = clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
             this.autocompleteResults = [];
             this.selectedIndex = -1;
             this.cdRef.detectChanges();
@@ -242,7 +243,6 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
         this.claveFiltrada = '';
         this.autocompleteResults = [];
         this.descripcion = '';
-        this.clasificacion = '';
         this.unidad = '';
         this.datosAgrupados = [];
         this.citasHalladasPorClave = [];
@@ -666,8 +666,6 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
                     this.claveFiltrada = item.clave;
                     this.descripcion = item.descripcion;
                     this.unidad = item.presentacion ?? '';
-                    const clasificacion = clasificacionMedicamentosData.find(c => c.clave === item.clave);
-                    this.clasificacion = clasificacion ? ClasificadorVEN[clasificacion.ven] : '-';
                     // obtener de DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE
                     const citasls = localStorage.getItem(StorageVariables.DASH_ABASTO_EXISTENCIAS_CITAS_X_CLAVE);
                     if (citasls) {

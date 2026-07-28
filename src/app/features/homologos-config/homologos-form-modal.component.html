@@ -11,12 +11,12 @@
     <div class="modal-head">
       <div>
         <h2 id="homologo-form-title">{{ title }}</h2>
-        <p>Captura la clave base, su homólogo y el factor de conversión.</p>
+        <p>Relaciona dos claves que pueden sustituirse entre sí. Su posición no establece prioridad.</p>
       </div>
       <button
         type="button"
         class="icon-btn"
-        aria-label="Cerrar formulario de homólogos"
+        aria-label="Cerrar formulario de relación de sustitución"
         (click)="cancel.emit()"
         [disabled]="saving"
       >
@@ -29,9 +29,9 @@
         <div class="field">
           <app-articulo-autocomplete
             #claveAutocomplete
-            label="Clave"
+            label="Clave A"
             inputId="homologo-clave"
-            placeholder="Buscar artículo para la clave"
+            placeholder="Buscar artículo para la clave A"
             [model]="claveControl.value"
             [required]="true"
             [invalid]="!!fieldError('clave')"
@@ -39,7 +39,7 @@
             (modelChange)="onClaveInput($event)"
             (selected)="onClaveSelected($event)"
           />
-          <p id="homologo-clave-hint" class="field-hint">Puedes escribir la clave o elegirla del autocompletado.</p>
+          <p id="homologo-clave-hint" class="field-hint">Primera clave de la relación.</p>
           @if (claveDescripcion) {
             <div class="picked ok">{{ claveDescripcion }}</div>
           }
@@ -50,9 +50,9 @@
 
         <div class="field">
           <app-articulo-autocomplete
-            label="Sustituto"
+            label="Clave B"
             inputId="homologo-sustituto"
-            placeholder="Buscar artículo homólogo"
+            placeholder="Buscar artículo para la clave B"
             [model]="sustitutoControl.value"
             [required]="true"
             [invalid]="!!fieldError('sustituto')"
@@ -60,7 +60,7 @@
             (modelChange)="onSustitutoInput($event)"
             (selected)="onSustitutoSelected($event)"
           />
-          <p id="homologo-sustituto-hint" class="field-hint">Selecciona el artículo alternativo que sustituye la clave base.</p>
+          <p id="homologo-sustituto-hint" class="field-hint">Segunda clave de la relación; puede sustituir a la clave A y viceversa.</p>
           @if (sustitutoDescripcion) {
             <div class="picked ok">{{ sustitutoDescripcion }}</div>
           }
@@ -70,7 +70,7 @@
         </div>
 
         <div class="field">
-          <label class="field-label" for="homologo-factor">Factor</label>
+          <label class="field-label" for="homologo-factor">Factor de conversión A → B</label>
           <input
             id="homologo-factor"
             class="text-input"
@@ -80,7 +80,7 @@
             aria-describedby="homologo-factor-hint homologo-factor-error"
             [attr.aria-invalid]="!!fieldError('factor')"
           />
-          <p id="homologo-factor-hint" class="field-hint">Usa números enteros o decimales según la conversión requerida.</p>
+          <p id="homologo-factor-hint" class="field-hint">Cantidad de la clave B equivalente a una unidad de la clave A.</p>
           @if (fieldError('factor'); as error) {
             <p id="homologo-factor-error" class="field-error">{{ error }}</p>
           }
@@ -90,7 +90,7 @@
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" (click)="cancel.emit()" [disabled]="saving">Cancelar</button>
         <button type="submit" class="btn btn-primary" [disabled]="saving">
-          {{ saving ? 'Guardando...' : mode === 'create' ? 'Crear homologo' : 'Guardar cambios' }}
+          {{ saving ? 'Guardando...' : mode === 'create' ? 'Crear relación' : 'Guardar cambios' }}
         </button>
       </div>
     </form>

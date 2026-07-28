@@ -112,7 +112,7 @@ export class HomologosConfigComponent {
         this.loading.set(false);
       },
       error: (err) => {
-        const message = err?.error?.error ?? 'No fue posible cargar los homólogos.';
+        const message = err?.error?.error ?? 'No fue posible cargar las relaciones.';
         this.error.set(message);
         this.loading.set(false);
       },
@@ -198,10 +198,10 @@ export class HomologosConfigComponent {
     if (this.formMode() === 'create') {
       this.api.create({ ...payload, factor }).subscribe({
         next: () => {
-          this.handleMutationSuccess('Homólogo creado correctamente.');
+          this.handleMutationSuccess('Relación creada correctamente.');
         },
         error: (err) => {
-          this.handleMutationError(err?.error?.error ?? 'No fue posible crear el homólogo.');
+          this.handleMutationError(err?.error?.error ?? 'No fue posible crear la relación.');
         },
       });
       return;
@@ -215,10 +215,10 @@ export class HomologosConfigComponent {
 
     this.api.update(id, { ...payload, factor }).subscribe({
       next: () => {
-        this.handleMutationSuccess('Homólogo actualizado correctamente.');
+        this.handleMutationSuccess('Relación actualizada correctamente.');
       },
       error: (err) => {
-        this.handleMutationError(err?.error?.error ?? 'No fue posible actualizar el homólogo.');
+        this.handleMutationError(err?.error?.error ?? 'No fue posible actualizar la relación.');
       },
     });
   }
@@ -234,16 +234,16 @@ export class HomologosConfigComponent {
       next: () => {
         this.deleting.set(false);
         this.deleteTarget.set(null);
-        this.message.set('Homólogo eliminado correctamente.');
+        this.message.set('Relación eliminada correctamente.');
         this.toast.success({
-          title: 'Homólogo eliminado',
-          content: `${target.clave} -> ${target.sustituto} fue eliminado.`,
+          title: 'Relación eliminada',
+          content: `Se eliminó la relación entre ${target.clave} y ${target.sustituto}.`,
           duration: 5,
         });
         this.loadAll();
       },
       error: (err) => {
-        const message = err?.error?.error ?? 'No fue posible eliminar el homólogo.';
+        const message = err?.error?.error ?? 'No fue posible eliminar la relación.';
         this.deleting.set(false);
         this.error.set(message);
         this.toast.error({

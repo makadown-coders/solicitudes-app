@@ -2,26 +2,26 @@
   <header class="hero">
     <div>
       <p class="eyebrow">Administración</p>
-      <h1>Claves alternativas / Homólogos</h1>
+      <h1>Relaciones de sustitución</h1>
       <p class="hero-copy">
-        Administra relaciones de sustitución entre claves con búsqueda, edición rápida y seguimiento claro del catálogo.
+        Vincula claves que pueden surtirse entre sí cuando alguna no tenga existencias suficientes. Ambas claves tienen el mismo nivel dentro de la relación.
       </p>
     </div>
 
     <button type="button" class="primary-cta" (click)="openCreate()">
-      Nuevo homólogo
+      Nueva relación
     </button>
   </header>
 
-  <section class="toolbar card" aria-label="Filtros de homólogos">
+  <section class="toolbar card" aria-label="Filtros de relaciones de sustitución">
     <div class="search-block">
-      <label class="search-label" for="homologos-search">Buscar homólogos</label>
+      <label class="search-label" for="homologos-search">Buscar relaciones</label>
       <div class="search-input-wrap">
         <input
           id="homologos-search"
           class="search-input"
           type="search"
-          placeholder="Clave, descripción, sustituto o factor"
+          placeholder="Clave A, clave B, descripción o factor"
           [value]="search()"
           (input)="onSearchInput($any($event.target).value)"
         />
@@ -66,7 +66,7 @@
 
   <section class="summary-grid">
     <article class="summary-card card">
-      <span class="summary-label">Total de homologaciones</span>
+      <span class="summary-label">Total de relaciones</span>
       <strong>{{ allItems().length }}</strong>
       <small>Catálogo cargado desde la API actual.</small>
     </article>
@@ -93,8 +93,10 @@
   <section class="card listing-card" aria-labelledby="homologos-table-title">
     <div class="table-head">
       <div>
-        <h2 id="homologos-table-title">Listado de homólogos</h2>
-        <p>Ordena por columna y administra cada relación desde la misma pantalla.</p>
+        <h2 id="homologos-table-title">Claves relacionadas</h2>
+        <p>Las claves A y B pueden sustituirse entre sí; su posición no indica prioridad.
+           Para conocer las condiciones de uso y el factor de conversión, consulte con el área médica.
+        </p>
       </div>
       <span class="table-count">{{ total() }} registro(s)</span>
     </div>
@@ -102,7 +104,7 @@
     @if (loading()) {
       <div class="state-panel" role="status" aria-live="polite">
         <div class="spinner" aria-hidden="true"></div>
-        <p>Cargando homólogos...</p>
+        <p>Cargando relaciones...</p>
       </div>
     } @else if (error() && !hasRows()) {
       <div class="state-panel error-state" role="alert">
@@ -112,9 +114,9 @@
       </div>
     } @else if (!hasRows()) {
       <div class="state-panel empty-state" role="status">
-        <h3>No hay homólogos registrados</h3>
+        <h3>No hay relaciones registradas</h3>
         <p>Cuando el catálogo tenga registros aparecerán aquí para administrarlos.</p>
-        <button type="button" class="secondary-btn" (click)="openCreate()">Crear primer homólogo</button>
+        <button type="button" class="secondary-btn" (click)="openCreate()">Crear primera relación</button>
       </div>
     } @else if (total() === 0) {
       <div class="state-panel empty-state" role="status">
@@ -134,27 +136,27 @@
               </th>
               <th scope="col">
                 <button type="button" class="sort-btn" (click)="toggleSort('clave')">
-                  Clave <span class="sort-indicator">{{ sortLabel('clave') }}</span>
+                  Clave A <span class="sort-indicator">{{ sortLabel('clave') }}</span>
                 </button>
               </th>
               <th scope="col">
                 <button type="button" class="sort-btn" (click)="toggleSort('claveDescripcion')">
-                  Descripción clave <span class="sort-indicator">{{ sortLabel('claveDescripcion') }}</span>
+                  Descripción A <span class="sort-indicator">{{ sortLabel('claveDescripcion') }}</span>
                 </button>
               </th>
               <th scope="col">
                 <button type="button" class="sort-btn" (click)="toggleSort('sustituto')">
-                  Sustituto <span class="sort-indicator">{{ sortLabel('sustituto') }}</span>
+                  Clave B <span class="sort-indicator">{{ sortLabel('sustituto') }}</span>
                 </button>
               </th>
               <th scope="col">
                 <button type="button" class="sort-btn" (click)="toggleSort('sustitutoDescripcion')">
-                  Descripción sustituto <span class="sort-indicator">{{ sortLabel('sustitutoDescripcion') }}</span>
+                  Descripción B <span class="sort-indicator">{{ sortLabel('sustitutoDescripcion') }}</span>
                 </button>
               </th>
               <th scope="col">
                 <button type="button" class="sort-btn" (click)="toggleSort('factor')">
-                  Factor <span class="sort-indicator">{{ sortLabel('factor') }}</span>
+                  Factor A → B <span class="sort-indicator">{{ sortLabel('factor') }}</span>
                 </button>
               </th>
               <th scope="col" class="actions-col">Acciones</th>
@@ -178,7 +180,7 @@
                     type="button"
                     class="secondary-btn compact"
                     (click)="openEdit(row)"
-                    [attr.aria-label]="'Editar homólogo ' + row.clave + ' a ' + row.sustituto"
+                    [attr.aria-label]="'Editar relación entre ' + row.clave + ' y ' + row.sustituto"
                   >
                     Editar
                   </button>
@@ -186,7 +188,7 @@
                     type="button"
                     class="danger-btn compact"
                     (click)="requestDelete(row)"
-                    [attr.aria-label]="'Eliminar homólogo ' + row.clave + ' a ' + row.sustituto"
+                    [attr.aria-label]="'Eliminar relación entre ' + row.clave + ' y ' + row.sustituto"
                   >
                     Eliminar
                   </button>
@@ -197,7 +199,7 @@
         </table>
       </div>
 
-      <footer class="pagination" aria-label="Paginación de homólogos">
+      <footer class="pagination" aria-label="Paginación de relaciones de sustitución">
         <div class="pagination-copy">
           Mostrando {{ showingFrom() }} a {{ showingTo() }} de {{ total() }} resultados
         </div>
@@ -245,8 +247,8 @@
 
 @if (deleteTarget(); as target) {
   <app-confirmacion-modal
-    titulo="Eliminar homólogo"
-    [mensaje]="'Se eliminará la relación ' + target.clave + ' -> ' + target.sustituto + '. Esta acción no se puede deshacer.'"
+    titulo="Eliminar relación"
+    [mensaje]="'Se eliminará la relación entre ' + target.clave + ' y ' + target.sustituto + '. Esta acción no se puede deshacer.'"
     textoCancelar="Cancelar"
     [textoConfirmar]="deleting() ? 'Eliminando...' : 'Eliminar'"
     (cancelar)="cancelDelete()"

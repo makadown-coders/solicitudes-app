@@ -59,7 +59,7 @@ export class HomologosFormModalComponent implements OnChanges, AfterViewInit {
   }
 
   get title(): string {
-    return this.mode === 'create' ? 'Nuevo homologo' : 'Editar homologo';
+    return this.mode === 'create' ? 'Nueva relación de sustitución' : 'Editar relación de sustitución';
   }
 
   get claveControl() {
@@ -127,8 +127,8 @@ export class HomologosFormModalComponent implements OnChanges, AfterViewInit {
     if (!(control.touched || control.dirty) || !control.errors) return null;
 
     if (control.errors['required']) {
-      if (field === 'clave') return 'La clave es requerida.';
-      if (field === 'sustituto') return 'El sustituto es requerido.';
+      if (field === 'clave') return 'La clave A es requerida.';
+      if (field === 'sustituto') return 'La clave B es requerida.';
       return 'El factor es requerido.';
     }
 
