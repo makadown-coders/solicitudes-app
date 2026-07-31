@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
+import * as XLSX from 'xlsx';
 import { RadarGlobalClaveRiesgoRow, RadarGlobalSolicitudRow } from '../../../models/radar-abasto/RadarAbastoModels';
 import { ArticulosService } from '../../../services/articulos.service';
 import { RadarAbastoService } from '../../../services/radar-abasto.service';
@@ -24,6 +25,7 @@ export class RadarGlobalComponent implements OnInit {
   mode = signal<'snapshot' | 'timeline' | 'claves-riesgo'>('snapshot');
   vistaRiesgo = signal<'desabasto' | 'sobreabasto'>('desabasto');
   loading = signal(false);
+  exporting = signal(false);
   errorMsg = signal<string | null>(null);
   rows = signal<RadarGlobalSolicitudRow[]>([]);
   riesgoRows = signal<RadarGlobalClaveRiesgoRow[]>([]);
@@ -31,9 +33,7 @@ export class RadarGlobalComponent implements OnInit {
   topDesabasto = signal<RadarGlobalClaveRiesgoRow[]>([]);
   topSobreabasto = signal<RadarGlobalClaveRiesgoRow[]>([]);
 
-  clues = signal('');
-  tipoPedido = signal('');
-  tiposInsumo = signal('');
+  search = signal('');
   months = signal(3);
   minSolicitado = signal(1);
 
@@ -207,9 +207,7 @@ export class RadarGlobalComponent implements OnInit {
     try {
       if (this.mode() === 'snapshot') {
         const out = await this.radarService.listarGlobalSnapshot({
-          clues: (this.clues() || '').trim().toUpperCase(),
-          tipo_pedido: (this.tipoPedido() || '').trim().toUpperCase(),
-          tipos_insumo: (this.tiposInsumo() || '').trim().toUpperCase(),
+          search: this.search().trim(),
           page: this.page(),
           pageSize: this.pageSize(),
         });
@@ -227,9 +225,7 @@ export class RadarGlobalComponent implements OnInit {
       } else {
         if (this.mode() === 'timeline') {
           const out = await this.radarService.listarGlobalTimeline({
-            clues: (this.clues() || '').trim().toUpperCase(),
-            tipo_pedido: (this.tipoPedido() || '').trim().toUpperCase(),
-            tipos_insumo: (this.tiposInsumo() || '').trim().toUpperCase(),
+            search: this.search().trim(),
             months: this.months(),
             page: this.page(),
             pageSize: this.pageSize(),
@@ -247,9 +243,7 @@ export class RadarGlobalComponent implements OnInit {
           await this.cargarPreviewClaves();
         } else {
           const out = await this.radarService.listarGlobalClavesRiesgo({
-            clues: (this.clues() || '').trim().toUpperCase(),
-            tipo_pedido: (this.tipoPedido() || '').trim().toUpperCase(),
-            tipos_insumo: (this.tiposInsumo() || '').trim().toUpperCase(),
+            search: this.search().trim(),
             months: this.months(),
             minSolicitado: this.minSolicitado(),
             page: this.page(),
@@ -289,12 +283,128 @@ export class RadarGlobalComponent implements OnInit {
     }
   }
 
+  async exportarExcel(): Promise<void> {
+    if (this.exporting()) return;
+
+    this.exporting.set(true);
+    this.errorMsg.set(null);
+    try {
+      const mode = this.mode();
+      const search = this.search().trim();
+      const exportPageSize = mode === 'snapshot' ? 300 : 500;
+      let total = 0;
+      let detalle: Record<string, string | number | null>[] = [];
+
+      if (mode === 'snapshot') {
+        const first = await this.radarService.listarGlobalSnapshot({ search, page: 1, pageSize: exportPageSize });
+        const rows = [...(first.data ?? [])];
+        total = Number(first.total ?? rows.length);
+        for (let page = 2; page <= Math.ceil(total / exportPageSize); page += 1) {
+          const next = await this.radarService.listarGlobalSnapshot({ search, page, pageSize: exportPageSize });
+          rows.push(...(next.data ?? []));
+        }
+        detalle = rows.map(row => this.mapSolicitudExcel(row));
+      } else if (mode === 'timeline') {
+        const params = { search, months: this.months(), pageSize: exportPageSize };
+        const first = await this.radarService.listarGlobalTimeline({ ...params, page: 1 });
+        const rows = [...(first.data ?? [])];
+        total = Number(first.total ?? rows.length);
+        for (let page = 2; page <= Math.ceil(total / exportPageSize); page += 1) {
+          const next = await this.radarService.listarGlobalTimeline({ ...params, page });
+          rows.push(...(next.data ?? []));
+        }
+        detalle = rows.map(row => this.mapSolicitudExcel(row));
+      } else {
+        const params = {
+          search,
+          months: this.months(),
+          minSolicitado: this.minSolicitado(),
+          pageSize: exportPageSize,
+        };
+        const first = await this.radarService.listarGlobalClavesRiesgo({ ...params, page: 1 });
+        const rows = [...(first.data ?? [])];
+        total = Number(first.total ?? rows.length);
+        for (let page = 2; page <= Math.ceil(total / exportPageSize); page += 1) {
+          const next = await this.radarService.listarGlobalClavesRiesgo({ ...params, page });
+          rows.push(...(next.data ?? []));
+        }
+        detalle = rows.map(row => ({
+          CLUES: row.cluesimb,
+          'Nombre de unidad': row.nombre_de_unidad || this.nombreUnidad(row.cluesimb),
+          Clave: row.clave,
+          Descripción: row.descripcion || this.descripcionClave(row.clave),
+          'Veces solicitado': row.renglones_solicitados,
+          'Solicitado acumulado': row.solicitado_acumulado,
+          'Solicitado promedio': row.solicitado_promedio,
+          Existencia: row.existencia_actual,
+          CPM: row.consumo_promedio,
+          'Cobertura (días)': row.dias_cobertura,
+          'Entradas 30 días': row.entradas_30d,
+          'Salidas 30 días': row.salidas_30d,
+          'Última solicitud generada': row.ultima_solicitud,
+          'Puntaje desabasto': row.puntaje_desabasto,
+          'Nivel desabasto': row.nivel_desabasto,
+          'Puntaje sobreabasto': row.puntaje_sobreabasto,
+          'Nivel sobreabasto': row.nivel_sobreabasto,
+        }));
+      }
+
+      const workbook = XLSX.utils.book_new();
+      const info = XLSX.utils.aoa_to_sheet([
+        ['Radar Global de Abasto'],
+        ['Modo', mode],
+        ['Búsqueda', search || 'Sin filtro'],
+        ['Meses', mode === 'snapshot' ? 'No aplica' : this.months()],
+        ['Registros exportados', detalle.length],
+        ['Fecha de exportación', new Date().toLocaleString('es-MX')],
+        [],
+        ['IMPORTANTE'],
+        ['Esta información se basa en los archivos Excel generados desde la herramienta de solicitudes.'],
+        ['No confirma que las solicitudes hayan sido enviadas, recibidas o formalmente tramitadas.'],
+      ]);
+      info['!cols'] = [{ wch: 32 }, { wch: 80 }];
+      XLSX.utils.book_append_sheet(workbook, info, 'Información');
+
+      const detailSheet = XLSX.utils.json_to_sheet(detalle.length ? detalle : [{ Mensaje: 'Sin resultados' }]);
+      const range = XLSX.utils.decode_range(detailSheet['!ref'] ?? 'A1:A1');
+      detailSheet['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+      detailSheet['!cols'] = this.columnWidths(detalle);
+      XLSX.utils.book_append_sheet(workbook, detailSheet, mode === 'claves-riesgo' ? 'Riesgo por clave' : mode === 'timeline' ? 'Timeline' : 'Snapshot');
+
+      const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15);
+      XLSX.writeFile(workbook, `radar_global_${mode}_${stamp}.xlsx`, { bookType: 'xlsx' });
+    } catch {
+      this.errorMsg.set('No se pudo generar el archivo Excel del radar global.');
+    } finally {
+      this.exporting.set(false);
+    }
+  }
+
+  private mapSolicitudExcel(row: RadarGlobalSolicitudRow): Record<string, string | number | null> {
+    return {
+      Fecha: row.created_day,
+      CLUES: row.cluesimb,
+      'Nombre de unidad': this.nombreUnidad(row.cluesimb),
+      'Tipo de pedido': row.tipo_pedido,
+      'Tipo de insumo': row.tipos_insumo,
+      Periodo: row.periodo_texto,
+      'Veces solicitado': row.total_renglones,
+      'Solicitado acumulado': row.solicitado_acumulado,
+      'Solicitado promedio': row.solicitado_promedio,
+    };
+  }
+
+  private columnWidths(rows: Record<string, unknown>[]): XLSX.ColInfo[] {
+    if (!rows.length) return [{ wch: 24 }];
+    return Object.keys(rows[0]).map(key => ({
+      wch: Math.min(60, Math.max(key.length + 2, ...rows.slice(0, 200).map(row => String(row[key] ?? '').length + 2))),
+    }));
+  }
+
   private async cargarPreviewClaves(): Promise<void> {
     try {
       const out = await this.radarService.listarGlobalClavesRiesgo({
-        clues: (this.clues() || '').trim().toUpperCase(),
-        tipo_pedido: (this.tipoPedido() || '').trim().toUpperCase(),
-        tipos_insumo: (this.tiposInsumo() || '').trim().toUpperCase(),
+        search: this.search().trim(),
         months: this.months(),
         minSolicitado: 0,
         page: 1,

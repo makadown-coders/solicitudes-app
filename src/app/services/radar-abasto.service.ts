@@ -73,6 +73,7 @@ export class RadarAbastoService {
   }
 
   async listarGlobalSnapshot(params: {
+    search?: string;
     clues?: string;
     tipo_pedido?: string;
     tipos_insumo?: string;
@@ -80,6 +81,7 @@ export class RadarAbastoService {
     pageSize?: number;
   }): Promise<RadarGlobalSnapshotResponse> {
     let p = new HttpParams();
+    if (params.search) p = p.set('search', params.search);
     if (params.clues) p = p.set('clues', params.clues);
     if (params.tipo_pedido) p = p.set('tipo_pedido', params.tipo_pedido);
     if (params.tipos_insumo) p = p.set('tipos_insumo', params.tipos_insumo);
@@ -92,6 +94,7 @@ export class RadarAbastoService {
   }
 
   async listarGlobalTimeline(params: {
+    search?: string;
     clues?: string;
     tipo_pedido?: string;
     tipos_insumo?: string;
@@ -100,6 +103,7 @@ export class RadarAbastoService {
     pageSize?: number;
   }): Promise<RadarGlobalTimelineResponse> {
     let p = new HttpParams();
+    if (params.search) p = p.set('search', params.search);
     if (params.clues) p = p.set('clues', params.clues);
     if (params.tipo_pedido) p = p.set('tipo_pedido', params.tipo_pedido);
     if (params.tipos_insumo) p = p.set('tipos_insumo', params.tipos_insumo);
@@ -113,6 +117,7 @@ export class RadarAbastoService {
   }
 
   async listarGlobalClavesRiesgo(params: {
+    search?: string;
     clues?: string;
     tipo_pedido?: string;
     tipos_insumo?: string;
@@ -122,6 +127,7 @@ export class RadarAbastoService {
     pageSize?: number;
   }): Promise<RadarGlobalClavesRiesgoResponse> {
     let p = new HttpParams();
+    if (params.search) p = p.set('search', params.search);
     if (params.clues) p = p.set('clues', params.clues);
     if (params.tipo_pedido) p = p.set('tipo_pedido', params.tipo_pedido);
     if (params.tipos_insumo) p = p.set('tipos_insumo', params.tipos_insumo);
