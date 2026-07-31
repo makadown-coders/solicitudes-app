@@ -1,71 +1,80 @@
 ﻿<div class="space-y-4">
-  <div class="flex flex-col items-center justify-between gap-2 md:flex-row">
+  <div>
     <div>
       <h2 class="text-2xl font-semibold tracking-tight text-green-800 dark:text-[#CBA135]">
-        Radar Global de Abasto
+        Radar Herramienta de Solicitudes
       </h2>
       <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">
-        Vista global por solicitudes: snapshot actual (ultima combinación por Clues+ tipo perido + tipo insumo) o histórico (timeline).
+        Consulta los archivos generados desde la herramienta en tres vistas: Snapshot muestra el registro más reciente
+        por unidad y tipo de solicitud; Timeline presenta el historial del periodo; y Riesgo por clave combina lo generado
+        con existencias, CPM y movimientos para identificar posibles casos de desabasto o sobreabasto.
       </p>
+      <div class="mt-3 px-3 py-2 text-sm font-medium text-amber-900 bg-amber-50 border-amber-300 rounded-lg border dark:text-amber-100 dark:bg-amber-950/40 dark:border-amber-700">
+        <span class="font-bold">Importante:</span>
+        esta información se basa en los archivos Excel generados desde la herramienta de solicitudes.
+        No confirma que las solicitudes hayan sido enviadas, recibidas o formalmente tramitadas.
+      </div>
     </div>
-    <div class="flex gap-2">
+    <div class="flex flex-wrap gap-2 mt-3">
       <button
-        class="px-3 py-2 rounded-lg cursor-pointer border"
+        class="px-4 h-10 whitespace-nowrap rounded-lg cursor-pointer border"
         [class.bg-[#006341]]="mode() === 'snapshot'"
         [class.text-white]="mode() === 'snapshot'"
         [class.border-custom-default]="mode() !== 'snapshot'"
+        [attr.aria-pressed]="mode() === 'snapshot'"
+        title="Muestra el registro más reciente por unidad y tipo de solicitud"
         (click)="cambiarModo('snapshot')">
         Snapshot
       </button>
       <button
-        class="px-3 py-2 rounded-lg cursor-pointer border"
+        class="px-4 h-10 whitespace-nowrap rounded-lg cursor-pointer border"
         [class.bg-[#006341]]="mode() === 'timeline'"
         [class.text-white]="mode() === 'timeline'"
         [class.border-custom-default]="mode() !== 'timeline'"
+        [attr.aria-pressed]="mode() === 'timeline'"
+        title="Muestra el historial de archivos generados dentro del periodo seleccionado"
         (click)="cambiarModo('timeline')">
         Timeline
       </button>
       <button
-        class="px-3 py-2 rounded-lg cursor-pointer border"
+        class="px-4 h-10 whitespace-nowrap rounded-lg cursor-pointer border"
         [class.bg-[#006341]]="mode() === 'claves-riesgo'"
         [class.text-white]="mode() === 'claves-riesgo'"
         [class.border-custom-default]="mode() !== 'claves-riesgo'"
+        [attr.aria-pressed]="mode() === 'claves-riesgo'"
+        title="Prioriza posibles casos de desabasto y sobreabasto por clave y unidad"
         (click)="cambiarModo('claves-riesgo')">
         Riesgo por clave
       </button>
       <button
-        class="px-3 py-2 text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50"
+        class="px-4 h-10 whitespace-nowrap text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50"
         [disabled]="loading()"
         (click)="cargar()">
         Recargar
       </button>
+      <button
+        class="px-4 h-10 whitespace-nowrap text-white bg-emerald-700 rounded-lg cursor-pointer hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        [disabled]="loading() || exporting()"
+        aria-describedby="excel-export-help"
+        title="Descarga todos los resultados del modo y filtros actuales en formato Excel"
+        (click)="exportarExcel()">
+        {{ exporting() ? 'Exportando...' : 'Exportar resultados' }}
+      </button>
     </div>
+    <p id="excel-export-help" class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+      “Exportar resultados” descarga en Excel (.xlsx) todos los registros del modo y filtros actuales, no solo la página visible.
+    </p>
   </div>
 
   <div class="grid grid-cols-1 gap-3 md:grid-cols-7">
-    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c] md:col-span-2">
-      <label class="block text-xs text-slate-500 dark:text-slate-300">CLUES</label>
+    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c] md:col-span-4">
+      <label class="block text-xs text-slate-500 dark:text-slate-300">Buscar</label>
       <input
         class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
-        [ngModel]="clues()"
-        (ngModelChange)="clues.set(($event || '').toUpperCase())"
-        placeholder="BCIMB001726" />
-    </div>
-    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
-      <label class="block text-xs text-slate-500 dark:text-slate-300">Tipo pedido</label>
-      <input
-        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
-        [ngModel]="tipoPedido()"
-        (ngModelChange)="tipoPedido.set(($event || '').toUpperCase())"
-        placeholder="ORDINARIO" />
-    </div>
-    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
-      <label class="block text-xs text-slate-500 dark:text-slate-300">Tipo insumo</label>
-      <input
-        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
-        [ngModel]="tiposInsumo()"
-        (ngModelChange)="tiposInsumo.set(($event || '').toUpperCase())"
-        placeholder="MEDICAMENTO" />
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event || '')"
+        (keyup.enter)="cargar(true)"
+        placeholder="Clave, descripción, nombre de unidad o CLUES" />
     </div>
     <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
       <label class="block text-xs text-slate-500 dark:text-slate-300">Meses (timeline/riesgo)</label>
@@ -185,7 +194,11 @@
                     {{ iconoSobreabasto(item.nivel_sobreabasto) }} {{ item.nivel_sobreabasto }} ({{ item.puntaje_sobreabasto }})
                   </span>
                 }
-                <span>{{ item.renglones_solicitados | number }} claves · {{ item.solicitado_periodo | number }} solicitado</span>
+                <span>
+                  {{ item.renglones_solicitados | number }} veces ·
+                  {{ item.solicitado_acumulado | number }} acumulado ·
+                  {{ item.solicitado_promedio | number }} promedio
+                </span>
               </div>
             </div>
           }
@@ -294,14 +307,15 @@
           <th class="px-3 py-2">Tipo pedido</th>
           <th class="px-3 py-2">Tipo insumo</th>
           <th class="px-3 py-2">Periodo</th>
-          <th class="px-3 py-2 text-right">Renglones</th>
-          <th class="px-3 py-2 text-right">Piezas</th>
+          <th class="px-3 py-2 text-right">Veces solicitado</th>
+          <th class="px-3 py-2 text-right">Solicitado acumulado</th>
+          <th class="px-3 py-2 text-right">Solicitado promedio</th>
         </tr>
       </thead>
       <tbody>
         @if (loading()) {
           <tr>
-            <td colspan="7" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+            <td colspan="8" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
               Cargando radar global...
             </td>
           </tr>
@@ -320,13 +334,14 @@
             <td class="px-3 py-2">{{ row.tipos_insumo }}</td>
             <td class="px-3 py-2">{{ row.periodo_texto || 'N/A' }}</td>
             <td class="px-3 py-2 text-right">{{ row.total_renglones | number }}</td>
-            <td class="px-3 py-2 text-right">{{ row.total_piezas | number }}</td>
+            <td class="px-3 py-2 text-right">{{ row.solicitado_acumulado | number }}</td>
+            <td class="px-3 py-2 text-right">{{ row.solicitado_promedio | number }}</td>
           </tr>
         }
 
         @if (!loading() && rows().length === 0) {
           <tr>
-            <td colspan="7" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+            <td colspan="8" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
               Sin datos para los filtros seleccionados.
             </td>
           </tr>
@@ -342,7 +357,9 @@
           <th class="px-3 py-2">CLUES</th>
           <th class="px-3 py-2">Clave</th>
           <th class="px-3 py-2">Descripción</th>
-          <th class="px-3 py-2 text-right">Solicitado</th>
+          <th class="px-3 py-2 text-right">Veces solicitado</th>
+          <th class="px-3 py-2 text-right">Solicitado acumulado</th>
+          <th class="px-3 py-2 text-right">Solicitado promedio</th>
           <th class="px-3 py-2 text-right">Existencia</th>
           <th class="px-3 py-2 text-right">CPM</th>
           <th class="px-3 py-2 text-right">Cobertura días</th>
@@ -353,7 +370,7 @@
       <tbody>
         @if (loading()) {
           <tr>
-            <td colspan="9" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+            <td colspan="11" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
               Cargando radar de riesgo por clave...
             </td>
           </tr>
@@ -362,13 +379,13 @@
           <tr class="border-b transition-colors" [class]="rowClassRiesgo(row)">
             <td class="px-3 py-2">
               <div>{{ row.cluesimb }}</div>
-              @if (nombreUnidad(row.cluesimb); as nombre) {
+              @if (row.nombre_de_unidad || nombreUnidad(row.cluesimb); as nombre) {
                 <div class="text-[11px] text-slate-500 dark:text-slate-300">{{ nombre }}</div>
               }
             </td>
             <td class="px-3 py-2 font-medium">{{ row.clave }}</td>
             <td class="px-3 py-2">
-              @if (descripcionClave(row.clave); as descClave) {
+              @if (row.descripcion || descripcionClave(row.clave); as descClave) {
                 <span class="text-xs text-slate-500 dark:text-slate-300" [title]="descClave">
                   {{ descClave | maxLength:50 }}
                 </span>
@@ -376,7 +393,9 @@
                 <span class="text-xs text-slate-400">Sin descripción</span>
               }
             </td>
-            <td class="px-3 py-2 text-right">{{ row.solicitado_periodo | number }}</td>
+            <td class="px-3 py-2 text-right">{{ row.renglones_solicitados | number }}</td>
+            <td class="px-3 py-2 text-right">{{ row.solicitado_acumulado | number }}</td>
+            <td class="px-3 py-2 text-right">{{ row.solicitado_promedio | number }}</td>
             <td class="px-3 py-2 text-right">{{ row.existencia_actual | number }}</td>
             <td class="px-3 py-2 text-right">{{ row.consumo_promedio | number }}</td>
             <td class="px-3 py-2 text-right">{{ row.dias_cobertura == null ? 'N/A' : (row.dias_cobertura | number: '1.0-2') }}</td>
@@ -394,7 +413,7 @@
         }
         @if (!loading() && riesgoRows().length === 0) {
           <tr>
-            <td colspan="9" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+            <td colspan="11" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
               Sin datos de riesgo por clave para los filtros seleccionados.
             </td>
           </tr>

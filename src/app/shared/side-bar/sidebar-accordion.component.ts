@@ -32,13 +32,13 @@ export class SidebarAccordionComponent {
         { type: 'link', id: 'homologos', label: 'Homologos', route: 'analisis/homologos' },
         /*{ type: 'link', id: 'balanceo', label: 'Balanceo (beta)', route: 'analisis/balanceo' },*/
         { type: 'link', id: 'balanceo-v2', label: 'Balanceo V2', route: 'analisis/balanceo-v2' },
-        { type: 'link', id: 'ib-onco', label: 'IB-ONCO', route: 'ib-onco' },
+      //  { type: 'link', id: 'ib-onco', label: 'IB-ONCO', route: 'ib-onco' },
       ]},
     ]},
      { type: 'group', id: 'solicitudes-unidades', label: 'Solicitudes', children: [
       { type: 'link', id: 'solicitudes', label: 'Solicitudes', route: 'solicitudes' },
       { type: 'link', id: 'radar-global', label: 'Radar global', route: 'radar-global' },
-      { type: 'link', id: 'radar-desabasto', label: 'Radar de desabasto', route: 'radar-desabasto' },
+      //{ type: 'link', id: 'radar-desabasto', label: 'Radar de desabasto', route: 'radar-desabasto' },
     ]},
     { type: 'group', id: 'sistema', label: 'Sistema', children: [
       { type: 'link', id: 'about', label: 'Acerca de', route: 'acerca' },
