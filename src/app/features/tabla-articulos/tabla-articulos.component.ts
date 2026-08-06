@@ -54,15 +54,27 @@ export class TablaArticulosComponent implements OnChanges, OnInit, OnDestroy {
   private cpmService = inject(CpmService);
   private onDestroy$ = new Subject<void>();
   private cpmSubscription?: Subscription;
+  descripcionMovilIndex: number | null = null;
+  private descripcionTimer?: ReturnType<typeof setTimeout>;
 
   constructor() {
     // console.log('constructor de TablaArticulosComponent');
   }
 
   ngOnDestroy(): void {
+    if (this.descripcionTimer) clearTimeout(this.descripcionTimer);
     this.onDestroy$.next();
     this.onDestroy$.complete();
     this.cpmSubscription?.unsubscribe();
+  }
+
+  mostrarDescripcionMovil(index: number): void {
+    if (this.descripcionTimer) clearTimeout(this.descripcionTimer);
+    this.descripcionMovilIndex = index;
+    this.descripcionTimer = setTimeout(() => {
+      this.descripcionMovilIndex = null;
+      this.cdRef.markForCheck();
+    }, 2800);
   }
 
   /** true si la clave pertenece al KIT de la unidad actual */

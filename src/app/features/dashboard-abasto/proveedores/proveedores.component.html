@@ -12,22 +12,22 @@
     Cargando citas de proveedores...
   </div>
 }
-<div class="p-6 mb-6 min-h-[560px] space-y-6">
+<div class="p-2 mb-6 min-h-[560px] space-y-4 sm:p-4 lg:p-6 lg:space-y-6">
   <h2 class="mb-4 text-2xl font-bold text-green-800">Proveedores y Entregas</h2>
 
   <!-- Filtros mejorados con distribución flexible -->
-  <div class="flex flex-wrap items-center gap-4">
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
 
     <!-- Input de búsqueda -->
-    <div class="min-w-[270px]">
+    <div class="min-w-0">
       <label class="block mb-1 text-sm font-medium text-gray-700">Búsqueda</label>
       <input type="text" placeholder="Buscar proveedor/clave/descripción..." [(ngModel)]="filtroBusqueda"
         (input)="onBusqueda()" (keydown)="onBusqueda()"
-        class="flex-1 px-4 py-2 min-w-[440px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+        class="min-h-11 w-full px-4 py-2 shadow-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
       </div>
 
       <!-- Picker de periodo -->
-      <div class="min-w-[270px]">
+      <div class="min-w-0">
         <app-periodo-picker-dashboard [fechaInicio]="fechaInicio" [fechaFin]="fechaFin"
           [titulo]="'Fecha de Recepción'"
           (rangoCambiado)="onPeriodoSeleccionado($event.texto, $event.fechaInicio, $event.fechaFin)">
@@ -35,10 +35,10 @@
       </div>
 
       <!-- Select de unidad -->
-      <div class="min-w-[270px]">
+      <div class="min-w-0">
         <label class="block mb-1 text-sm font-medium text-gray-700">Unidad</label>
         <select [(ngModel)]="filtroUnidad" (change)="onBusqueda()"
-          class="flex-1 px-4 py-2 min-w-[220px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+          class="min-h-11 w-full px-4 py-2 shadow-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
           <option value="">Todas las unidades</option>
           @for (unidad of unidadesUnicas; track unidad) {
             <option [value]="unidad">{{ unidad }}</option>
@@ -47,10 +47,10 @@
       </div>
 
       <!-- Select de tipo de compra -->
-      <div class="min-w-[270px]">
+      <div class="min-w-0">
         <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de compra</label>
         <select [(ngModel)]="filtroCompra" (change)="onBusqueda()"
-          class="flex-1 px-4 py-2 min-w-[270px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+          class="min-h-11 w-full px-4 py-2 shadow-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
           <option value="">Todos</option>
           @for (compra of tiposCompra; track compra) {
             <option [value]="compra">{{ compra }}</option>
@@ -70,12 +70,26 @@
       <div class="mb-4 shadow-sm border rounded scroll-mt-24"
         #grupoRef>
         <button type="button" (click)="toggleProveedor(grupo.proveedor, i)"
-          class="p-4 w-full text-left font-semibold text-green-900 bg-green-100 hover:bg-green-200 transition">
+          [attr.aria-expanded]="proveedorEstaExpandido(grupo.proveedor)"
+          class="flex min-h-11 w-full items-center justify-between gap-3 p-3 text-left font-semibold text-green-900 bg-green-100 hover:bg-green-200 transition sm:p-4">
           @let totalPiezasPorProveedor = getTotalPiezasPorProveedor(grupo.citas);
-          {{ grupo.proveedor }} — Total: {{ totalPiezasPorProveedor }} piezas
+          <span class="min-w-0">{{ grupo.proveedor }} <span class="block text-xs font-normal text-green-800 sm:inline">— {{ totalPiezasPorProveedor | number }} piezas</span></span>
+          <span aria-hidden="true" class="shrink-0 text-lg">{{ proveedorEstaExpandido(grupo.proveedor) ? '▾' : '▸' }}</span>
         </button>
-        <div [hidden]="proveedorExpandido !== grupo.proveedor" class="bg-white">
-          <table class="min-w-full text-sm">
+        @if (proveedorEstaExpandido(grupo.proveedor)) {
+        <div class="bg-white">
+          <div class="space-y-2 p-2 md:hidden">
+            @for (cita of grupo.citas; track cita) {
+              <button type="button" (click)="abrirModalDetalle(cita)" class="w-full rounded-lg border bg-white p-3 text-left shadow-sm">
+                <div class="flex items-start justify-between gap-2"><strong class="break-all text-green-800">{{ cita.orden_de_suministro }}</strong><span class="shrink-0 text-xs text-gray-500">{{ cita.fecha_recepcion_almacen | date:'dd/MM/yyyy' }}</span></div>
+                <p class="mt-1 text-sm font-medium">{{ cita.clave_cnis }}</p>
+                <p class="mt-1 line-clamp-2 text-xs text-gray-600">{{ cita.descripcion || 'Sin descripción' }}</p>
+                <div class="mt-2 flex flex-wrap gap-1 text-xs"><span class="rounded bg-gray-100 px-2 py-1">{{ cita.unidad }}</span><span class="rounded bg-green-50 px-2 py-1">{{ cita.pzas_recibidas_por_la_entidad || 0 }} piezas</span></div>
+              </button>
+            }
+          </div>
+          <div class="hidden overflow-x-auto md:block">
+          <table class="min-w-[65rem] w-full text-sm">
             <thead class="text-left bg-gray-50">
               <tr>
                 <th class="p-2 border">Orden</th>
@@ -104,7 +118,9 @@
               }
             </tbody>
           </table>
+          </div>
         </div>
+        }
       </div>
     }
     <!-- Agregar un espacio en blanco al final para dar espacio al footer -->

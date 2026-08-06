@@ -3,7 +3,6 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { SelectorCluesComponent } from '../../shared/selector-clues/selector-clues.component';
 import { Unidad } from '../../models/articulo-solicitud';
 import { EvaluadorSmiSgComponent } from './evaluador-smi-sg/evaluador-smi-sg.component';
-import { ThemeService } from '../../services/theme.service';
 import { StorageVariables } from '../../shared/storage-variables';
 
 @Component({
@@ -13,9 +12,7 @@ import { StorageVariables } from '../../shared/storage-variables';
   templateUrl: './poc-finanzas-ev-smi-sg.component.html',
 })
 export class PocFinanzasEvSmiSgComponent implements OnInit {
-  themeService = inject(ThemeService);
   title = 'Evaluaciones SMI/SG';
-  get isDarkMode() { return this.themeService.isDarkMode(); }
   isLoading = signal(false);
   unidadSeleccionada = signal<Unidad | null>(null);
 

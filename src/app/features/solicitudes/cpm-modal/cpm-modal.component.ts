@@ -305,8 +305,6 @@ export class CpmModalComponent {
     this.importIsError.set(false);
     this.importMsg.set(`Se agregaron ${agregadas} clave${agregadas > 1 ? 's' : ''}.`);
     this.importDetail.set(detalle + (detalle2 ? ' · ' + detalle2 : ''));
-    this.procesarToastDesdeAgregarSeleccion();
-
     // Cerrar siempre el modal aunque el handler del padre falle.
     try {
       this.addToSolicitud.emit(nuevos);

@@ -1,7 +1,7 @@
 ﻿<div class="space-y-4">
   <div>
     <div>
-      <h2 class="text-2xl font-semibold tracking-tight text-green-800 dark:text-[#CBA135]">
+      <h2 class="text-xl font-semibold tracking-tight text-green-800 sm:text-2xl dark:text-[#CBA135]">
         Radar Herramienta de Solicitudes
       </h2>
       <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">
@@ -15,9 +15,9 @@
         No confirma que las solicitudes hayan sido enviadas, recibidas o formalmente tramitadas.
       </div>
     </div>
-    <div class="flex flex-wrap gap-2 mt-3">
+    <div class="grid grid-cols-2 gap-2 mt-3 sm:flex sm:flex-wrap">
       <button
-        class="px-4 h-10 whitespace-nowrap rounded-lg cursor-pointer border"
+        class="px-3 min-h-11 text-sm rounded-lg cursor-pointer border sm:px-4"
         [class.bg-[#006341]]="mode() === 'snapshot'"
         [class.text-white]="mode() === 'snapshot'"
         [class.border-custom-default]="mode() !== 'snapshot'"
@@ -27,7 +27,7 @@
         Snapshot
       </button>
       <button
-        class="px-4 h-10 whitespace-nowrap rounded-lg cursor-pointer border"
+        class="px-3 min-h-11 text-sm rounded-lg cursor-pointer border sm:px-4"
         [class.bg-[#006341]]="mode() === 'timeline'"
         [class.text-white]="mode() === 'timeline'"
         [class.border-custom-default]="mode() !== 'timeline'"
@@ -37,7 +37,7 @@
         Timeline
       </button>
       <button
-        class="px-4 h-10 whitespace-nowrap rounded-lg cursor-pointer border"
+        class="px-3 min-h-11 text-sm rounded-lg cursor-pointer border sm:px-4"
         [class.bg-[#006341]]="mode() === 'claves-riesgo'"
         [class.text-white]="mode() === 'claves-riesgo'"
         [class.border-custom-default]="mode() !== 'claves-riesgo'"
@@ -47,13 +47,13 @@
         Riesgo por clave
       </button>
       <button
-        class="px-4 h-10 whitespace-nowrap text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50"
+        class="px-3 min-h-11 text-sm text-white bg-[#006341] rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50 sm:px-4"
         [disabled]="loading()"
         (click)="cargar()">
         Recargar
       </button>
       <button
-        class="px-4 h-10 whitespace-nowrap text-white bg-emerald-700 rounded-lg cursor-pointer hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="col-span-2 px-3 min-h-11 text-sm text-white bg-emerald-700 rounded-lg cursor-pointer hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed sm:col-auto sm:px-4"
         [disabled]="loading() || exporting()"
         aria-describedby="excel-export-help"
         title="Descarga todos los resultados del modo y filtros actuales en formato Excel"
@@ -66,11 +66,11 @@
     </p>
   </div>
 
-  <div class="grid grid-cols-1 gap-3 md:grid-cols-7">
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-7">
     <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c] md:col-span-4">
       <label class="block text-xs text-slate-500 dark:text-slate-300">Buscar</label>
       <input
-        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        class="mt-1 px-3 min-h-11 w-full rounded-lg border-custom-default border dark:bg-black"
         [ngModel]="search()"
         (ngModelChange)="search.set($event || '')"
         (keyup.enter)="cargar(true)"
@@ -82,7 +82,7 @@
         type="number"
         min="1"
         max="24"
-        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        class="mt-1 px-3 min-h-11 w-full rounded-lg border-custom-default border dark:bg-black"
         [ngModel]="months()"
         (ngModelChange)="months.set(+$event || 3)"
         [disabled]="mode() === 'snapshot'" />
@@ -92,7 +92,7 @@
       <input
         type="number"
         min="0"
-        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        class="mt-1 px-3 min-h-11 w-full rounded-lg border-custom-default border dark:bg-black"
         [ngModel]="minSolicitado()"
         (ngModelChange)="minSolicitado.set(+$event || 0)"
         [disabled]="mode() !== 'claves-riesgo'" />
@@ -100,7 +100,7 @@
     <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
       <label class="block text-xs text-slate-500 dark:text-slate-300">Acción</label>
       <button
-        class="mt-1 px-3 py-1 w-full text-white bg-blue-600 rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50"
+        class="mt-1 px-3 min-h-11 w-full text-white bg-blue-600 rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-50"
         [disabled]="loading()"
         (click)="cargar(true)">
         Aplicar
@@ -114,7 +114,7 @@
     </div>
   }
 
-  <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+  <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
     <div class="p-4 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
       <div class="text-xs text-slate-500 dark:text-slate-300">
         {{ mode() === 'snapshot' ? 'Solicitudes recientes' : 'Solicitudes' }}
@@ -150,7 +150,7 @@
   @if (mode() === 'claves-riesgo') {
     <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
       <section class="p-4 bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex flex-col items-start gap-2 mb-3 sm:flex-row sm:items-center sm:justify-between">
           <h3 class="font-semibold text-slate-700 dark:text-slate-200">Top riesgo por clave</h3>
           <div class="flex gap-2">
             <button
@@ -184,7 +184,7 @@
                   · {{ nombre }}
                 }
               </div>
-              <div class="flex items-center justify-between mt-1 text-xs">
+              <div class="flex flex-col items-start gap-2 mt-2 text-xs sm:flex-row sm:items-center sm:justify-between">
                 @if (vistaRiesgo() === 'desabasto') {
                   <span class="px-2 py-0.5 rounded border" [class]="badgeDesabasto(item.nivel_desabasto)">
                     {{ iconoDesabasto(item.nivel_desabasto) }} {{ item.nivel_desabasto }} ({{ item.puntaje_desabasto }})
@@ -224,7 +224,7 @@
   @if (mode() !== 'claves-riesgo') {
   <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
     <section class="p-4 bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
-      <div class="flex items-center justify-between mb-3">
+      <div class="flex flex-col items-start gap-1 mb-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 class="font-semibold text-slate-700 dark:text-slate-200">Top CLUES con claves más solicitadas</h3>
         <span class="text-xs text-slate-500 dark:text-slate-300">Top 5 claves por CLUES</span>
       </div>
@@ -268,7 +268,7 @@
     </section>
 
     <section class="p-4 bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
-      <div class="flex items-center justify-between mb-3">
+      <div class="flex flex-col items-start gap-1 mb-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 class="font-semibold text-slate-700 dark:text-slate-200">Top claves globales</h3>
         <span class="text-xs text-slate-500 dark:text-slate-300">Más solicitadas en la red</span>
       </div>
@@ -298,8 +298,37 @@
   </div>
   }
 @if (mode() !== 'claves-riesgo') {
-  <section class="overflow-auto bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
-    <table class="min-w-full text-sm">
+  <section class="space-y-3 md:hidden" aria-label="Resultados del radar global">
+    @if (loading()) {
+      <div class="p-6 text-sm text-center text-slate-500 bg-white rounded-2xl border">Cargando radar global...</div>
+    }
+    @for (row of rows(); track row.id) {
+      <article class="p-4 bg-white rounded-2xl border-custom-default border shadow-sm">
+        <div class="flex items-start justify-between gap-3 pb-3 border-b">
+          <div class="min-w-0">
+            <div class="text-xs font-semibold tracking-wide text-green-700 uppercase">{{ row.cluesimb }}</div>
+            @if (nombreUnidad(row.cluesimb); as nombre) {
+              <div class="mt-1 text-sm font-medium text-slate-800">{{ nombre }}</div>
+            }
+          </div>
+          <span class="shrink-0 px-2 py-1 text-xs text-slate-600 bg-slate-100 rounded-full">{{ row.created_day }}</span>
+        </div>
+        <dl class="grid grid-cols-2 gap-x-3 gap-y-3 mt-3 text-sm">
+          <div><dt class="text-xs text-slate-500">Tipo de pedido</dt><dd class="font-medium">{{ row.tipo_pedido }}</dd></div>
+          <div><dt class="text-xs text-slate-500">Tipo de insumo</dt><dd class="font-medium">{{ row.tipos_insumo }}</dd></div>
+          <div class="col-span-2"><dt class="text-xs text-slate-500">Periodo</dt><dd>{{ row.periodo_texto || 'N/A' }}</dd></div>
+          <div><dt class="text-xs text-slate-500">Veces solicitado</dt><dd class="text-lg font-semibold">{{ row.total_renglones | number }}</dd></div>
+          <div><dt class="text-xs text-slate-500">Solicitado acumulado</dt><dd class="text-lg font-semibold">{{ row.solicitado_acumulado | number }}</dd></div>
+          <div class="col-span-2"><dt class="text-xs text-slate-500">Solicitado promedio</dt><dd class="font-semibold">{{ row.solicitado_promedio | number }}</dd></div>
+        </dl>
+      </article>
+    }
+    @if (!loading() && rows().length === 0) {
+      <div class="p-6 text-sm text-center text-slate-500 bg-white rounded-2xl border">Sin datos para los filtros seleccionados.</div>
+    }
+  </section>
+  <section class="hidden overflow-auto bg-white rounded-2xl border-custom-default border md:block dark:bg-[#1a202c]">
+    <table class="min-w-[64rem] w-full text-sm">
       <thead class="sticky top-0 bg-white border-b dark:bg-[#1a202c]">
         <tr class="text-left text-slate-600 dark:text-slate-300">
           <th class="px-3 py-2">Fecha</th>
@@ -350,8 +379,46 @@
     </table>
   </section>
   } @else {
-  <section class="overflow-auto bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
-    <table class="min-w-full text-sm">
+  <section class="space-y-3 md:hidden" aria-label="Resultados de riesgo por clave">
+    @if (loading()) {
+      <div class="p-6 text-sm text-center text-slate-500 bg-white rounded-2xl border">Cargando radar de riesgo por clave...</div>
+    }
+    @for (row of riesgoRows(); track row.cluesimb + '-' + row.clave) {
+      <article class="p-4 rounded-2xl border-custom-default border shadow-sm" [class]="rowClassRiesgo(row)">
+        <div class="pb-3 border-b">
+          <div class="text-xs font-semibold tracking-wide text-green-700 uppercase">{{ row.cluesimb }}</div>
+          @if (row.nombre_de_unidad || nombreUnidad(row.cluesimb); as nombre) {
+            <div class="mt-1 text-sm font-medium text-slate-800">{{ nombre }}</div>
+          }
+          <div class="mt-3 font-semibold">{{ row.clave }}</div>
+          @if (row.descripcion || descripcionClave(row.clave); as descClave) {
+            <div class="mt-1 text-xs text-slate-600">{{ descClave }}</div>
+          }
+        </div>
+        <dl class="grid grid-cols-3 gap-2 mt-3 text-sm">
+          <div><dt class="text-xs text-slate-500">Existencia</dt><dd class="font-semibold">{{ row.existencia_actual | number }}</dd></div>
+          <div><dt class="text-xs text-slate-500">CPM</dt><dd class="font-semibold">{{ row.consumo_promedio | number }}</dd></div>
+          <div><dt class="text-xs text-slate-500">Cobertura</dt><dd class="font-semibold">{{ row.dias_cobertura == null ? 'N/A' : ((row.dias_cobertura | number: '1.0-2') + ' días') }}</dd></div>
+          <div><dt class="text-xs text-slate-500">Veces</dt><dd>{{ row.renglones_solicitados | number }}</dd></div>
+          <div><dt class="text-xs text-slate-500">Acumulado</dt><dd>{{ row.solicitado_acumulado | number }}</dd></div>
+          <div><dt class="text-xs text-slate-500">Promedio</dt><dd>{{ row.solicitado_promedio | number }}</dd></div>
+        </dl>
+        <div class="grid grid-cols-1 gap-2 mt-4 min-[390px]:grid-cols-2">
+          <span class="px-2 py-2 text-xs text-center rounded-lg border" [class]="badgeDesabasto(row.nivel_desabasto)">
+            {{ iconoDesabasto(row.nivel_desabasto) }} Desabasto {{ row.nivel_desabasto }} · {{ row.puntaje_desabasto }}
+          </span>
+          <span class="px-2 py-2 text-xs text-center rounded-lg border" [class]="badgeSobreabasto(row.nivel_sobreabasto)">
+            {{ iconoSobreabasto(row.nivel_sobreabasto) }} Sobreabasto {{ row.nivel_sobreabasto }} · {{ row.puntaje_sobreabasto }}
+          </span>
+        </div>
+      </article>
+    }
+    @if (!loading() && riesgoRows().length === 0) {
+      <div class="p-6 text-sm text-center text-slate-500 bg-white rounded-2xl border">Sin datos de riesgo por clave para los filtros seleccionados.</div>
+    }
+  </section>
+  <section class="hidden overflow-auto bg-white rounded-2xl border-custom-default border md:block dark:bg-[#1a202c]">
+    <table class="min-w-[80rem] w-full text-sm">
       <thead class="sticky top-0 bg-white border-b dark:bg-[#1a202c]">
         <tr class="text-left text-slate-600 dark:text-slate-300">
           <th class="px-3 py-2">CLUES</th>
@@ -423,14 +490,14 @@
   </section>
   }
 
-  <div class="flex flex-col items-center justify-between gap-2 p-2 text-sm lg:flex-row">
+  <div class="flex flex-col items-stretch justify-between gap-3 p-2 text-sm lg:flex-row lg:items-center">
     <div class="text-slate-600 dark:text-slate-300">
       Total: {{ total() | number }}
     </div>
-    <div class="flex flex-wrap items-center justify-end gap-2">
+    <div class="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap sm:justify-end">
       <label class="text-sm text-slate-600 dark:text-slate-300">Filas por página</label>
       <select
-        class="px-2 py-1 border-slate-300 rounded border dark:border-slate-600 dark:bg-black"
+        class="px-2 min-h-11 border-slate-300 rounded border dark:border-slate-600 dark:bg-black"
         [ngModel]="pageSize()"
         (ngModelChange)="changePageSize($event)"
         [disabled]="loading()">
@@ -441,44 +508,44 @@
       </select>
 
       <button
-        class="px-2 py-1 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="hidden px-3 min-h-11 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed sm:block"
         (click)="goTo(1)"
         [disabled]="page() <= 1 || loading()">
         « Primera
       </button>
 
       <button
-        class="px-2 py-1 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="hidden px-3 min-h-11 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed lg:block"
         (click)="jump(-10)"
         [disabled]="page() <= 1 || loading()">
         ‹‹ -10
       </button>
 
       <button
-        class="px-2 py-1 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-3 min-h-11 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
         (click)="prevPage()"
         [disabled]="page() <= 1 || loading()">
         ‹ Anterior
       </button>
 
-      <span>Página {{ page() }} de {{ totalPages }}</span>
+      <span class="col-span-2 text-center sm:order-none sm:col-auto">Página {{ page() }} de {{ totalPages }}</span>
 
       <button
-        class="px-2 py-1 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-3 min-h-11 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
         (click)="nextPage()"
         [disabled]="page() >= totalPages || loading()">
         Siguiente ›
       </button>
 
       <button
-        class="px-2 py-1 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="hidden px-3 min-h-11 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed lg:block"
         (click)="jump(10)"
         [disabled]="page() >= totalPages || loading()">
         +10 ››
       </button>
 
       <button
-        class="px-2 py-1 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="hidden px-3 min-h-11 text-sm text-white bg-green-700 rounded border enabled:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed sm:block"
         (click)="goTo(totalPages)"
         [disabled]="page() >= totalPages || loading()">
         Última »

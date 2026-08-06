@@ -19,8 +19,4 @@ tbody tr:hover {
     font-size: 0.75rem;
   }
 
-  button {
-    padding: 0.375rem 0.5rem !important;
-    font-size: 0.65rem !important;
-  }
 }

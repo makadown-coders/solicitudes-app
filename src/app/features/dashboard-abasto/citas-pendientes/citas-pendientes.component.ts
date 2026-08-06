@@ -51,7 +51,7 @@ export class OrdenesPendientesComponent extends AbstractTabComponent implements 
 
   unidadesAgrupadas = signal<{ unidad: string; citas: Cita[] }[]>([]);
 
-  unidadExpandida: string | null = null;
+  unidadesExpandidas = new Set<string>();
 
   filtroBusqueda = '';
   filtroUnidad = '';
@@ -371,7 +371,12 @@ export class OrdenesPendientesComponent extends AbstractTabComponent implements 
   }
 
   toggleUnidad(unidad: string) {
-    this.unidadExpandida = this.unidadExpandida === unidad ? null : unidad;
+    if (this.unidadesExpandidas.has(unidad)) this.unidadesExpandidas.delete(unidad);
+    else this.unidadesExpandidas.add(unidad);
+  }
+
+  unidadEstaExpandida(unidad: string): boolean {
+    return this.unidadesExpandidas.has(unidad);
   }
 
   abrirModalDetalle(cita: Cita) {

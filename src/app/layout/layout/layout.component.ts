@@ -56,6 +56,11 @@ export class LayoutComponent implements OnInit, OnChanges {
   private router = inject(Router);
   public storageSolicitudService = inject(StorageSolicitudService);
   refrescandoCPMSdesdeLayout = signal(false);
+  accionesVisible = signal(false);
+
+  toggleAcciones(): void {
+    this.accionesVisible.update(visible => !visible);
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     this.verificarRuta();
