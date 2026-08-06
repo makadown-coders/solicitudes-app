@@ -1,9 +1,9 @@
 <div class="space-y-6">
-  <div class="p-6 bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg dark:from-slate-900/50 dark:to-slate-900/30 border dark:border-slate-700">
+  <div class="p-6 bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg   border ">
     <div class="flex items-center justify-between gap-4 mb-4">
       <div>
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Catalogo de Homologos</h2>
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        <h2 class="text-2xl font-bold text-gray-900 ">Catalogo de Homologos</h2>
+        <p class="mt-1 text-sm text-gray-600 ">
           Claves origen y sus homologos con existencias AZM, AZT y AZE
         </p>
       </div>
@@ -23,7 +23,7 @@
           [ngModel]="searchQuery()"
           (ngModelChange)="onSearchChange($event)"
           placeholder="Buscar por clave o descripcion..."
-          class="px-4 py-2 w-full bg-white border-gray-300 rounded-lg border dark:bg-slate-800 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+          class="px-4 py-2 w-full bg-white border-gray-300 rounded-lg border    focus:outline-none focus:ring-2 focus:ring-green-500"
         />
       </div>
     </div>
@@ -34,11 +34,11 @@
       <div class="w-4 h-4 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0s"></div>
       <div class="w-4 h-4 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
       <div class="w-4 h-4 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-      <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Cargando catalogo de homologos...</span>
+      <span class="ml-2 text-sm text-gray-600 ">Cargando catalogo de homologos...</span>
     </div>
   } @else if (homologosFiltrados.length > 0) {
     <div class="flex items-center gap-3 mb-1">
-      <h3 class="text-xl font-bold text-gray-900 dark:text-white">Catalogo completo</h3>
+      <h3 class="text-xl font-bold text-gray-900 ">Catalogo completo</h3>
       <span class="inline-block px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded-full">
         {{ homologosFiltrados.length }} claves
       </span>
@@ -46,51 +46,51 @@
 
     <div class="grid gap-4">
       @for (homologo of homologosFiltrados; track homologo.claveOrigen) {
-        <div class="overflow-hidden bg-white rounded-lg border-gray-200 shadow-sm transition-shadow dark:bg-slate-800 border dark:border-slate-700 hover:shadow-md">
+        <div class="overflow-hidden bg-white rounded-lg border-gray-200 shadow-sm transition-shadow  border  hover:shadow-md">
           <div class="p-5">
             <div class="grid gap-5 md:grid-cols-2">
-              <div class="pb-5 border-gray-200 dark:border-slate-700 md:pb-0 pr-5 border-r">
-                <div class="mb-3 text-xs font-semibold text-gray-500 tracking-wide dark:text-gray-400 uppercase">
+              <div class="pb-5 border-gray-200  md:pb-0 pr-5 border-r">
+                <div class="mb-3 text-xs font-semibold text-gray-500 tracking-wide  uppercase">
                   Articulo Original
                 </div>
 
                 <div class="space-y-3">
                   <div>
-                    <div class="font-mono font-bold text-lg text-gray-900 dark:text-white">
+                    <div class="font-mono font-bold text-lg text-gray-900 ">
                       {{ homologo.claveOrigen }}
                     </div>
-                    <div class="mt-1 text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                    <div class="mt-1 text-xs text-gray-600  line-clamp-2">
                       {{ homologo.descripcionOrigen }}
                     </div>
                   </div>
 
-                  <div class="mt-4 p-3 bg-gray-50 border-gray-100 dark:bg-slate-700/50 rounded border dark:border-slate-600">
-                    <div class="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-400">
+                  <div class="mt-4 p-3 bg-gray-50 border-gray-100  rounded border ">
+                    <div class="mb-2 text-xs font-semibold text-gray-600 ">
                       Existencias:
                     </div>
                     <div class="grid grid-cols-3 gap-2">
-                      <div class="p-2 text-center bg-blue-50 dark:bg-blue-900/30 rounded">
-                        <div class="text-xs text-gray-600 dark:text-gray-400 uppercase">AZM</div>
-                        <div class="font-bold text-sm text-gray-900 dark:text-white">
+                      <div class="p-2 text-center bg-blue-50  rounded">
+                        <div class="text-xs text-gray-600  uppercase">AZM</div>
+                        <div class="font-bold text-sm text-gray-900 ">
                           {{ fmt(homologo.existenciasOrigen.AZM) }}
                         </div>
                       </div>
-                      <div class="p-2 text-center bg-orange-50 dark:bg-orange-900/30 rounded">
-                        <div class="text-xs text-gray-600 dark:text-gray-400 uppercase">AZT</div>
-                        <div class="font-bold text-sm text-gray-900 dark:text-white">
+                      <div class="p-2 text-center bg-orange-50  rounded">
+                        <div class="text-xs text-gray-600  uppercase">AZT</div>
+                        <div class="font-bold text-sm text-gray-900 ">
                           {{ fmt(homologo.existenciasOrigen.AZT) }}
                         </div>
                       </div>
-                      <div class="p-2 text-center bg-purple-50 dark:bg-purple-900/30 rounded">
-                        <div class="text-xs text-gray-600 dark:text-gray-400 uppercase">AZE</div>
-                        <div class="font-bold text-sm text-gray-900 dark:text-white">
+                      <div class="p-2 text-center bg-purple-50  rounded">
+                        <div class="text-xs text-gray-600  uppercase">AZE</div>
+                        <div class="font-bold text-sm text-gray-900 ">
                           {{ fmt(homologo.existenciasOrigen.AZE) }}
                         </div>
                       </div>
                     </div>
-                    <div class="mt-2 p-2 text-center bg-gray-200 dark:bg-slate-700 rounded">
-                      <div class="text-xs text-gray-600 dark:text-gray-400">TOTAL</div>
-                      <div class="font-bold text-sm text-gray-900 dark:text-white">
+                    <div class="mt-2 p-2 text-center bg-gray-200  rounded">
+                      <div class="text-xs text-gray-600 ">TOTAL</div>
+                      <div class="font-bold text-sm text-gray-900 ">
                         {{ fmt(homologo.existenciasOrigen.total) }}
                       </div>
                     </div>
@@ -99,20 +99,20 @@
               </div>
 
               <div class="space-y-3">
-                <div class="text-xs font-semibold text-gray-500 tracking-wide dark:text-gray-400 uppercase">
+                <div class="text-xs font-semibold text-gray-500 tracking-wide  uppercase">
                   Articulos Sustitutos
                 </div>
 
                 @if (homologo.sustitutos.length > 0) {
                   <div class="space-y-2">
                     @for (sustituto of homologo.sustitutos; track sustituto.clave; let i = $index) {
-                      <div class="p-3 bg-gradient-to-br from-green-50 to-lime-50 rounded-lg border-green-200 dark:from-green-900/20 dark:to-lime-900/20 border dark:border-green-800">
+                      <div class="p-3 bg-gradient-to-br from-green-50 to-lime-50 rounded-lg border-green-200   border ">
                         <div class="flex items-start justify-between mb-2">
                           <div class="flex-1">
-                            <div class="font-mono font-bold text-green-700 dark:text-green-400">
+                            <div class="font-mono font-bold text-green-700 ">
                               {{ sustituto.clave }}
                             </div>
-                            <div class="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">
+                            <div class="text-xs text-gray-600  line-clamp-1">
                               {{ sustituto.descripcion }}
                             </div>
                           </div>
@@ -124,27 +124,27 @@
                         </div>
 
                         <div class="grid grid-cols-4 gap-1">
-                          <div class="p-1 text-center text-xs bg-blue-100 dark:bg-blue-900/50 rounded">
-                            <div class="text-gray-600 text-xs dark:text-gray-400">AZM</div>
-                            <div class="font-bold text-gray-900 text-xs dark:text-white">
+                          <div class="p-1 text-center text-xs bg-blue-100  rounded">
+                            <div class="text-gray-600 text-xs ">AZM</div>
+                            <div class="font-bold text-gray-900 text-xs ">
                               {{ fmt(sustituto.existenciasAZM) }}
                             </div>
                           </div>
-                          <div class="p-1 text-center text-xs bg-orange-100 dark:bg-orange-900/50 rounded">
-                            <div class="text-gray-600 text-xs dark:text-gray-400">AZT</div>
-                            <div class="font-bold text-gray-900 text-xs dark:text-white">
+                          <div class="p-1 text-center text-xs bg-orange-100  rounded">
+                            <div class="text-gray-600 text-xs ">AZT</div>
+                            <div class="font-bold text-gray-900 text-xs ">
                               {{ fmt(sustituto.existenciasAZT) }}
                             </div>
                           </div>
-                          <div class="p-1 text-center text-xs bg-purple-100 dark:bg-purple-900/50 rounded">
-                            <div class="text-gray-600 text-xs dark:text-gray-400">AZE</div>
-                            <div class="font-bold text-gray-900 text-xs dark:text-white">
+                          <div class="p-1 text-center text-xs bg-purple-100  rounded">
+                            <div class="text-gray-600 text-xs ">AZE</div>
+                            <div class="font-bold text-gray-900 text-xs ">
                               {{ fmt(sustituto.existenciasAZE) }}
                             </div>
                           </div>
-                          <div class="p-1 text-center text-xs bg-gray-300 dark:bg-gray-700 rounded">
-                            <div class="text-gray-600 text-xs font-bold dark:text-gray-400">T</div>
-                            <div class="font-bold text-gray-900 text-xs dark:text-white">
+                          <div class="p-1 text-center text-xs bg-gray-300  rounded">
+                            <div class="text-gray-600 text-xs font-bold ">T</div>
+                            <div class="font-bold text-gray-900 text-xs ">
                               {{ fmt(sustituto.total) }}
                             </div>
                           </div>
@@ -153,7 +153,7 @@
                     }
                   </div>
                 } @else {
-                  <div class="text-sm text-gray-500 dark:text-gray-400">
+                  <div class="text-sm text-gray-500 ">
                     Sin sustitutos registrados
                   </div>
                 }
@@ -165,10 +165,10 @@
     </div>
   } @else {
     <div class="py-12 text-center">
-      <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+      <h3 class="mb-2 text-lg font-semibold text-gray-900 ">
         Sin resultados
       </h3>
-      <p class="text-gray-600 dark:text-gray-400">
+      <p class="text-gray-600 ">
         No se encontraron homologos con los criterios de busqueda
       </p>
     </div>

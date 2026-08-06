@@ -1,5 +1,5 @@
-<aside class="p-3 w-full bg-white border-custom-default rounded-2xl shrink-0 dark:bg-[#1a202c]">
-  <div class="px-2 py-2 text-sm font-semibold text-slate-700 dark:text-white">
+<aside class="p-3 w-full text-slate-800 bg-white border-gray-200 rounded-2xl border shrink-0">
+  <div class="px-2 py-2 text-sm font-semibold text-slate-700">
     Menú
   </div>
 
@@ -8,32 +8,32 @@
       <!-- GROUP -->
       @if (item.type === 'group') {
         <button type="button"
-          class="flex items-center justify-between px-3 py-2 w-full rounded-xl border-transparent hover:bg-green-50 dark:hover:bg-black border"
+          class="flex items-center justify-between px-3 min-h-11 py-2 w-full text-slate-700 bg-white rounded-xl border-transparent hover:bg-green-50 border"
           [class.border-custom-default]="expandedGroupId() === item.id" (click)="toggleGroup(item.id)">
-          <span class="text-sm font-medium text-slate-700 dark:text-white">
+          <span class="text-sm font-medium text-slate-700">
             {{ item.label }}
           </span>
-          <span class="text-xs text-slate-500 dark:text-slate-300">
+          <span class="text-xs text-slate-500">
             {{ expandedGroupId() === item.id ? '▾' : '▸' }}
           </span>
         </button>
         @if (expandedGroupId() === item.id) {
           <div
-            class="mt-1 ml-2 pl-2 border-l border-gray-200 dark:border-gray-700 space-y-1">
+            class="mt-1 ml-2 pl-2 border-l border-gray-200 space-y-1">
             @for (ch of item.children; track ch) {
               @if (ch.type === 'link') {
                 <a
-                  class="block px-3 py-2 text-sm rounded-xl hover:bg-green-50 dark:hover:bg-black"
+                  class="block px-3 py-2 min-h-11 text-sm text-slate-700 rounded-xl hover:bg-green-50"
                   [routerLink]="ch.route"
                   (click)="navigationSelected.emit()"
-                  routerLinkActive="bg-green-100 text-green-900 dark:bg-black dark:text-[#CBA135]">
+                  routerLinkActive="bg-green-100 text-green-900 font-semibold">
                   {{ ch.label }}
                 </a>
               }
               <!-- Subgroup (si luego quieres 2 niveles) -->
               @if (ch.type === 'group') {
                 <div class="mt-1">
-                  <div class="px-3 py-2 text-xs tracking-wide text-slate-500 uppercase dark:text-slate-300">
+                  <div class="px-3 py-2 text-xs tracking-wide text-slate-500 uppercase">
                     {{ ch.label }}
                   </div>
                   <!--  <a *ngFor="let leaf of ch.children">
@@ -41,10 +41,10 @@
                 </a> -->
                 @for (leaf of ch.children; track leaf.id) {
                   @if (leaf.type === 'link') {
-                    <a class="block px-3 py-2 text-sm rounded-xl hover:bg-green-50 dark:hover:bg-black"
+                    <a class="block px-3 py-2 min-h-11 text-sm text-slate-700 rounded-xl hover:bg-green-50"
                       [routerLink]="leaf.route"
                       (click)="navigationSelected.emit()"
-                      routerLinkActive="bg-green-100 text-green-900 dark:bg-black dark:text-[#CBA135]">
+                      routerLinkActive="bg-green-100 text-green-900 font-semibold">
                       {{ leaf.label }}
                     </a>
                   }
@@ -55,14 +55,14 @@
         </div>
       }
     } @else {
-      <!-- <a class="block px-3 py-2 text-sm rounded-xl hover:bg-green-50 dark:hover:bg-black">
+      <!-- <a class="block px-3 py-2 text-sm rounded-xl hover:bg-green-50 ">
       {{ item | json }}
     </a> -->
     @if (item.type === 'link' && item.route) {
-      <a class="block px-3 py-2 text-sm rounded-xl hover:bg-green-50 dark:hover:bg-black"
+      <a class="block px-3 py-2 min-h-11 text-sm text-slate-700 rounded-xl hover:bg-green-50"
         [routerLink]="item.route"
         (click)="navigationSelected.emit()"
-        routerLinkActive="bg-green-100 text-green-900 dark:bg-black dark:text-[#CBA135]">
+        routerLinkActive="bg-green-100 text-green-900 font-semibold">
         {{ item.label }}
       </a>
     }

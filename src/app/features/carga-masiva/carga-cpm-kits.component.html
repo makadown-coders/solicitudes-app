@@ -5,15 +5,15 @@
     </div>
 
     <!-- Controles -->
-    <div class="p-4 bg-white rounded-xl border-gray-200 border dark:bg-black dark:border-gray-700">
+    <div class="p-4 bg-white rounded-xl border-gray-200 border  ">
       <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
         <div>
-          <label for="archivoExcel" class="block mb-1 text-sm font-semibold text-slate-700 dark:text-white">Archivo Excel</label>
+          <label for="archivoExcel" class="block mb-1 text-sm font-semibold text-slate-700 ">Archivo Excel</label>
           <input type="file"
             accept=".xlsx,.xls"
             (change)="onFileSelected($event)"
             name="archivoExcel"
-            class="block w-full text-sm border-2 border-gray-300 border-dashed rounded-xl cursor-pointer dark:border-gray-700" />
+            class="block w-full text-sm border-2 border-gray-300 border-dashed rounded-xl cursor-pointer " />
             @if (file(); as f) {
               <div class="mt-2 text-xs text-slate-500">
                 Seleccionado: <span class="font-semibold">{{ f.name }}</span>
@@ -22,18 +22,18 @@
           </div>
 
           <div>
-            <label class="block mb-1 text-sm font-semibold text-slate-700 dark:text-white">sourceTag</label>
+            <label class="block mb-1 text-sm font-semibold text-slate-700 ">sourceTag</label>
             <input type="text"
               [value]="sourceTag()"
               (input)="sourceTag.set(($any($event.target).value))"
-              class="px-3 py-2 w-full text-sm bg-white rounded-xl border-gray-300 border dark:border-gray-700 dark:bg-black" />
+              class="px-3 py-2 w-full text-sm bg-white rounded-xl border-gray-300 border  " />
               <div class="mt-2 text-xs text-slate-500">
                 Se guardará en <code>fuente</code> en CPM y kit_clave_unidad.
               </div>
             </div>
 
             <div class="flex flex-col gap-3">
-              <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-white">
+              <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 ">
                 <input type="checkbox"
                   [checked]="confirmInit()"
                   (change)="confirmInit.set($any($event.target).checked)"
@@ -60,11 +60,11 @@
           <!-- Progreso -->
           @if (uploading() || parsing()) {
             <div class="mt-4">
-              <div class="p-4 bg-white rounded-xl border-gray-200 border dark:bg-black dark:border-gray-700">
-                <div class="mb-2 text-sm font-semibold text-slate-800 dark:text-white">
+              <div class="p-4 bg-white rounded-xl border-gray-200 border  ">
+                <div class="mb-2 text-sm font-semibold text-slate-800 ">
                   {{ statusText() }}
                 </div>
-                <div class="overflow-hidden w-full h-3 bg-gray-200 rounded-full dark:bg-gray-800">
+                <div class="overflow-hidden w-full h-3 bg-gray-200 rounded-full ">
                   <div class="h-3 bg-green-700 transition-all"
                   [style.width.%]="progress()"></div>
                 </div>
@@ -104,13 +104,13 @@
           <!-- Resumen de headers (debug útil) -->
           @if (headers().length) {
             <div class="mt-4">
-              <div class="p-4 bg-white rounded-xl border-gray-200 border dark:bg-black dark:border-gray-700">
-                <div class="mb-2 text-sm font-semibold text-slate-800 dark:text-white">Headers detectados</div>
-                <div class="text-xs text-slate-600 break-all dark:text-slate-300">
+              <div class="p-4 bg-white rounded-xl border-gray-200 border  ">
+                <div class="mb-2 text-sm font-semibold text-slate-800 ">Headers detectados</div>
+                <div class="text-xs text-slate-600 break-all ">
                   {{ headers().join(' · ') }}
                 </div>
-                <div class="mt-3 mb-2 text-sm font-semibold text-slate-800 dark:text-white">KitCodes (7..19)</div>
-                <div class="text-xs text-slate-600 break-all dark:text-slate-300">
+                <div class="mt-3 mb-2 text-sm font-semibold text-slate-800 ">KitCodes (7..19)</div>
+                <div class="text-xs text-slate-600 break-all ">
                   {{ kitCodes().join(' · ') }}
                 </div>
               </div>

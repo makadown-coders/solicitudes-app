@@ -3,11 +3,11 @@
 
     <div class="flex flex-col items-center justify-between gap-2 md:flex-row">
         <div>
-            <h2 class="text-2xl font-semibold tracking-tight text-green-800 dark:text-[#CBA135]">
+            <h2 class="text-2xl font-semibold tracking-tight text-green-800 ">
                 Solicitudes (bitácora)
             </h2>
 
-            <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            <div class="mt-1 text-sm text-slate-600 ">
                 Nota: esta información es de apoyo (derivada de exportaciones). No refleja al 100% la “realidad
                 operativa”.
             </div>
@@ -22,40 +22,40 @@
 
     <!-- Filtros -->
     <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
-        <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
-            <label class="block text-xs text-slate-500 dark:text-slate-300">Desde</label>
-            <input type="date" class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        <div class="p-3 bg-white rounded-xl border-custom-default border ">
+            <label class="block text-xs text-slate-500 ">Desde</label>
+            <input type="date" class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border "
                 [ngModel]="desde()" (ngModelChange)="desde.set($event)" />
         </div>
 
-        <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
-            <label class="block text-xs text-slate-500 dark:text-slate-300">Hasta</label>
-            <input type="date" class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        <div class="p-3 bg-white rounded-xl border-custom-default border ">
+            <label class="block text-xs text-slate-500 ">Hasta</label>
+            <input type="date" class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border "
                 [ngModel]="hasta()" (ngModelChange)="hasta.set($event)" />
         </div>
 
-        <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c] md:col-span-2">
-            <label class="block text-xs text-slate-500 dark:text-slate-300">Filtro (cluesimb / periodo / tipo)</label>
-            <input class="mt-1 px-3 py-2 w-full rounded-lg border-custom-default border dark:bg-black"
+        <div class="p-3 bg-white rounded-xl border-custom-default border  md:col-span-2">
+            <label class="block text-xs text-slate-500 ">Filtro (cluesimb / periodo / tipo)</label>
+            <input class="mt-1 px-3 py-2 w-full rounded-lg border-custom-default border "
                 placeholder="Ej. BCIMSS012345, ENE-2026, Medicamento, Ordinario…" [ngModel]="filtroTexto()"
                 (ngModelChange)="filtroTexto.set($event)" />
             <!-- <div class="flex items-center gap-2 mt-2 text-sm">
                 <input type="checkbox" [ngModel]="soloUltimaPorUnidad()"
                     (ngModelChange)="soloUltimaPorUnidad.set($event)" />
-                <span class="text-slate-600 dark:text-slate-300">Solo última por unidad</span>
+                <span class="text-slate-600 ">Solo última por unidad</span>
             </div> -->
         </div>
     </div>
 
     <!-- KPIs -->
     <div class="flex flex-wrap gap-3">
-        <div class="p-4 w-52 bg-white rounded-lg border-custom-default shadow-sm border dark:bg-[#1a202c]">
-            <div class="text-sm text-gray-500 dark:text-slate-300">Solicitudes (vista)</div>
-            <div class="text-2xl font-bold text-green-700 dark:text-white">{{ totalSolicitudesEnVista() }}</div>
+        <div class="p-4 w-52 bg-white rounded-lg border-custom-default shadow-sm border ">
+            <div class="text-sm text-gray-500 ">Solicitudes (vista)</div>
+            <div class="text-2xl font-bold text-green-700 ">{{ totalSolicitudesEnVista() }}</div>
         </div>
-        <div class="p-4 w-52 bg-white rounded-lg border-custom-default shadow-sm border dark:bg-[#1a202c]">
-            <div class="text-sm text-gray-500 dark:text-slate-300">Unidades (vista)</div>
-            <div class="text-2xl font-bold text-green-700 dark:text-white">{{ totalUnidadesEnVista() }}</div>
+        <div class="p-4 w-52 bg-white rounded-lg border-custom-default shadow-sm border ">
+            <div class="text-sm text-gray-500 ">Unidades (vista)</div>
+            <div class="text-2xl font-bold text-green-700 ">{{ totalUnidadesEnVista() }}</div>
         </div>
     </div>
 
@@ -66,16 +66,16 @@
     }
 
     @if (loading()) {
-    <div class="p-3 text-sm text-slate-600 dark:text-slate-300">
+    <div class="p-3 text-sm text-slate-600 ">
         Cargando solicitudes… 🧾
     </div>
     }
 
     <!-- Tabla -->
-    <div class="overflow-auto bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
+    <div class="overflow-auto bg-white rounded-2xl border-custom-default border ">
         <table class="min-w-full text-sm">
-            <thead class="sticky top-0 bg-white border-b dark:bg-[#1a202c]">
-                <tr class="text-left text-slate-600 dark:text-slate-300">
+            <thead class="sticky top-0 bg-white border-b ">
+                <tr class="text-left text-slate-600 ">
                     <th class="px-3 py-2">#</th>
                     <th class="px-3 py-2">Fecha</th>
                     <th class="px-3 py-2">CLUES</th>
@@ -89,7 +89,7 @@
             </thead>
             <tbody>
                 @for (r of rowsView(); track r.id) {
-                <tr class="border-b hover:bg-green-50 dark:hover:bg-black">
+                <tr class="border-b hover:bg-green-50 ">
                     <td class="px-3 py-2 whitespace-nowrap font-extralight">{{ $index + 1 }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ r.created_day }}</td>
                     <td class="px-3 py-2 max-w-80 font-medium">{{ r.cluesimb }} - {{
@@ -125,12 +125,12 @@
                             </button>
 
                             @if (mobileActionsOpenId() === r.id) {
-                            <div class="absolute right-0 top-full z-10 mt-1 py-1 w-44 bg-white rounded-lg border shadow-lg dark:bg-[#1a202c]">
-                                <button class="block px-3 py-2 w-full text-sm text-left cursor-pointer hover:bg-slate-100 dark:hover:bg-black/30"
+                            <div class="absolute right-0 top-full z-10 mt-1 py-1 w-44 bg-white rounded-lg border shadow-lg ">
+                                <button class="block px-3 py-2 w-full text-sm text-left cursor-pointer hover:bg-slate-100 "
                                     (click)="abrirDetalle(r); closeMobileActions()">Detalle</button>
-                                <button class="block px-3 py-2 w-full text-sm text-left cursor-pointer hover:bg-slate-100 dark:hover:bg-black/30"
+                                <button class="block px-3 py-2 w-full text-sm text-left cursor-pointer hover:bg-slate-100 "
                                     (click)="abrirMovimientosDesdeSolicitud(30, r); closeMobileActions()">Movimientos (30d)</button>
-                                <button class="block px-3 py-2 w-full text-sm text-left cursor-pointer hover:bg-slate-100 dark:hover:bg-black/30"
+                                <button class="block px-3 py-2 w-full text-sm text-left cursor-pointer hover:bg-slate-100 "
                                     (click)="abrirMiniBalanceo(r); closeMobileActions()">Mini-balanceador</button>
                             </div>
                             }
@@ -141,7 +141,7 @@
 
                 @if (!loading() && rowsView().length === 0) {
                 <tr>
-                    <td colspan="8" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+                    <td colspan="8" class="px-3 py-6 text-center text-slate-500 ">
                         Sin datos en el rango seleccionado.
                     </td>
                 </tr>
@@ -154,7 +154,7 @@
     @if (detalleVisible()) {
     <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-30">
         <div
-            class="overflow-y-auto relative p-6 w-full max-h-[90vh] max-w-[75vw] bg-white rounded-lg shadow-lg dark:bg-[#1a202c]">
+            class="overflow-y-auto relative p-6 w-full max-h-[90vh] max-w-[75vw] bg-white rounded-lg shadow-lg ">
             <button (click)="cerrarDetalle()"
                 class="absolute top-3 right-3 text-gray-500 text-xl cursor-pointer hover:text-gray-700">&times;</button>
 
@@ -162,17 +162,17 @@
                 <div class="flex justify-left items-center mb-4">
 
                     @if (selectedHeader(); as H) {
-                    <h3 class="px-3 py-1 mr-4 text-xl font-bold text-green-800 dark:text-[#CBA135]">
+                    <h3 class="px-3 py-1 mr-4 text-xl font-bold text-green-800 ">
                         Detalle de solicitud
                     </h3>
-                    <div class="px-3 py-1 text-sm text-slate-600 dark:text-slate-300">
+                    <div class="px-3 py-1 text-sm text-slate-600 ">
                         <span class="font-medium">{{ H.cluesimb }}</span> · {{ H.created_day }} · {{ H.tipo_pedido }}
                         · {{ (H.tipos_insumo).join(' - ') }}
                     </div>
                     }
 
                     @if (detalleLoading()) {
-                    <div class="p-3 text-sm text-slate-600 dark:text-slate-300">Cargando detalle…</div>
+                    <div class="p-3 text-sm text-slate-600 ">Cargando detalle…</div>
                     }
 
                     @if (detalleError(); as derr) {
@@ -180,7 +180,7 @@
                         {{ derr }}
                     </div>
                     }
-                    <div class="ml-auto mr-4 text-sm text-slate-600 dark:text-slate-300">Mostrar Comparativa
+                    <div class="ml-auto mr-4 text-sm text-slate-600 ">Mostrar Comparativa
                     </div>
                     <div class="relative inline-block w-11 h-5">
                         <input checked id="switch-component" type="checkbox"
@@ -195,13 +195,13 @@
 
             <!-- Comparativa Solicitud vs Entregas -->
             <div *ngIf="!mostrarSoloDetalle()"
-                class="mt-4 p-4 bg-slate-50 rounded-xl border-slate-200 border dark:border-slate-700 dark:bg-black/20">
+                class="mt-4 p-4 bg-slate-50 rounded-xl border-slate-200 border  ">
                 <div class="flex flex-col items-center justify-between gap-2 md:flex-row">
                     <div>
-                        <div class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        <div class="text-sm font-semibold text-slate-700 ">
                             Comparativa (Solicitado vs Entregado)
                         </div>
-                        <div class="text-xs text-slate-500 dark:text-slate-400">
+                        <div class="text-xs text-slate-500 ">
                             * Entregado = movimientos hacia la unidad en el rango mostrado.
                         </div>
                     </div>
@@ -228,29 +228,29 @@
                             {{ comparativaExportando() ? 'Exportando...' : 'Exportar comparativa' }}
                         </button>
                         <span
-                            class="px-2 py-1 bg-white border-slate-200 rounded dark:bg-black border dark:border-slate-700">
+                            class="px-2 py-1 bg-white border-slate-200 rounded  border ">
                             Solic prom: <b>{{ kpiSolicitado() }}</b>
                         </span>
                         <span
-                            class="px-2 py-1 bg-white border-slate-200 rounded dark:bg-black border dark:border-slate-700">
+                            class="px-2 py-1 bg-white border-slate-200 rounded  border ">
                             Entr prom: <b>{{ kpiEntregado() }}</b>
                         </span>
                         <span
-                            class="px-2 py-1 bg-white border-slate-200 rounded dark:bg-black border dark:border-slate-700">
+                            class="px-2 py-1 bg-white border-slate-200 rounded  border ">
                             Cobertura: <b>{{ kpiCoberturaPct() }}%</b>
                         </span>
                     </div>
                 </div>
 
                 @if (movResumenLoading()) {
-                <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">Cargando entregas…</div>
+                <div class="mt-2 text-sm text-slate-600 ">Cargando entregas…</div>
                 }
 
                 @if (movResumenError(); as err) {
                 <div class="mt-2 p-2 text-sm text-red-700 bg-red-50 rounded">{{ err }}</div>
                 }
                 @if (comparativaOsLoading()) {
-                <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">Cargando órdenes de suministro (15d)...</div>
+                <div class="mt-2 text-sm text-slate-600 ">Cargando órdenes de suministro (15d)...</div>
                 }
                 @if (comparativaOsError(); as osErr) {
                 <div class="mt-2 p-2 text-sm text-red-700 bg-red-50 rounded">{{ osErr }}</div>
@@ -284,7 +284,7 @@
                             @let comparativa = getComparativaViewOrdenadoPorClave();
                             @for (r of comparativa; track r.clave) {
                                 <!-- alternate row colors -->
-                            <tr class="border-b hover:bg-slate-100 dark:hover:bg-black/30">
+                            <tr class="border-b hover:bg-slate-100 ">
                                 <td class="px-2 py-1">{{ $index + 1 }}</td>
                                 <td class="px-2 py-1 font-medium">{{ r.clave }}</td>
                                 <td class="px-2 py-1" [title]="r.descripcion" ]>{{ r.descripcion.length > 50 ?
@@ -326,10 +326,10 @@
 
 
             <div *ngIf="mostrarSoloDetalle()"
-                class="mt-4 p-4 bg-slate-50 rounded-xl border-slate-200 border dark:border-slate-700 dark:bg-black/20">
+                class="mt-4 p-4 bg-slate-50 rounded-xl border-slate-200 border  ">
                 <div class="flex flex-col items-center justify-between gap-2 md:flex-row">
                     <div>
-                        <div class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        <div class="text-sm font-semibold text-slate-700 ">
                             Detalle de solicitud
                         </div>
                     </div>
@@ -337,7 +337,7 @@
                 <div class="overflow-auto mt-3 max-h-[35vh]">
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="text-left text-slate-600 border-b dark:text-slate-300">
+                            <tr class="text-left text-slate-600 border-b ">
                                 <th class="px-2 py-1">#</th>
                                 <th class="px-2 py-1">Clave</th>
                                 <th class="px-2 py-1">Descripción</th>
@@ -358,7 +358,7 @@
 
                             @if (!detalleLoading() && detalle().length === 0) {
                             <tr>
-                                <td colspan="3" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+                                <td colspan="3" class="px-3 py-6 text-center text-slate-500 ">
                                     Sin renglones.
                                 </td>
                             </tr>
@@ -379,29 +379,29 @@
 
     @if (radarCrearVisible()) {
     <div class="z-[60] fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
-        <div class="p-5 w-full max-w-3xl bg-white rounded-xl shadow-xl border dark:bg-[#1a202c]">
+        <div class="p-5 w-full max-w-3xl bg-white rounded-xl shadow-xl border ">
             <div class="flex items-center justify-between">
-                <h4 class="text-lg font-semibold text-green-800 dark:text-[#CBA135]">
+                <h4 class="text-lg font-semibold text-green-800 ">
                     Crear evento de vigilancia en Radar de Desabasto
                 </h4>
                 <button class="text-xl cursor-pointer hover:opacity-70" (click)="cerrarCrearEventoRadar()">&times;</button>
             </div>
 
-            <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            <div class="mt-2 text-sm text-slate-600 ">
                 Se registrarán solamente claves con cobertura menor a 100% para evitar ruido operativo.
             </div>
 
             @if (selectedHeader(); as H) {
             <div class="grid grid-cols-1 gap-2 mt-3 text-sm md:grid-cols-3">
-                <div class="p-2 bg-slate-50 rounded border dark:bg-black/20">
+                <div class="p-2 bg-slate-50 rounded border ">
                     <div class="text-xs text-slate-500">Unidad</div>
                     <div class="font-medium">{{ H.cluesimb }} - {{ getDescripcionUnidad(H.cluesimb) }}</div>
                 </div>
-                <div class="p-2 bg-slate-50 rounded border dark:bg-black/20">
+                <div class="p-2 bg-slate-50 rounded border ">
                     <div class="text-xs text-slate-500">Fecha de referencia</div>
                     <div class="font-medium">{{ H.created_day }}</div>
                 </div>
-                <div class="p-2 bg-slate-50 rounded border dark:bg-black/20">
+                <div class="p-2 bg-slate-50 rounded border ">
                     <div class="text-xs text-slate-500">Tipo de insumo</div>
                     <div class="font-medium">{{ (H.tipos_insumo).join(' - ') }}</div>
                 </div>
@@ -410,28 +410,28 @@
 
             <div class="grid grid-cols-1 gap-3 mt-3 md:grid-cols-2">
                 <div>
-                    <label class="block text-xs text-slate-500 dark:text-slate-300">Motivo del evento</label>
+                    <label class="block text-xs text-slate-500 ">Motivo del evento</label>
                     <input
-                        class="mt-1 px-3 py-2 w-full rounded-lg border-custom-default border dark:bg-black"
+                        class="mt-1 px-3 py-2 w-full rounded-lg border-custom-default border "
                         [ngModel]="radarMotivo()"
                         (ngModelChange)="radarMotivo.set($event)"
                         placeholder="Describe por qué se abre este evento" />
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-500 dark:text-slate-300">Observaciones iniciales</label>
+                    <label class="block text-xs text-slate-500 ">Observaciones iniciales</label>
                     <input
-                        class="mt-1 px-3 py-2 w-full rounded-lg border-custom-default border dark:bg-black"
+                        class="mt-1 px-3 py-2 w-full rounded-lg border-custom-default border "
                         [ngModel]="radarObservaciones()"
                         (ngModelChange)="radarObservaciones.set($event)"
                         placeholder="Contexto operativo, hipótesis o acción inicial" />
                 </div>
             </div>
 
-            <div class="mt-3 p-3 bg-slate-50 rounded border dark:bg-black/20">
-                <div class="mb-1 text-xs text-slate-500 dark:text-slate-300">
+            <div class="mt-3 p-3 bg-slate-50 rounded border ">
+                <div class="mb-1 text-xs text-slate-500 ">
                     Claves que se incluirán en el evento ({{ getComparativaRiesgoRowsOrdenadoPorClave().length }})
                 </div>
-                <div class="overflow-auto max-h-28 text-sm text-slate-700 dark:text-slate-200">
+                <div class="overflow-auto max-h-28 text-sm text-slate-700 ">
                     @for (r of getComparativaRiesgoRowsOrdenadoPorClave(); track r.clave) {
                     <div class="py-0.5">
                         <b>{{ r.clave }}</b> · Cobertura {{ r.cumplimientoPct }}% · Faltante {{ r.diferencia }}
@@ -466,16 +466,16 @@
 
 @if (movVisible()) {
 <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
-    <div class="overflow-auto relative p-6 w-full max-w-[80vw] max-h-[90vh] bg-white rounded-xl dark:bg-[#1a202c]">
+    <div class="overflow-auto relative p-6 w-full max-w-[80vw] max-h-[90vh] bg-white rounded-xl ">
         <button class="absolute top-3 right-3 text-xl cursor-pointer" (click)="movVisible.set(false)">✖</button>
         @if (selectedHeader(); as H) {
-        <h3 class="text-xl font-semibold text-green-800 dark:text-[#CBA135]">
+        <h3 class="text-xl font-semibold text-green-800 ">
             Movimientos hacia {{ selectedUnidad() }} - Pedido {{ H.tipo_pedido }}
             · Tipo {{ (H.tipos_insumo).join(' - ') }}
         </h3>
         }
 
-        <div class="mb-2 text-sm text-slate-600 dark:text-slate-300">
+        <div class="mb-2 text-sm text-slate-600 ">
             Rango: {{ movDesde() }} → {{ movHasta() }}
         </div>
 
@@ -490,13 +490,13 @@
         }
 
         <!-- Resumen por clave -->
-        <div class="mt-3 p-3 bg-slate-50 rounded-lg border-slate-200 border dark:border-slate-700 dark:bg-black/20">
+        <div class="mt-3 p-3 bg-slate-50 rounded-lg border-slate-200 border  ">
             <div class="flex flex-col items-center justify-between gap-2 md:flex-row">
-                <div class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                <div class="text-sm font-semibold text-slate-700 ">
                     Resumen por clave (entregado)
                 </div>
 
-                <input class="px-3 py-2 w-full rounded-lg border-custom-default border dark:bg-black md:w-96"
+                <input class="px-3 py-2 w-full rounded-lg border-custom-default border  md:w-96"
                     placeholder="Filtrar clave (ej. 010.000...)" [ngModel]="movFiltroClave()"
                     (ngModelChange)="movFiltroClave.set(($event || '').toString().toUpperCase())" />
 
@@ -518,7 +518,7 @@
             </div>
 
             @if (movResumenLoading()) {
-            <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">Cargando resumen…</div>
+            <div class="mt-2 text-sm text-slate-600 ">Cargando resumen…</div>
             }
 
             @if (movResumenError(); as rerr) {
@@ -542,7 +542,7 @@
             <tbody>
                 @let movResumenView2 = getMovsResumenViewOrdenadoPorClave();
                 @for (r of movResumenView2; track (r.clave + '|' + $index); let i = $index) {
-                <tr class="border-b hover:bg-slate-100 dark:hover:bg-black/30">
+                <tr class="border-b hover:bg-slate-100 ">
                     <td class="px-2 py-1">{{ $index + 1 }}</td>
                     <td class="px-2 py-1 font-medium">{{ r.clave }}</td>
                     @let descripcion = getDescripcionArticulo(r.clave);
@@ -613,19 +613,19 @@
 
 @if (miniVisible()) {
 <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
-    <div class="overflow-auto relative p-6 w-full max-w-[90vw] max-h-[90vh] bg-white rounded-xl dark:bg-[#1a202c]">
+    <div class="overflow-auto relative p-6 w-full max-w-[90vw] max-h-[90vh] bg-white rounded-xl ">
         <button class="absolute top-3 right-3 text-xl cursor-pointer" (click)="cerrarMiniBalanceo()">✖</button>
 
         @if (miniHeader(); as H) {
-        <h3 class="text-xl font-semibold text-green-800 dark:text-[#CBA135]">
+        <h3 class="text-xl font-semibold text-green-800 ">
             Análisis · {{ selectedUnidad() }} - Pedido {{ H.tipo_pedido }}
             · Tipo {{ (H.tipos_insumo).join(' - ') }} - Periodo {{ H.periodo_texto }}
         </h3>
-        <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+        <div class="mt-2 text-sm text-slate-600 ">
             * Las sugerencias mostradas no representan una asignación automática de surtido ni sustituyen los procesos
             oficiales de abasto.
         </div>
-        <div class="mb-1 text-sm text-slate-600 dark:text-slate-300">
+        <div class="mb-1 text-sm text-slate-600 ">
             * Para mayor utilidad, se recomienda consultar este análisis en fechas cercanas a la generación de la
             solicitud, debido a la naturaleza cambiante de las existencias.
         </div>
@@ -671,22 +671,22 @@
                     <td class="px-2 py-1 text-right">{{ m.AZT }}</td>
                     <td class="px-2 py-1 text-right">{{ m.AZE }}</td>
                     <td class="px-2 py-1 text-right">{{ m.faltante }}</td>
-                    <td class="px-2 py-1 text-slate-600 dark:text-slate-300">
+                    <td class="px-2 py-1 text-slate-600 ">
                         <div>{{ m.sugerencia }}</div>
 
                         @if (m.homologacion?.mejores?.length) {
                         <details class="mt-2">
-                            <summary class="text-xs text-green-800 cursor-pointer dark:text-[#CBA135]">
+                            <summary class="text-xs text-green-800 cursor-pointer ">
                                 Ver homólogos ({{ m.homologacion?.total }} candidato(s))
                             </summary>
-                            <div class="mt-2 p-2 bg-slate-50 rounded-lg border-slate-200 border dark:border-slate-700 dark:bg-slate-900/40">
-                                <div class="mb-2 text-xs text-slate-500 dark:text-slate-300">
+                            <div class="mt-2 p-2 bg-slate-50 rounded-lg border-slate-200 border  ">
+                                <div class="mb-2 text-xs text-slate-500 ">
                                     * Cálculo informativo: qty sugerida = faltante × factor
                                 </div>
 
                                 <table class="w-full text-xs">
                                     <thead>
-                                        <tr class="text-left border-b border-slate-200 dark:border-slate-700">
+                                        <tr class="text-left border-b border-slate-200 ">
                                             <th class="py-1 pr-2">Sustituto</th>
                                             <th class="py-1 pr-2">Desc.</th>
                                             <th class="py-1 pr-2">Factor</th>
@@ -698,7 +698,7 @@
                                     <tbody>
                                         @for (c of m.homologacion!.mejores; track (c.sustituto + '|' + $index)) {
                                             @let descripcion = getDescripcionArticulo(c.sustituto);
-                                        <tr class="border-b border-slate-100 dark:border-slate-800">
+                                        <tr class="border-b border-slate-100 ">
                                             <td class="py-1 pr-2 font-medium">{{ c.sustituto }}</td>
                                             <td class="py-1 pr-2 text-xs" [title]="descripcion">{{ descripcion.length <= 50 ?
                                                 descripcion : descripcion.slice(0, 50) + '...' }}</td>
