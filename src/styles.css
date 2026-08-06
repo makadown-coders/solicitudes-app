@@ -2,6 +2,15 @@
 @import "@ng-select/ng-select/themes/default.theme.css";
 @import "tailwindcss";
 
+html {
+  color-scheme: only light;
+  background-color: #ffffff;
+}
+
+body {
+  background-color: #ffffff;
+  color: #0f172a;
+}
 
 @utility cal-btn {
   @apply rounded px-2 py-1 transition hover:bg-green-200;
@@ -19,7 +28,7 @@
   @apply bg-green-300 text-green-900;
 }
 
-/* --- NUEVAS REGLAS PARA BORDES Y PREPARACIÓN PARA DARK MODE --- */
+/* Reglas globales de bordes para el tema claro */
 
 /* Por defecto (Light Mode): Bordes grises */
 @utility border-default {
@@ -92,94 +101,4 @@
 
 .animate-loading-bar {
   animation: loading-bar 1.5s linear infinite;
-}
-
-
-/* Preparación para Dark Mode (se activará con la clase 'dark' en el body/html) */
-html.dark {
-  /* Estilos para el modo oscuro */
-  --tw-border-color: #3f3f46;
-  /* Tailwind's gray-700 para bordes oscuros */
-  background-color: #1a202c;
-  /* Un gris muy oscuro para el fondo del cuerpo*/
-  color: #ffffff;
-  /* Un gris claro para el texto por defecto */
-
-  label,
-  h2,
-  .ng-select-container {
-    color: #ffffff;
-  }
-
-  select,
-  .ng-select,
-  .custom-ngselect,
-  .kpi-card,
-  .grid {
-    background-color: #1a202c;
-    color: #ffffff;
-  }
-
-  .detalle-cita {
-    border-color: #ffffff;
-    /* blanco */
-    background-color: #1a202c;
-    color: #ffffff;
-    border: 1;
-  }
-
-  .periodo-picker-dashboard,
-  .picker-panel,
-  .picker-panel>p,
-  span,
-  .ng-select-container,
-  .ng-value-container,
-  .ng-value-icon,
-  .ng-option-selected,
-  .ng-option-marked,
-  .ng-dropdown-panel .ng-dropdown-panel-items .ng-option {
-    border-color: #ffffff;
-    /* blanco */
-    color: #ffffff;
-    background-color: #1a202c;
-    border: 1;
-  }
-
-  .renglon-info {
-    color: #000000;
-  }
-
-  button.boton-modo,
-  button.boton-refrescar {
-    background-color: #000000;
-    color: #CBA135;
-  }
-
-  button:hover {
-    background-color: #000000;
-    color: #CBA135;
-    cursor: pointer;
-  }
-
-  button.active-tab,
-  .kpi-card-total-piezas {
-    color: #CBA135;
-  }
-
-  button.inactive-tab,
-  .kpi-card-text {
-    color: #ffffff;
-  }
-
-  /* Si estás usando la clase `border-custom-default` */
-  .border-custom-default {
-    @apply border-gray-700;
-    /* Color oscuro para la clase personalizada en dark mode */
-  }
-
-  /* O si sobrescribiste la utilidad 'border' directamente */
-  .border {
-    border-color: #3f3f46 !important;
-    /* Dark mode border color */
-  }
 }

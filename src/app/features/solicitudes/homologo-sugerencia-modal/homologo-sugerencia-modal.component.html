@@ -20,46 +20,46 @@
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
         <!-- Original -->
-        <div class="p-4 bg-gray-50 rounded-lg border-gray-200 border dark:bg-slate-900/50 dark:border-slate-700">
-          <h3 class="mb-3 font-semibold text-gray-900 text-sm tracking-wide uppercase dark:text-white">
+        <div class="p-4 bg-gray-50 rounded-lg border-gray-200 border  ">
+          <h3 class="mb-3 font-semibold text-gray-900 text-sm tracking-wide uppercase ">
             📌 Original
           </h3>
           <div class="text-sm space-y-2">
             <div>
-              <span class="text-gray-600 dark:text-gray-400">Clave:</span>
-              <span class="ml-2 font-mono font-bold text-gray-900 dark:text-white">{{ originalClave }}</span>
+              <span class="text-gray-600 ">Clave:</span>
+              <span class="ml-2 font-mono font-bold text-gray-900 ">{{ originalClave }}</span>
             </div>
             <div>
-              <span class="text-gray-600 dark:text-gray-400">Descripción:</span>
+              <span class="text-gray-600 ">Descripción:</span>
               @let descOriginal = getDescripcionArticulo( originalClave );
-              <p class="mt-1 text-gray-800 dark:text-gray-300" [title]="descOriginal">
+              <p class="mt-1 text-gray-800 " [title]="descOriginal">
                 {{ getShortDescription( descOriginal ) }}
               </p>
             </div>
             <div>
-              <span class="text-gray-600 dark:text-gray-400">Cantidad:</span>
-              <span class="ml-2 font-semibold text-gray-900 dark:text-white">{{ originalCantidad }} un.</span>
+              <span class="text-gray-600 ">Cantidad:</span>
+              <span class="ml-2 font-semibold text-gray-900 ">{{ originalCantidad }} un.</span>
             </div>
             <!-- Existencias de la clave original en almacenes -->
-            <div class="mt-3 p-3 bg-white rounded border-gray-200 border dark:bg-slate-700/50 dark:border-slate-600">
-              <div class="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-300">📦 Existencias actuales:</div>
+            <div class="mt-3 p-3 bg-white rounded border-gray-200 border  ">
+              <div class="mb-2 text-xs font-semibold text-gray-700 ">📦 Existencias actuales:</div>
               <div class="grid grid-cols-3 gap-2">
-                <div class="p-2 text-center bg-gray-100 rounded dark:bg-slate-600">
-                  <div class="text-xs text-gray-500 tracking-wider dark:text-gray-400 uppercase">AZM</div>
-                  <div class="font-bold text-sm text-gray-900 dark:text-white">{{ fmt(originalExistencias.AZM) }}</div>
+                <div class="p-2 text-center bg-gray-100 rounded ">
+                  <div class="text-xs text-gray-500 tracking-wider  uppercase">AZM</div>
+                  <div class="font-bold text-sm text-gray-900 ">{{ fmt(originalExistencias.AZM) }}</div>
                 </div>
-                <div class="p-2 text-center bg-gray-100 rounded dark:bg-slate-600">
-                  <div class="text-xs text-gray-500 tracking-wider dark:text-gray-400 uppercase">AZT</div>
-                  <div class="font-bold text-sm text-gray-900 dark:text-white">{{ fmt(originalExistencias.AZT) }}</div>
+                <div class="p-2 text-center bg-gray-100 rounded ">
+                  <div class="text-xs text-gray-500 tracking-wider  uppercase">AZT</div>
+                  <div class="font-bold text-sm text-gray-900 ">{{ fmt(originalExistencias.AZT) }}</div>
                 </div>
-                <div class="p-2 text-center bg-gray-100 rounded dark:bg-slate-600">
-                  <div class="text-xs text-gray-500 tracking-wider dark:text-gray-400 uppercase">AZE</div>
-                  <div class="font-bold text-sm text-gray-900 dark:text-white">{{ fmt(originalExistencias.AZE) }}</div>
+                <div class="p-2 text-center bg-gray-100 rounded ">
+                  <div class="text-xs text-gray-500 tracking-wider  uppercase">AZE</div>
+                  <div class="font-bold text-sm text-gray-900 ">{{ fmt(originalExistencias.AZE) }}</div>
                 </div>
               </div>
-              <div class="mt-2 p-2 text-center bg-blue-50 rounded dark:bg-blue-950/30">
-                <div class="text-xs text-gray-600 dark:text-gray-400">Total disponible:</div>
-                <div class="font-bold text-blue-700 dark:text-blue-400">
+              <div class="mt-2 p-2 text-center bg-blue-50 rounded ">
+                <div class="text-xs text-gray-600 ">Total disponible:</div>
+                <div class="font-bold text-blue-700 ">
                   {{ fmt(originalExistencias.AZM + originalExistencias.AZT + originalExistencias.AZE) }}
                 </div>
               </div>
@@ -70,85 +70,85 @@
         <!-- Sugerencia TOP -->
         @if (topCandidates.length > 0) {
           @let top = topCandidates[0];
-          <div class="overflow-hidden relative p-4 bg-green-50 border-2 rounded-lg border-green-300 dark:bg-green-950/30 dark:border-green-700">
-            <div class="absolute top-0 right-0 px-3 py-1 text-white text-xs font-semibold bg-green-600 dark:bg-green-700">
+          <div class="overflow-hidden relative p-4 bg-green-50 border-2 rounded-lg border-green-300  ">
+            <div class="absolute top-0 right-0 px-3 py-1 text-white text-xs font-semibold bg-green-600 ">
               TOP 1 ⭐
             </div>
-            <h3 class="mb-3 font-semibold text-green-900 text-sm tracking-wide uppercase dark:text-green-100">
+            <h3 class="mb-3 font-semibold text-green-900 text-sm tracking-wide uppercase ">
               💡 Sugerencia
             </h3>
             <div class="text-sm space-y-2">
               <div>
-                <span class="text-gray-600 dark:text-gray-400">Clave:</span>
-                <span class="ml-2 font-mono font-bold text-green-800 dark:text-green-400">{{ top.sustituto }}</span>
+                <span class="text-gray-600 ">Clave:</span>
+                <span class="ml-2 font-mono font-bold text-green-800 ">{{ top.sustituto }}</span>
               </div>
               <div>
-                <span class="text-gray-600 dark:text-gray-400">Descripción:</span>
+                <span class="text-gray-600 ">Descripción:</span>
                 @let descSugerida = getDescripcionArticulo(top.sustituto);
-                <p class="mt-1 text-gray-800 dark:text-gray-300" [title]="descSugerida">
+                <p class="mt-1 text-gray-800 " [title]="descSugerida">
                   {{ getShortDescription(descSugerida) }}
                 </p>
               </div>
-              <div class="grid grid-cols-3 gap-2 my-3 p-2 bg-white/60 rounded dark:bg-slate-800/50">
+              <div class="grid grid-cols-3 gap-2 my-3 p-2 bg-white/60 rounded ">
                 <div class="text-center">
                   <!-- usar pipe para usar hasta 10 decimales -->
-                  <div class="font-bold text-green-700 text-lg dark:text-green-400">{{ top.factor | number:'1.10' }}</div>
-                  <div class="text-xs text-gray-600 dark:text-gray-400">Factor</div>
+                  <div class="font-bold text-green-700 text-lg ">{{ top.factor | number:'1.10' }}</div>
+                  <div class="text-xs text-gray-600 ">Factor</div>
                 </div>
                 <div class="text-center">
-                  <div class="font-bold text-green-700 text-lg dark:text-green-400">
+                  <div class="font-bold text-green-700 text-lg ">
                     {{ (originalCantidad * (top.qtySugerida / originalCantidad)) | number:'1.0-0' }}
                   </div>
-                  <div class="text-xs text-gray-600 dark:text-gray-400">Cant. sugerida</div>
+                  <div class="text-xs text-gray-600 ">Cant. sugerida</div>
                 </div>
                 <div class="text-center">
-                  <div class="font-bold text-green-700 text-lg dark:text-green-400">{{ fmt(top.existenciaPreferida) }}</div>
-                  <div class="text-xs text-gray-600 dark:text-gray-400">Stock (Sugerido)</div>
+                  <div class="font-bold text-green-700 text-lg ">{{ fmt(top.existenciaPreferida) }}</div>
+                  <div class="text-xs text-gray-600 ">Stock (Sugerido)</div>
                 </div>
               </div>
 
               <!-- Existencias en los 3 almacenes -->
-              <div class="mt-3 p-3 bg-gray-100 border-gray-200 rounded dark:bg-slate-700/50 border dark:border-slate-600">
-                <div class="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-300">📦 Disponibilidad por almacén:</div>
+              <div class="mt-3 p-3 bg-gray-100 border-gray-200 rounded  border ">
+                <div class="mb-2 text-xs font-semibold text-gray-700 ">📦 Disponibilidad por almacén:</div>
                 <div class="grid grid-cols-3 gap-2">
-                  <div class="p-2 text-center bg-white rounded dark:bg-slate-600">
-                    <div class="text-xs text-gray-500 tracking-wider dark:text-gray-400 uppercase">AZM</div>
-                    <div class="font-bold text-sm text-gray-900 dark:text-white">{{ fmt(top.buckets.AZM) }}</div>
+                  <div class="p-2 text-center bg-white rounded ">
+                    <div class="text-xs text-gray-500 tracking-wider  uppercase">AZM</div>
+                    <div class="font-bold text-sm text-gray-900 ">{{ fmt(top.buckets.AZM) }}</div>
                   </div>
-                  <div class="p-2 text-center bg-white rounded dark:bg-slate-600">
-                    <div class="text-xs text-gray-500 tracking-wider dark:text-gray-400 uppercase">AZT</div>
-                    <div class="font-bold text-sm text-gray-900 dark:text-white">{{ fmt(top.buckets.AZT) }}</div>
+                  <div class="p-2 text-center bg-white rounded ">
+                    <div class="text-xs text-gray-500 tracking-wider  uppercase">AZT</div>
+                    <div class="font-bold text-sm text-gray-900 ">{{ fmt(top.buckets.AZT) }}</div>
                   </div>
-                  <div class="p-2 text-center bg-white rounded dark:bg-slate-600">
-                    <div class="text-xs text-gray-500 tracking-wider dark:text-gray-400 uppercase">AZE</div>
-                    <div class="font-bold text-sm text-gray-900 dark:text-white">{{ fmt(top.buckets.AZE) }}</div>
+                  <div class="p-2 text-center bg-white rounded ">
+                    <div class="text-xs text-gray-500 tracking-wider  uppercase">AZE</div>
+                    <div class="font-bold text-sm text-gray-900 ">{{ fmt(top.buckets.AZE) }}</div>
                   </div>
                 </div>
-                <div class="mt-2 p-2 text-center bg-green-100 rounded dark:bg-green-950/30">
-                  <div class="text-xs text-gray-600 dark:text-gray-400">Total disponible:</div>
-                  <div class="font-bold text-green-700 dark:text-green-400">
+                <div class="mt-2 p-2 text-center bg-green-100 rounded ">
+                  <div class="text-xs text-gray-600 ">Total disponible:</div>
+                  <div class="font-bold text-green-700 ">
                     {{ fmt(top.buckets.AZM + top.buckets.AZT + top.buckets.AZE) }}
                   </div>
                 </div>
               </div>
-              <div class="flex items-center gap-2 p-2 bg-blue-50 rounded dark:bg-blue-950/30 dark:border dark:border-blue-700">
+              <div class="flex items-center gap-2 p-2 bg-blue-50 rounded   ">
                 <span class="text-lg">📍</span>
-                <span class="text-sm text-gray-700 dark:text-gray-300">
+                <span class="text-sm text-gray-700 ">
                   <strong>Almacén sugerido:</strong> {{ top.bucketSugerido || 'Flexible' }}
                 </span>
               </div>
             </div>
           </div>
         } @else {
-          <div class="p-4 bg-yellow-50 rounded-lg border-yellow-200 border dark:bg-yellow-950/30 dark:border-yellow-700">
-            <p class="text-sm text-yellow-800 dark:text-yellow-200">⚠️ No hay alternativas disponibles en este momento</p>
+          <div class="p-4 bg-yellow-50 rounded-lg border-yellow-200 border  ">
+            <p class="text-sm text-yellow-800 ">⚠️ No hay alternativas disponibles en este momento</p>
           </div>
         }
       </div>
 
       <!-- Info adicional -->
-      <div class="mt-6 p-3 bg-blue-50 rounded-lg border-blue-200 border dark:bg-blue-950/20 dark:border-blue-700">
-        <p class="text-xs text-blue-800 dark:text-blue-300">
+      <div class="mt-6 p-3 bg-blue-50 rounded-lg border-blue-200 border  ">
+        <p class="text-xs text-blue-800 ">
           <strong>💡 Nota:</strong> La cantidad sugerida se calcula como: cantidad original × factor de conversión.
           Esto garantiza que recibas la cantidad equivalente del artículo sugerido.
         </p>
@@ -163,16 +163,16 @@
           @if (topCandidates.length > 0) {
             <div class="flex flex-wrap gap-3">
               <button (click)="onReemplazar()"
-                      class="flex-1 px-4 py-2 min-w-[120px] text-white font-medium bg-green-600 rounded-lg transition-colors hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
+                      class="flex-1 px-4 py-2 min-w-[120px] text-white font-medium bg-green-600 rounded-lg transition-colors hover:bg-green-700  "
                       [disabled]="topCandidates.length === 0">
                 ✓ Reemplazar
               </button>
               <button (click)="onMantener()"
-                      class="flex-1 px-4 py-2 min-w-[120px] text-gray-900 font-medium bg-gray-300 rounded-lg transition-colors hover:bg-gray-400 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-700">
+                      class="flex-1 px-4 py-2 min-w-[120px] text-gray-900 font-medium bg-gray-300 rounded-lg transition-colors hover:bg-gray-400   ">
                 Mantener Original
               </button>
               <!-- <button (click)="onVerDetalles()"
-                      class="flex-1 px-4 py-2 min-w-[120px] text-white font-medium bg-blue-500 rounded-lg transition-colors hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600">
+                      class="flex-1 px-4 py-2 min-w-[120px] text-white font-medium bg-blue-500 rounded-lg transition-colors hover:bg-blue-600  ">
                 Ver más opciones
               </button> -->
             </div>
@@ -183,7 +183,7 @@
             <input type="checkbox"
                    [(ngModel)]="noSugerirMasChecked"
                    class="w-4 h-4 text-red-600 border-gray-300 cursor-pointer rounded">
-            <span class="text-gray-700 dark:text-gray-300">
+            <span class="text-gray-700 ">
               No volver a sugerir para <strong>{{ originalClave }}</strong>
             </span>
           </label>
@@ -191,7 +191,7 @@
       </div>
 
       <!-- Auto-close info -->
-      <!-- <div class="mt-3 text-xs text-gray-500 text-center dark:text-gray-400">
+      <!-- <div class="mt-3 text-xs text-gray-500 text-center ">
         ⏱️ Este diálogo se cerrará automáticamente en {{ autoCloseSeconds }}s si no interactúas
       </div> -->
     </div>

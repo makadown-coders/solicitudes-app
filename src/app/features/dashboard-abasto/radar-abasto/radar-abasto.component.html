@@ -1,10 +1,10 @@
 <div class="space-y-4">
   <div class="flex flex-col gap-2 md:flex-row items-center justify-between">
     <div>
-      <h2 class="text-2xl font-semibold tracking-tight text-green-800 dark:text-[#CBA135]">
+      <h2 class="text-2xl font-semibold tracking-tight text-green-800 ">
         Radar de Riesgo de Desabasto
       </h2>
-      <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+      <p class="mt-1 text-sm text-slate-600 ">
         Identifica claves solicitadas con bajo respaldo logístico (existencia, citas y movimientos).
       </p>
     </div>
@@ -17,34 +17,34 @@
   </div>
 
   <div class="grid grid-cols-1 gap-3 md:grid-cols-6">
-    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
-      <label class="block text-xs text-slate-500 dark:text-slate-300">Fecha desde</label>
+    <div class="p-3 bg-white rounded-xl border-custom-default border ">
+      <label class="block text-xs text-slate-500 ">Fecha desde</label>
       <input
         type="date"
-        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border "
         [ngModel]="desde()"
         (ngModelChange)="desde.set($event)" />
     </div>
-    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
-      <label class="block text-xs text-slate-500 dark:text-slate-300">Fecha hasta</label>
+    <div class="p-3 bg-white rounded-xl border-custom-default border ">
+      <label class="block text-xs text-slate-500 ">Fecha hasta</label>
       <input
         type="date"
-        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border "
         [ngModel]="hasta()"
         (ngModelChange)="hasta.set($event)" />
     </div>
-    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
-      <label class="block text-xs text-slate-500 dark:text-slate-300">Unidad (CLUES)</label>
+    <div class="p-3 bg-white rounded-xl border-custom-default border ">
+      <label class="block text-xs text-slate-500 ">Unidad (CLUES)</label>
       <input
-        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border "
         placeholder="BCIMB001726"
         [ngModel]="clues()"
         (ngModelChange)="clues.set(($event || '').toUpperCase())" />
     </div>
-    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
-      <label class="block text-xs text-slate-500 dark:text-slate-300">Estado evento</label>
+    <div class="p-3 bg-white rounded-xl border-custom-default border ">
+      <label class="block text-xs text-slate-500 ">Estado evento</label>
       <select
-        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border "
         [ngModel]="estado()"
         (ngModelChange)="estado.set($event)">
         <option value="">Todos</option>
@@ -53,10 +53,10 @@
         <option value="cerrado">Cerrado</option>
       </select>
     </div>
-    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
-      <label class="block text-xs text-slate-500 dark:text-slate-300">Riesgo mínimo</label>
+    <div class="p-3 bg-white rounded-xl border-custom-default border ">
+      <label class="block text-xs text-slate-500 ">Riesgo mínimo</label>
       <select
-        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border dark:bg-black"
+        class="mt-1 px-2 py-1 w-full rounded-lg border-custom-default border "
         [ngModel]="riesgoMin()"
         (ngModelChange)="riesgoMin.set($event)">
         <option value="">Todos</option>
@@ -65,8 +65,8 @@
         <option value="CRITICO">Crítico</option>
       </select>
     </div>
-    <div class="p-3 bg-white rounded-xl border-custom-default border dark:bg-[#1a202c]">
-      <label class="block text-xs text-slate-500 dark:text-slate-300">Acción</label>
+    <div class="p-3 bg-white rounded-xl border-custom-default border ">
+      <label class="block text-xs text-slate-500 ">Acción</label>
       <button
         class="mt-1 px-3 py-1 w-full text-white bg-blue-600 rounded-lg cursor-pointer hover:opacity-90"
         (click)="cargar(true)">
@@ -81,10 +81,10 @@
     </div>
   }
 
-  <div class="overflow-auto bg-white rounded-2xl border-custom-default border dark:bg-[#1a202c]">
+  <div class="overflow-auto bg-white rounded-2xl border-custom-default border ">
     <table class="min-w-full text-sm">
-      <thead class="sticky top-0 bg-white border-b dark:bg-[#1a202c]">
-        <tr class="text-left text-slate-600 dark:text-slate-300">
+      <thead class="sticky top-0 bg-white border-b ">
+        <tr class="text-left text-slate-600 ">
           <th class="px-3 py-2">Fecha</th>
           <th class="px-3 py-2">CLUES</th>
           <th class="px-3 py-2">Motivo</th>
@@ -97,14 +97,14 @@
       <tbody>
         @if (loading()) {
           <tr>
-            <td colspan="7" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+            <td colspan="7" class="px-3 py-6 text-center text-slate-500 ">
               Cargando eventos...
             </td>
           </tr>
         }
 
         @for (r of rows(); track r.id) {
-          <tr class="border-b hover:bg-green-50 dark:hover:bg-black">
+          <tr class="border-b hover:bg-green-50 ">
             <td class="px-3 py-2 whitespace-nowrap">{{ r.fecha_evento }}</td>
             <td class="px-3 py-2">{{ r.clues }} {{ r.unidad_nombre ? ('- ' + r.unidad_nombre) : '' }}</td>
             <td class="px-3 py-2">{{ r.motivo }}</td>
@@ -131,7 +131,7 @@
 
         @if (!loading() && rows().length === 0) {
           <tr>
-            <td colspan="7" class="px-3 py-6 text-center text-slate-500 dark:text-slate-300">
+            <td colspan="7" class="px-3 py-6 text-center text-slate-500 ">
               Sin eventos para los filtros seleccionados.
             </td>
           </tr>
@@ -141,7 +141,7 @@
   </div>
 
   <div class="flex items-center justify-between p-2 text-sm">
-    <div class="text-slate-600 dark:text-slate-300">
+    <div class="text-slate-600 ">
       Total eventos: {{ total() }}
     </div>
     <div class="flex items-center gap-2">
@@ -153,11 +153,11 @@
 
   @if (detalleVisible()) {
     <div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-35">
-      <div class="overflow-y-auto relative p-5 w-full max-h-[90vh] max-w-[88vw] bg-white rounded-xl shadow-lg dark:bg-[#1a202c]">
+      <div class="overflow-y-auto relative p-5 w-full max-h-[90vh] max-w-[88vw] bg-white rounded-xl shadow-lg ">
         <button class="absolute top-2 right-3 text-2xl cursor-pointer" (click)="cerrarDetalle()">&times;</button>
 
         @if (detalleLoading()) {
-          <div class="p-3 text-sm text-slate-600 dark:text-slate-300">Cargando detalle...</div>
+          <div class="p-3 text-sm text-slate-600 ">Cargando detalle...</div>
         }
         @if (detalleError(); as derr) {
           <div class="p-3 text-sm text-red-700 bg-red-50 rounded">{{ derr }}</div>
@@ -165,17 +165,17 @@
 
         @if (detalle(); as det) {
           <div class="mb-3">
-            <h3 class="text-xl font-semibold text-green-800 dark:text-[#CBA135]">Evento #{{ det.evento.id }}</h3>
-            <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            <h3 class="text-xl font-semibold text-green-800 ">Evento #{{ det.evento.id }}</h3>
+            <div class="mt-1 text-sm text-slate-600 ">
               {{ det.evento.fecha_evento }} · {{ det.evento.clues }} · {{ det.evento.motivo }}
             </div>
           </div>
 
           <div class="grid grid-cols-1 gap-3 mb-3 md:grid-cols-3">
-            <div class="p-3 bg-slate-50 rounded border dark:bg-black/20">
-              <label class="block text-xs text-slate-500 dark:text-slate-300">Estado del evento</label>
+            <div class="p-3 bg-slate-50 rounded border ">
+              <label class="block text-xs text-slate-500 ">Estado del evento</label>
               <select
-                class="mt-1 px-2 py-1 w-full border-custom-default rounded border dark:bg-black"
+                class="mt-1 px-2 py-1 w-full border-custom-default rounded border "
                 [ngModel]="editEstado()"
                 (ngModelChange)="editEstado.set($event)">
                 <option value="abierto">Abierto</option>
@@ -183,10 +183,10 @@
                 <option value="cerrado">Cerrado</option>
               </select>
             </div>
-            <div class="p-3 bg-slate-50 rounded border dark:bg-black/20 md:col-span-2">
-              <label class="block text-xs text-slate-500 dark:text-slate-300">Observaciones de seguimiento</label>
+            <div class="p-3 bg-slate-50 rounded border  md:col-span-2">
+              <label class="block text-xs text-slate-500 ">Observaciones de seguimiento</label>
               <input
-                class="mt-1 px-2 py-1 w-full border-custom-default rounded border dark:bg-black"
+                class="mt-1 px-2 py-1 w-full border-custom-default rounded border "
                 [ngModel]="editObservaciones()"
                 (ngModelChange)="editObservaciones.set($event)"
                 placeholder="Ej. Pendiente validación con abasto central..." />
@@ -209,14 +209,14 @@
             </button>
           </div>
 
-          <div class="mb-3 text-xs text-slate-500 dark:text-slate-300">
+          <div class="mb-3 text-xs text-slate-500 ">
             Recalcular métricas actualiza el snapshot del evento con datos actuales (existencia, CPM, citas pendientes y movimientos 30d). No cambia ni elimina las claves capturadas.
           </div>
 
           <div class="overflow-auto max-h-[45vh]">
             <table class="min-w-full text-sm">
-              <thead class="sticky top-0 bg-white border-b dark:bg-[#1a202c]">
-                <tr class="text-left text-slate-600 dark:text-slate-300">
+              <thead class="sticky top-0 bg-white border-b ">
+                <tr class="text-left text-slate-600 ">
                   <th class="px-2 py-1">Clave</th>
                   <th class="px-2 py-1 text-right">Existencia</th>
                   <th class="px-2 py-1 text-right">CPM</th>
@@ -230,7 +230,7 @@
               </thead>
               <tbody>
                 @for (c of det.claves; track c.id) {
-                  <tr class="border-b hover:bg-slate-50 dark:hover:bg-black/20">
+                  <tr class="border-b hover:bg-slate-50 ">
                     <td class="px-2 py-1">
                       <div class="font-medium">{{ c.clave_cnis }}</div>
                       @if (c.descripcion) {

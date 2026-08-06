@@ -8,11 +8,6 @@ tbody tr:hover {
   background-color: rgba(255, 255, 255, 0.7);
 }
 
-/* Dark mode */
-:host-context(.dark) tbody tr:hover {
-  background-color: rgba(15, 23, 42, 0.5);
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
   table {

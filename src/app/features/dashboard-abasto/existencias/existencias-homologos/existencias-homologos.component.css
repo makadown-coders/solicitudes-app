@@ -36,7 +36,7 @@
   -webkit-box-orient: vertical;
 }
 
-/* Dark mode transitions */
+/* Transiciones de color */
 .transition-colors {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
@@ -74,25 +74,6 @@ button:disabled {
 
   .grid {
     grid-template-columns: 1fr !important;
-  }
-}
-
-/* Dark mode custom colors */
-@media (prefers-color-scheme: dark) {
-  .dark\:bg-slate-800 {
-    background-color: rgb(30, 41, 59);
-  }
-
-  .dark\:bg-slate-700 {
-    background-color: rgb(51, 65, 85);
-  }
-
-  .dark\:border-slate-700 {
-    border-color: rgb(51, 65, 85);
-  }
-
-  .dark\:text-white {
-    color: rgb(255, 255, 255);
   }
 }
 

@@ -3,12 +3,12 @@
 @if (visible) {
   <div
     class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 detalle-cita-modal">
-    <div class="p-6 w-full max-w-2xl bg-white rounded-lg shadow-xl dark:bg-gray-800 detalle-cita">
-      <h2 class="mb-2 text-xl font-semibold text-gray-800 dark:text-white">
+    <div class="p-6 w-full max-w-2xl bg-white rounded-lg shadow-xl  detalle-cita">
+      <h2 class="mb-2 text-xl font-semibold text-gray-800 ">
         Detalle del insumo
       </h2>
       <p class="mb-2 text-sm text-gray-500 detalle-cita">{{ clave_cnis }} – {{ descripcion | maxLength: 500 }}</p>
-      <div class="grid grid-cols-2 gap-4 text-sm text-gray-800 dark:text-gray-200 detalle-cita">
+      <div class="grid grid-cols-2 gap-4 text-sm text-gray-800  detalle-cita">
         <div><strong>Órdenes totales:</strong> {{ totalOrdenes }}</div>
         <div><strong>% cumplimiento:</strong> {{ cumplimiento | truncateDecimal:2 }}%</div>
         <div><strong>Piezas emitidas:</strong> {{ totalEmitidas }}</div>
@@ -22,7 +22,7 @@
       </div>
       @if (unidadesAfectadas.length > 0) {
         <div class="mt-4">
-          <h3 class="font-medium text-gray-700 dark:text-white detalle-cita">Unidades relacionadas:</h3>
+          <h3 class="font-medium text-gray-700  detalle-cita">Unidades relacionadas:</h3>
           <ul class="pl-5 list-disc">
             @for (unidad of unidadesAfectadas; track unidad) {
               <li>
@@ -34,7 +34,7 @@
       }
       @if (fechasFrecuentes.length > 0) {
         <div class="mt-4">
-          <h3 class="font-medium text-gray-700 dark:text-white detalle-cita">Fechas más recientes de entrega:</h3>
+          <h3 class="font-medium text-gray-700  detalle-cita">Fechas más recientes de entrega:</h3>
           <ul class="pl-5 list-disc">
             @for (fecha of fechasFrecuentes; track fecha) {
               <li>{{ fecha | date : 'dd MMMM yyyy' | uppercase }}</li>
@@ -44,7 +44,7 @@
       }
       @if (proveedoresFrecuentes.length > 0) {
         <div class="mt-4">
-          <h3 class="font-medium text-gray-700 dark:text-white detalle-cita">Proveedores frecuentes:</h3>
+          <h3 class="font-medium text-gray-700  detalle-cita">Proveedores frecuentes:</h3>
           <ul class="pl-5 list-disc">
             @for (prov of proveedoresFrecuentes; track prov) {
               <li>
@@ -56,7 +56,7 @@
       }
       @if (tiposDeCompraRelacionados.length > 0) {
         <div class="mt-4">
-          <h3 class="font-medium text-gray-700 dark:text-white detalle-cita">Tipos de Compra frecuentes:</h3>
+          <h3 class="font-medium text-gray-700  detalle-cita">Tipos de Compra frecuentes:</h3>
           <ul class="pl-5 list-disc">
             @for (prov of tiposDeCompraRelacionados; track prov) {
               <li>

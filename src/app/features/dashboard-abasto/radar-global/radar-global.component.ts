@@ -471,14 +471,14 @@ export class RadarGlobalComponent implements OnInit {
 
   rowClassRiesgo(row: RadarGlobalClaveRiesgoRow): string {
     if (this.vistaRiesgo() === 'desabasto') {
-      if (row.nivel_desabasto === 'CRITICO') return 'bg-red-50/70 dark:bg-red-950/20';
-      if (row.nivel_desabasto === 'ALTO') return 'bg-orange-50/70 dark:bg-orange-950/20';
-      if (row.nivel_desabasto === 'MEDIO') return 'bg-amber-50/70 dark:bg-amber-950/20';
+      if (row.nivel_desabasto === 'CRITICO') return 'bg-red-50/70 ';
+      if (row.nivel_desabasto === 'ALTO') return 'bg-orange-50/70 ';
+      if (row.nivel_desabasto === 'MEDIO') return 'bg-amber-50/70 ';
       return '';
     }
 
-    if (row.nivel_sobreabasto === 'ALTO') return 'bg-fuchsia-50/70 dark:bg-fuchsia-950/20';
-    if (row.nivel_sobreabasto === 'MEDIO') return 'bg-indigo-50/70 dark:bg-indigo-950/20';
+    if (row.nivel_sobreabasto === 'ALTO') return 'bg-fuchsia-50/70 ';
+    if (row.nivel_sobreabasto === 'MEDIO') return 'bg-indigo-50/70 ';
     return '';
   }
 
