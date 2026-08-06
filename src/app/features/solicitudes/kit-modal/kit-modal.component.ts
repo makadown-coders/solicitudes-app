@@ -379,15 +379,7 @@ export class KitModalComponent implements OnInit {
             return;
         }
 
-        let mensaje = `Se agregaron ${nuevos.length} claves.`;
-        if (omitidasPorDup > 0) mensaje += ` Se omitieron ${omitidasPorDup} claves que ya estan en la lista.`;
-        if (omitidasPorQty > 0) mensaje += ` Se omitieron ${omitidasPorQty} claves con cantidad 0.`;
         this.addToSolicitud.emit(nuevos);
-        this.toast.success({
-            title: 'Agregado',
-            content: mensaje,
-            duration: 7
-        });
         this.cerrar();
     }
 

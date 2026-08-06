@@ -1,16 +1,16 @@
 <!-- src/app/features/dashboard-abasto/citas-pendientes/citas-pendientes.component.html -->
-<div class="p-6 min-h-[560px] space-y-6">
+<div class="p-2 min-h-[560px] space-y-4 sm:p-4 lg:p-6 lg:space-y-6">
   <h2 class="text-xl font-bold text-green-800">Órdenes Pendientes o Incompletas</h2>
 
   <!-- Filtros -->
-  <div class="flex flex-wrap items-center gap-4">
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
 
     <!-- Input de búsqueda -->
-    <div class="min-w-[270px]">
+    <div class="min-w-0">
       <label class="block mb-1 text-sm font-medium text-gray-700">Búsqueda</label>
       <input type="text" [(ngModel)]="filtroBusqueda" (ngModelChange)="actualizarAgrupacion()"
         placeholder="Buscar orden, proveedor, CNIS, descripción"
-        class="flex-1 px-4 py-2 min-w-[440px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500" />
+        class="min-h-11 w-full px-4 py-2 shadow-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
       </div>
 
       <!-- Picker de periodo POR AHORA QUITAMOS FECHA DE CITA EN LO QUE SE ESTABILIZAN LOS REGISTROS DE CDMX-->
@@ -21,10 +21,10 @@
       </div> -->
 
       <!-- Select de unidad -->
-      <div class="min-w-[270px]">
+      <div class="min-w-0">
         <label class="block mb-1 text-sm font-medium text-gray-700">Unidad</label>
         <select [(ngModel)]="filtroUnidad" (ngModelChange)="actualizarAgrupacion()"
-          class="flex-1 px-4 py-2 min-w-[220px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+          class="min-h-11 w-full px-4 py-2 shadow-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
           <option value="">Todas las unidades</option>
           @for (unidad of unidadesUnicas; track unidad) {
             <option [value]="unidad">{{ unidad }}</option>
@@ -33,10 +33,10 @@
       </div>
 
       <!-- Select de tipo de compra -->
-      <div class="min-w-[270px]">
+      <div class="min-w-0">
         <label class="block mb-1 text-sm font-medium text-gray-700">Tipo de compra</label>
         <select [(ngModel)]="filtroCompra" (ngModelChange)="actualizarAgrupacion()"
-          class="flex-1 px-4 py-2 min-w-[270px] shadow-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+          class="min-h-11 w-full px-4 py-2 shadow-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
           <option value="">Todos</option>
           @for (compra of tiposCompra; track compra) {
             <option [value]="compra">{{ compra }}</option>
@@ -87,11 +87,28 @@
       @for (grupo of unidadesAgrupadas(); track grupo; let i = $index) {
         <div class="mb-4 shadow-sm border rounded" #grupoUnidad>
           <button type="button" (click)="toggleUnidad(grupo.unidad)"
-            class="p-4 w-full text-left font-semibold text-green-900 bg-green-100 hover:bg-green-200 transition">
-            {{ grupo.unidad }} — Total: {{ grupo.citas.length | number }} cita(s)
+            [attr.aria-expanded]="unidadEstaExpandida(grupo.unidad)"
+            class="flex min-h-11 w-full items-center justify-between gap-3 p-3 text-left font-semibold text-green-900 bg-green-100 hover:bg-green-200 transition sm:p-4">
+            <span class="min-w-0">{{ grupo.unidad }} <span class="block text-xs font-normal text-green-800 sm:inline">— {{ grupo.citas.length | number }} orden(es)</span></span>
+            <span aria-hidden="true" class="shrink-0 text-lg">{{ unidadEstaExpandida(grupo.unidad) ? '▾' : '▸' }}</span>
           </button>
-          <div [hidden]="unidadExpandida !== grupo.unidad" class="bg-white">
-            <table class="min-w-full text-sm">
+          @if (unidadEstaExpandida(grupo.unidad)) {
+          <div class="bg-white">
+            <div class="space-y-2 p-2 md:hidden">
+              @for (cita of grupo.citas; track cita) {
+                <button type="button" (click)="abrirModalDetalle(cita)" class="w-full rounded-lg border bg-white p-3 text-left shadow-sm">
+                  <div class="flex items-start justify-between gap-2">
+                    <strong class="break-all text-green-800">{{ cita.orden_de_suministro }}</strong>
+                    <span class="shrink-0 text-xs text-gray-500">{{ cita.fecha_limite_de_entrega | date:'dd/MM/yyyy' }}</span>
+                  </div>
+                  <p class="mt-1 text-sm font-medium">{{ cita.clave_cnis }}</p>
+                  <p class="mt-1 line-clamp-2 text-xs text-gray-600">{{ cita.descripcion || 'Sin descripción' }}</p>
+                  <div class="mt-2 flex flex-wrap gap-1 text-xs"><span class="rounded bg-gray-100 px-2 py-1">{{ cita.proveedor }}</span><span class="rounded bg-amber-50 px-2 py-1">{{ cita.no_de_piezas_emitidas || 0 }} piezas</span></div>
+                </button>
+              }
+            </div>
+            <div class="hidden overflow-x-auto md:block">
+            <table class="min-w-[65rem] w-full text-sm">
               <thead class="text-left bg-gray-50">
                 <tr class="renglon-info">
                   <th class="p-2 border">Orden</th>
@@ -136,7 +153,9 @@
               }
             </tbody>
           </table>
+          </div>
         </div>
+        }
       </div>
     }
   </div>

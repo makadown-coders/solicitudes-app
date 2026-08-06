@@ -1,8 +1,8 @@
 <!-- src/app/features/solicitudes/kit-modal/kit-modal.component.html -->
 <!-- Loader inicial (skeleton) -->
 @if (loading) {
-<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-  <div class="relative p-4 w-full max-w-4xl bg-white rounded-lg shadow-lg" (click)="$event.stopPropagation()"
+<div class="z-50 fixed inset-0 flex items-end justify-center bg-black bg-opacity-50 sm:items-center sm:p-4">
+  <div class="relative h-[100dvh] w-full overflow-y-auto bg-white p-3 shadow-lg sm:h-auto sm:max-h-[92vh] sm:max-w-4xl sm:rounded-lg sm:p-4" (click)="$event.stopPropagation()"
     role="dialog" aria-modal="true" aria-labelledby="kit-modal-title" tabindex="-1" #modalDialog>
     <h3 class="text-lg font-semibold text-emerald-700">
       Cargando... Espere un momento...
@@ -40,8 +40,8 @@
 <!-- Contenido real (se muestra al terminar la carga) -->
 @if (!loading) {
 <!-- Modal: Claves del KIT (con existencias) -->
-<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-  <div class="relative p-4 w-full max-w-4xl bg-white rounded-lg shadow-lg" (click)="$event.stopPropagation()"
+<div class="z-50 fixed inset-0 flex items-end justify-center bg-black bg-opacity-50 sm:items-center sm:p-4">
+  <div class="relative h-[100dvh] w-full overflow-y-auto bg-white p-3 shadow-lg sm:h-auto sm:max-h-[92vh] sm:max-w-4xl sm:rounded-lg sm:p-4" (click)="$event.stopPropagation()"
     role="dialog" aria-modal="true" aria-labelledby="kit-modal-title" tabindex="-1" #modalDialog>
     <!-- Top progress para tareas breves -->
     @if (busy) {
@@ -49,7 +49,7 @@
       <div class="bar"></div>
     </div>
     }
-    <h3 id="kit-modal-title" class="text-lg font-semibold text-emerald-700">
+    <h3 id="kit-modal-title" class="sticky top-0 z-20 bg-white py-3 pr-12 text-lg font-semibold text-emerald-700">
       Claves del KIT {{ mostrarUnidadEnTitulo && tituloUnidad ? ('para ' + tituloUnidad) : '' }}
     </h3>
     <!-- Encabezado: filtros y acciones -->
@@ -63,7 +63,7 @@
           </div>
           -->
       <div class="flex items-center gap-2">
-        <input class="px-2 py-1 w-64 text-sm border rounded" type="text" placeholder="Buscar clave/desc/pres..."
+        <input class="min-h-11 w-full px-3 py-2 text-sm border rounded-lg sm:w-64" type="text" placeholder="Buscar clave/desc/pres..."
           [ngModel]="filterText" (ngModelChange)="setFilterText($event)" />
       </div>
       <!-- Derecha: acciones -->
@@ -108,7 +108,7 @@
           }
         </div>
 
-        <button class="px-3 py-1.5 text-white text-sm bg-emerald-600 rounded hover:bg-emerald-700 disabled:opacity-60"
+        <button class="hidden min-h-11 px-3 py-2 text-white text-sm bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-60 sm:block"
           [disabled]="selectionCount === 0" (click)="agregarSeleccionAKit()">
           Agregar a solicitud ({{ selectionCount }})
         </button>
@@ -169,9 +169,47 @@
       Existencias totales en unidad: <strong>{{ kitStats.existTotal | number }}</strong>
       }
     </div>
+    <!-- Tarjetas para móvil -->
+    <div class="mt-3 space-y-3 pb-20 sm:hidden">
+      <label class="flex min-h-11 items-center gap-3 rounded-lg border bg-gray-50 px-3 py-2 text-sm font-semibold">
+        <input type="checkbox" #mobileKitMaster [checked]="allFilteredSelected" [indeterminate]="someFilteredSelected"
+          [disabled]="filteredCount === 0" (change)="toggleMasterSelection(mobileKitMaster.checked)" />
+        Seleccionar resultados ({{ filteredCount }})
+      </label>
+      @for (r of kitRowsFiltrados; track r.clave) {
+        <article class="rounded-xl border bg-white p-3 shadow-sm" [class.ring-2]="isRowSelected(r.clave)" [class.ring-emerald-500]="isRowSelected(r.clave)">
+          <label class="flex items-start gap-3">
+            <input class="mt-1 h-5 w-5 shrink-0" type="checkbox" [checked]="isRowSelected(r.clave)" (change)="toggleRowSelection(r.clave)" />
+            <span class="min-w-0 flex-1">
+              <span class="block break-all font-mono font-bold text-emerald-800">{{ r.clave }}</span>
+              <span class="mt-1 block text-sm leading-snug text-gray-700">{{ r.descripcion || getDescFor(r.clave) || '—' }}</span>
+              @if (r.presentacion || getPresentacionFor(r.clave)) { <span class="mt-1 block text-xs text-gray-500">{{ r.presentacion || getPresentacionFor(r.clave) }}</span> }
+            </span>
+          </label>
+          <div class="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+            @if (showUnidadExist && hasUnidadExistencias) {
+              <div class="rounded-lg bg-slate-50 p-2"><span class="block text-gray-500">Exist. unidad</span><strong>{{ (r.existUnidad || 0) | number }}</strong></div>
+            }
+            <div class="rounded-lg bg-blue-50 p-2"><span class="block text-gray-500">CPM</span><strong>{{ r.cpm || 0 }}</strong></div>
+            @if (showUnidadExist && hasUnidadExistencias) {
+              <div class="rounded-lg bg-amber-50 p-2"><span class="block text-gray-500">Cant. sugerida</span><strong class="text-amber-800">{{ (r.reordenSug || 0) | number }}</strong></div>
+            }
+          </div>
+          @if (verPorAlmacen) {
+            <div class="mt-2 flex flex-wrap gap-1 text-xs text-gray-600">
+              <span class="rounded bg-gray-100 px-2 py-1">AZM {{ r.azm | number }}</span>
+              <span class="rounded bg-gray-100 px-2 py-1">AZE {{ r.aze | number }}</span>
+              <span class="rounded bg-gray-100 px-2 py-1">AZT {{ r.azt | number }}</span>
+            </div>
+          }
+        </article>
+      } @empty {
+        <div class="rounded-lg border p-6 text-center text-gray-500">Sin resultados.</div>
+      }
+    </div>
     <!-- Tabla -->
-    <div class="overflow-auto mt-3 max-h-[65vh] border rounded">
-      <table class="w-full text-sm">
+    <div class="hidden overflow-auto mt-3 max-h-[58vh] border rounded sm:block">
+      <table class="w-full min-w-[44rem] text-sm">
         <thead class="sticky top-0 bg-gray-50">
           <tr class="text-left">
             <th class="px-2 py-1 w-8 border-b">
@@ -273,8 +311,14 @@
       cargados recientemente.
     </p>
     }
+    <div class="fixed inset-x-0 bottom-0 z-30 border-t bg-white p-3 sm:hidden">
+      <button type="button" [disabled]="selectionCount === 0" (click)="agregarSeleccionAKit()"
+        class="min-h-11 w-full rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white disabled:bg-gray-300 disabled:text-gray-600">
+        Agregar a solicitud ({{ selectionCount }})
+      </button>
+    </div>
     <button (click)="cerrar()" aria-label="Cerrar modal de KIT"
-      class="absolute top-2 right-2 text-gray-500 text-lg font-bold cursor-pointer hover:text-gray-700">×</button>
+      class="fixed top-2 right-2 z-30 min-h-11 min-w-11 rounded-lg bg-white text-gray-600 text-lg font-bold cursor-pointer shadow hover:text-gray-900 sm:absolute">×</button>
   </div>
 </div>
 }

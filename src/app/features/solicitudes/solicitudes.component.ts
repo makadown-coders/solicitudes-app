@@ -1445,13 +1445,13 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         this.articulosConHomologos = sugerencias;
         this.importResumenHomologosVisible = true;
 
-        this.toast.warn({
-          title: `${sugerencias.length} oportunidad(es)`,
-          content: 'Elige las alternativas antes de confirmar',
-          duration: 5
-        });
-
         this.cdRef.detectChanges();
+      } else {
+        this.toast.success({
+          title: 'Claves agregadas',
+          content: `Se agregaron ${articulos.length} clave(s) a la solicitud.`,
+          duration: 3
+        });
       }
     } catch (error) {
       console.error('Error detectando homologos en modales:', error);

@@ -1,5 +1,5 @@
-<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-  <div class="overflow-hidden relative flex flex-col w-[min(96vw,1150px)] max-h-[90vh] bg-white rounded-2xl border-gray-200 shadow-2xl border dark:bg-slate-950 dark:border-slate-700">
+<div class="z-50 fixed inset-0 flex items-end justify-center bg-black bg-opacity-50 backdrop-blur-sm sm:items-center sm:p-4">
+  <div class="overflow-hidden relative flex h-[100dvh] w-full flex-col bg-white shadow-2xl sm:h-auto sm:max-h-[92vh] sm:w-[min(96vw,1150px)] sm:rounded-2xl sm:border">
 
     @if (!mostrarDetalles) {
       <!-- Resumen Simple -->
@@ -9,7 +9,7 @@
         <p class="text-blue-100">{{ subtituloPrincipal }}</p>
       </div>
 
-      <div class="px-6 py-8">
+      <div class="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-8">
         <!-- Stats -->
         <div class="grid grid-cols-1 gap-4 mb-8 md:grid-cols-2">
           <div class="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border-green-300 border dark:from-green-950/30 dark:to-green-900/20 dark:border-green-700">
@@ -77,7 +77,7 @@
 
       <!-- Contenedor central con scroll en ambas direcciones -->
       <div class="overflow-x-auto overflow-y-auto flex-1 min-h-0">
-        <div class="px-6 py-6 min-w-max">
+        <div class="p-3 md:min-w-max md:px-6 md:py-6">
           <app-homologos-tabla
             [sugerencias]="sugerencias"
             [mostrarAcciones]="true"
@@ -91,8 +91,8 @@
       </div>
 
       <!-- Footer Fijo con Botones -->
-      <div class="flex-shrink-0 px-6 py-6 bg-gray-50 border-t border-gray-200 dark:bg-slate-900/50 dark:border-slate-700">
-        <div class="flex gap-3">
+      <div class="flex-shrink-0 p-3 bg-gray-50 border-t border-gray-200 sm:px-6 sm:py-4">
+        <div class="flex flex-col gap-2 sm:flex-row sm:gap-3">
           <button (click)="mostrarDetalles = false"
                   class="flex-1 px-4 py-2 text-white font-medium bg-blue-500 rounded-lg transition-colors cursor-pointer hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600">
             ← Volver

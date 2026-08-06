@@ -1,5 +1,5 @@
-<div class="z-[100] fixed inset-0 grid place-items-center bg-black/50">
-  <div class="relative p-4 w-[min(96vw,1100px)] bg-white rounded-2xl border-gray-200 shadow-xl border sm:p-6">
+<div class="z-[100] fixed inset-0 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">
+  <div class="relative h-[100dvh] w-full overflow-y-auto bg-white p-3 shadow-xl sm:h-auto sm:max-h-[92vh] sm:w-[min(96vw,1100px)] sm:rounded-2xl sm:border sm:p-6">
     <!-- Busy bar -->
     @if (busy()) {
       <div class="progress indeterminate">
@@ -8,7 +8,7 @@
     }
 
     <!-- Header -->
-    <div class="flex items-center justify-between gap-3 mb-3">
+    <div class="sticky top-0 z-20 flex items-start justify-between gap-3 mb-3 bg-white py-2">
       <div class="flex items-center gap-2">
         <div class="grid place-items-center h-9 w-9 text-emerald-700 bg-emerald-100 rounded-full">📊</div>
         <div>
@@ -19,7 +19,7 @@
           </p>
         </div>
       </div>
-      <button class="grid place-items-center h-8 w-8 text-gray-500 rounded-full cursor-pointer hover:bg-gray-100"
+      <button aria-label="Cerrar modal de CPM" class="grid min-h-11 min-w-11 place-items-center text-gray-600 rounded-full cursor-pointer hover:bg-gray-100"
       (click)="close.emit()">×</button>
     </div>
 
@@ -94,7 +94,7 @@
             </button>
           </div>
               <div class="flex items-center gap-2 ml-auto">
-                <input class="px-2 py-1 w-56 text-sm border rounded" type="text"
+                <input class="min-h-11 w-full px-3 py-2 text-sm border rounded-lg sm:w-56" type="text"
                   placeholder="Buscar clave/desc/pres..." [ngModel]="filterText()"
                   (ngModelChange)="setFilterText($event)" />
                   <!-- Botones por lo pronto HIDDEN -->
@@ -103,7 +103,7 @@
                   <button aria-hidden="true" hidden class="px-3 py-2 bg-gray-100 rounded border hover:bg-gray-200"
                   (click)="exportCsvVisible()">CSV visibles</button>
                   <!-- Botones por lo pronto HIDDEN -->
-                  <button class="px-3 py-2 text-white bg-emerald-600 rounded" (click)="agregarSeleccion()">Agregar
+                  <button class="hidden px-3 py-2 text-white bg-emerald-600 rounded sm:block" (click)="agregarSeleccion()">Agregar
                   Seleccion ({{ selectionCount() }})</button>
                 </div>
               </div>
@@ -118,9 +118,46 @@
                   {{ selectedZeroSuggestionCount() }} clave(s) seleccionadas tienen cantidad sugerida en 0. Se agregaran con cantidad 1 para permitir revision; puedes ajustarlas despues.
                 </div>
               }
+              <!-- Tarjetas para móvil -->
+              <div class="space-y-3 pb-20 sm:hidden">
+                <label class="flex min-h-11 items-center gap-3 rounded-lg border bg-gray-50 px-3 py-2 text-sm font-semibold">
+                  <input type="checkbox" #mobileMaster [checked]="allFilteredSelected()"
+                    [indeterminate]="someFilteredSelected()" [disabled]="filteredCount() === 0"
+                    (change)="toggleMasterSelection(mobileMaster.checked)" />
+                  Seleccionar resultados ({{ filteredCount() }})
+                </label>
+                @for (r of rowsFiltered(); track trackByClave($index, r)) {
+                  @let sugerenciado = sugerencia(r);
+                  <article class="rounded-xl border bg-white p-3 shadow-sm" [class.ring-2]="r._sel" [class.ring-emerald-500]="r._sel">
+                    <label class="flex items-start gap-3">
+                      <input class="mt-1 h-5 w-5 shrink-0" type="checkbox" [checked]="r._sel"
+                        (change)="seleccionarUnoToggle(r.clave, $event)" />
+                      <span class="min-w-0 flex-1">
+                        <span class="block break-all font-mono font-bold text-emerald-800">{{ r.clave }}</span>
+                        <span class="mt-1 block text-sm leading-snug text-gray-700">{{ r.descripcion || '—' }}</span>
+                        @if (r.presentacion) { <span class="mt-1 block text-xs text-gray-500">{{ r.presentacion }}</span> }
+                      </span>
+                    </label>
+                    <div class="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                      <div class="rounded-lg bg-slate-50 p-2"><span class="block text-gray-500">Exist. unidad</span><strong>{{ r.exist ?? '—' }}</strong></div>
+                      <div class="rounded-lg bg-blue-50 p-2"><span class="block text-gray-500">CPM</span><strong>{{ r.cpm || 0 }}</strong></div>
+                      <div class="rounded-lg bg-amber-50 p-2"><span class="block text-gray-500">Cant. sugerida</span><strong class="text-amber-800">{{ (sugerenciado || 0) | number }}</strong></div>
+                    </div>
+                    @if (hasAlmacenExist()) {
+                      <div class="mt-2 flex flex-wrap gap-1 text-xs text-gray-600">
+                        <span class="rounded bg-gray-100 px-2 py-1">AZM {{ r.azm || 0 }}</span>
+                        <span class="rounded bg-gray-100 px-2 py-1">AZE {{ r.aze || 0 }}</span>
+                        <span class="rounded bg-gray-100 px-2 py-1">AZT {{ r.azt || 0 }}</span>
+                      </div>
+                    }
+                  </article>
+                } @empty {
+                  <div class="rounded-lg border p-6 text-center text-gray-500">Sin resultados.</div>
+                }
+              </div>
               <!-- Tabla -->
-              <div class="overflow-auto max-h-[65vh] border rounded">
-                <table class="sticky-head w-full text-sm compact zebra">
+              <div class="hidden overflow-auto max-h-[60vh] border rounded sm:block">
+                <table class="sticky-head w-full min-w-[52rem] text-sm compact zebra">
                   <thead>
                     <tr>
                       <th class="px-2 py-1 w-8 border-b">
@@ -201,6 +238,12 @@
                       🏥 Las existencias por <em>unidad</em> (y el reorden sugerido) se calculan con base en datos temporales
                       cargados recientemente.
                   </p>
+                  <div class="fixed inset-x-0 bottom-0 z-30 border-t bg-white p-3 sm:hidden">
+                    <button type="button" (click)="agregarSeleccion()" [disabled]="selectionCount() === 0"
+                      class="min-h-11 w-full rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white disabled:bg-gray-300 disabled:text-gray-600">
+                      Agregar a solicitud ({{ selectionCount() }})
+                    </button>
+                  </div>
                 }
               </div>
             </div>

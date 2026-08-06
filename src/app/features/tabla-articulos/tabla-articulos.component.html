@@ -13,7 +13,8 @@
   }
 </div>
 
-<table class="mt-2 w-full text-sm">
+<div class="mt-2 overflow-x-auto rounded-lg border">
+<table class="w-full min-w-full text-sm md:min-w-[48rem]">
   <thead class="text-white bg-green-600">
     <tr>
       <th class="p-2">#</th>
@@ -24,9 +25,9 @@
       <th class="hidden p-2 xl:table-cell">Unidad</th>
       <th class="p-2">Solic.</th>
       <th class="p-2">CPM</th>
-      <th class="p-2">Exist. AZM </th>
-      <th class="p-2">Exist. AZT </th>
-      <th class="p-2">Exist. AZE </th>
+      <th class="hidden p-2 md:table-cell">Exist. AZM </th>
+      <th class="hidden p-2 md:table-cell">Exist. AZT </th>
+      <th class="hidden p-2 md:table-cell">Exist. AZE </th>
       <th class="p-2 text-center">Acciones</th>
     </tr>
   </thead>
@@ -52,7 +53,10 @@
 
         <td class="p-2" [attr.title]="articulo.descripcion">
           <div class="flex items-center justify-left gap-1">
-            <span class="font-semibold">{{ articulo.clave }}</span>
+            <button type="button" (click)="mostrarDescripcionMovil(i)"
+              class="font-semibold text-left underline decoration-dotted underline-offset-2 md:hidden"
+              [attr.aria-label]="'Mostrar descripción de ' + articulo.clave">{{ articulo.clave }}</button>
+            <span class="hidden font-semibold md:inline">{{ articulo.clave }}</span>
             <!-- Icono de advertencia cuando cantidad > CPM -->
             @if (existenciaCPM > 0 && articulo.cantidad > existenciaCPM) {
               <span class="relative flex"
@@ -76,6 +80,11 @@
                 title="Sin datos de consumo promedio mensual para este insumo">
               </lucide-angular>
             }
+          </div>
+          <div class="mt-1 flex flex-wrap gap-1 text-[10px] md:hidden">
+            <span class="rounded bg-blue-50 px-1.5 py-0.5">AZM {{ existenciaAZM }}</span>
+            <span class="rounded bg-orange-50 px-1.5 py-0.5">AZT {{ existenciaAZT }}</span>
+            <span class="rounded bg-purple-50 px-1.5 py-0.5">AZE {{ existenciaAZE }}</span>
           </div>
         </td>
         <!-- <td class="hidden p-2 text-center md:table-cell">
@@ -121,26 +130,26 @@
           </td>
 
           <th class="p-2"> {{ existenciaCPM }} </th>
-          <th class="p-2"> {{ existenciaAZM }} </th>
-          <th class="p-2"> {{ existenciaAZT }} </th>
-          <th class="p-2"> {{ existenciaAZE }} </th>
+          <th class="hidden p-2 md:table-cell"> {{ existenciaAZM }} </th>
+          <th class="hidden p-2 md:table-cell"> {{ existenciaAZT }} </th>
+          <th class="hidden p-2 md:table-cell"> {{ existenciaAZE }} </th>
           <td class="p-2 text-center">
             @if (modoEdicionIndex === i) {
               <button (click)="mandarConfirmacion(i)" title="Guardar"
-                class="mx-1 text-green-600 cursor-pointer hover:text-green-800"
+                class="min-h-11 min-w-11 text-green-600 cursor-pointer hover:text-green-800"
                 [disabled]="esCantidadInvalida()">
                 ✅
               </button>
               <button (click)="cancelar.emit()" title="Cancelar"
-                class="mx-1 text-gray-600 cursor-pointer hover:text-gray-800">
+                class="min-h-11 min-w-11 text-gray-600 cursor-pointer hover:text-gray-800">
                 ❌
               </button>
             } @else {
-              <button (click)="editar.emit(i)" class="mx-1 text-blue-600 cursor-pointer hover:text-blue-800"
+              <button (click)="editar.emit(i)" class="min-h-11 min-w-11 text-blue-600 cursor-pointer hover:text-blue-800"
                 title="Editar" [disabled]="modoEdicionIndex !== null">
                 ✏️
               </button>
-              <button (click)="eliminar.emit(i)" class="mx-1 text-red-600 cursor-pointer hover:text-red-800"
+              <button (click)="eliminar.emit(i)" class="min-h-11 min-w-11 text-red-600 cursor-pointer hover:text-red-800"
                 title="Eliminar" [disabled]="modoEdicionIndex !== null">
                 🗑️
               </button>
@@ -151,3 +160,10 @@
       }
     </tbody>
   </table>
+</div>
+@if (descripcionMovilIndex !== null && articulosSolicitados[descripcionMovilIndex]; as articuloDescripcion) {
+  <div role="status" class="fixed inset-x-4 bottom-20 z-[120] rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-2xl md:hidden">
+    <p class="font-mono font-semibold text-emerald-300">{{ articuloDescripcion.clave }}</p>
+    <p class="mt-1 leading-snug">{{ articuloDescripcion.descripcion }}</p>
+  </div>
+}

@@ -23,12 +23,15 @@ import { AbstractTabComponent } from '../../../shared/abstract-tab.component';
 import { ArticulosService } from '../../../services/articulos.service';
 import { ProveedoresService } from '../../../services/proveedores.service';
 import { ActivatedRoute } from '@angular/router';
+import { DatePipe, DecimalPipe } from '@angular/common';
 
 @Component({
     selector: 'app-proveedores',
     standalone: true,
     imports: [
     FormsModule,
+    DatePipe,
+    DecimalPipe,
     PeriodoPickerDasboardComponent,
     DetalleCitaModalComponent
 ],
@@ -49,7 +52,7 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
     filtroUnidad: string = '';
     filtroCompra: string = '';
     periodoFormateado: string = '';
-    proveedorExpandido: string | null = null;
+    proveedoresExpandidos = new Set<string>();
 
     // fechaInicio: Date = new Date(new Date().getFullYear(), 0, 1); // 1 enero año actual
     fechaFin: Date = new Date(); // hoy
@@ -339,8 +342,9 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
     // =======================
 
     toggleProveedor(proveedor: string, index: number) {
-        const yaExpandido = this.proveedorExpandido === proveedor;
-        this.proveedorExpandido = yaExpandido ? null : proveedor;
+        const yaExpandido = this.proveedoresExpandidos.has(proveedor);
+        if (yaExpandido) this.proveedoresExpandidos.delete(proveedor);
+        else this.proveedoresExpandidos.add(proveedor);
 
         if (!yaExpandido && index >= 5) {
             setTimeout(() => {
@@ -353,6 +357,10 @@ export class ProveedoresComponent extends AbstractTabComponent implements OnInit
                 }
             }, 100);
         }
+    }
+
+    proveedorEstaExpandido(proveedor: string): boolean {
+        return this.proveedoresExpandidos.has(proveedor);
     }
 
     abrirModalDetalle(cita: Cita) {
