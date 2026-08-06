@@ -112,6 +112,11 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
 
     // Variable para loading mientras se busca toda la info sobre la clave
     loadingClave = signal(false);
+    ordenesExpandidas = signal(typeof window !== 'undefined' && window.innerWidth >= 1024);
+
+    toggleOrdenes(): void {
+        this.ordenesExpandidas.update(expandidas => !expandidas);
+    }
 
     constructor(activatedRoute: ActivatedRoute) {
         super();

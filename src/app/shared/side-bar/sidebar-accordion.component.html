@@ -1,4 +1,4 @@
-<aside class="p-3 w-72 bg-white border-custom-default rounded-2xl shrink-0 dark:bg-[#1a202c]">
+<aside class="p-3 w-full bg-white border-custom-default rounded-2xl shrink-0 dark:bg-[#1a202c]">
   <div class="px-2 py-2 text-sm font-semibold text-slate-700 dark:text-white">
     Menú
   </div>
@@ -25,6 +25,7 @@
                 <a
                   class="block px-3 py-2 text-sm rounded-xl hover:bg-green-50 dark:hover:bg-black"
                   [routerLink]="ch.route"
+                  (click)="navigationSelected.emit()"
                   routerLinkActive="bg-green-100 text-green-900 dark:bg-black dark:text-[#CBA135]">
                   {{ ch.label }}
                 </a>
@@ -42,6 +43,7 @@
                   @if (leaf.type === 'link') {
                     <a class="block px-3 py-2 text-sm rounded-xl hover:bg-green-50 dark:hover:bg-black"
                       [routerLink]="leaf.route"
+                      (click)="navigationSelected.emit()"
                       routerLinkActive="bg-green-100 text-green-900 dark:bg-black dark:text-[#CBA135]">
                       {{ leaf.label }}
                     </a>
@@ -59,6 +61,7 @@
     @if (item.type === 'link' && item.route) {
       <a class="block px-3 py-2 text-sm rounded-xl hover:bg-green-50 dark:hover:bg-black"
         [routerLink]="item.route"
+        (click)="navigationSelected.emit()"
         routerLinkActive="bg-green-100 text-green-900 dark:bg-black dark:text-[#CBA135]">
         {{ item.label }}
       </a>

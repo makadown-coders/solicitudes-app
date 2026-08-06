@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, inject, output } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
 import { NavItem, NavGroup, NavLink } from '../../models/NavItem';
@@ -15,6 +15,7 @@ export class SidebarAccordionComponent {
 
   // 👇 Solo 1 expandido
   expandedGroupId = signal<string>('dashboard'); // default
+  navigationSelected = output<void>();
 
   items = signal<NavItem[]>([
     { type: 'group', id: 'dashboard', label: 'Dashboard', children: [

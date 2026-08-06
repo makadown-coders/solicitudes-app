@@ -1,0 +1,9 @@
+.menu-panel.menu-closed {
+    transform: translateX(-100%);
+}
+
+@media (min-width: 64rem) {
+    .menu-panel.menu-closed {
+        display: none;
+    }
+}

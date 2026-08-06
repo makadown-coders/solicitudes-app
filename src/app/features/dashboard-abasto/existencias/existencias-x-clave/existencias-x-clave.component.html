@@ -1,10 +1,10 @@
 <!-- src/app/features/dashboard-abasto/existencias/existencias-x-clave/existencias-x-clave.component.html -->
 
-<div class="flex flex-col items-start gap-4 md:flex-row">
+<div class="flex flex-col items-start gap-4">
   <!-- Columna izquierda -->
-  <div class="flex flex-col gap-4 w-full md:w-1/2">
+  <div class="contents">
     <!-- Chip clave seleccionada -->
-    <div class="flex-1">
+    <div class="order-1 w-full">
       @if (!claveConfirmada) {
         <label class="block mb-1 text-sm font-medium text-gray-700">Buscar clave:</label>
       }
@@ -35,20 +35,20 @@
           </div>
         }
         @if (claveConfirmada) {
-          <div class="flex items-start gap-3 px-3 py-2 border-green-200 rounded-md border">
+          <div class="flex flex-col gap-3 px-3 py-3 border-green-200 rounded-md border sm:flex-row sm:items-start">
             <lucide-icon [img]="pillIcon" class="mt-1 w-5 h-5"></lucide-icon>
-            <div class="flex-1 text-sm">
+            <div class="min-w-0 flex-1 text-sm">
               <p class="font-semibold">{{ claveFiltrada }}</p>
               <p class="">
                 {{ (descripcion.length > 250) ? (descripcion | slice: 0:240) + ' [...]' : descripcion }}
               </p>
               <p class="text-sm">{{ unidad }}</p>
               <button (click)="reiniciarBusquedaClave()"
-                class="text-sm text-green-600 cursor-pointer underline hover:text-green-800">
+                class="min-h-11 py-2 text-sm text-green-600 cursor-pointer underline hover:text-green-800">
                 Cambiar
               </button>
             </div>
-            <div class="flex-1 text-sm">
+            <div class="min-w-0 flex-1 text-sm">
               @let esControlado = claveEsControlado(claveFiltrada);
               @if (esControlado) {
                 <p class="text-red-700"> Medicamento Controlado </p>
@@ -78,18 +78,24 @@
       </div>
 
       @if (loadingClave()) {
-        <div class="my-2 w-full">
+        <div class="order-2 my-2 w-full">
           <div class="p-3 mb-2 text-sm font-semibold">Espere un momento. Cargando información…</div>
         </div>
       }
 
       <!-- Cards órdenes halladas -->
       @if (claveFiltrada && this.citasHalladasPorClave.length > 0) {
-        <div class="flex-1 flex flex-col gap-4">
-          <div class="overflow-auto p-4 h-full border rounded shadow">
-            <h3 class="mb-2 text-base font-semibold"> Últimas recepciones / citas pendientes</h3>
+        <section class="order-4 w-full overflow-hidden border rounded-lg shadow">
+          <button type="button" (click)="toggleOrdenes()"
+            [attr.aria-expanded]="ordenesExpandidas()"
+            class="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-green-50 dark:hover:bg-black">
+            <span class="text-base font-semibold">Órdenes relacionadas ({{ citasHalladasPorClave.length }})</span>
+            <span aria-hidden="true" class="text-lg">{{ ordenesExpandidas() ? '▾' : '▸' }}</span>
+          </button>
+          @if (ordenesExpandidas()) {
+            <div class="border-t p-4">
             <div class="overflow-auto pr-2 max-h-[600px]">
-              <div class="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-2">
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <!-- Aquí va cada card -->
                 @for (cita of citasHalladasPorClave; track cita; let i = $index) {
                   <section
@@ -147,36 +153,45 @@
                 }
               </div>
             </div>
-          </div>
-        </div>
+            </div>
+          }
+        </section>
       }
     </div>
 
     <!-- Columna derecha -->
-    <div class="flex flex-col gap-1 w-full md:w-1/2">
+    <div class="order-3 flex w-full flex-col gap-1">
       @if (claveFiltrada) {
         <div>
           <!-- Sección por almacén -->
           @for (almacen of datosAgrupados; track almacen) {
-            <div class="flex items-center mb-2 border rounded">
+            <section class="mb-3 overflow-hidden border rounded-lg">
               @let totalExistencia = totalExistenciaEnAlmacen(almacen.almacen);
-              <h2 class="ml-2 mb-1 text-base font-bold text-green-800">{{ almacen.almacen | titlecase }}</h2>
-              <span class="cursor-pointer" [title]="'Ver trazabilidad de almacén ' + almacen.almacen"
-                (click)="abrirTrazabilidad(claveFiltrada, almacen.cluesimb, -1, descripcion, totalExistencia)">
-                🔍
-              </span>
-              <p class="mb-2 text-sm text-center">Existencia en Almacén:
-                <span class="font-semibold">{{ totalExistencia }}</span>
-              </p>
+              <div class="flex flex-wrap items-center justify-between gap-2 p-3">
+                <div class="min-w-0">
+                  <h2 class="text-base font-bold text-green-800">{{ almacen.almacen | titlecase }}</h2>
+                  <p class="text-sm">Existencia en almacén: <span class="font-semibold">{{ totalExistencia }}</span></p>
+                </div>
+                <button type="button" class="min-h-11 min-w-11 rounded-lg border text-lg cursor-pointer"
+                  [attr.aria-label]="'Ver trazabilidad de almacén ' + almacen.almacen"
+                  [title]="'Ver trazabilidad de almacén ' + almacen.almacen"
+                  (click)="abrirTrazabilidad(claveFiltrada, almacen.cluesimb, -1, descripcion, totalExistencia)">🔍</button>
+              </div>
               <!-- Tabla por unidad -->
-              <table class="overflow-hidden w-full text-sm shadow-sm border rounded">
+              <div class="overflow-hidden">
+              <table class="w-full table-fixed text-xs border-t sm:text-sm">
+                <colgroup>
+                  <col class="w-11">
+                  <col>
+                  <col class="w-14 sm:w-20">
+                  <col class="w-[4.5rem] sm:w-24">
+                </colgroup>
                 <thead class="border-b">
                   <tr>
-                    <th class="px-2 py-1 text-left"></th>
-                    <th class="px-2 py-1 text-left">Unidad</th>
-                    <th class="px-2 py-1 text-right">CPM</th>
-                    <th class="px-2 py-1 text-right">Exist.</th>
-                    <th class="px-2 py-1 text-right">Repo</th>
+                    <th class="py-2 text-left"></th>
+                    <th class="px-1 py-2 text-left sm:px-2">Unidad</th>
+                    <th class="px-1 py-2 text-right sm:px-2">CPM</th>
+                    <th class="px-1 py-2 text-right sm:px-2">Exist.</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -184,27 +199,26 @@
                     <tr class="border-t">
                       <td class="text-right">
                         <button [title]="'Ver trazabilidad de ' + unidad.unidad"
+                          [attr.aria-label]="'Ver trazabilidad de ' + unidad.unidad"
                           (click)="abrirTrazabilidad(claveFiltrada, unidad.cluesimb, unidad.clave.cpm, descripcion, unidad.clave.existencia)"
-                          class="cursor-pointer">
+                          class="min-h-11 min-w-11 cursor-pointer">
                           🔍
                         </button>
                       </td>
-                      <td class="px-2 py-1">{{ unidad.unidad }}</td>
-                      <td class="px-2 py-1 text-right">{{ unidad.clave.cpm }}</td>
+                      <td class="break-words px-1 py-2 leading-snug sm:px-2">{{ unidad.unidad }}</td>
+                      <td class="px-1 py-2 text-right tabular-nums sm:px-2">{{ unidad.clave.cpm }}</td>
                       <!-- Existencia base con tooltip mostrando dispensación -->
                       @let tooltip = getTooltipExistencia(unidad);
-                      <td class="px-2 py-1 text-right" [title]="tooltip"
+                      <td class="px-1 py-2 text-right tabular-nums sm:px-2" [title]="tooltip"
                         [ngClass]="{ 'cursor-pointer': tooltip.length > 1 }">
                         {{ unidad.clave.existencia | number:'1.0-2' }} {{ tooltip.length > 1 ? 'ℹ️' : '' }}
-                      </td>
-                      <td class="px-2 py-1 text-right" [ngClass]="{ 'text-red-700 font-bold': unidad.clave.reposicion > 0 }">
-                        {{ unidad.clave.reposicion | number:'1.0-2' }}
                       </td>
                     </tr>
                   }
                 </tbody>
               </table>
-            </div>
+              </div>
+            </section>
           }
         </div>
       }
