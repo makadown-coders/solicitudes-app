@@ -1,7 +1,6 @@
 import { Component, ChangeDetectionStrategy, inject, OnInit, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
-import { ThemeService } from '../../services/theme.service';
 import { CitasService } from '../../services/citas.service';
 import { InventarioService } from '../../services/inventario.service';
 import { Existencias } from '../../shared/storage-variables';
@@ -16,13 +15,10 @@ import { SidebarAccordionComponent } from '../../shared/side-bar/sidebar-accordi
     styleUrl: './dashboard-shell.component.css',
 })
 export class DashboardShellComponent implements OnInit {
-    themeService = inject(ThemeService);
     inventarioService = inject(InventarioService);
     citasService = inject(CitasService);
     title = 'Dashboard Abasto';
     menuVisible = signal(typeof window !== 'undefined' && window.innerWidth >= 1024);
-
-    get isDarkMode() { return this.themeService.isDarkMode(); }
 
     toggleMenu(): void {
         this.menuVisible.update(visible => !visible);

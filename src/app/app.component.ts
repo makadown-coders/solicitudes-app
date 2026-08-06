@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NgFastToastComponent } from 'ng-fast-toast';
 import { LoaderOverlayComponent } from './core/loader/loader-overlay.component';
+import { ThemeService } from './services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -10,6 +11,7 @@ import { LoaderOverlayComponent } from './core/loader/loader-overlay.component';
   styleUrl: './app.component.css'
 })
 export class AppComponent {
+  private readonly themeService = inject(ThemeService);
   title = 'solicitudes-app';
   readonly showLegacyOsWarning = this.isLegacyOs();
 

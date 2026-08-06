@@ -1,5 +1,5 @@
 // trazabilidad-modal.component.ts
-import { Component, EventEmitter, Input, OnChanges, Output, computed, signal } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnChanges, Output, computed, signal } from '@angular/core';
 import { MovimientoTrazabilidad } from '../../models/movimiento-trazabilidad';
 import { TrazabilidadService } from '../../services/trazabilidad.service';
 import { CommonModule } from '@angular/common';
@@ -102,6 +102,11 @@ export class TrazabilidadModalComponent implements OnChanges {
         this.loading.set(false);
         this.movimientos.set([]);
         this.closed.emit(); // 👈 que el padre cambie el estado
+    }
+
+    @HostListener('document:keydown.escape')
+    onEscape(): void {
+        if (this.visible) this.cerrar();
     }
 
     exportarExcel() {

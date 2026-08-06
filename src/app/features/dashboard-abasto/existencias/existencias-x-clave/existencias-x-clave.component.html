@@ -1,10 +1,10 @@
 <!-- src/app/features/dashboard-abasto/existencias/existencias-x-clave/existencias-x-clave.component.html -->
 
-<div class="flex flex-col items-start gap-4">
+<div class="grid grid-cols-1 items-start gap-4 xl:grid-cols-12">
   <!-- Columna izquierda -->
   <div class="contents">
     <!-- Chip clave seleccionada -->
-    <div class="order-1 w-full">
+    <div class="order-1 w-full xl:col-span-12">
       @if (!claveConfirmada) {
         <label class="block mb-1 text-sm font-medium text-gray-700">Buscar clave:</label>
       }
@@ -78,14 +78,14 @@
       </div>
 
       @if (loadingClave()) {
-        <div class="order-2 my-2 w-full">
+        <div class="order-2 my-2 w-full xl:col-span-12">
           <div class="p-3 mb-2 text-sm font-semibold">Espere un momento. Cargando información…</div>
         </div>
       }
 
       <!-- Cards órdenes halladas -->
       @if (claveFiltrada && this.citasHalladasPorClave.length > 0) {
-        <section class="order-4 w-full overflow-hidden border rounded-lg shadow">
+        <section class="order-4 w-full overflow-hidden border rounded-lg shadow xl:col-span-5">
           <button type="button" (click)="toggleOrdenes()"
             [attr.aria-expanded]="ordenesExpandidas()"
             class="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-green-50 dark:hover:bg-black">
@@ -95,7 +95,7 @@
           @if (ordenesExpandidas()) {
             <div class="border-t p-4">
             <div class="overflow-auto pr-2 max-h-[600px]">
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div class="grid grid-cols-1 gap-4">
                 <!-- Aquí va cada card -->
                 @for (cita of citasHalladasPorClave; track cita; let i = $index) {
                   <section
@@ -160,7 +160,7 @@
     </div>
 
     <!-- Columna derecha -->
-    <div class="order-3 flex w-full flex-col gap-1">
+    <div class="order-3 flex w-full flex-col gap-1 xl:col-span-7">
       @if (claveFiltrada) {
         <div>
           <!-- Sección por almacén -->

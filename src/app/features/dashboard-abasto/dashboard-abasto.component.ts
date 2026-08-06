@@ -12,7 +12,6 @@ import { OrdenesPendientesComponent } from './citas-pendientes/citas-pendientes.
 import { Existencias, StorageVariables } from '../../shared/storage-variables';
 import { ResumenCitasComponent } from './resumen-citas/resumen-citas.component';
 import { InventarioCriticoComponent } from './inventario-critico/inventario-critico.component';
-import { ThemeService } from '../../services/theme.service';
 import { InventarioService } from '../../services/inventario.service';
 import { ExistenciasComponent } from "./existencias/existencias.component";
 import { RdlSComponent } from './rdls/rdls.component';
@@ -32,11 +31,9 @@ export class DashboardAbastoComponent implements OnInit {
   @ViewChild(ProveedoresComponent) proveedoresTab?: ProveedoresComponent;
   @ViewChild(OrdenesPendientesComponent) citasPendientesTab?: OrdenesPendientesComponent;
 
-  themeService = inject(ThemeService);
   inventarioService = inject(InventarioService);
   citasService = inject(CitasService);
   title = 'Dashboard Abasto';
-  get isDarkMode() { return this.themeService.isDarkMode(); }
 
   // aquí recibiremos el arreglo de citas
   // citas: Cita[] = [];

@@ -1,25 +1,20 @@
 <div class="mx-auto w-full max-w-[1800px] px-2 sm:px-4">
     <div class="py-3 sm:p-6">
-        <header class="mb-4 flex flex-wrap items-center gap-2 dark:bg-black">
+        <header class="mb-4 flex flex-wrap items-center gap-2">
             <button type="button" (click)="toggleMenu()" aria-controls="dashboard-menu"
                 [attr.aria-expanded]="menuVisible()"
                 [attr.aria-label]="menuVisible() ? 'Cerrar menú' : 'Abrir menú'"
-                class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border-custom-default bg-white text-xl dark:bg-[#1a202c]">
+                class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border-custom-default bg-white text-xl">
                 {{ menuVisible() ? '×' : '☰' }}
             </button>
             <h1 class="text-xl font-bold sm:text-2xl">Dashboard Abasto</h1>
 
             <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
-                <button type="button" (click)="themeService.toggleTheme()"
-                    class="min-h-11 rounded-lg bg-[#006341] px-3 py-2 text-sm text-white boton-modo">
-                    {{ themeService.isDarkMode() ? 'Modo claro' : 'Modo oscuro' }}
-                </button>
                 <button type="button" (click)="onRefresh()"
                     class="min-h-11 rounded-lg bg-[#006341] px-3 py-2 text-sm text-white boton-refrescar">
                     ↻ <span class="hidden sm:inline">Refrescar datos</span><span class="sm:hidden">Refrescar</span>
                 </button>
-                <img [src]="themeService.isDarkMode() ? 'imssb-logo-blanco.png' : 'imssb-logo.svg'"
-                    alt="IMSS Bienestar" class="hidden h-10 sm:block md:h-12" />
+                <img src="imssb-logo.svg" alt="IMSS Bienestar" class="hidden h-10 sm:block md:h-12" />
             </div>
         </header>
 
@@ -35,7 +30,7 @@
                 <app-sidebar-accordion class="block" (navigationSelected)="onNavigationSelected()" />
             </div>
 
-            <main class="min-w-0 flex-1 overflow-visible rounded-2xl border-custom-default bg-white p-3 dark:bg-[#1a202c] sm:p-4">
+            <main class="min-w-0 flex-1 overflow-visible rounded-2xl border-custom-default bg-white p-3 sm:p-4">
                 <router-outlet />
             </main>
         </div>
