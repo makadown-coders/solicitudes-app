@@ -1,0 +1,64 @@
+<div class="radar-v2">
+  <header class="intro">
+    <div>
+      <p class="eyebrow">Versión beta</p>
+      <h2>Radar de demanda y cobertura</h2>
+      <p>Prioriza claves combinando solicitudes observadas, CPM, existencias y alternativas disponibles.</p>
+    </div>
+    <span class="periodo">Ventana: {{ months() }} meses</span>
+  </header>
+
+  <section class="summary" aria-label="Resumen del radar">
+    <button (click)="filtrar('CRITICA_CPM')"><strong>{{ summary().criticas_cpm | number }}</strong><span>Críticas con CPM</span></button>
+    <button (click)="filtrar('ATENCION_CPM')"><strong>{{ summary().atencion_cpm | number }}</strong><span>Atención con CPM</span></button>
+    <button (click)="filtrar('DEMANDA_SIN_CPM')"><strong>{{ summary().demanda_sin_cpm | number }}</strong><span>Demanda sin CPM</span></button>
+    <button (click)="filtrar('CPM_SIN_SOLICITUD')"><strong>{{ summary().cpm_sin_solicitud | number }}</strong><span>CPM sin solicitud</span></button>
+    <button (click)="filtrar('CUBIERTA')"><strong>{{ summary().cubiertas | number }}</strong><span>Cubiertas</span></button>
+  </section>
+
+  <form class="filters" (ngSubmit)="cargar(true)">
+    <label><span>Buscar</span><input name="search" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Clave, descripción o unidad"></label>
+    <label><span>CLUES</span><input name="clues" [ngModel]="clues()" (ngModelChange)="clues.set($event)" placeholder="Todas las unidades"></label>
+    <label><span>Segmento</span><select name="segmento" [ngModel]="segmento()" (ngModelChange)="segmento.set($event)">@for (s of segmentos; track s.value) { <option [ngValue]="s.value">{{ s.label }}</option> }</select></label>
+    <label><span>Periodo</span><select name="months" [ngModel]="months()" (ngModelChange)="months.set($event)"><option [ngValue]="1">1 mes</option><option [ngValue]="3">3 meses</option><option [ngValue]="6">6 meses</option><option [ngValue]="12">12 meses</option></select></label>
+    <button class="primary" type="submit" [disabled]="loading()">{{ loading() ? 'Analizando…' : 'Aplicar filtros' }}</button>
+  </form>
+
+  <p class="notice"><strong>Lectura responsable:</strong> “Sin solicitud observada” no significa que la unidad no necesite la clave; indica únicamente que no apareció en los ciclos registrados durante el periodo seleccionado.</p>
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+
+  <section class="results" aria-live="polite">
+    @if (loading()) { <div class="empty">Construyendo el panorama de demanda y cobertura…</div> }
+    @for (row of rows(); track row.cluesimb + '-' + row.clave) {
+      <article class="result" [attr.data-segment]="row.segmento">
+        <div class="result-main">
+          <div class="identity">
+            <span class="badge">{{ etiqueta(row.segmento) }}</span>
+            <h3>{{ row.clave }}</h3>
+            <p>{{ row.descripcion || 'Sin descripción disponible' }}</p>
+            <small>{{ row.nombre_de_unidad || row.cluesimb }} · {{ row.cluesimb }}</small>
+          </div>
+          <div class="metrics">
+            <div><span>Existencia</span><strong>{{ row.existencia_actual | number }}</strong></div>
+            <div><span>CPM</span><strong>{{ row.en_cpm ? (row.cpm | number) : 'Sin CPM' }}</strong></div>
+            <div><span>Cobertura</span><strong>{{ row.cobertura_dias == null ? 'N/A' : ((row.cobertura_dias | number:'1.0-1') + ' días') }}</strong></div>
+            <div><span>Frecuencia</span><strong>{{ porcentaje(row) }}%</strong></div>
+          </div>
+        </div>
+        <details>
+          <summary>Ver evidencia y alternativas</summary>
+          <div class="detail-grid">
+            <div><h4>Demanda observada</h4><p>{{ row.solicitado_periodo | number }} piezas en {{ row.ciclos_con_clave }} de {{ row.ciclos_unidad }} ciclos.</p><p>Última: {{ row.ultima_solicitud ? (row.ultima_solicitud | date:'dd/MM/yyyy') : 'Sin registro' }}</p></div>
+            <div><h4>Cobertura actual</h4><p>{{ row.cobertura_cpm == null ? 'No calculable sin CPM.' : ((row.cobertura_cpm | number:'1.0-2') + ' CPM equivalentes.') }}</p><p>Snapshot: {{ row.snapshot_existencias ? (row.snapshot_existencias | date:'dd/MM/yyyy, HH:mm') : 'Sin fecha disponible' }}</p></div>
+            <div><h4>Alternativas</h4><p>{{ row.homologos_disponibles }} alternativa(s) con existencia.</p><p>@if (row.mejor_homologo) { Mejor opción observada: <strong>{{ row.mejor_homologo }}</strong> · {{ row.existencia_homologos_equivalente | number:'1.0-2' }} piezas equivalentes. } @else { Sin cobertura alternativa local observada. }</p></div>
+            <div><h4>¿Por qué aparece aquí?</h4><ul>@for (razon of row.razones; track razon) { <li>{{ razon }}</li> }</ul></div>
+          </div>
+        </details>
+      </article>
+    }
+    @if (!loading() && !error() && rows().length === 0) { <div class="empty">No hay resultados para los filtros seleccionados.</div> }
+  </section>
+
+  <footer class="pager"><span>{{ total() | number }} resultados · Página {{ page() }} de {{ totalPages }}</span><div><button (click)="anterior()" [disabled]="page() <= 1 || loading()">Anterior</button><button (click)="siguiente()" [disabled]="page() >= totalPages || loading()">Siguiente</button></div></footer>
+  <p class="legal">Información de apoyo para análisis y priorización. Debe validarse contra los sistemas institucionales, registros oficiales y responsables operativos antes de tomar decisiones.</p>
+</div>
