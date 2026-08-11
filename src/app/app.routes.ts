@@ -251,6 +251,12 @@ export const routes: Routes = [
         title: 'Dashboard Abasto - Radar Global'
       },
       {
+        path: 'radar-global-v2',
+        loadComponent: () => import('./features/dashboard-abasto/radar-global-v2/radar-global-v2.component')
+          .then(m => m.RadarGlobalV2Component),
+        title: 'Dashboard Abasto - Radar de demanda y cobertura'
+      },
+      {
         path: 'radar-desabasto',
         loadComponent: () => import('./features/dashboard-abasto/radar-abasto/radar-abasto.component')
           .then(m => m.RadarAbastoComponent),

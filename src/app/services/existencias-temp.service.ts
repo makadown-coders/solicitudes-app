@@ -22,6 +22,10 @@ export interface ExistUnidadRow {
 }
 interface ExistUnidadResp { rows: ExistUnidadRow[]; }
 
+export interface ExistenciasSnapshotInfo {
+  cargado_en: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ExistenciasTempService {
   private http = inject(HttpClient);
@@ -36,6 +40,12 @@ export class ExistenciasTempService {
 
   batch(rows: TempRow[]) {
     return this.http.post<{ inserted: number }>(`${this.baseUrl}/batch`, { rows });
+  }
+
+  snapshotInfo(): Observable<ExistenciasSnapshotInfo> {
+    return this.http.get<ExistenciasSnapshotInfo>(`${this.baseUrl}/snapshot-info`, {
+      headers: { 'X-Skip-Loader': '1' },
+    });
   }
 
   /**

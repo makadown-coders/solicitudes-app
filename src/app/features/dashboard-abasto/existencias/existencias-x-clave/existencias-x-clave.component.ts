@@ -24,6 +24,7 @@ import { CitasService } from '../../../../services/citas.service';
 import { AbstractTabComponent } from '../../../../shared/abstract-tab.component';
 import { ActivatedRoute } from '@angular/router';
 import { CpmService } from '../../../../services/cpm.service';
+import { ExistenciasTempService } from '../../../../services/existencias-temp.service';
 
 // TODO: por optimizar esto jalando del backend
 const ALMACENES_JURIS: Record<string, { nombre: string; cluesimb: string }> = {
@@ -84,6 +85,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     }
 
     autocompleteResults: any[] = [];
+    autocompleteVisible = signal(false);
     moreResults = false;
     totalResults = 0;
     selectedIndex = -1;
@@ -94,6 +96,10 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     inventarioService = inject(InventarioService);
     storageService = inject(StorageSolicitudService);
     private cpmService = inject(CpmService);
+    private existenciasTempService = inject(ExistenciasTempService);
+
+    snapshotCargadoEn = signal<string | null>(null);
+    snapshotInfoLoaded = signal(false);
 
     // para cuando se abra este componente como si fuera modal dialog
     @Input() clavePreseleccionada: string | null = null;
@@ -135,9 +141,22 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
     }
 
     ngOnInit(): void {
+        void this.cargarInfoSnapshot();
         // console.log('ExistenciasXClaveComponent ngOnInit');
         if (this.isActive && !this.mostradoPorPrimeraVez) {
             this.onTabActivated();
+        }
+    }
+
+    private async cargarInfoSnapshot(): Promise<void> {
+        try {
+            const info = await firstValueFrom(this.existenciasTempService.snapshotInfo());
+            this.snapshotCargadoEn.set(info.cargado_en || null);
+        } catch (error) {
+            console.warn('No fue posible obtener la fecha del snapshot de existencias.', error);
+            this.snapshotCargadoEn.set(null);
+        } finally {
+            this.snapshotInfoLoaded.set(true);
         }
     }
 
@@ -158,6 +177,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
 
 
     buscarArticulosConFallback(texto: string) {
+        this.autocompleteVisible.set(false);
         this.articulosService.buscarArticulos(texto).subscribe({
             next: (data) => {
                 this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave))
@@ -165,6 +185,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
                 this.totalResults = data.total || 0;
                 this.moreResults = this.totalResults > 12;
                 this.selectedIndex = 0;
+                this.autocompleteVisible.set(this.autocompleteResults.length > 0);
                 this.cdRef.detectChanges();
             },
             error: () => {
@@ -182,10 +203,12 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
                 this.totalResults = data.total || 0;
                 this.moreResults = this.totalResults > 12;
                 this.selectedIndex = 0;
+                this.autocompleteVisible.set(this.autocompleteResults.length > 0);
                 this.cdRef.detectChanges();
             },
             error: () => {
                 this.autocompleteResults = [];
+                this.autocompleteVisible.set(false);
                 this.totalResults = 0;
             }
         });
@@ -202,6 +225,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
             this.descripcion = item.descripcion;
             this.unidad = item.unidadMedida ?? item.presentacion ?? '';
             this.autocompleteResults = [];
+            this.autocompleteVisible.set(false);
             this.selectedIndex = -1;
             this.cdRef.detectChanges();
             await this.filtrarClave(skipLocalStorage);
@@ -247,6 +271,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
         this.claveBusqueda = '';
         this.claveFiltrada = '';
         this.autocompleteResults = [];
+        this.autocompleteVisible.set(false);
         this.descripcion = '';
         this.unidad = '';
         this.datosAgrupados = [];
@@ -275,6 +300,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
                 break;
             case 'Escape':
                 this.autocompleteResults = [];
+                this.autocompleteVisible.set(false);
                 this.selectedIndex = -1;
                 break;
         }
@@ -709,6 +735,7 @@ export class ExistenciasXClaveComponent extends AbstractTabComponent implements 
                             this.buscarArticulosConFallback(texto);
                         } else {
                             this.autocompleteResults = [];
+                            this.autocompleteVisible.set(false);
                             this.selectedIndex = -1;
                             this.moreResults = false;
                             this.totalResults = 0;
