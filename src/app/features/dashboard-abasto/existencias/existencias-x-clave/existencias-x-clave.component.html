@@ -11,22 +11,30 @@
 
       <!-- Input visible si NO hay clave confirmada -->
       @if (!claveConfirmada) {
-        <div class="relative ">
+        <div class="relative">
           <input id="EXC_claveInput" type="text" [(ngModel)]="claveBusqueda" (input)="searchSubject.next(claveBusqueda)"
             (keydown)="onInputKeyDown($event)" placeholder="Buscar clave (mínimo 3 caracteres)"
-            class="px-3 py-2 w-full border-gray-300 rounded-md shadow-sm  border focus:ring focus:outline-none" />
-            @if (autocompleteResults.length) {
+            class="px-3 py-2 w-full border-gray-300 rounded-md shadow-sm border focus:ring focus:outline-none" />
+            @if (autocompleteVisible() && autocompleteResults.length) {
               <ul
-                class="overflow-auto z-10 absolute top-12 left-0 right-0 max-h-52 shadow-md   border rounded">
+                role="listbox"
+                aria-label="Claves encontradas"
+                class="z-[60] overflow-y-auto absolute left-0 right-0 top-12 max-h-64 text-gray-900 bg-white rounded-lg border-gray-300 divide-y divide-gray-100 shadow-xl border">
                 @for (item of autocompleteResults; track item; let i = $index) {
-                  <li [class.bg-green-600]="i === selectedIndex"
-                    (click)="selectClave(item)" class="p-2 cursor-pointer hover:bg-green-500 ">
+                  <li
+                    role="option"
+                    [attr.aria-selected]="i === selectedIndex"
+                    [ngClass]="i === selectedIndex
+                      ? 'bg-green-700 text-white'
+                      : 'bg-white text-gray-900 hover:bg-green-50 hover:text-green-950'"
+                    (click)="selectClave(item)"
+                    class="p-3 cursor-pointer">
                     {{ item.clave }} - {{ item.descripcion }} ({{ item.presentacion || item.unidadMedida || 'Sin unidad' }})
                   </li>
                 }
                 @if (moreResults && autocompleteResults.length < totalResults) {
                   <li
-                    class="p-2 text-sm text-gray-500 ">
+                    class="p-2 text-sm text-gray-500">
                     Mostrando {{ autocompleteResults.length }} de {{ totalResults }} resultados...
                   </li>
                 }
@@ -35,20 +43,20 @@
           </div>
         }
         @if (claveConfirmada) {
-          <div class="flex flex-col gap-3 px-3 py-3 border-green-200 rounded-md border sm:flex-row sm:items-start">
+          <div class="flex flex-col items-start gap-3 px-3 py-3 border-green-200 rounded-md border sm:flex-row">
             <lucide-icon [img]="pillIcon" class="mt-1 w-5 h-5"></lucide-icon>
-            <div class="min-w-0 flex-1 text-sm">
+            <div class="flex-1 min-w-0 text-sm">
               <p class="font-semibold">{{ claveFiltrada }}</p>
               <p class="">
                 {{ (descripcion.length > 250) ? (descripcion | slice: 0:240) + ' [...]' : descripcion }}
               </p>
               <p class="text-sm">{{ unidad }}</p>
               <button (click)="reiniciarBusquedaClave()"
-                class="min-h-11 py-2 text-sm text-green-600 cursor-pointer underline hover:text-green-800">
+                class="py-2 min-h-11 text-sm text-green-600 cursor-pointer underline hover:text-green-800">
                 Cambiar
               </button>
             </div>
-            <div class="min-w-0 flex-1 text-sm">
+            <div class="flex-1 min-w-0 text-sm">
               @let esControlado = claveEsControlado(claveFiltrada);
               @if (esControlado) {
                 <p class="text-red-700"> Medicamento Controlado </p>
@@ -75,6 +83,25 @@
             </div>
           </div>
         }
+        @if (claveConfirmada && snapshotCargadoEn(); as fechaSnapshot) {
+          <div
+            role="status"
+            class="flex items-center gap-2 mt-2 px-3 py-2 text-xs text-sky-900 bg-sky-50 rounded-lg border-sky-200 border sm:text-sm"
+            title="Fecha y hora mostradas según la zona horaria de este dispositivo"
+          >
+            <span aria-hidden="true">🕒</span>
+            <span>
+              <strong>Última carga de snapshot:</strong>
+              {{ fechaSnapshot | date:'dd/MM/yyyy, h:mm a' }}
+              <span class="text-sky-700">(hora local).</span>
+
+            </span>
+          </div>
+        } @else if (claveConfirmada && snapshotInfoLoaded()) {
+          <div class="mt-2 px-3 py-2 text-xs text-gray-600 bg-gray-50 rounded-lg border-gray-200 border sm:text-sm">
+            No se pudo determinar la fecha de la última carga del snapshot de existencias.
+          </div>
+        }
       </div>
 
       @if (loadingClave()) {
@@ -85,15 +112,15 @@
 
       <!-- Cards órdenes halladas -->
       @if (claveFiltrada && this.citasHalladasPorClave.length > 0) {
-        <section class="order-4 w-full overflow-hidden border rounded-lg shadow xl:col-span-5">
+        <section class="overflow-hidden order-4 w-full rounded-lg border shadow xl:col-span-5">
           <button type="button" (click)="toggleOrdenes()"
             [attr.aria-expanded]="ordenesExpandidas()"
-            class="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-green-50 ">
+            class="flex items-center justify-between gap-3 px-4 py-3 min-h-11 w-full text-left hover:bg-green-50">
             <span class="text-base font-semibold">Órdenes relacionadas ({{ citasHalladasPorClave.length }})</span>
             <span aria-hidden="true" class="text-lg">{{ ordenesExpandidas() ? '▾' : '▸' }}</span>
           </button>
           @if (ordenesExpandidas()) {
-            <div class="border-t p-4">
+            <div class="p-4 border-t">
             <div class="overflow-auto pr-2 max-h-[600px]">
               <div class="grid grid-cols-1 gap-4">
                 <!-- Aquí va cada card -->
@@ -160,26 +187,26 @@
     </div>
 
     <!-- Columna derecha -->
-    <div class="order-3 flex w-full flex-col gap-1 xl:col-span-7">
+    <div class="flex flex-col order-3 gap-1 w-full xl:col-span-7">
       @if (claveFiltrada) {
         <div>
           <!-- Sección por almacén -->
           @for (almacen of datosAgrupados; track almacen) {
-            <section class="mb-3 overflow-hidden border rounded-lg">
+            <section class="overflow-hidden mb-3 rounded-lg border">
               @let totalExistencia = totalExistenciaEnAlmacen(almacen.almacen);
               <div class="flex flex-wrap items-center justify-between gap-2 p-3">
                 <div class="min-w-0">
                   <h2 class="text-base font-bold text-green-800">{{ almacen.almacen | titlecase }}</h2>
                   <p class="text-sm">Existencia en almacén: <span class="font-semibold">{{ totalExistencia }}</span></p>
                 </div>
-                <button type="button" class="min-h-11 min-w-11 rounded-lg border text-lg cursor-pointer"
+                <button type="button" class="min-h-11 min-w-11 text-lg rounded-lg cursor-pointer border"
                   [attr.aria-label]="'Ver trazabilidad de almacén ' + almacen.almacen"
                   [title]="'Ver trazabilidad de almacén ' + almacen.almacen"
                   (click)="abrirTrazabilidad(claveFiltrada, almacen.cluesimb, -1, descripcion, totalExistencia)">🔍</button>
               </div>
               <!-- Tabla por unidad -->
               <div class="overflow-hidden">
-              <table class="w-full table-fixed text-xs border-t sm:text-sm">
+              <table class="w-full text-xs border-t table-fixed sm:text-sm">
                 <colgroup>
                   <col class="w-11">
                   <col>
@@ -205,7 +232,7 @@
                           🔍
                         </button>
                       </td>
-                      <td class="break-words px-1 py-2 leading-snug sm:px-2">{{ unidad.unidad }}</td>
+                      <td class="px-1 py-2 break-words leading-snug sm:px-2">{{ unidad.unidad }}</td>
                       <td class="px-1 py-2 text-right tabular-nums sm:px-2">{{ unidad.clave.cpm }}</td>
                       <!-- Existencia base con tooltip mostrando dispensación -->
                       @let tooltip = getTooltipExistencia(unidad);
@@ -225,12 +252,12 @@
       <!-- Nota sobre base vs dispensación -->
       @if (mostrarNotaFactor) {
         <div
-          class="mt-3 p-3 w-full text-xs text-gray-700 bg-green-50/60 border-gray-300 rounded border   ">
+          class="mt-3 p-3 w-full text-xs text-gray-700 bg-green-50/60 border-gray-300 rounded border">
           <div class="flex items-center gap-2 mb-1">
             <span class="inline-flex items-center py-[2px] font-semibold text-white">
               ℹ️
             </span>
-            <span class="font-semibold text-green-800 ">¿Qué estoy viendo?</span>
+            <span class="font-semibold text-green-800">¿Qué estoy viendo?</span>
           </div>
           <p class="mb-2 leading-snug">
             Algunas cantidades mostradas en <strong>Exist.</strong> para <strong>unidades médicas</strong> están en
@@ -247,6 +274,31 @@
   </div>
 
 </div>
+
+@if (claveConfirmada) {
+  <aside
+    aria-label="Aviso sobre el alcance de la información"
+    class="mt-6 p-4 text-amber-950 bg-amber-50 rounded-xl border-amber-200 border sm:p-5"
+  >
+    <div class="flex items-start gap-3">
+      <span aria-hidden="true" class="mt-0.5 text-lg">⚠️</span>
+      <div class="min-w-0">
+        <h2 class="font-semibold">Alcance de la información</h2>
+        <p class="mt-1 text-sm leading-relaxed">
+          Las existencias, CPM, órdenes y demás datos mostrados en este módulo son cortes informativos con
+          actualización periódica. Pueden presentar desfases respecto a la operación real y no deben considerarse
+          información en tiempo real, fuente única de verdad ni evidencia oficial.
+        </p>
+        <p class="mt-2 text-xs leading-relaxed text-amber-900">
+          Esta información sirve como apoyo para el análisis y la toma de decisiones. Antes de realizar acciones
+          operativas, administrativas o de control, deberá validarse contra los sistemas institucionales, documentos
+          oficiales y registros patrimoniales de las áreas responsables. En caso de discrepancia, prevalecen dichas
+          fuentes oficiales.
+        </p>
+      </div>
+    </div>
+  </aside>
+}
 
 <app-trazabilidad-modal [visible]="modalVisible" [clave]="claveSeleccionada" [cluesimb]="unidadSeleccionada"
   [descripcionArticulo]="descripcion" [cpmBase]="cpmSeleccionada" [existenciaReal]="existenciaReal"

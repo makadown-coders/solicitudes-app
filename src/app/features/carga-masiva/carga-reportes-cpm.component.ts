@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { NgFastToastService } from 'ng-fast-toast';
 import * as XLSX from 'xlsx';
 import {
   ReporteCpmSemanalRow,
@@ -31,6 +32,7 @@ interface ParsedFileResult {
 })
 export class CargaReportesCpmComponent {
   private readonly service = inject(ReporteCpmSemanalService);
+  private readonly toast = inject(NgFastToastService);
 
   readonly expectedHeaders = [
     'entidad',
@@ -55,6 +57,7 @@ export class CargaReportesCpmComponent {
   files: ParsedFileSummary[] = [];
   errors: string[] = [];
   warnings: string[] = [];
+  uploadSuccess: string | null = null;
 
   get canUpload(): boolean {
     return this.rows.length > 0
@@ -114,6 +117,7 @@ export class CargaReportesCpmComponent {
 
     this.isUploading = true;
     this.progress = 0;
+    this.uploadSuccess = null;
     this.statusText = 'Preparando tabla...';
 
     try {
@@ -132,11 +136,30 @@ export class CargaReportesCpmComponent {
         this.progress = Math.round(((batchIndex + 1) / totalBatches) * 100);
       }
 
-      this.statusText = `Carga completada: ${processed} filas procesadas.`;
+      if (processed !== this.rows.length) {
+        throw new Error(
+          `El servidor reportó ${processed} de ${this.rows.length} filas procesadas.`,
+        );
+      }
+
+      this.uploadSuccess = `Carga completada satisfactoriamente: ${processed} filas procesadas.`;
+      this.statusText = this.uploadSuccess;
+      this.toast.success({
+        title: 'Carga completada',
+        content: `Se procesaron correctamente ${processed} filas.`,
+        duration: 8,
+      });
     } catch (error: unknown) {
       console.error(error);
-      this.errors = [...this.errors, this.backendErrorMessage(error)];
+      const message = this.backendErrorMessage(error);
+      this.uploadSuccess = null;
+      this.errors = [...this.errors, message];
       this.statusText = 'La carga falló.';
+      this.toast.error({
+        title: 'No se completó la carga',
+        content: message,
+        duration: 10,
+      });
     } finally {
       this.isUploading = false;
     }
@@ -481,6 +504,7 @@ export class CargaReportesCpmComponent {
     this.files = [];
     this.errors = [];
     this.warnings = [];
+    this.uploadSuccess = null;
     this.progress = 0;
     this.statusText = '';
   }
