@@ -28,6 +28,24 @@
     </div>
   </div>
 
+  @if (!modoStandalone && snapshotCargadoEn(); as fechaSnapshot) {
+    <div
+      role="status"
+      class="flex items-center gap-2 mt-3 px-3 py-2 text-xs text-sky-900 bg-sky-50 rounded-lg border-sky-200 border sm:text-sm"
+      title="Fecha y hora mostradas según la zona horaria de este dispositivo">
+      <span aria-hidden="true">🕒</span>
+      <span>
+        <strong>Última carga del snapshot de existencias:</strong>
+        {{ fechaSnapshot | date:'dd/MM/yyyy, h:mm a' }}
+        <span class="text-sky-700">(hora local).</span>
+      </span>
+    </div>
+  } @else if (!modoStandalone && snapshotInfoLoaded()) {
+    <div class="mt-3 px-3 py-2 text-xs text-gray-600 bg-gray-50 rounded-lg border-gray-200 border sm:text-sm">
+      No se pudo determinar la fecha de la última carga del snapshot de existencias.
+    </div>
+  }
+
   <div class="relative mt-4 space-y-2">
 
     <div class="relative">
@@ -218,6 +236,27 @@
           }
 
         </div>
+
+        <aside
+          aria-label="Aviso sobre el alcance de la información"
+          class="mt-8 p-4 text-amber-950 bg-amber-50 rounded-xl border-amber-200 border sm:p-5">
+          <div class="flex items-start gap-3">
+            <span aria-hidden="true" class="mt-0.5 text-lg">⚠️</span>
+            <div class="min-w-0">
+              <h2 class="font-semibold">Alcance de la información</h2>
+              <p class="mt-1 text-sm leading-relaxed">
+                Las existencias de almacenes y unidades, los CPM y las alternativas mostradas son cortes informativos
+                con actualización periódica. Pueden presentar desfases respecto a la operación real y no deben
+                considerarse información en tiempo real, fuente única de verdad ni evidencia oficial.
+              </p>
+              <p class="mt-2 text-xs leading-relaxed text-amber-900">
+                Esta información sirve como apoyo para elaborar la solicitud. Antes de tomar decisiones operativas,
+                administrativas o de control, deberá validarse contra los sistemas institucionales, documentos oficiales
+                y registros patrimoniales de las áreas responsables. En caso de discrepancia, prevalecen dichas fuentes.
+              </p>
+            </div>
+          </div>
+        </aside>
 
         <!-- Modal reutilizable con Tailwind -->
         @if (modalVisible) {

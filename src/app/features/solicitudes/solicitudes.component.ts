@@ -122,6 +122,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   existUnidadIndex = new Map<string, number>();
   get hasUnidadExistencias(): boolean { return this.existUnidadIndex.size > 0; }
+  snapshotCargadoEn = signal<string | null>(null);
+  snapshotInfoLoaded = signal(false);
 
   // dentro de la clase SolicitudesComponent
   // ============= Inyección de servicios =============
@@ -248,6 +250,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         // no hace daño si Layout ya lo cargó: usa cachá del CpmService
         this.cpmService.ensureForCluesimb(cluesimb).subscribe();
         this.loadExistenciasUnidad(cluesimb);
+        void this.loadSnapshotInfo();
       }
     }
     await this.loadEditCpmsFlag();
@@ -1331,6 +1334,19 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         _existUnidad: idx.get(it.clave) ?? 0
       }));
     });
+  }
+
+  private async loadSnapshotInfo(): Promise<void> {
+    this.snapshotInfoLoaded.set(false);
+    try {
+      const info = await firstValueFrom(this.existTemp.snapshotInfo());
+      this.snapshotCargadoEn.set(info.cargado_en || null);
+    } catch (error) {
+      console.warn('No fue posible obtener la fecha del snapshot de existencias.', error);
+      this.snapshotCargadoEn.set(null);
+    } finally {
+      this.snapshotInfoLoaded.set(true);
+    }
   }
 
   /*************************************************************************************/
