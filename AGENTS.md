@@ -22,6 +22,8 @@
 - “Sin solicitud observada” no equivale a “la unidad no lo necesita”. Conservar esa redacción prudente.
 - El frontend presenta filtros, paginación y evidencia; los cruces de CPM, solicitudes, existencias y homólogos pertenecen al backend.
 - La cobertura en CPM es `existencia / CPM`; los días estimados son `(existencia / CPM) * 30` cuando el CPM es mensual.
+- Las órdenes se consultan bajo demanda. “Cobertura proyectada” puede incluir saldos pendientes y nunca equivale a existencia disponible.
+- La demanda histórica usa el periodo seleccionado; la vigencia operativa usa una ventana fija de 14 días desde la última solicitud. Riesgo y estado operativo son dimensiones distintas.
 
 ## Validación
 
