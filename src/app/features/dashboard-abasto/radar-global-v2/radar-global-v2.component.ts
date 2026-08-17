@@ -286,10 +286,12 @@ export class RadarGlobalV2Component implements OnInit {
       ]);
       guia['!cols'] = [{ wch: 28 }, { wch: 100 }];
       const resumen = this.crearResumenExcel(out, rows);
+      const resumenUnidades = this.crearResumenUnidadesExcel(rows);
       const radarSheet = this.crearHojaTabla(radar, 'Sin resultados para los filtros seleccionados');
       this.formatearColumna(radarSheet, 'Frecuencia de solicitud', '0.00%');
       XLSX.utils.book_append_sheet(workbook, guia, 'Guía y alcance');
       XLSX.utils.book_append_sheet(workbook, resumen, 'Resumen');
+      XLSX.utils.book_append_sheet(workbook, resumenUnidades, 'Resumen por unidad');
       XLSX.utils.book_append_sheet(workbook, radarSheet, 'Radar');
       XLSX.utils.book_append_sheet(workbook, this.crearHojaTabla(salidas, 'Sin salidas posteriores observadas'), 'Detalle salidas');
       XLSX.utils.book_append_sheet(workbook, this.crearHojaTabla(ordenes, 'Sin órdenes relacionadas'), 'Órdenes contexto');
@@ -315,6 +317,52 @@ export class RadarGlobalV2Component implements OnInit {
       ['Críticas con CPM', rows.filter(x => x.segmento === 'CRITICA_CPM').length],
       ['Con salida posterior observada', rows.filter(x => x.salida_posterior).length]
     ]);
+  }
+
+  private crearResumenUnidadesExcel(rows: RadarGlobalV2Row[]): XLSX.WorkSheet {
+    const porUnidad = new Map<string, {
+      unidad: string;
+      clavesSolicitadas: Set<string>;
+      clavesSinExistencia: Set<string>;
+    }>();
+    for (const row of rows) {
+      if (row.solicitado_periodo <= 0) continue;
+      const unidad = `${row.nombre_de_unidad?.trim() || 'UNIDAD SIN NOMBRE'} · ${row.cluesimb}`;
+      const resumen = porUnidad.get(row.cluesimb) ?? {
+        unidad,
+        clavesSolicitadas: new Set<string>(),
+        clavesSinExistencia: new Set<string>()
+      };
+      resumen.clavesSolicitadas.add(row.clave);
+      if (row.existencia_actual <= 0) resumen.clavesSinExistencia.add(row.clave);
+      porUnidad.set(row.cluesimb, resumen);
+    }
+    const unidades = Array.from(porUnidad.values())
+      .sort((a, b) => a.unidad.localeCompare(b.unidad, 'es'))
+      .map(item => {
+        const solicitadas = item.clavesSolicitadas.size;
+        const sinExistencia = item.clavesSinExistencia.size;
+        return [item.unidad, solicitadas, sinExistencia, solicitadas ? sinExistencia / solicitadas : 0];
+      });
+    const sheet = XLSX.utils.aoa_to_sheet([
+      ['Resumen actual por unidad'],
+      ['Periodo de solicitudes', `Últimos ${this.months()} meses`],
+      ['Alcance', 'Las cifras consideran el universo exportado y respetan los filtros aplicados.'],
+      ['Existencias', 'Snapshot disponible al generar el archivo; no representa existencias históricas ni información en tiempo real.'],
+      ['Definición', 'Claves distintas solicitadas cuenta claves CNIS únicas por unidad. Sin existencia actual es el subconjunto con existencia igual a cero.'],
+      [],
+      ['Unidad', 'Claves distintas solicitadas', 'Sin existencia actual', '% sin existencia'],
+      ...(unidades.length ? unidades : [['Sin unidades con solicitudes en el universo exportado', 0, 0, 0]])
+    ]);
+    sheet['!cols'] = [{ wch: 62 }, { wch: 28 }, { wch: 24 }, { wch: 18 }];
+    sheet['!autofilter'] = { ref: `A7:D${Math.max(8, unidades.length + 7)}` };
+    (sheet as any)['!freeze'] = { xSplit: 0, ySplit: 7, topLeftCell: 'A8', activePane: 'bottomLeft', state: 'frozen' };
+    const filasDatos = Math.max(1, unidades.length);
+    for (let row = 7; row < filasDatos + 7; row++) {
+      const cell = sheet[XLSX.utils.encode_cell({ r: row, c: 3 })];
+      if (cell) cell.z = '0.00%';
+    }
+    return sheet;
   }
 
   private crearHojaTabla(data: Record<string, unknown>[], mensaje: string): XLSX.WorkSheet {
