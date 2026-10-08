@@ -75,6 +75,18 @@ export const routes: Routes = [
       .then(m => m.LayoutComponent)
   },
   {
+    path: 'solicitud-unidad-sandbox',
+    title: 'Primer Nivel · Sandbox de Solicitud',
+    loadComponent: () => import('./features/solicitud-unidad-sandbox/solicitud-unidad-sandbox.component')
+      .then(m => m.SolicitudUnidadSandboxComponent)
+  },
+  {
+    path: 'solicitud-unidad-sandbox/:cluesimb',
+    title: 'Primer Nivel · Sandbox de Solicitud',
+    loadComponent: () => import('./features/solicitud-unidad-sandbox/solicitud-unidad-sandbox.component')
+      .then(m => m.SolicitudUnidadSandboxComponent)
+  },
+  {
     path: 'solicitudv1',
     loadComponent: () => import('./features/solicitudes/solicitudes.component')
       .then(m => m.SolicitudesComponent)

@@ -1,0 +1,157 @@
+<div class="min-h-screen pb-24 text-slate-900 bg-white lg:pb-10">
+  <header class="border-b border-slate-100">
+    <div class="mx-auto px-4 py-6 max-w-6xl sm:px-6 lg:px-8">
+      <p class="text-sm font-semibold text-emerald-700">Solicitud de insumos · Primer Nivel</p>
+      @if (contexto(); as unidad) {
+        <h1 class="mt-1 text-xl font-bold sm:text-2xl">{{ unidad.nombre }}</h1>
+        <p class="mt-1 text-sm text-slate-500">
+          @if (unidad.periodo) { {{ unidad.periodo }} }
+          @if (unidad.periodo && unidad.clues) { · }
+          @if (unidad.clues) { CLUES {{ unidad.clues }} }
+          @if (unidad.responsable) { · {{ unidad.responsable }} }
+        </p>
+        <button type="button" class="mt-2 text-sm font-semibold text-emerald-700 hover:text-emerald-900 hover:underline" (click)="cambiarUnidad()">Cambiar unidad</button>
+      } @else {
+        <h1 class="mt-1 text-xl font-bold sm:text-2xl">Selecciona tu Centro de Salud</h1>
+        <p class="mt-1 text-sm text-slate-500">La solicitud quedará identificada con la CLUES de la unidad.</p>
+      }
+    </div>
+  </header>
+
+  <main class="mx-auto px-4 py-8 max-w-6xl sm:px-6 lg:px-8">
+    @if (cargandoUnidad()) {
+      <div class="mx-auto py-16 max-w-2xl text-center">
+        <div class="mx-auto w-12 h-12 bg-slate-100 rounded-full animate-pulse"></div>
+        <p class="mt-4 text-sm text-slate-500">Cargando Centros de Salud…</p>
+      </div>
+    } @else if (!contexto()) {
+      <section class="mx-auto py-8 max-w-2xl" aria-labelledby="titulo-seleccion-unidad">
+        <h2 id="titulo-seleccion-unidad" class="text-3xl font-bold tracking-tight">¿Para qué Centro de Salud es la solicitud?</h2>
+        <p class="mt-3 text-slate-600">Busca por nombre, municipio o CLUES y selecciona tu unidad.</p>
+        @if (errorUnidad()) {
+          <p class="mt-5 p-4 text-sm text-rose-800 bg-rose-50 rounded-xl" role="alert">{{ errorUnidad() }}</p>
+        }
+        <label class="relative block mt-7">
+          <span class="sr-only">Buscar Centro de Salud</span>
+          <lucide-angular [img]="SearchIcon" class="absolute left-4 top-1/2 w-5 h-5 text-slate-400 -translate-y-1/2 pointer-events-none"></lucide-angular>
+          <input type="search" class="w-full h-14 pl-13 pr-4 text-base rounded-2xl border border-slate-300 shadow-sm outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            placeholder="Buscar Centro de Salud o CLUES..." autocomplete="off" [value]="terminoUnidad()" (input)="buscarUnidad($any($event.target).value)" />
+        </label>
+        @if (terminoUnidad().trim().length > 1 && !unidadesEncontradas().length) {
+          <p class="py-8 text-center text-sm text-slate-500">No encontramos Centros de Salud que coincidan.</p>
+        } @else if (unidadesEncontradas().length) {
+          <div class="mt-3 divide-y divide-slate-100 border-y border-slate-100">
+            @for (unidad of unidadesEncontradas(); track unidad.cluesimb) {
+              <button type="button" class="block px-2 py-4 w-full text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-emerald-600" (click)="seleccionarUnidad(unidad)">
+                <span class="block font-semibold text-slate-900">{{ unidad.nombre }}</span>
+                <span class="block mt-1 text-sm text-slate-500">{{ unidad.municipio }} @if (unidad.municipio) { · } CLUES {{ unidad.cluesimb }}</span>
+              </button>
+            }
+          </div>
+        }
+      </section>
+    } @else {
+    <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
+      <section class="min-w-0" aria-labelledby="titulo-busqueda">
+        <div class="max-w-2xl">
+          <h2 id="titulo-busqueda" class="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">¿Qué necesita tu unidad?</h2>
+          <p class="mt-3 text-base text-slate-600">Busca el medicamento o material que necesitas solicitar.</p>
+        </div>
+        <label class="relative block mt-7">
+          <span class="sr-only">Buscar medicamento o material</span>
+          <lucide-angular [img]="SearchIcon" class="absolute left-4 top-1/2 w-5 h-5 text-slate-400 -translate-y-1/2 pointer-events-none"></lucide-angular>
+          <input type="search" class="w-full h-14 pl-13 pr-4 text-base bg-white rounded-2xl border border-slate-300 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            placeholder="Buscar medicamento o material..." autocomplete="off" [value]="terminoBusqueda()" (input)="buscar($any($event.target).value)" />
+        </label>
+
+        <div class="mt-7" aria-live="polite">
+          @if (estadoBusqueda() === 'inicial') {
+            <div class="py-12 text-center text-slate-500">
+              <lucide-angular [img]="SearchIcon" class="mx-auto w-7 h-7 text-slate-300"></lucide-angular>
+              <p class="mt-3 text-sm">Escribe al menos dos letras para comenzar.</p>
+            </div>
+          } @else if (estadoBusqueda() === 'escribiendo') {
+            <p class="py-6 text-center text-sm text-slate-500">Sigue escribiendo o espera un momento para buscar…</p>
+          } @else if (estadoBusqueda() === 'cargando') {
+            <div class="space-y-4" aria-label="Buscando insumos">
+              @for (item of [1,2,3]; track item) { <div class="h-28 bg-slate-100 rounded-2xl animate-pulse"></div> }
+            </div>
+          } @else if (estadoBusqueda() === 'vacio') {
+            <div class="py-10 text-center">
+              <p class="font-semibold text-slate-800">No encontramos coincidencias</p>
+              <p class="mt-2 text-sm text-slate-500">Prueba con menos palabras o con otra forma de nombrar el insumo.</p>
+            </div>
+          } @else if (estadoBusqueda() === 'error') {
+            <div class="py-8 text-center">
+              <lucide-angular [img]="AlertIcon" class="mx-auto w-5 h-5 text-rose-700"></lucide-angular>
+              <p class="mt-2 text-sm text-rose-800">No pudimos completar la búsqueda.</p>
+              <button type="button" class="mt-4 px-4 py-2 text-sm font-semibold text-rose-800 rounded-xl border border-rose-300 hover:bg-rose-50" (click)="reintentarBusqueda()">Reintentar</button>
+            </div>
+          } @else if (estadoBusqueda() === 'resultados') {
+            <p class="mb-4 text-sm text-slate-500">Selecciona la presentación correcta e indica la cantidad.</p>
+            <app-resultados-insumos-sandbox [articulos]="resultadosVisibles()" [claveAgregada]="claveAgregada()" (agregar)="agregar($event)" />
+            @if (resultadosVisibles().length < resultadosBusqueda().length) {
+              <button type="button" class="mt-5 w-full h-11 font-semibold text-emerald-800 rounded-xl hover:bg-emerald-50" (click)="mostrarMasResultados()">Mostrar más resultados</button>
+            }
+          }
+        </div>
+      </section>
+
+      <div class="hidden lg:block lg:sticky lg:top-6 lg:self-start">
+        <app-solicitud-resumen-sandbox [items]="solicitud()" (cantidadChange)="actualizarCantidad($event)"
+          (eliminar)="eliminar($event)" (limpiar)="limpiar()" (revisar)="abrirRevision()" />
+      </div>
+    </div>
+    }
+  </main>
+
+  @if (contexto()) {
+  <div class="fixed inset-x-0 bottom-0 z-30 p-3 bg-white/95 border-t border-slate-200 backdrop-blur lg:hidden">
+    <button type="button" class="flex items-center justify-between px-4 w-full h-14 text-white bg-emerald-800 rounded-2xl shadow-lg" (click)="solicitudMovilAbierta.set(true)">
+      <span class="inline-flex items-center gap-2 font-bold"><lucide-angular [img]="BasketIcon" class="w-5 h-5"></lucide-angular> Mi solicitud · {{ solicitud().length }}</span>
+      <span class="inline-flex items-center gap-1 text-sm font-semibold">Ver <lucide-angular [img]="NextIcon" class="w-4 h-4"></lucide-angular></span>
+    </button>
+  </div>
+  }
+
+  @if (solicitudMovilAbierta()) {
+    <div class="fixed inset-0 z-40 bg-slate-950/40 lg:hidden" (click)="solicitudMovilAbierta.set(false)"></div>
+    <div class="fixed inset-0 z-50 flex items-end p-3 lg:hidden pointer-events-none">
+      <app-solicitud-resumen-sandbox class="block w-full max-h-full pointer-events-auto" [items]="solicitud()" [permitirCerrar]="true"
+        (cerrar)="solicitudMovilAbierta.set(false)" (cantidadChange)="actualizarCantidad($event)"
+        (eliminar)="eliminar($event)" (limpiar)="limpiar()" (revisar)="abrirRevision()" />
+    </div>
+  }
+
+  @if (revisionAbierta()) {
+    <div class="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 sm:items-center sm:p-5" role="dialog" aria-modal="true" aria-labelledby="titulo-revision">
+      <section class="overflow-hidden w-full max-w-2xl max-h-[94vh] bg-white rounded-t-3xl shadow-2xl sm:rounded-3xl">
+        <header class="flex items-start justify-between px-5 py-4 border-b border-slate-100">
+          <div><h2 id="titulo-revision" class="text-xl font-bold">Revisar solicitud</h2><p class="mt-1 text-sm text-slate-500">{{ solicitud().length }} artículos distintos</p></div>
+          <button type="button" class="grid w-10 h-10 place-items-center rounded-xl hover:bg-slate-100" aria-label="Cerrar revisión" (click)="revisionAbierta.set(false)"><lucide-angular [img]="CloseIcon" class="w-5 h-5"></lucide-angular></button>
+        </header>
+        <div class="overflow-y-auto p-5 max-h-[65vh]">
+          @if (contexto(); as unidad) {
+            <div class="mb-5">
+              <p class="font-semibold">{{ unidad.nombre }}</p>
+              <p class="mt-1 text-sm text-slate-500">@if (unidad.periodo) { {{ unidad.periodo }} } @if (unidad.periodo && unidad.clues) { · } @if (unidad.clues) { CLUES {{ unidad.clues }} }</p>
+            </div>
+          }
+          <div class="divide-y divide-slate-100">
+            @for (item of solicitud(); track item.clave) {
+              <div class="flex gap-4 justify-between py-4 first:pt-0">
+                <div><p class="text-sm font-semibold">{{ item.descripcion }}</p><p class="mt-1 text-sm text-slate-500">{{ item.presentacion || 'Presentación no especificada' }}</p><p class="mt-1 text-xs text-slate-400">Clave: {{ item.clave }}</p></div>
+                <span class="shrink-0 text-sm font-bold">Cantidad: {{ item.cantidad }}</span>
+              </div>
+            }
+          </div>
+        </div>
+        <footer class="p-5 bg-slate-50 border-t border-slate-100">
+          @if (pedidoSimulado()) { <p class="mb-3 text-sm font-medium text-center text-emerald-800">Revisión completada. Este sandbox no envió información al backend.</p> }
+          <button type="button" class="w-full h-12 font-bold text-white bg-emerald-700 rounded-xl hover:bg-emerald-800" (click)="generarPedidoSandbox()">Generar pedido</button>
+          <p class="mt-2 text-xs text-center text-slate-500">Acción de demostración; no genera un pedido real.</p>
+        </footer>
+      </section>
+    </div>
+  }
+</div>

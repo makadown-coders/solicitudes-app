@@ -1,0 +1,53 @@
+<aside class="flex overflow-hidden flex-col max-h-[calc(100dvh-1.5rem)] bg-white rounded-3xl border border-slate-200 shadow-sm">
+  <header class="flex shrink-0 items-center justify-between px-5 py-4 border-b border-slate-200">
+    <div>
+      <h2 class="font-bold text-slate-900">Mi solicitud</h2>
+      <p class="text-sm text-slate-500">{{ items.length }} {{ items.length === 1 ? 'artículo distinto' : 'artículos distintos' }}</p>
+    </div>
+    @if (permitirCerrar) {
+      <button type="button" class="grid w-10 h-10 place-items-center rounded-xl hover:bg-slate-100" aria-label="Cerrar mi solicitud" (click)="cerrar.emit()">
+        <lucide-angular [img]="CloseIcon" class="w-5 h-5"></lucide-angular>
+      </button>
+    }
+  </header>
+
+  <div class="overflow-y-auto grow min-h-0 p-4 space-y-3 overscroll-contain">
+    @if (!items.length) {
+      <div class="px-4 py-10 text-center bg-slate-50 rounded-2xl">
+        <p class="font-semibold text-slate-700">Tu solicitud está vacía</p>
+        <p class="mt-1 text-sm text-slate-500">Busca un insumo y agrégalo cuando lo reconozcas.</p>
+      </div>
+    }
+    @for (item of items; track item.clave) {
+      <article class="py-3 border-b border-slate-100 last:border-b-0">
+        <div class="flex gap-2 justify-between">
+          <div class="min-w-0">
+            <h3 class="text-sm font-semibold leading-snug text-slate-900">{{ item.descripcion }}</h3>
+            <p class="mt-1 text-xs text-slate-500">{{ item.presentacion || 'Presentación no especificada' }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">{{ item.clave }}</p>
+          </div>
+          <button type="button" class="grid shrink-0 w-9 h-9 place-items-center text-rose-600 rounded-xl hover:bg-rose-50"
+            [attr.aria-label]="'Eliminar ' + item.descripcion" (click)="eliminar.emit(item.clave)">
+            <lucide-angular [img]="TrashIcon" class="w-4 h-4"></lucide-angular>
+          </button>
+        </div>
+        <label class="flex items-center justify-between mt-3 text-xs font-medium text-slate-600">
+          Cantidad
+          <input type="number" min="1" max="99999" inputmode="numeric" class="w-24 h-10 px-3 text-sm font-semibold text-right rounded-xl border border-slate-300 outline-none focus:border-emerald-600"
+            [ngModel]="item.cantidad" (ngModelChange)="actualizar(item.clave, $event)" />
+        </label>
+      </article>
+    }
+  </div>
+
+  <footer class="shrink-0 p-4 bg-white border-t border-slate-200">
+    @if (items.length) {
+      <button type="button" class="mb-3 w-full text-xs font-semibold text-slate-500 hover:text-rose-700" (click)="limpiar.emit()">Limpiar solicitud</button>
+    }
+    <button type="button" class="inline-flex items-center justify-center gap-2 w-full h-12 font-bold text-white bg-emerald-700 rounded-xl transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+      [disabled]="!items.length" (click)="revisar.emit()">
+      <lucide-angular [img]="ReviewIcon" class="w-5 h-5"></lucide-angular>
+      Revisar solicitud
+    </button>
+  </footer>
+</aside>

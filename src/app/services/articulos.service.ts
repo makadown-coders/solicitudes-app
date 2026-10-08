@@ -50,6 +50,12 @@ export class ArticulosService {
     );
   }
 
+  buscarArticulosSandboxPrimerNivel(termino: string): Observable<{ resultados: ArticuloSolicitud[]; total: number }> {
+    return this.http.get<{ resultados: ArticuloSolicitud[]; total: number }>(
+      `${this.apiUrl}/sandbox-primer-nivel?q=${encodeURIComponent(termino)}`
+    );
+  }
+
   /**
    * Método de emergencia por que se me acabaron los créditos en el backend de railway :(
    * @param termino

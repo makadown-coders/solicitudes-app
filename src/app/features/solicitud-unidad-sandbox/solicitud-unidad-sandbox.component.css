@@ -1,0 +1,9 @@
+:host {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host * {
+    scroll-behavior: auto !important;
+  }
+}
