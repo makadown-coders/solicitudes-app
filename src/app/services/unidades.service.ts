@@ -39,8 +39,12 @@ export class UnidadesService {
   }
 
   /** Carga (o recarga) desde backend y construye los índices */
-  load(): Observable<Unidadv2[]> {
-    return this.http.get<UnidadFromApi[]>(this.apiUrl).pipe(
+  load(options: { skipLoader?: boolean } = {}): Observable<Unidadv2[]> {
+    const requestOptions = options.skipLoader
+      ? { headers: { 'X-Skip-Loader': '1' } }
+      : {};
+
+    return this.http.get<UnidadFromApi[]>(this.apiUrl, requestOptions).pipe(
       map(rows => (rows ?? []).map(r => {
         // nombre puede venir como 'nombre_de_unidad' (vista) o 'nombre' (tabla antigua)
         const nombre = (r as any).nombre_de_unidad ?? r.nombre ?? '';

@@ -2,19 +2,19 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, signal
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Check, LucideAngularModule, Minus, Plus, ShoppingBasket } from 'lucide-angular';
-import { SandboxArticulo } from '../../solicitud-unidad-sandbox.models';
+import { NecesidadArticulo } from '../../necesidades-unidad.models';
 
 @Component({
-  selector: 'app-resultados-insumos-sandbox',
+  selector: 'app-resultados-insumos-necesidades',
   standalone: true,
   imports: [CommonModule, FormsModule, LucideAngularModule],
   templateUrl: './resultados-insumos.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ResultadosInsumosSandboxComponent {
-  @Input({ required: true }) articulos: SandboxArticulo[] = [];
+export class ResultadosInsumosNecesidadesComponent {
+  @Input({ required: true }) articulos: NecesidadArticulo[] = [];
   @Input() claveAgregada = '';
-  @Output() agregar = new EventEmitter<{ articulo: SandboxArticulo; cantidad: number }>();
+  @Output() agregar = new EventEmitter<{ articulo: NecesidadArticulo; cantidad: number }>();
 
   readonly MinusIcon = Minus;
   readonly PlusIcon = Plus;
@@ -35,7 +35,12 @@ export class ResultadosInsumosSandboxComponent {
     this.cambiarCantidad(clave, this.cantidad(clave) + delta);
   }
 
-  agregarArticulo(articulo: SandboxArticulo): void {
+  agregarArticulo(articulo: NecesidadArticulo): void {
     this.agregar.emit({ articulo, cantidad: this.cantidad(articulo.clave) });
+  }
+
+  descripcionVisible(descripcion: string): string {
+    const texto = (descripcion || 'Descripción no disponible').trim();
+    return texto.length <= 100 ? texto : `${texto.slice(0, 99).trimEnd()}…`;
   }
 }

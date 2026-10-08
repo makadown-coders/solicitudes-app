@@ -50,9 +50,10 @@ export class ArticulosService {
     );
   }
 
-  buscarArticulosSandboxPrimerNivel(termino: string): Observable<{ resultados: ArticuloSolicitud[]; total: number }> {
+  buscarArticulosNecesidadesPrimerNivel(termino: string): Observable<{ resultados: ArticuloSolicitud[]; total: number }> {
     return this.http.get<{ resultados: ArticuloSolicitud[]; total: number }>(
-      `${this.apiUrl}/sandbox-primer-nivel?q=${encodeURIComponent(termino)}`
+      `${this.apiUrl}/necesidades-primer-nivel?q=${encodeURIComponent(termino)}`,
+      { headers: { 'X-Skip-Loader': '1' } }
     );
   }
 

@@ -1,14 +1,14 @@
-export interface SandboxArticulo {
+export interface NecesidadArticulo {
   clave: string;
   descripcion: string;
   presentacion: string;
 }
 
-export interface SandboxSolicitudItem extends SandboxArticulo {
+export interface NecesidadItem extends NecesidadArticulo {
   cantidad: number;
 }
 
-export interface SandboxContextoUnidad {
+export interface NecesidadesContextoUnidad {
   nombre: string;
   clues: string;
   periodo: string;

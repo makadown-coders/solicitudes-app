@@ -75,16 +75,16 @@ export const routes: Routes = [
       .then(m => m.LayoutComponent)
   },
   {
-    path: 'solicitud-unidad-sandbox',
-    title: 'Primer Nivel · Sandbox de Solicitud',
-    loadComponent: () => import('./features/solicitud-unidad-sandbox/solicitud-unidad-sandbox.component')
-      .then(m => m.SolicitudUnidadSandboxComponent)
+    path: 'necesidades-unidad',
+    title: 'Primer Nivel · Necesidades de mi unidad',
+    loadComponent: () => import('./features/necesidades-unidad/necesidades-unidad.component')
+      .then(m => m.NecesidadesUnidadComponent)
   },
   {
-    path: 'solicitud-unidad-sandbox/:cluesimb',
-    title: 'Primer Nivel · Sandbox de Solicitud',
-    loadComponent: () => import('./features/solicitud-unidad-sandbox/solicitud-unidad-sandbox.component')
-      .then(m => m.SolicitudUnidadSandboxComponent)
+    path: 'necesidades-unidad/:cluesimb',
+    title: 'Primer Nivel · Necesidades de mi unidad',
+    loadComponent: () => import('./features/necesidades-unidad/necesidades-unidad.component')
+      .then(m => m.NecesidadesUnidadComponent)
   },
   {
     path: 'solicitudv1',
