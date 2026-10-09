@@ -50,6 +50,13 @@ export class ArticulosService {
     );
   }
 
+  buscarArticulosNecesidadesPrimerNivel(termino: string): Observable<{ resultados: ArticuloSolicitud[]; total: number }> {
+    return this.http.get<{ resultados: ArticuloSolicitud[]; total: number }>(
+      `${this.apiUrl}/necesidades-primer-nivel?q=${encodeURIComponent(termino)}`,
+      { headers: { 'X-Skip-Loader': '1' } }
+    );
+  }
+
   /**
    * Método de emergencia por que se me acabaron los créditos en el backend de railway :(
    * @param termino

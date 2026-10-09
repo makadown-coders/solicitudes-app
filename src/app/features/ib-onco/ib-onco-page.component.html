@@ -57,6 +57,24 @@
         </div>
       </header>
 
+      @if (snapshotCargadoEn(); as fechaSnapshot) {
+        <div
+          role="status"
+          class="flex items-center gap-2 px-3 py-2 text-xs text-sky-900 bg-sky-50 rounded-lg border-sky-200 border sm:text-sm"
+          title="Fecha y hora mostradas según la zona horaria de este dispositivo">
+          <span aria-hidden="true">🕒</span>
+          <span>
+            <strong>Última carga del snapshot de existencias:</strong>
+            {{ fechaSnapshot | date:'dd/MM/yyyy, h:mm a' }}
+            <span class="text-sky-700">(hora local).</span>
+          </span>
+        </div>
+      } @else if (snapshotInfoLoaded()) {
+        <div class="px-3 py-2 text-xs text-gray-600 bg-gray-50 rounded-lg border-gray-200 border sm:text-sm">
+          No se pudo determinar la fecha de la última carga del snapshot de existencias.
+        </div>
+      }
+
       @if (error(); as message) {
         <div class="px-4 py-3 text-sm text-red-700 bg-red-50 border-red-100 rounded-2xl border">
           {{ message }}

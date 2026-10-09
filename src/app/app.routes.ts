@@ -75,6 +75,18 @@ export const routes: Routes = [
       .then(m => m.LayoutComponent)
   },
   {
+    path: 'necesidades-unidad',
+    title: 'Primer Nivel · Necesidades de mi unidad',
+    loadComponent: () => import('./features/necesidades-unidad/necesidades-unidad.component')
+      .then(m => m.NecesidadesUnidadComponent)
+  },
+  {
+    path: 'necesidades-unidad/:cluesimb',
+    title: 'Primer Nivel · Necesidades de mi unidad',
+    loadComponent: () => import('./features/necesidades-unidad/necesidades-unidad.component')
+      .then(m => m.NecesidadesUnidadComponent)
+  },
+  {
     path: 'solicitudv1',
     loadComponent: () => import('./features/solicitudes/solicitudes.component')
       .then(m => m.SolicitudesComponent)

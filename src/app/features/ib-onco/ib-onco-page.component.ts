@@ -18,6 +18,7 @@ import { Inventario } from '../../models/Inventario';
 import { IbOncoService } from '../../services/ib-onco.service';
 import { CitasService } from '../../services/citas.service';
 import { InventarioService } from '../../services/inventario.service';
+import { ExistenciasTempService } from '../../services/existencias-temp.service';
 import { Cita } from '../../models/Cita';
 
 interface IbOncoKpi {
@@ -100,6 +101,7 @@ export class IbOncoPageComponent {
   private ibOncoService = inject(IbOncoService);
   private citasService = inject(CitasService);
   private inventarioService = inject(InventarioService);
+  private existenciasTempService = inject(ExistenciasTempService);
   private readonly estatalValue = '__ESTATAL__';
 
   readonly SearchIcon = Search;
@@ -116,6 +118,8 @@ export class IbOncoPageComponent {
   generandoPropuestas = signal(false);
   exportando = signal(false);
   exportProgress = signal<string | null>(null);
+  snapshotCargadoEn = signal<string | null>(null);
+  snapshotInfoLoaded = signal(false);
   error = signal<string | null>(null);
   modalError = signal<string | null>(null);
   ordenesDetalleEstatalError = signal<string | null>(null);
@@ -218,7 +222,21 @@ export class IbOncoPageComponent {
       .pipe(takeUntilDestroyed())
       .subscribe(loading => this.loadingAlmacenes.set(loading));
 
+    void this.cargarInfoSnapshot();
     void this.cargarInicial();
+  }
+
+  private async cargarInfoSnapshot(): Promise<void> {
+    this.snapshotInfoLoaded.set(false);
+    try {
+      const info = await firstValueFrom(this.existenciasTempService.snapshotInfo());
+      this.snapshotCargadoEn.set(info.cargado_en || null);
+    } catch (error) {
+      console.warn('No fue posible obtener la fecha del snapshot de existencias.', error);
+      this.snapshotCargadoEn.set(null);
+    } finally {
+      this.snapshotInfoLoaded.set(true);
+    }
   }
 
   async cargarInicial(): Promise<void> {
@@ -264,7 +282,10 @@ export class IbOncoPageComponent {
   }
 
   async refrescar(): Promise<void> {
-    await this.cargarResumen();
+    await Promise.all([
+      this.cargarResumen(),
+      this.cargarInfoSnapshot(),
+    ]);
     if (this.cluesimb()) {
       await this.cargarClaves();
     }
