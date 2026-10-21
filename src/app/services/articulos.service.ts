@@ -52,8 +52,7 @@ export class ArticulosService {
 
   buscarArticulosNecesidadesPrimerNivel(termino: string): Observable<{ resultados: ArticuloSolicitud[]; total: number }> {
     return this.http.get<{ resultados: ArticuloSolicitud[]; total: number }>(
-      `${this.apiUrl}/necesidades-primer-nivel?q=${encodeURIComponent(termino)}`,
-      { headers: { 'X-Skip-Loader': '1' } }
+      `${this.apiUrl}/necesidades-primer-nivel?q=${encodeURIComponent(termino)}`
     );
   }
 

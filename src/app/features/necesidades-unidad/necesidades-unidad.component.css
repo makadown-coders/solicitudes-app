@@ -2,6 +2,13 @@
   display: block;
 }
 
+.descripcion-programa-limitada {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
 @media (prefers-reduced-motion: reduce) {
   :host * {
     scroll-behavior: auto !important;
