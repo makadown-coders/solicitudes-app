@@ -28,8 +28,9 @@
                       ? 'bg-green-700 text-white'
                       : 'bg-white text-gray-900 hover:bg-green-50 hover:text-green-950'"
                     (click)="selectClave(item)"
+                    title="{{ item.clave }} - {{ item.descripcion | slice: 0:350 }} ({{ item.presentacion || item.unidadMedida || 'Sin unidad' }})"
                     class="p-3 cursor-pointer">
-                    {{ item.clave }} - {{ item.descripcion }} ({{ item.presentacion || item.unidadMedida || 'Sin unidad' }})
+                    {{ item.clave }} - {{ item.descripcion | slice: 0:150 }} ({{ item.presentacion || item.unidadMedida || 'Sin unidad' }})
                   </li>
                 }
                 @if (moreResults && autocompleteResults.length < totalResults) {

@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -7,7 +7,12 @@ export type EnviarNecesidadesPrimerNivelPayload = {
   cluesimb: string;
   responsable?: string;
   periodo?: string;
-  articulos: Array<{ clave: string; cantidad: number }>;
+  articulos: Array<{
+    clave: string;
+    cantidad: number;
+    origenCaptura?: 'APS' | 'PROGRAMA_PREVENTIVO' | 'CLAVE';
+    referenciaCaptura?: string | null;
+  }>;
 };
 
 export type EnviarNecesidadesPrimerNivelResponse = {
@@ -31,6 +36,14 @@ export class NecesidadesPrimerNivelService {
       `${environment.apiUrl}/solicitudes/primer-nivel/enviar`,
       payload,
       { headers: { 'X-Skip-Loader': '1' } }
+    );
+  }
+
+  generarVistaPreviaExcel(payload: EnviarNecesidadesPrimerNivelPayload): Observable<HttpResponse<Blob>> {
+    return this.http.post(
+      `${environment.apiUrl}/solicitudes/primer-nivel/vista-previa-excel`,
+      payload,
+      { observe: 'response', responseType: 'blob' }
     );
   }
 }

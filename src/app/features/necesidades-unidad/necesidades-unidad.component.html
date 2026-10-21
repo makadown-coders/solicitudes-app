@@ -1,6 +1,6 @@
-<div class="min-h-screen pb-24 text-slate-900 bg-white lg:pb-10">
+<div class="pb-24 min-h-screen text-slate-900 bg-white xl:pb-10">
   <header class="border-b border-slate-100">
-    <div class="mx-auto px-4 py-6 max-w-6xl sm:px-6 lg:px-8">
+    <div class="mx-auto px-4 py-4 py-5 max-w-6xl sm:px-6 lg:px-8">
       <p class="text-sm font-semibold text-emerald-700">Necesidades de mi unidad · Primer Nivel</p>
       @if (contexto(); as unidad) {
         <h1 class="mt-1 text-xl font-bold sm:text-2xl">{{ unidad.nombre }}</h1>
@@ -18,7 +18,7 @@
     </div>
   </header>
 
-  <main class="mx-auto px-4 py-8 max-w-6xl sm:px-6 lg:px-8">
+  <main class="mx-auto px-4 py-6 py-8 max-w-6xl sm:px-6 lg:px-8">
     @if (cargandoUnidad()) {
       <div class="mx-auto py-16 max-w-2xl text-center">
         <div class="mx-auto w-12 h-12 bg-slate-100 rounded-full animate-pulse"></div>
@@ -33,8 +33,8 @@
         }
         <label class="relative block mt-7">
           <span class="sr-only">Buscar Centro de Salud</span>
-          <lucide-angular [img]="SearchIcon" class="absolute left-4 top-1/2 w-5 h-5 text-slate-400 -translate-y-1/2 pointer-events-none"></lucide-angular>
-          <input type="search" class="w-full h-14 pl-13 pr-4 text-base rounded-2xl border border-slate-300 shadow-sm outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+          <lucide-angular [img]="SearchIcon" class="absolute left-4 top-1/2 w-5 h-5 text-slate-400 pointer-events-none -translate-y-1/2"></lucide-angular>
+          <input type="search" class="pl-13 pr-4 w-full h-14 text-base rounded-2xl border-slate-300 shadow-sm outline-none border focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
             placeholder="Buscar Centro de Salud o CLUES..." autocomplete="off" [value]="terminoUnidad()" (input)="buscarUnidad($any($event.target).value)" />
         </label>
         @if (terminoUnidad().trim().length > 1 && !unidadesEncontradas().length) {
@@ -42,7 +42,7 @@
         } @else if (unidadesEncontradas().length) {
           <div class="mt-3 divide-y divide-slate-100 border-y border-slate-100">
             @for (unidad of unidadesEncontradas(); track unidad.cluesimb) {
-              <button type="button" class="block px-2 py-4 w-full text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-emerald-600" (click)="seleccionarUnidad(unidad)">
+              <button type="button" class="block px-2 py-4 w-full text-left focus-visible:outline-2 focus-visible:outline-emerald-600 hover:bg-slate-50" (click)="seleccionarUnidad(unidad)">
                 <span class="block font-semibold text-slate-900">{{ unidad.nombre }}</span>
                 <span class="block mt-1 text-sm text-slate-500">{{ unidad.municipio }} @if (unidad.municipio) { · } CLUES {{ unidad.cluesimb }}</span>
               </button>
@@ -51,25 +51,165 @@
         }
       </section>
     } @else {
-    <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
+    <div class="xl:grid grid-cols-[minmax(0,1fr)_340px] gap-10">
       <section class="min-w-0" aria-labelledby="titulo-busqueda">
         <div class="max-w-2xl">
-          <h2 id="titulo-busqueda" class="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">¿Qué necesita tu unidad?</h2>
-          <p class="mt-3 text-base text-slate-600">Busca el medicamento o material que necesitas solicitar.</p>
+          <h2 id="titulo-busqueda" class="text-2xl font-bold tracking-tight text-slate-950 sm:text-4xl">¿Qué necesita tu unidad?</h2>
+          <p class="mt-2 text-sm leading-relaxed text-slate-600 text-base sm:mt-3">Busca por el nombre cotidiano del medicamento. Nosotros identificamos la clave.</p>
         </div>
-        <label class="relative block mt-7">
-          <span class="sr-only">Buscar medicamento o material</span>
-          <lucide-angular [img]="SearchIcon" class="absolute left-4 top-1/2 w-5 h-5 text-slate-400 -translate-y-1/2 pointer-events-none"></lucide-angular>
-          <input type="search" class="w-full h-14 pl-13 pr-4 text-base bg-white rounded-2xl border border-slate-300 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-            placeholder="Buscar medicamento o material..." autocomplete="off" [value]="terminoBusqueda()" (input)="buscar($any($event.target).value)" />
-        </label>
 
-        <div class="mt-7" aria-live="polite">
+        <div class="grid grid-cols-3 p-1 mt-5 w-full bg-slate-100 rounded-2xl" role="group" aria-label="Modo de captura">
+          <button type="button" class="px-3 h-11 text-sm font-semibold rounded-xl transition sm:px-5"
+            [class.bg-white]="modoBusqueda() === 'aps'" [class.text-emerald-800]="modoBusqueda() === 'aps'"
+            [class.shadow-sm]="modoBusqueda() === 'aps'" [class.text-slate-600]="modoBusqueda() !== 'aps'"
+            title="Por medicamento APS"
+            (click)="cambiarModoBusqueda('aps')">Por APS</button>
+          <button type="button" class="px-2 h-11 text-xs font-semibold rounded-xl transition sm:px-4 text-sm"
+            [class.bg-white]="modoBusqueda() === 'programa'" [class.text-emerald-800]="modoBusqueda() === 'programa'"
+            [class.shadow-sm]="modoBusqueda() === 'programa'" [class.text-slate-600]="modoBusqueda() !== 'programa'"
+            [title]="'Por Programas Preventivos'"
+            (click)="cambiarModoBusqueda('programa')">Por Programa</button>
+          <button type="button" class="px-3 h-11 text-sm font-semibold rounded-xl transition sm:px-5"
+            [class.bg-white]="modoBusqueda() === 'clave'" [class.text-emerald-800]="modoBusqueda() === 'clave'"
+            [class.shadow-sm]="modoBusqueda() === 'clave'" [class.text-slate-600]="modoBusqueda() !== 'clave'"
+            title="Por clave CNIS"
+            (click)="cambiarModoBusqueda('clave')">Por clave CNIS</button>
+        </div>
+
+        @if (modoBusqueda() !== 'programa') {
+        <label class="relative block mt-4 sm:mt-5">
+          <span class="sr-only">Buscar medicamento o material</span>
+          <lucide-angular [img]="SearchIcon" class="absolute left-4 top-1/2 w-5 h-5 text-slate-400 pointer-events-none -translate-y-1/2"></lucide-angular>
+          <input type="search" class="pl-13 pr-4 placeholder:text-slate-400 w-full h-14 text-base bg-white rounded-2xl border-slate-300 shadow-sm outline-none border transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            [placeholder]="modoBusqueda() === 'aps' ? 'Ej. ibuprofeno, metformina, loratadina…' : 'Buscar descripción o clave CNIS…'"
+            autocomplete="off" [value]="terminoBusqueda()" (input)="buscar($any($event.target).value)" />
+        </label>
+        }
+
+        <div class="mt-6" aria-live="polite">
           @if (estadoBusqueda() === 'inicial') {
-            <div class="py-12 text-center text-slate-500">
-              <lucide-angular [img]="SearchIcon" class="mx-auto w-7 h-7 text-slate-300"></lucide-angular>
-              <p class="mt-3 text-sm">Escribe al menos dos letras para comenzar.</p>
-            </div>
+            @if (modoBusqueda() === 'aps') {
+              <section class="mt-7" aria-labelledby="titulo-explorar-aps">
+                <div class="flex items-end justify-between gap-3">
+                  <div>
+                    <h3 id="titulo-explorar-aps" class="text-lg font-bold text-slate-900">Explorar por atención</h3>
+                    <p class="mt-1 text-sm text-slate-500">Elige un área y después el grupo que mejor describa la necesidad.</p>
+                  </div>
+                </div>
+                @if (cargandoEstructuraAps()) {
+                  <div class="mt-4 h-24 bg-slate-100 rounded-2xl animate-pulse"></div>
+                } @else if (errorEstructuraAps()) {
+                  <p class="mt-4 p-4 text-sm text-amber-800 bg-amber-50 rounded-2xl">{{ errorEstructuraAps() }}</p>
+                } @else {
+                  <div class="grid grid-cols-2 gap-2 mt-4 sm:grid-cols-3" aria-label="Ejes de atención APS">
+                    @for (eje of estructuraAps(); track eje.ejeCodigo) {
+                      <button type="button" class="flex items-center justify-between gap-2 px-3 py-3 min-h-16 text-left text-sm font-semibold leading-snug rounded-2xl border transition sm:px-4"
+                        [class.bg-emerald-700]="ejeApsSeleccionado() === eje.ejeCodigo"
+                        [class.text-white]="ejeApsSeleccionado() === eje.ejeCodigo"
+                        [class.border-emerald-700]="ejeApsSeleccionado() === eje.ejeCodigo"
+                        [class.bg-white]="ejeApsSeleccionado() !== eje.ejeCodigo"
+                        [class.text-slate-700]="ejeApsSeleccionado() !== eje.ejeCodigo"
+                        [class.border-slate-300]="ejeApsSeleccionado() !== eje.ejeCodigo"
+                        (click)="seleccionarEjeAps(eje.ejeCodigo)">
+                        <span>{{ eje.ejeNombre }}</span>
+                        <lucide-angular [img]="NextIcon" class="w-4 h-4 opacity-60 shrink-0"></lucide-angular>
+                      </button>
+                    }
+                  </div>
+                  @for (eje of estructuraAps(); track eje.ejeCodigo) {
+                    @if (ejeApsSeleccionado() === eje.ejeCodigo) {
+                      <div class="pt-4 mt-4 border-t border-slate-100">
+                        <p class="mb-3 text-xs font-bold tracking-wide text-slate-500 uppercase">Selecciona un grupo</p>
+                        <div class="grid gap-2 sm:grid-cols-2">
+                        @for (grupo of eje.grupos; track grupo.numero) {
+                          <button type="button" class="flex justify-between items-center gap-3 p-4 text-left rounded-2xl border transition hover:border-emerald-400 hover:bg-emerald-50/50"
+                            [class.border-emerald-600]="grupoApsSeleccionado() === grupo.numero"
+                            [class.border-slate-200]="grupoApsSeleccionado() !== grupo.numero"
+                            (click)="seleccionarGrupoAps(grupo.numero)">
+                            <span class="text-sm font-semibold leading-snug text-slate-800">{{ grupo.nombre }}</span>
+                            <span class="text-xs font-semibold text-slate-400 shrink-0">{{ grupo.totalMedicamentos }}</span>
+                          </button>
+                        }
+                        </div>
+                      </div>
+                    }
+                  }
+                }
+              </section>
+            } @else if (modoBusqueda() === 'programa') {
+              <section class="mt-2" aria-labelledby="titulo-programas-preventivos">
+                @if (cargandoProgramaPreventivo()) {
+                  <div class="space-y-3"><div class="h-24 bg-slate-100 rounded-2xl animate-pulse"></div><div class="h-24 bg-slate-100 rounded-2xl animate-pulse"></div></div>
+                } @else if (programaPreventivoDetalle(); as programa) {
+                  <button type="button" class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:underline" (click)="volverAProgramasPreventivos()">← Volver a programas</button>
+                  <div class="mt-4">
+                    <p class="text-xs font-bold tracking-wide text-emerald-700 uppercase">Programa preventivo</p>
+                    <h3 id="titulo-programas-preventivos" class="mt-1 text-2xl font-bold text-slate-950">{{ programa.nombre }}</h3>
+                    @if (programa.descripcion) { <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ programa.descripcion }}</p> }
+                    <p class="mt-3 text-sm font-medium text-slate-500">Captura únicamente los insumos que necesitas. Deja los demás en cero.</p>
+                  </div>
+
+                  <div class="mt-5 divide-y divide-slate-100 border-y border-slate-100">
+                    @for (insumo of programa.insumos; track insumo.clave) {
+                      <article class="grid gap-3 py-5 sm:grid-cols-[minmax(0,1fr)_128px] items-center">
+                        <div class="min-w-0">
+                          <h4 class="text-sm font-semibold leading-relaxed text-slate-900 descripcion-programa"
+                            [class.descripcion-programa-limitada]="descripcionProgramaEsLarga(insumo.descripcion) && !descripcionProgramaExpandida(insumo.clave)">
+                            {{ insumo.descripcion || 'Insumo del programa' }}
+                          </h4>
+                          @if (descripcionProgramaEsLarga(insumo.descripcion)) {
+                            <button type="button" class="mt-1 text-xs font-bold text-emerald-700 hover:underline"
+                              [attr.aria-expanded]="descripcionProgramaExpandida(insumo.clave)"
+                              (click)="alternarDescripcionPrograma(insumo.clave)">
+                              {{ descripcionProgramaExpandida(insumo.clave) ? 'Ver menos' : 'Ver descripción completa' }}
+                            </button>
+                          }
+                          @if (insumo.presentacion) { <p class="mt-1 text-sm text-slate-500">{{ insumo.presentacion }}</p> }
+                        </div>
+                        <label class="flex items-center justify-between gap-3 text-sm font-semibold text-slate-600 sm:block">
+                          <span class="sm:block mb-1">Cantidad</span>
+                          <input type="number" min="0" max="99999" inputmode="numeric"
+                            class="px-3 w-28 h-11 text-base font-bold text-right rounded-xl border-slate-300 outline-none border focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 sm:w-full"
+                            [value]="cantidadProgramaPreventivo(insumo.clave)"
+                            (input)="cambiarCantidadProgramaPreventivo(insumo.clave, $any($event.target).value)" />
+                        </label>
+                      </article>
+                    }
+                  </div>
+                  @if (errorProgramaPreventivo()) { <p class="mt-4 p-3 text-sm font-medium text-rose-800 bg-rose-50 rounded-xl" role="alert">{{ errorProgramaPreventivo() }}</p> }
+                  <div class="sticky bottom-20 p-3 mt-5 bg-white/95 rounded-2xl border-slate-200 shadow-lg border backdrop-blur xl:bottom-4">
+                    <button type="button" class="w-full h-12 font-bold text-white bg-emerald-700 rounded-xl hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      [disabled]="!totalInsumosProgramaCapturados() || resolviendoProgramaPreventivo()" (click)="agregarProgramaPreventivo()">
+                      {{ resolviendoProgramaPreventivo() ? 'Agregando…' : 'Agregar ' + totalInsumosProgramaCapturados() + (totalInsumosProgramaCapturados() === 1 ? ' insumo' : ' insumos') + ' a mi lista' }}
+                    </button>
+                  </div>
+                } @else {
+                  <div>
+                    <h3 id="titulo-programas-preventivos" class="text-lg font-bold text-slate-900">Programas preventivos</h3>
+                    <p class="mt-1 text-sm text-slate-500">Selecciona un programa para capturar sus insumos sin buscarlos uno por uno.</p>
+                  </div>
+                  @if (cargandoProgramasPreventivos()) {
+                    <div class="mt-4 h-28 bg-slate-100 rounded-2xl animate-pulse"></div>
+                  } @else if (errorProgramasPreventivos()) {
+                    <p class="mt-4 p-4 text-sm text-rose-800 bg-rose-50 rounded-2xl" role="alert">{{ errorProgramasPreventivos() }}</p>
+                  } @else {
+                    <div class="grid gap-3 mt-4 sm:grid-cols-2">
+                      @for (programa of programasPreventivos(); track programa.codigo) {
+                        <button type="button" class="flex items-center justify-between gap-4 p-5 text-left rounded-2xl border-slate-200 border transition hover:border-emerald-500 hover:bg-emerald-50/50" (click)="seleccionarProgramaPreventivo(programa)">
+                          <span class="min-w-0"><span class="block font-bold text-slate-900">{{ programa.nombre }}</span><span class="block mt-1 text-sm text-slate-500">{{ programa.totalInsumos }} {{ programa.totalInsumos === 1 ? 'insumo' : 'insumos' }}</span></span>
+                          <lucide-angular [img]="NextIcon" class="w-5 h-5 text-emerald-700 shrink-0"></lucide-angular>
+                        </button>
+                      }
+                    </div>
+                  }
+                }
+              </section>
+            } @else {
+              <div class="py-12 text-center text-slate-500">
+                <lucide-angular [img]="SearchIcon" class="mx-auto w-7 h-7 text-slate-300"></lucide-angular>
+                <p class="mt-3 text-sm">Escribe al menos dos letras o una clave para comenzar.</p>
+              </div>
+            }
           } @else if (estadoBusqueda() === 'escribiendo') {
             <p class="py-6 text-center text-sm text-slate-500">Sigue escribiendo o espera un momento para buscar…</p>
           } @else if (estadoBusqueda() === 'cargando') {
@@ -85,19 +225,44 @@
             <div class="py-8 text-center">
               <lucide-angular [img]="AlertIcon" class="mx-auto w-5 h-5 text-rose-700"></lucide-angular>
               <p class="mt-2 text-sm text-rose-800">No pudimos completar la búsqueda.</p>
-              <button type="button" class="mt-4 px-4 py-2 text-sm font-semibold text-rose-800 rounded-xl border border-rose-300 hover:bg-rose-50" (click)="reintentarBusqueda()">Reintentar</button>
+              <button type="button" class="mt-4 px-4 py-2 text-sm font-semibold text-rose-800 rounded-xl border-rose-300 border hover:bg-rose-50" (click)="reintentarBusqueda()">Reintentar</button>
             </div>
           } @else if (estadoBusqueda() === 'resultados') {
-            <p class="mb-4 text-sm text-slate-500">Selecciona la presentación correcta e indica la cantidad.</p>
-            <app-resultados-insumos-necesidades [articulos]="resultadosVisibles()" [claveAgregada]="claveAgregada()" (agregar)="agregar($event)" />
-            @if (resultadosVisibles().length < resultadosBusqueda().length) {
-              <button type="button" class="mt-5 w-full h-11 font-semibold text-emerald-800 rounded-xl hover:bg-emerald-50" (click)="mostrarMasResultados()">Mostrar más resultados</button>
+            @if (modoBusqueda() === 'aps') {
+              <div class="flex items-center justify-between gap-3 mb-3">
+                <p class="text-sm text-slate-500">{{ totalResultadosAps() }} {{ totalResultadosAps() === 1 ? 'medicamento encontrado' : 'medicamentos encontrados' }}</p>
+                @if (grupoApsSeleccionado()) {
+                  <button type="button" class="text-sm font-semibold text-emerald-700 hover:underline" (click)="seleccionarEjeAps(ejeApsSeleccionado())">Volver a categorías</button>
+                }
+              </div>
+              <div class="grid gap-3">
+                @for (medicamento of resultadosAps(); track medicamento.codigo) {
+                  <article class="flex flex-col items-center justify-between gap-4 p-5 rounded-2xl border-slate-200 border sm:flex-row">
+                    <div class="min-w-0">
+                      <h3 class="font-bold leading-snug text-slate-900">{{ medicamento.etiqueta }}</h3>
+                      <p class="mt-1 text-sm text-slate-600">{{ medicamento.grupo.nombre }}</p>
+                      @if (medicamento.eje) { <p class="mt-1 text-xs font-medium text-emerald-700">{{ medicamento.eje.nombre }}</p> }
+                      @if (medicamento.requiereSeleccionDeVariante) {
+                        <p class="inline-flex px-2 py-1 mt-2 text-xs font-semibold text-amber-800 bg-amber-50 rounded-full">Requiere elegir presentación</p>
+                      }
+                    </div>
+                    <button type="button" class="px-5 h-11 font-semibold text-white bg-emerald-700 rounded-xl shrink-0 hover:bg-emerald-800"
+                      (click)="abrirMedicamentoAps(medicamento)">Agregar</button>
+                  </article>
+                }
+              </div>
+            } @else {
+              <p class="mb-4 text-sm text-slate-500">Selecciona la presentación correcta e indica la cantidad.</p>
+              <app-resultados-insumos-necesidades [articulos]="resultadosVisibles()" [claveAgregada]="claveAgregada()" (agregar)="agregar($event)" />
+              @if (resultadosVisibles().length < resultadosBusqueda().length) {
+                <button type="button" class="mt-5 w-full h-11 font-semibold text-emerald-800 rounded-xl hover:bg-emerald-50" (click)="mostrarMasResultados()">Mostrar más resultados</button>
+              }
             }
           }
         </div>
       </section>
 
-      <div class="hidden lg:block lg:sticky lg:top-6 lg:self-start">
+      <div class="hidden xl:sticky xl:block top-6 self-start">
         <app-resumen-necesidades [items]="solicitud()" (cantidadChange)="actualizarCantidad($event)"
           (eliminar)="eliminar($event)" (limpiar)="limpiar()" (revisar)="abrirRevision()" />
       </div>
@@ -105,18 +270,80 @@
     }
   </main>
 
+  @if (modalDetalleApsAbierto()) {
+    <div class="z-50 fixed inset-0 flex items-end justify-center p-5 bg-slate-950/50 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="titulo-detalle-aps" (click)="cerrarDetalleAps()">
+      <section class="overflow-hidden w-full max-w-xl max-h-[94dvh] bg-white rounded-t-3xl shadow-2xl sm:rounded-3xl" (click)="$event.stopPropagation()">
+        <header class="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-100">
+          <div>
+            <p class="text-xs font-bold tracking-wide text-emerald-700 uppercase">Agregar medicamento</p>
+            <h2 id="titulo-detalle-aps" class="mt-1 text-xl font-bold text-slate-950">{{ detalleAps()?.etiqueta || 'Cargando…' }}</h2>
+            @if (detalleAps(); as detalle) { <p class="mt-1 text-sm text-slate-500">{{ detalle.grupo.nombre }}</p> }
+          </div>
+          <button type="button" class="grid place-items-center w-10 h-10 rounded-xl shrink-0 hover:bg-slate-100" aria-label="Cerrar" [disabled]="resolviendoAps()" (click)="cerrarDetalleAps()">
+            <lucide-angular [img]="CloseIcon" class="w-5 h-5"></lucide-angular>
+          </button>
+        </header>
+
+        <div class="overflow-y-auto p-5 max-h-[65dvh]">
+          @if (cargandoDetalleAps()) {
+            <div class="space-y-3"><div class="h-20 bg-slate-100 rounded-2xl animate-pulse"></div><div class="h-20 bg-slate-100 rounded-2xl animate-pulse"></div></div>
+          } @else if (detalleAps(); as detalle) {
+            @if (detalle.requiereSeleccionDeVariante) {
+              <fieldset>
+                <legend class="font-bold text-slate-900">Elige la presentación</legend>
+                <p class="mt-1 text-sm text-slate-500">Este medicamento tiene más de una presentación principal.</p>
+                <div class="mt-4 space-y-3">
+                  @for (variante of detalle.variantes; track variante.clave) {
+                    <label class="flex gap-3 p-4 rounded-2xl cursor-pointer border transition" [class.border-emerald-600]="claveVarianteAps() === variante.clave" [class.bg-emerald-50]="claveVarianteAps() === variante.clave" [class.border-slate-200]="claveVarianteAps() !== variante.clave">
+                      <input type="radio" name="variante-aps" class="mt-1 accent-emerald-700" [value]="variante.clave" [checked]="claveVarianteAps() === variante.clave" (change)="claveVarianteAps.set(variante.clave); errorDetalleAps.set('')" />
+                      <span class="min-w-0"><span class="block font-semibold text-slate-900">{{ variante.nombre || detalle.etiqueta }}</span><span class="block mt-1 text-sm leading-relaxed text-slate-600">{{ descripcionVariante(variante.descripcion, variante.nombre) }}</span></span>
+                    </label>
+                  }
+                </div>
+              </fieldset>
+            } @else if (detalle.variantes[0]; as variante) {
+              <div class="p-4 bg-slate-50 rounded-2xl">
+                <p class="text-sm font-semibold text-slate-900">Presentación</p>
+                <p class="mt-1 text-sm leading-relaxed text-slate-600">{{ descripcionVariante(variante.descripcion, variante.nombre) }}</p>
+              </div>
+            }
+
+            <label class="flex items-center justify-between gap-4 mt-6 font-semibold text-slate-800">
+              Cantidad solicitada
+              <input type="number" min="1" max="99999" inputmode="numeric" class="px-3 w-28 h-12 text-lg font-bold text-right rounded-xl border-slate-300 outline-none border focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                [value]="cantidadAps()" (input)="cambiarCantidadAps($any($event.target).value)" />
+            </label>
+          }
+          @if (errorDetalleAps()) { <p class="mt-4 p-3 text-sm font-medium text-rose-800 bg-rose-50 rounded-xl" role="alert">{{ errorDetalleAps() }}</p> }
+        </div>
+
+        @if (detalleAps()) {
+          <footer class="p-5 bg-slate-50 border-t border-slate-100">
+            <button type="button" class="w-full h-12 font-bold text-white bg-emerald-700 rounded-xl hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="resolviendoAps() || (detalleAps()!.requiereSeleccionDeVariante && !claveVarianteAps())" (click)="agregarMedicamentoAps()">
+              {{ resolviendoAps() ? 'Agregando…' : 'Agregar a mi lista' }}
+            </button>
+          </footer>
+        }
+      </section>
+    </div>
+  }
+
   @if (contexto()) {
-  <div class="fixed inset-x-0 bottom-0 z-30 p-3 bg-white/95 border-t border-slate-200 backdrop-blur lg:hidden">
-    <button type="button" class="flex items-center justify-between px-4 w-full h-14 text-white bg-emerald-800 rounded-2xl shadow-lg" (click)="solicitudMovilAbierta.set(true)">
-      <span class="inline-flex items-center gap-2 font-bold"><lucide-angular [img]="BasketIcon" class="w-5 h-5"></lucide-angular> Mi lista · {{ solicitud().length }}</span>
-      <span class="inline-flex items-center gap-1 text-sm font-semibold">Ver <lucide-angular [img]="NextIcon" class="w-4 h-4"></lucide-angular></span>
+  <div class="z-30 fixed inset-x-0 bottom-0 p-3 bg-white/95 border-t border-slate-200 backdrop-blur xl:hidden">
+    <button type="button" class="flex items-center justify-between px-4 w-full h-14 rounded-2xl transition"
+      [class.text-white]="solicitud().length > 0" [class.bg-emerald-800]="solicitud().length > 0" [class.shadow-lg]="solicitud().length > 0"
+      [class.text-slate-500]="solicitud().length === 0" [class.bg-slate-100]="solicitud().length === 0"
+      [disabled]="solicitud().length === 0" (click)="solicitudMovilAbierta.set(true)">
+      <span class="inline-flex items-center gap-2 font-bold"><lucide-angular [img]="BasketIcon" class="w-5 h-5"></lucide-angular> {{ solicitud().length }} {{ solicitud().length === 1 ? 'insumo' : 'insumos' }} · {{ totalPiezasSolicitud() }} piezas</span>
+      <span class="inline-flex items-center gap-1 text-sm font-semibold">{{ solicitud().length ? 'Ver' : 'Agrega uno' }} @if (solicitud().length) { <lucide-angular [img]="NextIcon" class="w-4 h-4"></lucide-angular> }</span>
     </button>
   </div>
   }
 
   @if (solicitudMovilAbierta()) {
-    <div class="fixed inset-0 z-40 bg-slate-950/40 lg:hidden" (click)="solicitudMovilAbierta.set(false)"></div>
-    <div class="fixed inset-0 z-50 flex items-end p-3 lg:hidden pointer-events-none">
+    <div class="z-40 fixed inset-0 bg-slate-950/40 xl:hidden" (click)="solicitudMovilAbierta.set(false)"></div>
+    <div class="z-50 fixed inset-0 flex items-end p-3 pointer-events-none xl:hidden">
       <app-resumen-necesidades class="block w-full max-h-full pointer-events-auto" [items]="solicitud()" [permitirCerrar]="true"
         (cerrar)="solicitudMovilAbierta.set(false)" (cantidadChange)="actualizarCantidad($event)"
         (eliminar)="eliminar($event)" (limpiar)="limpiar()" (revisar)="abrirRevision()" />
@@ -124,13 +351,13 @@
   }
 
   @if (revisionAbierta()) {
-    <div class="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 sm:items-center sm:p-5" role="dialog" aria-modal="true" aria-labelledby="titulo-revision">
+    <div class="z-50 fixed inset-0 flex items-end justify-center p-5 bg-slate-950/50 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="titulo-revision">
       <section class="overflow-hidden w-full max-w-2xl max-h-[94vh] bg-white rounded-t-3xl shadow-2xl sm:rounded-3xl">
         @if (resultadoEnvio(); as resultado) {
           <div class="p-7 text-center sm:p-10">
-            <div class="grid mx-auto w-14 h-14 place-items-center text-2xl font-bold text-white bg-emerald-700 rounded-full">✓</div>
+            <div class="grid mx-auto place-items-center w-14 h-14 text-2xl font-bold text-white bg-emerald-700 rounded-full">✓</div>
             <h2 id="titulo-revision" class="mt-5 text-2xl font-bold">{{ envioLocal() ? 'Prueba local completada' : 'Gracias, recibimos tu lista' }}</h2>
-            <p class="mt-2 text-slate-600">{{ envioLocal() ? 'No se enviaron datos, no se registró bitácora y no se generó ningún archivo.' : 'La compartiremos con el equipo encargado para su revisión.' }}</p>
+            <p class="mt-2 text-slate-600">{{ envioLocal() ? 'Se descargó un Excel de prueba. No se enviaron datos ni se registró información en SharePoint o Postgres.' : 'La compartiremos con el equipo encargado para su revisión.' }}</p>
             <div class="mt-6 py-5 text-left border-y border-slate-100">
               <p class="font-semibold text-slate-900">{{ resultado.unidad }}</p>
               <p class="mt-1 text-sm text-slate-500">CLUES {{ resultado.cluesimb }}</p>
@@ -142,7 +369,7 @@
         } @else {
           <header class="flex items-start justify-between px-5 py-4 border-b border-slate-100">
             <div><h2 id="titulo-revision" class="text-xl font-bold">Revisar mi lista</h2><p class="mt-1 text-sm text-slate-500">{{ solicitud().length }} {{ solicitud().length === 1 ? 'insumo en mi lista' : 'insumos en mi lista' }}</p></div>
-            <button type="button" class="grid w-10 h-10 place-items-center rounded-xl hover:bg-slate-100" aria-label="Cerrar revisión" [disabled]="enviandoLista()" (click)="revisionAbierta.set(false)"><lucide-angular [img]="CloseIcon" class="w-5 h-5"></lucide-angular></button>
+            <button type="button" class="grid place-items-center w-10 h-10 rounded-xl hover:bg-slate-100" aria-label="Cerrar revisión" [disabled]="enviandoLista()" (click)="revisionAbierta.set(false)"><lucide-angular [img]="CloseIcon" class="w-5 h-5"></lucide-angular></button>
           </header>
           <div class="overflow-y-auto p-5 max-h-[65vh]">
             @if (contexto(); as unidad) {
@@ -150,7 +377,7 @@
             }
             <div class="divide-y divide-slate-100">
               @for (item of solicitud(); track item.clave) {
-                <div class="flex gap-4 justify-between py-4 first:pt-0"><div><p class="text-sm font-semibold" [title]="item.descripcion">{{ descripcionVisible(item.descripcion) }}</p><p class="mt-1 text-sm text-slate-500">{{ item.presentacion || 'Presentación no especificada' }}</p><p class="mt-1 text-xs text-slate-400">Clave: {{ item.clave }}</p></div><span class="shrink-0 text-sm font-bold">Cantidad: {{ item.cantidad }}</span></div>
+                <div class="flex justify-between gap-4 py-4 first:pt-0"><div><p class="text-sm font-semibold" [title]="item.descripcion">{{ descripcionVisible(item.descripcion) }}</p><p class="mt-1 text-sm text-slate-500">{{ item.presentacion || 'Presentación no especificada' }}</p>@if (item.origen === 'APS') { <p class="mt-1 text-xs font-semibold text-emerald-700">Seleccionado por medicamento</p> } @else { <p class="mt-1 text-xs text-slate-400">Clave: {{ item.clave }}</p> }</div><span class="text-sm font-bold shrink-0">Cantidad: {{ item.cantidad }}</span></div>
               }
             </div>
           </div>

@@ -39,6 +39,14 @@ export const loaderInterceptor: HttpInterceptorFn = (req, next) => {
     customMessage = 'Procesando flags... espere un momento';
   }
 
+  if (cleanReq.url.includes('necesidades-primer-nivel') || cleanReq.url.includes('/primer-nivel/aps/medicamentos')) {
+    customMessage = 'Buscando insumos... espere un momento';
+  }
+
+  if (cleanReq.url.includes('/primer-nivel/vista-previa-excel')) {
+    customMessage = 'Generando Excel de prueba... espere un momento';
+  }
+
   if (cleanReq.url.includes('all') || cleanReq.url.includes('by-cluesimb-cpm')) {
     customMessage = 'Cargando datos... espere un momento';
   }
