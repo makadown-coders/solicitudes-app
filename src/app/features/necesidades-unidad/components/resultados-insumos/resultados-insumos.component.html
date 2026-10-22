@@ -4,7 +4,12 @@
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
           <h3 class="font-semibold leading-snug text-slate-900" [title]="articulo.descripcion">{{ descripcionVisible(articulo.descripcion) }}</h3>
-          <p class="mt-1 text-sm text-slate-600">{{ articulo.presentacion || 'Presentación no especificada' }}</p>
+          @if (articulo.descripcionCnis) {
+            <p class="mt-1 text-sm leading-relaxed text-slate-600 line-clamp-3" [title]="articulo.descripcionCnis">{{ articulo.descripcionCnis }}</p>
+          }
+          @if (articulo.presentacion) {
+            <p class="mt-1 text-sm text-slate-500">{{ articulo.presentacion }}</p>
+          }
           <p class="mt-2 text-xs font-medium tracking-wide text-slate-400">Clave {{ articulo.clave }}</p>
         </div>
         <div class="flex flex-wrap items-center gap-2 sm:flex-nowrap">

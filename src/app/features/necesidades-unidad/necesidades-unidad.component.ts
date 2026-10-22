@@ -121,7 +121,6 @@ export class NecesidadesUnidadComponent {
     this.configurarBusqueda();
     this.configurarBusquedaAps();
     this.cargarEstructuraAps();
-    this.cargarProgramasPreventivos();
     this.cargarCatalogoUnidades();
   }
 
@@ -142,11 +141,13 @@ export class NecesidadesUnidadComponent {
   }
 
   seleccionarProgramaPreventivo(programa: ProgramaPreventivoResumen): void {
+    const cluesimb = this.contexto()?.clues;
+    if (!cluesimb) return;
     this.cargandoProgramaPreventivo.set(true);
     this.errorProgramaPreventivo.set('');
     this.cantidadesProgramaPreventivo.set({});
     this.insumosProgramaExpandidos.set(new Set());
-    this.programasPreventivosService.obtenerDetalle(programa.codigo)
+    this.programasPreventivosService.obtenerDetalle(programa.codigo, cluesimb)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: detalle => {
@@ -208,6 +209,7 @@ export class NecesidadesUnidadComponent {
     this.errorProgramaPreventivo.set('');
     try {
       const respuesta = await firstValueFrom(this.programasPreventivosService.resolver({
+        cluesimb: this.contexto()?.clues ?? '',
         programa: programa.codigo,
         insumos,
       }));
@@ -216,7 +218,8 @@ export class NecesidadesUnidadComponent {
         this.agregar({
           articulo: {
             clave: articulo.clave,
-            descripcion: insumo?.descripcion || 'Insumo de programa preventivo',
+            descripcion: insumo?.nombre || 'Insumo de programa preventivo',
+            descripcionCnis: insumo?.descripcion || '',
             presentacion: insumo?.presentacion || '',
             codigoPrograma: programa.codigo,
             origen: 'PROGRAMA',
@@ -549,7 +552,8 @@ export class NecesidadesUnidadComponent {
           termino,
           resultados: respuesta.resultados.map(item => ({
             clave: item.clave,
-            descripcion: item.descripcion || 'Descripción no disponible',
+            descripcion: item.nombre || item.descripcion || 'Descripción no disponible',
+            descripcionCnis: item.descripcionCnis || '',
             presentacion: item.presentacion || item.unidadMedida || '',
             origen: 'CLAVE' as const,
           })),
@@ -609,10 +613,10 @@ export class NecesidadesUnidadComponent {
     });
   }
 
-  private cargarProgramasPreventivos(): void {
+  private cargarProgramasPreventivos(cluesimb: string): void {
     this.cargandoProgramasPreventivos.set(true);
     this.errorProgramasPreventivos.set('');
-    this.programasPreventivosService.listar().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.programasPreventivosService.listar(cluesimb).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: respuesta => {
         this.programasPreventivos.set(respuesta.items);
         this.cargandoProgramasPreventivos.set(false);
@@ -644,12 +648,16 @@ export class NecesidadesUnidadComponent {
     this.errorUnidad.set('');
     if (!cluesimb) {
       this.contexto.set(null);
+      this.programasPreventivos.set([]);
+      this.cargandoProgramasPreventivos.set(false);
       return;
     }
 
     const unidad = this.unidadesService.findByCluesimb(cluesimb) as Unidadv2 | undefined;
     if (!unidad || !this.esPrimerNivel(unidad)) {
       this.contexto.set(null);
+      this.programasPreventivos.set([]);
+      this.cargandoProgramasPreventivos.set(false);
       this.errorUnidad.set('La CLUES indicada no corresponde a un Centro de Salud de Primer Nivel.');
       return;
     }
@@ -662,6 +670,7 @@ export class NecesidadesUnidadComponent {
       periodo: coincidePrevio ? previo.periodo : '',
       responsable: coincidePrevio ? previo.responsable : '',
     });
+    this.cargarProgramasPreventivos(unidad.cluesimb);
     this.restaurarSolicitud(unidad.cluesimb);
     this.terminoUnidad.set('');
     this.unidadesEncontradas.set([]);
@@ -730,6 +739,7 @@ export class NecesidadesUnidadComponent {
         .map(item => ({
           clave: String(item.clave).trim(),
           descripcion: String(item.descripcion ?? 'Descripción no disponible'),
+          descripcionCnis: item.descripcionCnis ? String(item.descripcionCnis) : undefined,
           presentacion: String(item.presentacion ?? ''),
           cantidad: this.sanitizarCantidad(Number(item.cantidad)),
           codigoMedicamento: item.codigoMedicamento ? String(item.codigoMedicamento) : undefined,
