@@ -2,6 +2,9 @@
 export class ArticuloSolicitud {
   clave: string = '';
   descripcion: string = '';
+  nombre?: string;
+  descripcionCnis?: string;
+  categoria?: string | null;
   unidadMedida: string = '';
   presentacion: string = '';
   cantidad: number = 0;

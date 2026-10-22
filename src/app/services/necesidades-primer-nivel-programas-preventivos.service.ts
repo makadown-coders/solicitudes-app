@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -13,6 +13,7 @@ export interface ProgramaPreventivoResumen {
 
 export interface ProgramaPreventivoInsumo {
   clave: string;
+  nombre: string;
   descripcion: string | null;
   presentacion: string | null;
   obligatorio: boolean;
@@ -39,18 +40,21 @@ export class NecesidadesPrimerNivelProgramasPreventivosService {
   private readonly apiUrl = `${environment.apiUrl}/solicitudes/primer-nivel/programas-preventivos`;
   private readonly opciones = { headers: { 'X-Skip-Loader': '1' } };
 
-  listar(): Observable<{ items: ProgramaPreventivoResumen[] }> {
-    return this.http.get<{ items: ProgramaPreventivoResumen[] }>(this.apiUrl, this.opciones);
+  listar(cluesimb: string): Observable<{ items: ProgramaPreventivoResumen[] }> {
+    const params = new HttpParams().set('cluesimb', cluesimb);
+    return this.http.get<{ items: ProgramaPreventivoResumen[] }>(this.apiUrl, { ...this.opciones, params });
   }
 
-  obtenerDetalle(codigo: string): Observable<ProgramaPreventivoDetalle> {
+  obtenerDetalle(codigo: string, cluesimb: string): Observable<ProgramaPreventivoDetalle> {
+    const params = new HttpParams().set('cluesimb', cluesimb);
     return this.http.get<ProgramaPreventivoDetalle>(
       `${this.apiUrl}/${encodeURIComponent(codigo)}`,
-      this.opciones
+      { ...this.opciones, params }
     );
   }
 
   resolver(payload: {
+    cluesimb: string;
     programa: string;
     insumos: Array<{ clave: string; cantidad: number }>;
   }): Observable<ResolverProgramaPreventivoResponse> {

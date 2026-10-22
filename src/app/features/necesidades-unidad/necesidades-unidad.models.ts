@@ -1,6 +1,7 @@
 export interface NecesidadArticulo {
   clave: string;
   descripcion: string;
+  descripcionCnis?: string;
   presentacion: string;
   codigoMedicamento?: string;
   codigoPrograma?: string;
