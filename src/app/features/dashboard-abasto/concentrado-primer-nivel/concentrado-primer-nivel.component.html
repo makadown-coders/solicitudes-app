@@ -1,0 +1,93 @@
+<div class="space-y-5">
+  <header class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <p class="text-sm font-semibold text-emerald-700">Análisis exclusivo de centros de salud</p>
+      <h2 class="text-2xl font-bold text-slate-950 sm:text-3xl">Concentrado de Primer Nivel</h2>
+      <p class="mt-1 max-w-3xl text-sm text-slate-600">Participación y necesidades capturadas por APS, Programas Preventivos y clave CNIS.</p>
+    </div>
+    <button type="button" class="min-h-11 rounded-xl bg-emerald-700 px-4 py-2 font-semibold text-white disabled:opacity-50"
+      (click)="exportarExcel()" [disabled]="loading() || exporting()">
+      {{ exporting() ? 'Preparando Excel…' : 'Exportar Excel' }}
+    </button>
+  </header>
+
+  <p class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"><strong>Lectura responsable:</strong> una solicitud registrada corresponde a una captura asociada a un archivo generado; no acredita recepción, autorización, procesamiento ni surtimiento.</p>
+
+  <form class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 xl:grid-cols-6" (ngSubmit)="cargar(true)">
+    <label><span>Buscar</span><input name="search" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Unidad, clave, APS o programa"></label>
+    <label><span>Jurisdicción</span><select name="jurisdiccion" [ngModel]="jurisdiccion()" (ngModelChange)="jurisdiccion.set($event)"><option value="">Todas</option><option>MEXICALI</option><option>TIJUANA</option><option>ENSENADA</option></select></label>
+    <label><span>CLUES</span><input name="clues" [ngModel]="clues()" (ngModelChange)="clues.set($event)" placeholder="Todas"></label>
+    <label><span>Origen</span><select name="origen" [ngModel]="origen()" (ngModelChange)="origen.set($event)"><option value="">Todos</option><option value="APS">APS</option><option value="PROGRAMA_PREVENTIVO">Programa Preventivo</option><option value="CLAVE">Clave CNIS</option></select></label>
+    <label><span>Código APS/programa</span><input name="referencia" [ngModel]="referencia()" (ngModelChange)="referencia.set($event)" placeholder="Cualquier referencia"></label>
+    <label><span>Periodo</span><select name="months" [ngModel]="months()" (ngModelChange)="months.set($event)"><option [ngValue]="1">1 mes</option><option [ngValue]="3">3 meses</option><option [ngValue]="6">6 meses</option><option [ngValue]="12">12 meses</option></select></label>
+    <button type="submit" class="min-h-11 rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white sm:col-span-2 xl:col-span-6" [disabled]="loading()">{{ loading() ? 'Analizando…' : 'Aplicar filtros' }}</button>
+  </form>
+
+  @if (error()) { <p class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{{ error() }}</p> }
+
+  <section class="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6" aria-label="Resumen">
+    <article><span>Solicitudes</span><strong>{{ resultado().resumen.solicitudes | number }}</strong></article>
+    <article><span>Centros participantes</span><strong>{{ resultado().resumen.unidadesParticipantes | number }} / {{ resultado().resumen.unidadesUniverso | number }}</strong></article>
+    <article><span>Sin solicitud</span><strong>{{ resultado().resumen.unidadesSinSolicitud | number }}</strong></article>
+    <article><span>Claves distintas</span><strong>{{ resultado().resumen.clavesDistintas | number }}</strong></article>
+    <article><span>Piezas capturadas</span><strong>{{ resultado().resumen.piezas | number }}</strong></article>
+    <article><span>Renglones analíticos</span><strong>{{ resultado().total | number }}</strong></article>
+  </section>
+
+  <section>
+    <h3 class="mb-2 text-lg font-bold">Procedencia de la necesidad</h3>
+    <div class="grid gap-3 md:grid-cols-3">
+      @for (item of resultado().origenes; track item.origen) {
+        <button type="button" class="rounded-2xl border p-4 text-left transition hover:border-emerald-400 hover:bg-emerald-50"
+          [class.border-emerald-600]="origen() === item.origen" [class.bg-emerald-50]="origen() === item.origen" (click)="filtrarOrigen(item.origen)">
+          <strong class="block text-slate-950">{{ etiquetaOrigen(item.origen) }}</strong>
+          <span class="mt-2 block text-2xl font-bold text-emerald-800">{{ item.piezas | number }} piezas</span>
+          <small>{{ item.solicitudes | number }} solicitudes · {{ item.unidades | number }} unidades · {{ item.claves | number }} claves</small>
+        </button>
+      }
+    </div>
+  </section>
+
+  @if (resultado().referencias.length) {
+    <section class="rounded-2xl border border-slate-200 p-3">
+      <h3 class="text-lg font-bold">APS y Programas Preventivos con mayor captura</h3>
+      <div class="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        @for (item of resultado().referencias; track item.origen + item.referencia) {
+          <button type="button" class="rounded-xl border border-slate-200 p-3 text-left hover:bg-slate-50" (click)="origen.set(item.origen); referencia.set(item.referencia); cargar(true)">
+            <small class="font-semibold text-emerald-700">{{ etiquetaOrigen(item.origen) }} · {{ item.referencia }}</small>
+            <strong class="block text-sm text-slate-900">{{ item.etiquetaReferencia }}</strong>
+            <span class="text-sm text-slate-600">{{ item.piezas | number }} piezas · {{ item.unidades }} unidades</span>
+          </button>
+        }
+      </div>
+    </section>
+  }
+
+  <details class="rounded-2xl border border-slate-200 p-3">
+    <summary class="cursor-pointer font-bold">Centros sin solicitud en el periodo ({{ resultado().unidadesSinSolicitud.length }})</summary>
+    <div class="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+      @for (unidad of resultado().unidadesSinSolicitud; track unidad.cluesimb) {
+        <div class="rounded-xl bg-slate-50 p-3"><strong class="block text-sm">{{ unidad.unidad }}</strong><small>{{ unidad.cluesimb }} · {{ unidad.jurisdiccion || 'Sin jurisdicción' }}</small></div>
+      } @empty { <p class="text-sm text-slate-600">Todos los centros del universo seleccionado registraron al menos una solicitud.</p> }
+    </div>
+  </details>
+
+  <section>
+    <div class="mb-2 flex items-center justify-between gap-2"><h3 class="text-lg font-bold">Detalle concentrado</h3><small>Página {{ page() }}</small></div>
+    @if (loading()) { <p class="rounded-xl bg-slate-50 p-8 text-center">Construyendo el concentrado…</p> }
+    @if (!loading() && !resultado().data.length) { <p class="rounded-xl bg-slate-50 p-8 text-center">No hay registros para los filtros seleccionados.</p> }
+    @if (resultado().data.length) {
+      <div class="hidden overflow-x-auto rounded-xl border border-slate-200 md:block">
+        <table class="min-w-full text-left text-sm"><thead><tr><th>Unidad</th><th>Clave</th><th>Origen</th><th>Referencia</th><th>Solicitudes</th><th>Piezas</th><th>Última solicitud</th></tr></thead>
+          <tbody>@for (row of resultado().data; track row.cluesimb + row.clave + row.origen + row.referencia) {<tr><td><strong>{{ row.unidad }}</strong><small>{{ row.cluesimb }} · {{ row.jurisdiccion }}</small></td><td><strong>{{ row.clave }}</strong><small>{{ row.nombre || row.descripcion || 'Sin descripción' }}</small></td><td>{{ etiquetaOrigen(row.origen) }}</td><td>{{ row.etiquetaReferencia }}</td><td>{{ row.solicitudes | number }}</td><td>{{ row.piezas | number }}</td><td>{{ row.ultimaSolicitud | date:'dd/MM/yyyy' }}</td></tr>}</tbody>
+        </table>
+      </div>
+      <div class="grid gap-3 md:hidden">
+        @for (row of resultado().data; track row.cluesimb + row.clave + row.origen + row.referencia) {
+          <article class="rounded-2xl border border-slate-200 p-4"><small class="font-semibold text-emerald-700">{{ row.jurisdiccion }} · {{ row.cluesimb }}</small><h4 class="font-bold">{{ row.unidad }}</h4><p class="mt-2 text-sm font-semibold">{{ row.clave }} · {{ row.nombre || 'Sin nombre' }}</p><p class="text-sm">{{ etiquetaOrigen(row.origen) }} · {{ row.etiquetaReferencia }}</p><div class="mt-3 flex justify-between rounded-xl bg-slate-50 p-3"><span>{{ row.solicitudes }} solicitudes</span><strong>{{ row.piezas | number }} piezas</strong></div><small class="mt-2 block">Última: {{ row.ultimaSolicitud | date:'dd/MM/yyyy' }}</small></article>
+        }
+      </div>
+    }
+    <div class="mt-3 flex justify-end gap-2"><button type="button" class="min-h-11 rounded-xl border px-4 disabled:opacity-40" (click)="irPagina(-1)" [disabled]="page() <= 1 || loading()">Anterior</button><button type="button" class="min-h-11 rounded-xl border px-4 disabled:opacity-40" (click)="irPagina(1)" [disabled]="page() * pageSize >= resultado().total || loading()">Siguiente</button></div>
+  </section>
+</div>
