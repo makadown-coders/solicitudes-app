@@ -269,6 +269,12 @@ export const routes: Routes = [
         title: 'Dashboard Abasto - Radar de demanda y cobertura'
       },
       {
+        path: 'concentrado-primer-nivel',
+        loadComponent: () => import('./features/dashboard-abasto/concentrado-primer-nivel/concentrado-primer-nivel.component')
+          .then(m => m.ConcentradoPrimerNivelComponent),
+        title: 'Dashboard Abasto - Concentrado de Primer Nivel'
+      },
+      {
         path: 'radar-desabasto',
         loadComponent: () => import('./features/dashboard-abasto/radar-abasto/radar-abasto.component')
           .then(m => m.RadarAbastoComponent),

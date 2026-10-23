@@ -7,6 +7,9 @@
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <span class="periodo">Ventana: {{ months() }} meses</span>
+      <a routerLink="/dashboard-abasto/concentrado-primer-nivel" class="rounded-lg border border-emerald-700 bg-white px-3 py-2 text-sm font-semibold text-emerald-800">
+        Concentrado Primer Nivel
+      </a>
       <button type="button" class="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" (click)="exportarExcel()" [disabled]="loading() || exporting()">
         {{ exporting() ? 'Preparando Excel…' : 'Exportar Excel' }}
       </button>
@@ -65,7 +68,7 @@
                 </p>
               }
             </div>
-            <small>{{ row.nombre_de_unidad || row.cluesimb }} · {{ row.cluesimb }}</small>
+            <small>{{ row.nombre_de_unidad || row.cluesimb }} · {{ row.cluesimb }}@if (row.jurisdiccion) { · Jurisdicción {{ row.jurisdiccion }} }</small>
             <button type="button" class="mt-2 block min-h-8 w-fit rounded-full border px-2 py-1 text-left text-xs font-semibold focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-green-300"
               (click)="toggleAyudaEstado(row)"
               [attr.aria-expanded]="ayudaEstadoAbierta() === claveFila(row)"
@@ -99,6 +102,9 @@
           <summary>Ver evidencia y alternativas</summary>
           <div class="detail-grid">
             <div><h4>Demanda y estado operativo</h4><p>{{ row.solicitado_periodo | number }} piezas en {{ row.ciclos_con_clave }} de {{ row.ciclos_unidad }} ciclos históricos.</p>
+              @if (row.ultima_solicitud) {
+                <p>En la última solicitud elaborada se pidieron <strong>{{ row.solicitado_ultima_solicitud | number }}</strong> piezas.</p>
+              }
               <p><strong>{{ etiquetaEstado(row.estado_operativo) }}</strong></p>
               @if (row.ultima_solicitud) {
                 <p>Última solicitud: {{ row.ultima_solicitud | date:'dd/MM/yyyy' }} · hace {{ row.dias_desde_ultima_solicitud }} día(s).</p>
@@ -112,7 +118,14 @@
                 } @else { <p>Sin salida posterior observada hacia la unidad.</p> }
               } @else { <p>Sin solicitud observada durante el periodo histórico.</p> }
             </div>
-            <div><h4>Cobertura actual</h4><p>{{ row.cobertura_cpm == null ? 'No calculable sin CPM.' : ((row.cobertura_cpm | number:'1.0-2') + ' CPM equivalentes.') }}</p><p>Snapshot: {{ row.snapshot_existencias ? (row.snapshot_existencias | date:'dd/MM/yyyy, HH:mm') : 'Sin fecha disponible' }}</p></div>
+            <div><h4>Cobertura actual</h4>
+              <p><strong>Existencia local:</strong> {{ row.existencia_actual | number }} piezas · {{ row.cobertura_cpm == null ? 'No calculable sin CPM.' : ((row.cobertura_cpm | number:'1.0-2') + ' CPM equivalentes.') }}</p>
+              <p>Snapshot local: {{ row.snapshot_existencias ? (row.snapshot_existencias | date:'dd/MM/yyyy, HH:mm') : 'Sin fecha disponible' }}</p>
+              <p><strong>Existencia en los 3 almacenes:</strong> {{ row.existencia_almacenes | number }} piezas.</p>
+              <p>AZM: {{ row.existencia_azm | number }} · AZT: {{ row.existencia_azt | number }} · AZE: {{ row.existencia_aze | number }}</p>
+              <p>Snapshot de almacenes: {{ row.snapshot_almacenes ? (row.snapshot_almacenes | date:'dd/MM/yyyy, HH:mm') : 'Sin fecha disponible' }}</p>
+              <small>La existencia en almacenes es contexto de disponibilidad estatal; no representa existencia disponible dentro de la unidad.</small>
+            </div>
             <div><h4>Alternativas</h4><p>{{ row.homologos_disponibles }} alternativa(s) con existencia.</p><p>@if (row.mejor_homologo) { Mejor opción observada: <strong>{{ row.mejor_homologo }}</strong> · {{ row.existencia_homologos_equivalente | number:'1.0-2' }} piezas equivalentes. } @else { Sin cobertura alternativa local observada. }</p></div>
             <div style="background:#eff6ff"><h4>Salidas hacia la unidad</h4>
               @if (row.salida_posterior) {

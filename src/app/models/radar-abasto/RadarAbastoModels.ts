@@ -169,15 +169,23 @@ export type RadarGlobalV2EstadoOperativo =
 export type RadarGlobalV2Row = {
   cluesimb: string;
   nombre_de_unidad: string | null;
+  es_segundo_nivel: boolean;
+  jurisdiccion: string | null;
   clave: string;
   descripcion: string | null;
   cpm: number;
   en_cpm: boolean;
   existencia_actual: number;
   snapshot_existencias: string | null;
+  existencia_azm: number;
+  existencia_azt: number;
+  existencia_aze: number;
+  existencia_almacenes: number;
+  snapshot_almacenes: string | null;
   cobertura_cpm: number | null;
   cobertura_dias: number | null;
   solicitado_periodo: number;
+  solicitado_ultima_solicitud: number;
   ciclos_con_clave: number;
   ciclos_unidad: number;
   frecuencia_solicitud: number;
@@ -225,6 +233,14 @@ export type RadarGlobalV2Response = {
     cubiertas: number;
   };
   data: RadarGlobalV2Row[];
+  unidades_sin_solicitud?: Array<{
+    cluesimb: string;
+    nombre_de_unidad: string | null;
+    jurisdiccion: string | null;
+    es_segundo_nivel: boolean;
+    tipo_unidad: string | null;
+    ultima_solicitud_registrada: string | null;
+  }>;
 };
 
 export type RadarGlobalV2OrdenRow = {
