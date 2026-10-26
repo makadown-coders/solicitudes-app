@@ -2,14 +2,17 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import {
   ConcentradoPrimerNivelResponse,
+  JurisdiccionDistribucionPrimerNivel,
+  MatrizDistribucionPrimerNivelResponse,
   OrigenCapturaPrimerNivel,
 } from '../../../models/ConcentradoPrimerNivelModels';
 import { ConcentradoPrimerNivelService } from '../../../services/concentrado-primer-nivel.service';
 
 const VACIO: ConcentradoPrimerNivelResponse = {
-  mode: 'concentrado-primer-nivel', window: { months: 3 }, page: 1, pageSize: 25, total: 0,
+  mode: 'concentrado-primer-nivel', window: { months: 1 }, page: 1, pageSize: 25, total: 0,
   resumen: { solicitudes: 0, unidadesParticipantes: 0, unidadesUniverso: 0, unidadesSinSolicitud: 0, clavesDistintas: 0, piezas: 0 },
   origenes: [], referencias: [], unidadesSinSolicitud: [], data: [],
 };
@@ -27,8 +30,9 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
   readonly resultado = signal<ConcentradoPrimerNivelResponse>(VACIO);
   readonly loading = signal(false);
   readonly exporting = signal(false);
+  readonly exportingDistribucion = signal(false);
   readonly error = signal('');
-  readonly months = signal(3);
+  readonly months = signal(1);
   readonly jurisdiccion = signal('');
   readonly clues = signal('');
   readonly origen = signal<OrigenCapturaPrimerNivel | ''>('');
@@ -111,6 +115,132 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
     } catch {
       this.error.set('No fue posible generar el Excel del concentrado.');
     } finally { this.exporting.set(false); }
+  }
+
+  async exportarMatrizDistribucion(): Promise<void> {
+    if (this.exportingDistribucion()) return;
+    this.exportingDistribucion.set(true); this.error.set('');
+    try {
+      const out = await this.service.matrizDistribucion(this.months());
+      const workbook = new ExcelJS.Workbook();
+      const hojas: Array<{ jurisdiccion: JurisdiccionDistribucionPrimerNivel; nombre: string }> = [
+        { jurisdiccion: 'ENSENADA', nombre: 'Ensenada' },
+        { jurisdiccion: 'MEXICALI', nombre: 'Mexicali' },
+        { jurisdiccion: 'TIJUANA', nombre: 'Tijuana' },
+      ];
+
+      for (const hoja of hojas) {
+        this.crearHojaDistribucion(workbook, out, hoja.jurisdiccion, hoja.nombre);
+      }
+
+      workbook.creator = 'Concentrado de Primer Nivel';
+      workbook.created = new Date(out.generadoEn);
+      workbook.title = `Matriz provisional de distribución de Primer Nivel - últimos ${out.window.months} meses`;
+      workbook.subject = 'Necesidades registradas; no acredita autorización, surtimiento o entrega.';
+      const stamp = new Date().toISOString().slice(0, 10).replaceAll('-', '');
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = `matriz_distribucion_primer_nivel_${out.window.months}m_${stamp}.xlsx`;
+      enlace.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      this.error.set('No fue posible generar la matriz de distribución.');
+    } finally { this.exportingDistribucion.set(false); }
+  }
+
+  private crearHojaDistribucion(
+    workbook: ExcelJS.Workbook,
+    out: MatrizDistribucionPrimerNivelResponse,
+    jurisdiccion: JurisdiccionDistribucionPrimerNivel,
+    nombre: string
+  ): ExcelJS.Worksheet {
+    const unidades = out.unidades.filter(item => item.jurisdiccion === jurisdiccion);
+    const porClave = new Map<string, { descripcion: string; piezas: Map<string, number> }>();
+
+    for (const item of out.data) {
+      if (item.jurisdiccion !== jurisdiccion || item.piezas <= 0) continue;
+      const actual = porClave.get(item.clave) ?? {
+        descripcion: item.descripcion?.trim() || 'Descripción no disponible',
+        piezas: new Map<string, number>(),
+      };
+      actual.piezas.set(item.cluesimb, (actual.piezas.get(item.cluesimb) ?? 0) + item.piezas);
+      porClave.set(item.clave, actual);
+    }
+
+    const filaRutas: Array<string | number> = [`Periodo: últimos ${out.window.months} meses`, 'PROVISIONAL', 'RUTA'];
+    const filaClues: Array<string | number> = ['', '', 'CLUES'];
+    const filaEncabezados: Array<string | number> = ['No.', 'CLAVE', 'DESCRIPCION'];
+    for (const unidad of unidades) {
+      filaRutas.push(unidad.ruta);
+      filaClues.push(unidad.cluesimb);
+      filaEncabezados.push(unidad.unidad);
+    }
+    filaRutas.push(''); filaClues.push(''); filaEncabezados.push('Total general');
+
+    const claves = [...porClave.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const sheet = workbook.addWorksheet(nombre);
+    sheet.addRow(filaRutas);
+    sheet.addRow(filaClues);
+    sheet.addRow(filaEncabezados);
+    const ultimaColumnaUnidad = 3 + unidades.length;
+    const columnaTotal = 4 + unidades.length;
+    claves.forEach(([clave, item], index) => {
+      const numeroFila = index + 4;
+      const fila: any[] = [index + 1, clave, item.descripcion];
+      let total = 0;
+      for (const unidad of unidades) {
+        const piezas = item.piezas.get(unidad.cluesimb) ?? 0;
+        fila.push(piezas || null);
+        total += piezas;
+      }
+      fila.push({ formula: `SUM(D${numeroFila}:${sheet.getColumn(ultimaColumnaUnidad).letter}${numeroFila})`, result: total });
+      sheet.addRow(fila);
+    });
+
+    const ultimaFilaDetalle = 3 + claves.length;
+    const filaTotales: any[] = ['', '', 'TOTAL GENERAL'];
+    let totalJurisdiccion = 0;
+    unidades.forEach((unidad, index) => {
+      const totalUnidad = claves.reduce((total, [, item]) => total + (item.piezas.get(unidad.cluesimb) ?? 0), 0);
+      totalJurisdiccion += totalUnidad;
+      const letraColumna = sheet.getColumn(index + 4).letter;
+      filaTotales.push(claves.length
+        ? { formula: `SUBTOTAL(9,${letraColumna}4:${letraColumna}${ultimaFilaDetalle})`, result: totalUnidad }
+        : 0);
+    });
+    const letraTotal = sheet.getColumn(columnaTotal).letter;
+    filaTotales.push(claves.length
+      ? { formula: `SUBTOTAL(9,${letraTotal}4:${letraTotal}${ultimaFilaDetalle})`, result: totalJurisdiccion }
+      : 0);
+    const renglonTotales = sheet.addRow(filaTotales);
+    renglonTotales.font = { bold: true };
+    renglonTotales.eachCell({ includeEmpty: false }, cell => {
+      cell.alignment = { ...cell.alignment, vertical: 'middle', wrapText: true };
+    });
+
+    sheet.getColumn(1).width = 7;
+    sheet.getColumn(2).width = 20;
+    sheet.getColumn(3).width = 70;
+    sheet.getColumn(3).alignment = { wrapText: true, vertical: 'top' };
+    for (let columna = 4; columna < columnaTotal; columna++) sheet.getColumn(columna).width = 22;
+    sheet.getColumn(columnaTotal).width = 16;
+    sheet.getColumn(columnaTotal).numFmt = '#,##0';
+    sheet.getRow(3).font = { bold: true };
+    sheet.getRow(3).alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
+    sheet.autoFilter = {
+      from: { row: 3, column: 1 },
+      to: { row: Math.max(3, ultimaFilaDetalle), column: columnaTotal },
+    };
+    for (let inicio = 0; inicio < unidades.length;) {
+      let fin = inicio;
+      while (fin + 1 < unidades.length && unidades[fin + 1].ruta === unidades[inicio].ruta) fin++;
+      if (fin > inicio) sheet.mergeCells(1, inicio + 4, 1, fin + 4);
+      inicio = fin + 1;
+    }
+    return sheet;
   }
 
   private filtros(paginar: boolean) {

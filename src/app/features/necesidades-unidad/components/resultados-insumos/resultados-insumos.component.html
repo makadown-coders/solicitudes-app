@@ -5,7 +5,19 @@
         <div class="min-w-0">
           <h3 class="font-semibold leading-snug text-slate-900" [title]="articulo.descripcion">{{ descripcionVisible(articulo.descripcion) }}</h3>
           @if (articulo.descripcionCnis) {
-            <p class="mt-1 text-sm leading-relaxed text-slate-600 line-clamp-3" [title]="articulo.descripcionCnis">{{ articulo.descripcionCnis }}</p>
+            <p class="mt-1 text-sm leading-relaxed text-slate-600"
+              [id]="'descripcion-cnis-' + articulo.clave"
+              [class.line-clamp-3]="descripcionEsLarga(articulo.descripcionCnis) && !descripcionExpandida(articulo.clave)"
+              [title]="articulo.descripcionCnis">{{ articulo.descripcionCnis }}</p>
+            @if (descripcionEsLarga(articulo.descripcionCnis)) {
+              <button type="button"
+                class="mt-1 text-sm font-semibold text-emerald-700 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                [attr.aria-controls]="'descripcion-cnis-' + articulo.clave"
+                [attr.aria-expanded]="descripcionExpandida(articulo.clave)"
+                (click)="alternarDescripcion(articulo.clave)">
+                {{ descripcionExpandida(articulo.clave) ? 'Ver menos' : 'Ver descripción completa' }}
+              </button>
+            }
           }
           @if (articulo.presentacion) {
             <p class="mt-1 text-sm text-slate-500">{{ articulo.presentacion }}</p>
