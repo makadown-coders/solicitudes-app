@@ -5,6 +5,7 @@ import { environment } from '../../environments/environment';
 import {
   ConcentradoPrimerNivelFiltros,
   ConcentradoPrimerNivelResponse,
+  MatrizDistribucionPrimerNivelResponse,
 } from '../models/ConcentradoPrimerNivelModels';
 
 @Injectable({ providedIn: 'root' })
@@ -22,6 +23,13 @@ export class ConcentradoPrimerNivelService {
     return firstValueFrom(this.http.get<ConcentradoPrimerNivelResponse>(
       `${environment.apiUrl}/solicitudes/primer-nivel/concentrado/export`,
       { params: this.params(filtros) }
+    ));
+  }
+
+  matrizDistribucion(months: number): Promise<MatrizDistribucionPrimerNivelResponse> {
+    return firstValueFrom(this.http.get<MatrizDistribucionPrimerNivelResponse>(
+      `${environment.apiUrl}/solicitudes/primer-nivel/concentrado/matriz-distribucion`,
+      { params: new HttpParams().set('months', String(months)) }
     ));
   }
 

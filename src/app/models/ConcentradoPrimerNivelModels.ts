@@ -67,3 +67,27 @@ export type ConcentradoPrimerNivelFiltros = {
   page?: number;
   pageSize?: number;
 };
+
+export type JurisdiccionDistribucionPrimerNivel = 'ENSENADA' | 'MEXICALI' | 'TIJUANA';
+
+export type MatrizDistribucionPrimerNivelResponse = {
+  mode: 'matriz-distribucion-primer-nivel';
+  window: { months: number };
+  generadoEn: string;
+  unidades: Array<{
+    jurisdiccion: JurisdiccionDistribucionPrimerNivel;
+    cluesimb: string;
+    unidad: string;
+    ruta: string;
+    ordenRuta: number;
+    ordenUnidad: number;
+    esRutaProvisional: boolean;
+  }>;
+  data: Array<{
+    jurisdiccion: JurisdiccionDistribucionPrimerNivel;
+    cluesimb: string;
+    clave: string;
+    descripcion: string | null;
+    piezas: number;
+  }>;
+};

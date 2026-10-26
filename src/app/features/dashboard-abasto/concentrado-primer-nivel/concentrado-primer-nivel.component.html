@@ -13,6 +13,21 @@
 
   <p class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"><strong>Lectura responsable:</strong> una solicitud registrada corresponde a una captura asociada a un archivo generado; no acredita recepción, autorización, procesamiento ni surtimiento.</p>
 
+  <section class="rounded-2xl border border-sky-200 bg-sky-50 p-4 sm:flex sm:items-center sm:justify-between sm:gap-5" aria-labelledby="salida-operativa-titulo">
+    <div>
+      <div class="flex flex-wrap items-center gap-2">
+        <h3 id="salida-operativa-titulo" class="text-lg font-bold text-slate-950">Salida operativa para almacenes</h3>
+        <span class="rounded-full bg-sky-700 px-2 py-0.5 text-xs font-bold tracking-wide text-white">PROVISIONAL</span>
+      </div>
+      <p class="mt-1 max-w-3xl text-sm text-slate-700">Matriz provisional para preparar la distribución de necesidades de Primer Nivel por jurisdicción y unidad.</p>
+      <p class="mt-1 text-xs text-slate-600">Genera Ensenada, Mexicali y Tijuana completas usando únicamente el periodo seleccionado; ignora los demás filtros de esta vista.</p>
+    </div>
+    <button type="button" class="mt-4 min-h-11 shrink-0 rounded-xl border border-sky-700 bg-white px-4 py-2 font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-50 sm:mt-0"
+      (click)="exportarMatrizDistribucion()" [disabled]="exportingDistribucion()">
+      {{ exportingDistribucion() ? 'Preparando matriz…' : 'Generar matriz de distribución' }}
+    </button>
+  </section>
+
   <form class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 xl:grid-cols-6" (ngSubmit)="cargar(true)">
     <label><span>Buscar</span><input name="search" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Unidad, clave, APS o programa"></label>
     <label><span>Jurisdicción</span><select name="jurisdiccion" [ngModel]="jurisdiccion()" (ngModelChange)="jurisdiccion.set($event)"><option value="">Todas</option><option>MEXICALI</option><option>TIJUANA</option><option>ENSENADA</option></select></label>

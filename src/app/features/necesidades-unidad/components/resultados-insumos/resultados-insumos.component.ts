@@ -21,6 +21,7 @@ export class ResultadosInsumosNecesidadesComponent {
   readonly BasketIcon = ShoppingBasket;
   readonly CheckIcon = Check;
   readonly cantidades = signal<Record<string, number>>({});
+  readonly descripcionesExpandidas = signal<Set<string>>(new Set());
 
   cantidad(clave: string): number {
     return this.cantidades()[clave] ?? 1;
@@ -37,6 +38,23 @@ export class ResultadosInsumosNecesidadesComponent {
 
   agregarArticulo(articulo: NecesidadArticulo): void {
     this.agregar.emit({ articulo, cantidad: this.cantidad(articulo.clave) });
+  }
+
+  descripcionExpandida(clave: string): boolean {
+    return this.descripcionesExpandidas().has(clave);
+  }
+
+  alternarDescripcion(clave: string): void {
+    this.descripcionesExpandidas.update(actual => {
+      const siguiente = new Set(actual);
+      if (siguiente.has(clave)) siguiente.delete(clave);
+      else siguiente.add(clave);
+      return siguiente;
+    });
+  }
+
+  descripcionEsLarga(descripcion: string | null | undefined): boolean {
+    return String(descripcion ?? '').trim().length > 180;
   }
 
   descripcionVisible(descripcion: string): string {
