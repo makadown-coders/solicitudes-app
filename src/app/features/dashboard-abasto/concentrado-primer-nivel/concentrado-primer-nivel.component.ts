@@ -159,6 +159,7 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
   ): ExcelJS.Worksheet {
     const unidades = out.unidades.filter(item => item.jurisdiccion === jurisdiccion);
     const porClave = new Map<string, { descripcion: string; piezas: Map<string, number> }>();
+    const existenciasPorClave = new Map(out.existenciasAlmacenes.map(item => [item.clave, item]));
 
     for (const item of out.data) {
       if (item.jurisdiccion !== jurisdiccion || item.piezas <= 0) continue;
@@ -178,7 +179,18 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
       filaClues.push(unidad.cluesimb);
       filaEncabezados.push(unidad.unidad);
     }
-    filaRutas.push(''); filaClues.push(''); filaEncabezados.push('Total general');
+    const snapshot = out.snapshotExistencias
+      ? `Snapshot: ${new Date(`${out.snapshotExistencias}T12:00:00`).toLocaleDateString('es-MX')}`
+      : 'Snapshot: fecha no disponible';
+    filaRutas.push('', 'EXISTENCIAS EN ALMACENES', '', '', '');
+    filaClues.push('', snapshot, '', '', '');
+    filaEncabezados.push(
+      'Total general',
+      'Existencia AZM (Mexicali)',
+      'Existencia AZT (Tijuana)',
+      'Existencia AZE (Ensenada)',
+      'OBSERVACIONES'
+    );
 
     const claves = [...porClave.entries()].sort(([a], [b]) => a.localeCompare(b));
     const sheet = workbook.addWorksheet(nombre);
@@ -187,6 +199,10 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
     sheet.addRow(filaEncabezados);
     const ultimaColumnaUnidad = 3 + unidades.length;
     const columnaTotal = 4 + unidades.length;
+    const columnaAzm = columnaTotal + 1;
+    const columnaAzt = columnaTotal + 2;
+    const columnaAze = columnaTotal + 3;
+    const columnaObservaciones = columnaTotal + 4;
     claves.forEach(([clave, item], index) => {
       const numeroFila = index + 4;
       const fila: any[] = [index + 1, clave, item.descripcion];
@@ -197,6 +213,9 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
         total += piezas;
       }
       fila.push({ formula: `SUM(D${numeroFila}:${sheet.getColumn(ultimaColumnaUnidad).letter}${numeroFila})`, result: total });
+      const existencias = existenciasPorClave.get(clave);
+      fila.push(existencias?.existenciaAzm ?? 0, existencias?.existenciaAzt ?? 0, existencias?.existenciaAze ?? 0);
+      fila.push(this.observacionAlternativa(existencias));
       sheet.addRow(fila);
     });
 
@@ -215,6 +234,19 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
     filaTotales.push(claves.length
       ? { formula: `SUBTOTAL(9,${letraTotal}4:${letraTotal}${ultimaFilaDetalle})`, result: totalJurisdiccion }
       : 0);
+    for (const columna of [columnaAzm, columnaAzt, columnaAze]) {
+      const letraColumna = sheet.getColumn(columna).letter;
+      const totalAlmacen = claves.reduce((total, [clave]) => {
+        const existencias = existenciasPorClave.get(clave);
+        if (columna === columnaAzm) return total + (existencias?.existenciaAzm ?? 0);
+        if (columna === columnaAzt) return total + (existencias?.existenciaAzt ?? 0);
+        return total + (existencias?.existenciaAze ?? 0);
+      }, 0);
+      filaTotales.push(claves.length
+        ? { formula: `SUBTOTAL(9,${letraColumna}4:${letraColumna}${ultimaFilaDetalle})`, result: totalAlmacen }
+        : 0);
+    }
+    filaTotales.push('');
     const renglonTotales = sheet.addRow(filaTotales);
     renglonTotales.font = { bold: true };
     renglonTotales.eachCell({ includeEmpty: false }, cell => {
@@ -227,12 +259,17 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
     sheet.getColumn(3).alignment = { wrapText: true, vertical: 'top' };
     for (let columna = 4; columna < columnaTotal; columna++) sheet.getColumn(columna).width = 22;
     sheet.getColumn(columnaTotal).width = 16;
-    sheet.getColumn(columnaTotal).numFmt = '#,##0';
+    for (let columna = columnaTotal; columna <= columnaAze; columna++) {
+      sheet.getColumn(columna).width = columna === columnaTotal ? 16 : 22;
+      sheet.getColumn(columna).numFmt = '#,##0';
+    }
+    sheet.getColumn(columnaObservaciones).width = 68;
+    sheet.getColumn(columnaObservaciones).alignment = { wrapText: true, vertical: 'top' };
     sheet.getRow(3).font = { bold: true };
     sheet.getRow(3).alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
     sheet.autoFilter = {
       from: { row: 3, column: 1 },
-      to: { row: Math.max(3, ultimaFilaDetalle), column: columnaTotal },
+      to: { row: Math.max(3, ultimaFilaDetalle), column: columnaObservaciones },
     };
     for (let inicio = 0; inicio < unidades.length;) {
       let fin = inicio;
@@ -240,7 +277,24 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
       if (fin > inicio) sheet.mergeCells(1, inicio + 4, 1, fin + 4);
       inicio = fin + 1;
     }
+    sheet.mergeCells(1, columnaAzm, 1, columnaAze);
+    sheet.mergeCells(2, columnaAzm, 2, columnaAze);
     return sheet;
+  }
+
+  private observacionAlternativa(
+    existencias: MatrizDistribucionPrimerNivelResponse['existenciasAlmacenes'][number] | undefined
+  ): string {
+    const existenciaDirecta = (existencias?.existenciaAzm ?? 0)
+      + (existencias?.existenciaAzt ?? 0)
+      + (existencias?.existenciaAze ?? 0);
+    if (existenciaDirecta > 0) return '';
+    const alternativa = existencias?.alternativa;
+    if (!alternativa) return 'Sin existencia directa ni alternativa con existencia.';
+    return `Sin existencia directa. Alternativa ${alternativa.clave} · AZM ${alternativa.existenciaAzm.toLocaleString('es-MX')}`
+      + ` · AZT ${alternativa.existenciaAzt.toLocaleString('es-MX')} · AZE ${alternativa.existenciaAze.toLocaleString('es-MX')}`
+      + ` · factor ${alternativa.factor.toLocaleString('es-MX', { maximumFractionDigits: 4 })}`
+      + ` · cobertura equivalente ${alternativa.coberturaEquivalente.toLocaleString('es-MX', { maximumFractionDigits: 2 })}`;
   }
 
   private filtros(paginar: boolean) {
