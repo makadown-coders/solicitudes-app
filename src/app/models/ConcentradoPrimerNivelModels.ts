@@ -89,6 +89,7 @@ export type MatrizDistribucionPrimerNivelResponse = {
     cluesimb: string;
     clave: string;
     descripcion: string | null;
+    tipoInsumo: 'MED' | 'MC' | null;
     piezas: number;
   }>;
   existenciasAlmacenes: Array<{
