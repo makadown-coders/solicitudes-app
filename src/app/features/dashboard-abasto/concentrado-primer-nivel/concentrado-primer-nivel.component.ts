@@ -158,22 +158,23 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
     nombre: string
   ): ExcelJS.Worksheet {
     const unidades = out.unidades.filter(item => item.jurisdiccion === jurisdiccion);
-    const porClave = new Map<string, { descripcion: string; piezas: Map<string, number> }>();
+    const porClave = new Map<string, { descripcion: string; tipoInsumo: 'MED' | 'MC' | null; piezas: Map<string, number> }>();
     const existenciasPorClave = new Map(out.existenciasAlmacenes.map(item => [item.clave, item]));
 
     for (const item of out.data) {
       if (item.jurisdiccion !== jurisdiccion || item.piezas <= 0) continue;
       const actual = porClave.get(item.clave) ?? {
         descripcion: item.descripcion?.trim() || 'Descripción no disponible',
+        tipoInsumo: item.tipoInsumo,
         piezas: new Map<string, number>(),
       };
       actual.piezas.set(item.cluesimb, (actual.piezas.get(item.cluesimb) ?? 0) + item.piezas);
       porClave.set(item.clave, actual);
     }
 
-    const filaRutas: Array<string | number> = [`Periodo: últimos ${out.window.months} meses`, 'PROVISIONAL', 'RUTA'];
-    const filaClues: Array<string | number> = ['', '', 'CLUES'];
-    const filaEncabezados: Array<string | number> = ['No.', 'CLAVE', 'DESCRIPCION'];
+    const filaRutas: Array<string | number> = [`Periodo: últimos ${out.window.months} meses`, 'PROVISIONAL', '', 'RUTA'];
+    const filaClues: Array<string | number> = ['', '', '', 'CLUES'];
+    const filaEncabezados: Array<string | number> = ['No.', 'CLAVE', 'DESCRIPCION', 'TIPO'];
     for (const unidad of unidades) {
       filaRutas.push(unidad.ruta);
       filaClues.push(unidad.cluesimb);
@@ -197,22 +198,22 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
     sheet.addRow(filaRutas);
     sheet.addRow(filaClues);
     sheet.addRow(filaEncabezados);
-    const ultimaColumnaUnidad = 3 + unidades.length;
-    const columnaTotal = 4 + unidades.length;
+    const ultimaColumnaUnidad = 4 + unidades.length;
+    const columnaTotal = 5 + unidades.length;
     const columnaAzm = columnaTotal + 1;
     const columnaAzt = columnaTotal + 2;
     const columnaAze = columnaTotal + 3;
     const columnaObservaciones = columnaTotal + 4;
     claves.forEach(([clave, item], index) => {
       const numeroFila = index + 4;
-      const fila: any[] = [index + 1, clave, item.descripcion];
+      const fila: any[] = [index + 1, clave, item.descripcion, item.tipoInsumo ?? 'SIN CLASIFICAR'];
       let total = 0;
       for (const unidad of unidades) {
         const piezas = item.piezas.get(unidad.cluesimb) ?? 0;
         fila.push(piezas || null);
         total += piezas;
       }
-      fila.push({ formula: `SUM(D${numeroFila}:${sheet.getColumn(ultimaColumnaUnidad).letter}${numeroFila})`, result: total });
+      fila.push({ formula: `SUM(E${numeroFila}:${sheet.getColumn(ultimaColumnaUnidad).letter}${numeroFila})`, result: total });
       const existencias = existenciasPorClave.get(clave);
       fila.push(existencias?.existenciaAzm ?? 0, existencias?.existenciaAzt ?? 0, existencias?.existenciaAze ?? 0);
       fila.push(this.observacionAlternativa(existencias));
@@ -220,12 +221,12 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
     });
 
     const ultimaFilaDetalle = 3 + claves.length;
-    const filaTotales: any[] = ['', '', 'TOTAL GENERAL'];
+    const filaTotales: any[] = ['', '', 'TOTAL GENERAL', ''];
     let totalJurisdiccion = 0;
     unidades.forEach((unidad, index) => {
       const totalUnidad = claves.reduce((total, [, item]) => total + (item.piezas.get(unidad.cluesimb) ?? 0), 0);
       totalJurisdiccion += totalUnidad;
-      const letraColumna = sheet.getColumn(index + 4).letter;
+      const letraColumna = sheet.getColumn(index + 5).letter;
       filaTotales.push(claves.length
         ? { formula: `SUBTOTAL(9,${letraColumna}4:${letraColumna}${ultimaFilaDetalle})`, result: totalUnidad }
         : 0);
@@ -257,7 +258,8 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
     sheet.getColumn(2).width = 20;
     sheet.getColumn(3).width = 70;
     sheet.getColumn(3).alignment = { wrapText: true, vertical: 'top' };
-    for (let columna = 4; columna < columnaTotal; columna++) sheet.getColumn(columna).width = 22;
+    sheet.getColumn(4).width = 10;
+    for (let columna = 5; columna < columnaTotal; columna++) sheet.getColumn(columna).width = 22;
     sheet.getColumn(columnaTotal).width = 16;
     for (let columna = columnaTotal; columna <= columnaAze; columna++) {
       sheet.getColumn(columna).width = columna === columnaTotal ? 16 : 22;
@@ -274,7 +276,7 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
     for (let inicio = 0; inicio < unidades.length;) {
       let fin = inicio;
       while (fin + 1 < unidades.length && unidades[fin + 1].ruta === unidades[inicio].ruta) fin++;
-      if (fin > inicio) sheet.mergeCells(1, inicio + 4, 1, fin + 4);
+      if (fin > inicio) sheet.mergeCells(1, inicio + 5, 1, fin + 5);
       inicio = fin + 1;
     }
     sheet.mergeCells(1, columnaAzm, 1, columnaAze);
