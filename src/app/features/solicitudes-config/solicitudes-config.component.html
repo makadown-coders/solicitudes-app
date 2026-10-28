@@ -78,6 +78,43 @@
 
   <!-- Toggles -->
   <div class="mt-6 p-4 rounded-lg border">
+    @if (scopeForm.value.scope === "global") {
+      <section class="mb-4 pb-4 border-b" aria-labelledby="titulo-config-primer-nivel">
+        <p class="text-xs font-semibold tracking-wide text-green-700 uppercase">Primer Nivel</p>
+        <div class="flex items-center justify-between gap-4 mt-2">
+          <div>
+            <div id="titulo-config-primer-nivel" class="font-medium">
+              Captura de Wishlist de Primer Nivel
+            </div>
+            <div class="text-xs text-gray-500">
+              Permite habilitar o suspender temporalmente la captura y envío de solicitudes de Primer Nivel.
+            </div>
+            <div class="mt-1 text-xs font-semibold" [class.text-green-700]="flagValue('PRIMER_NIVEL_WISHLIST_ENABLED')" [class.text-amber-700]="!flagValue('PRIMER_NIVEL_WISHLIST_ENABLED')">
+              {{ flagValue('PRIMER_NIVEL_WISHLIST_ENABLED') ? "Habilitada" : "Deshabilitada" }}
+            </div>
+          </div>
+          <label
+            class="inline-flex items-center shrink-0"
+            role="switch"
+            [attr.aria-checked]="flagValue('PRIMER_NIVEL_WISHLIST_ENABLED')"
+            [attr.aria-disabled]="togglesDisabled()"
+          >
+            <span class="switch" [class.switch--disabled]="togglesDisabled()">
+              <input
+                type="checkbox"
+                class="switch__input"
+                [disabled]="togglesDisabled()"
+                [checked]="flagValue('PRIMER_NIVEL_WISHLIST_ENABLED')"
+                (change)="onToggle('PRIMER_NIVEL_WISHLIST_ENABLED', $event)"
+              />
+              <span class="switch__track" aria-hidden="true"></span>
+              <span class="switch__thumb" aria-hidden="true"></span>
+            </span>
+          </label>
+        </div>
+      </section>
+    }
+
     <div class="flex items-center justify-between py-2">
       <div>
         <div class="font-medium">EDIT_CPMS</div>

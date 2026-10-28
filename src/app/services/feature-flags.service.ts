@@ -25,7 +25,8 @@ export class FeatureFlagsService {
             APLICAR_EQUIVALENCIAS: undefined,
             CLUES_EXISTENCIAS_ALLOWLIST: undefined,
             IMPORT_LIMIT_TO_KIT: undefined,
-            EDIT_CPMS: undefined
+            EDIT_CPMS: undefined,
+            PRIMER_NIVEL_WISHLIST_ENABLED: undefined
         };
     }
 

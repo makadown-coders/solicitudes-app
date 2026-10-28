@@ -9,6 +9,7 @@ import { NecesidadArticulo } from '../../necesidades-unidad.models';
   standalone: true,
   imports: [CommonModule, FormsModule, LucideAngularModule],
   templateUrl: './resultados-insumos.component.html',
+  styleUrl: './resultados-insumos.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResultadosInsumosNecesidadesComponent {
