@@ -85,6 +85,40 @@
         <div class="px-4 py-3 text-sm text-amber-900 bg-amber-50 border-amber-100 rounded-2xl border">
           La exportacion estatal genera un archivo con resumen, detalle por hospital y ordenes asociadas. Puede tardar varios minutos segun el volumen de claves.
         </div>
+
+        <section class="p-4 bg-white border-amber-200 rounded-2xl shadow-sm border">
+          <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+            <div class="max-w-3xl">
+              <p class="text-xs font-semibold tracking-wide text-amber-700 uppercase">Reportes informativos para SECCSOS</p>
+              <h2 class="mt-1 text-base font-semibold text-gray-900">Claves IB-ONCO con CPM y existencia en cero</h2>
+              <p class="mt-1 text-sm text-gray-600">
+                <strong>Sin orden vigente</strong> puede incluir órdenes vencidas con saldo pendiente.
+                <strong>Sin antecedente</strong> significa que no se encontró una orden en la información disponible; no demuestra que históricamente nunca se haya adquirido el insumo.
+              </p>
+              <p class="mt-2 text-xs text-amber-800">
+                Estos reportes son de apoyo para seguimiento y no constituyen autorización de compra, entrega o traslado.
+              </p>
+            </div>
+            <div class="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+              <button
+                type="button"
+                (click)="exportarReporteSeccsos('sin_vigente')"
+                [disabled]="!!exportandoSeccsos() || exportando() || loadingInicial() || loadingClaves()"
+                class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-amber-900 bg-amber-50 border-amber-300 rounded-xl border hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60">
+                <lucide-angular [img]="DownloadIcon" class="w-4 h-4"></lucide-angular>
+                {{ exportandoSeccsos() === 'sin_vigente' ? 'Generando...' : 'SECCSOS · Sin orden vigente' }}
+              </button>
+              <button
+                type="button"
+                (click)="exportarReporteSeccsos('sin_antecedente')"
+                [disabled]="!!exportandoSeccsos() || exportando() || loadingInicial() || loadingClaves()"
+                class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-50 border-slate-300 rounded-xl border hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60">
+                <lucide-angular [img]="DownloadIcon" class="w-4 h-4"></lucide-angular>
+                {{ exportandoSeccsos() === 'sin_antecedente' ? 'Generando...' : 'SECCSOS · Sin antecedente' }}
+              </button>
+            </div>
+          </div>
+        </section>
       }
 
       @if (exportProgress(); as message) {

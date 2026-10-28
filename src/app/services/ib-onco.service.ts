@@ -11,6 +11,8 @@ import {
   IbOncoListResponse,
   IbOncoPaginatedResponse,
   IbOncoResumenUnidad,
+  IbOncoReporteSeccsosResponse,
+  IbOncoReporteSeccsosTipo,
   IbOncoUnidad,
 } from '../models/ib-onco';
 
@@ -53,6 +55,15 @@ export class IbOncoService {
   obtenerResumen(windowDays = 15): Observable<IbOncoListResponse<IbOncoResumenUnidad>> {
     return this.http.get<IbOncoListResponse<IbOncoResumenUnidad>>(`${this.baseUrl}/resumen`, {
       params: this.toParams({ window_days: windowDays }),
+    });
+  }
+
+  obtenerReporteSeccsos(
+    tipo: IbOncoReporteSeccsosTipo,
+    windowDays = 120
+  ): Observable<IbOncoReporteSeccsosResponse> {
+    return this.http.get<IbOncoReporteSeccsosResponse>(`${this.baseUrl}/reportes/seccsos`, {
+      params: this.toParams({ tipo, window_days: windowDays }),
     });
   }
 

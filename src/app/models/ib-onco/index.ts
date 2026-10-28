@@ -105,3 +105,34 @@ export interface IbOncoCitasPendientesParams {
   page?: number;
   limit?: number;
 }
+
+export type IbOncoReporteSeccsosTipo = 'sin_vigente' | 'sin_antecedente';
+
+export interface IbOncoReporteSeccsosRow {
+  cluesimb: string;
+  nombreUnidad?: string | null;
+  claveCnis: string;
+  descripcion?: string | null;
+  cpm: number;
+  existencias: number;
+  ordenesHistoricas: number;
+  ordenesVigentes: number;
+  ordenesVencidasConSaldo: number;
+  piezasVencidasPendientes: number;
+  ultimaOrden?: string | null;
+  ultimaFechaEmision?: string | null;
+  ultimaFechaLimite?: string | null;
+  snapshotExistencias?: string | null;
+  clasificacion: string;
+}
+
+export interface IbOncoReporteSeccsosResponse {
+  ok: boolean;
+  count: number;
+  mode: IbOncoReporteSeccsosTipo;
+  windowDays: number;
+  generadoEn: string;
+  criterio: string;
+  advertencia: string;
+  data: IbOncoReporteSeccsosRow[];
+}

@@ -39,7 +39,7 @@
               <lucide-angular [img]="PlusIcon" class="w-4 h-4"></lucide-angular>
             </button>
           </div>
-          <button type="button" class="inline-flex items-center justify-center gap-2 px-4 h-11 font-semibold text-white bg-emerald-700 rounded-xl transition hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+          <button type="button" class="boton-agregar-insumo inline-flex items-center justify-center gap-2 px-4 h-11 font-semibold text-white bg-emerald-700 rounded-xl transition hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
             (click)="agregarArticulo(articulo)">
             <lucide-angular [img]="claveAgregada === articulo.clave ? CheckIcon : BasketIcon" class="w-4 h-4"></lucide-angular>
             {{ claveAgregada === articulo.clave ? 'Agregado' : 'Agregar' }}

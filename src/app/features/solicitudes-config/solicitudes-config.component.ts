@@ -92,6 +92,7 @@ export class SolicitudesConfigComponent implements OnInit {
                     CLUES_EXISTENCIAS_ALLOWLIST: flags['CLUES_EXISTENCIAS_ALLOWLIST'],
                     IMPORT_LIMIT_TO_KIT: !!flags['IMPORT_LIMIT_TO_KIT'],
                     EDIT_CPMS: !!flags['EDIT_CPMS'],
+                    PRIMER_NIVEL_WISHLIST_ENABLED: flags['PRIMER_NIVEL_WISHLIST_ENABLED'] !== false,
                 });
             } catch (e) {
                 console.error(e);
@@ -138,7 +139,12 @@ export class SolicitudesConfigComponent implements OnInit {
                           'APLICAR_EQUIVALENCIAS',
                           'IMPORT_LIMIT_TO_KIT',
                           'EDIT_CPMS'];
-        return keys.filter(k => (!!draft[k]) !== (!!loaded[k]));
+        if (this.scopeForm.value.scope === 'global') keys.push('PRIMER_NIVEL_WISHLIST_ENABLED');
+        return keys.filter(k => {
+            const valorDraft = k === 'PRIMER_NIVEL_WISHLIST_ENABLED' ? draft[k] !== false : !!draft[k];
+            const valorCargado = k === 'PRIMER_NIVEL_WISHLIST_ENABLED' ? loaded[k] !== false : !!loaded[k];
+            return valorDraft !== valorCargado;
+        });
     });
 
     resetToLoaded() {
@@ -150,6 +156,7 @@ export class SolicitudesConfigComponent implements OnInit {
             APLICAR_EQUIVALENCIAS: !!f['APLICAR_EQUIVALENCIAS'],
             IMPORT_LIMIT_TO_KIT: !!f['IMPORT_LIMIT_TO_KIT'],
             EDIT_CPMS: !!f['EDIT_CPMS'],
+            PRIMER_NIVEL_WISHLIST_ENABLED: f['PRIMER_NIVEL_WISHLIST_ENABLED'] !== false,
         });
         this.saveMsg.set(null);
     }
@@ -184,6 +191,7 @@ export class SolicitudesConfigComponent implements OnInit {
             this.saveMsg.set('Cambios guardados.');
         } catch (e) {
             console.error(e);
+            this.resetToLoaded();
             this.saveOk.set(false);
             this.saveMsg.set('Error al guardar cambios.');
         } finally {

@@ -10,7 +10,9 @@
           @if (unidad.clues) { CLUES {{ unidad.clues }} }
           @if (unidad.responsable) { · {{ unidad.responsable }} }
         </p>
-        <button type="button" class="mt-2 text-sm font-semibold text-emerald-700 hover:text-emerald-900 hover:underline" (click)="cambiarUnidad()">Cambiar unidad</button>
+        @if (wishlistHabilitada() && !cargandoDisponibilidad()) {
+          <button type="button" class="mt-2 text-sm font-semibold text-emerald-700 hover:text-emerald-900 hover:underline" (click)="cambiarUnidad()">Cambiar unidad</button>
+        }
       } @else {
         <h1 class="mt-1 text-xl font-bold sm:text-2xl">Selecciona tu Centro de Salud</h1>
         <p class="mt-1 text-sm text-slate-500">La lista quedará identificada con la CLUES de la unidad.</p>
@@ -19,11 +21,27 @@
   </header>
 
   <main class="mx-auto px-4 py-6 py-8 max-w-6xl sm:px-6 lg:px-8">
-    @if (cargandoUnidad()) {
+    @if (cargandoUnidad() || cargandoDisponibilidad()) {
       <div class="mx-auto py-16 max-w-2xl text-center">
         <div class="mx-auto w-12 h-12 bg-slate-100 rounded-full animate-pulse"></div>
-        <p class="mt-4 text-sm text-slate-500">Cargando Centros de Salud…</p>
+        <p class="mt-4 text-sm text-slate-500">Preparando la captura…</p>
       </div>
+    } @else if (!wishlistHabilitada()) {
+      <section class="mx-auto py-12 max-w-2xl text-center" aria-labelledby="titulo-captura-cerrada">
+        <div class="grid mx-auto place-items-center w-14 h-14 text-amber-700 bg-amber-50 rounded-full border border-amber-200">
+          <lucide-angular [img]="AlertIcon" class="w-7 h-7"></lucide-angular>
+        </div>
+        <h2 id="titulo-captura-cerrada" class="mt-5 text-2xl font-bold tracking-tight text-slate-950">
+          Captura temporalmente cerrada
+        </h2>
+        <p class="mt-3 text-slate-600">
+          La captura de solicitudes de Primer Nivel se encuentra temporalmente deshabilitada.
+        </p>
+        <p class="mt-2 text-sm leading-relaxed text-slate-500">
+          Cuando el periodo de captura sea habilitado nuevamente, podrás continuar utilizando esta herramienta.
+          Tu lista guardada en este dispositivo se conservará.
+        </p>
+      </section>
     } @else if (!contexto()) {
       <section class="mx-auto py-8 max-w-2xl" aria-labelledby="titulo-seleccion-unidad">
         <h2 id="titulo-seleccion-unidad" class="text-3xl font-bold tracking-tight">¿De qué Centro de Salud es esta lista?</h2>
@@ -273,7 +291,7 @@
     }
   </main>
 
-  @if (modalDetalleApsAbierto()) {
+  @if (modalDetalleApsAbierto() && wishlistHabilitada()) {
     <div class="z-50 fixed inset-0 flex items-end justify-center p-5 bg-slate-950/50 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="titulo-detalle-aps" (click)="cerrarDetalleAps()">
       <section class="overflow-hidden w-full max-w-xl max-h-[94dvh] bg-white rounded-t-3xl shadow-2xl sm:rounded-3xl" (click)="$event.stopPropagation()">
         <header class="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-100">
@@ -332,7 +350,7 @@
     </div>
   }
 
-  @if (contexto()) {
+  @if (contexto() && wishlistHabilitada()) {
   <div class="z-30 fixed inset-x-0 bottom-0 p-3 bg-white/95 border-t border-slate-200 backdrop-blur xl:hidden">
     <button type="button" class="flex items-center justify-between px-4 w-full h-14 rounded-2xl transition"
       [class.text-white]="solicitud().length > 0" [class.bg-emerald-800]="solicitud().length > 0" [class.shadow-lg]="solicitud().length > 0"
@@ -344,7 +362,7 @@
   </div>
   }
 
-  @if (solicitudMovilAbierta()) {
+  @if (solicitudMovilAbierta() && wishlistHabilitada()) {
     <div class="z-40 fixed inset-0 bg-slate-950/40 xl:hidden" (click)="solicitudMovilAbierta.set(false)"></div>
     <div class="z-50 fixed inset-0 flex items-end p-3 pointer-events-none xl:hidden">
       <app-resumen-necesidades class="block w-full max-h-full pointer-events-auto" [items]="solicitud()" [permitirCerrar]="true"
@@ -353,7 +371,7 @@
     </div>
   }
 
-  @if (revisionAbierta()) {
+  @if (revisionAbierta() && wishlistHabilitada()) {
     <div class="z-50 fixed inset-0 flex items-end justify-center p-5 bg-slate-950/50 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="titulo-revision">
       <section class="overflow-hidden w-full max-w-2xl max-h-[94vh] bg-white rounded-t-3xl shadow-2xl sm:rounded-3xl">
         @if (resultadoEnvio(); as resultado) {

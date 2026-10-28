@@ -30,6 +30,7 @@ import { ResultadosInsumosNecesidadesComponent } from './components/resultados-i
 import { ResumenNecesidadesComponent } from './components/solicitud-resumen/solicitud-resumen.component';
 import { NecesidadArticulo, NecesidadesContextoUnidad, NecesidadItem } from './necesidades-unidad.models';
 import { environment } from '../../../environments/environment';
+import { FeatureFlagsService } from '../../services/feature-flags.service';
 
 type EstadoBusqueda = 'inicial' | 'escribiendo' | 'cargando' | 'resultados' | 'vacio' | 'error';
 type ModoBusqueda = 'aps' | 'programa' | 'clave';
@@ -56,6 +57,7 @@ export class NecesidadesUnidadComponent {
   private readonly apsService = inject(NecesidadesPrimerNivelApsService);
   private readonly programasPreventivosService = inject(NecesidadesPrimerNivelProgramasPreventivosService);
   private readonly storageSolicitudService = inject(StorageSolicitudService);
+  private readonly featureFlagsService = inject(FeatureFlagsService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -110,6 +112,8 @@ export class NecesidadesUnidadComponent {
   readonly errorEnvio = signal('');
   readonly resultadoEnvio = signal<EnviarNecesidadesPrimerNivelResponse | null>(null);
   readonly envioLocal = signal(false);
+  readonly cargandoDisponibilidad = signal(true);
+  readonly wishlistHabilitada = signal(true);
 
   readonly resultadosVisibles = computed(() => this.resultadosBusqueda().slice(0, this.limiteBusqueda()));
   readonly totalPiezasSolicitud = computed(() => this.solicitud().reduce((total, item) => total + item.cantidad, 0));
@@ -198,6 +202,7 @@ export class NecesidadesUnidadComponent {
   }
 
   async agregarProgramaPreventivo(): Promise<void> {
+    if (!this.wishlistHabilitada()) return;
     const programa = this.programaPreventivoDetalle();
     if (!programa || !this.totalInsumosProgramaCapturados() || this.resolviendoProgramaPreventivo()) return;
 
@@ -264,6 +269,7 @@ export class NecesidadesUnidadComponent {
   }
 
   cambiarUnidad(): void {
+    if (!this.wishlistHabilitada()) return;
     if (this.solicitud().length && !window.confirm('Al cambiar de unidad se vaciará la lista actual. ¿Deseas continuar?')) return;
     this.eliminarSolicitudGuardada();
     this.solicitud.set([]);
@@ -353,6 +359,7 @@ export class NecesidadesUnidadComponent {
   }
 
   async agregarMedicamentoAps(): Promise<void> {
+    if (!this.wishlistHabilitada()) return;
     const detalle = this.detalleAps();
     if (!detalle || this.resolviendoAps()) return;
     if (detalle.requiereSeleccionDeVariante && !this.claveVarianteAps()) {
@@ -400,6 +407,7 @@ export class NecesidadesUnidadComponent {
   }
 
   agregar(evento: { articulo: NecesidadArticulo; cantidad: number }): void {
+    if (!this.wishlistHabilitada()) return;
     const cantidad = this.sanitizarCantidad(evento.cantidad);
     this.solicitud.update(items => {
       const existente = items.find(item => item.clave === evento.articulo.clave);
@@ -435,6 +443,7 @@ export class NecesidadesUnidadComponent {
   }
 
   abrirRevision(): void {
+    if (!this.wishlistHabilitada()) return;
     if (!this.solicitud().length) return;
     this.solicitudMovilAbierta.set(false);
     this.revisionAbierta.set(true);
@@ -444,6 +453,7 @@ export class NecesidadesUnidadComponent {
   }
 
   async enviarParaRevision(): Promise<void> {
+    if (!this.wishlistHabilitada()) return;
     const contexto = this.contexto();
     if (!contexto || !this.solicitud().length || this.enviandoLista()) return;
 
@@ -487,10 +497,11 @@ export class NecesidadesUnidadComponent {
       this.resultadoEnvio.set(resultado);
       this.eliminarSolicitudGuardada();
     } catch (error: any) {
-      let mensaje = error?.error?.error || error?.message;
+      let mensaje = error?.error?.message || error?.error?.error || error?.message;
       if (error?.error instanceof Blob && error.error.type === 'application/json') {
         try {
-          mensaje = JSON.parse(await error.error.text())?.error;
+          const detalle = JSON.parse(await error.error.text());
+          mensaje = detalle?.message || detalle?.error;
         } catch {
           mensaje = undefined;
         }
@@ -634,7 +645,7 @@ export class NecesidadesUnidadComponent {
       next: () => {
         this.cargandoUnidad.set(false);
         this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(parametros => {
-          this.resolverUnidad(parametros.get('cluesimb'));
+          void this.resolverUnidad(parametros.get('cluesimb'));
         });
       },
       error: () => {
@@ -644,12 +655,13 @@ export class NecesidadesUnidadComponent {
     });
   }
 
-  private resolverUnidad(cluesimb: string | null): void {
+  private async resolverUnidad(cluesimb: string | null): Promise<void> {
     this.errorUnidad.set('');
     if (!cluesimb) {
       this.contexto.set(null);
       this.programasPreventivos.set([]);
       this.cargandoProgramasPreventivos.set(false);
+      await this.cargarDisponibilidadWishlist();
       return;
     }
 
@@ -659,6 +671,7 @@ export class NecesidadesUnidadComponent {
       this.programasPreventivos.set([]);
       this.cargandoProgramasPreventivos.set(false);
       this.errorUnidad.set('La CLUES indicada no corresponde a un Centro de Salud de Primer Nivel.');
+      await this.cargarDisponibilidadWishlist();
       return;
     }
 
@@ -670,10 +683,33 @@ export class NecesidadesUnidadComponent {
       periodo: coincidePrevio ? previo.periodo : '',
       responsable: coincidePrevio ? previo.responsable : '',
     });
-    this.cargarProgramasPreventivos(unidad.cluesimb);
     this.restaurarSolicitud(unidad.cluesimb);
     this.terminoUnidad.set('');
     this.unidadesEncontradas.set([]);
+    await this.cargarDisponibilidadWishlist(unidad.cluesimb);
+    if (this.wishlistHabilitada()) {
+      this.cargarProgramasPreventivos(unidad.cluesimb);
+    } else {
+      this.programasPreventivos.set([]);
+      this.cargandoProgramasPreventivos.set(false);
+    }
+  }
+
+  private async cargarDisponibilidadWishlist(cluesimb?: string): Promise<void> {
+    this.cargandoDisponibilidad.set(true);
+    try {
+      const flags = await this.featureFlagsService.getEffective({
+        cluesimb,
+        nivel: 'PRIMER_NIVEL',
+      });
+      // Compatibilidad: si el flag aún no existe, la captura permanece habilitada.
+      this.wishlistHabilitada.set(flags['PRIMER_NIVEL_WISHLIST_ENABLED'] !== false);
+    } catch {
+      // Un despliegue desfasado del endpoint de flags no debe cerrar la captura existente.
+      this.wishlistHabilitada.set(true);
+    } finally {
+      this.cargandoDisponibilidad.set(false);
+    }
   }
 
   private esPrimerNivel(unidad: Unidadv2): boolean {

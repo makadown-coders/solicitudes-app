@@ -11,6 +11,7 @@ import {
   IbOncoAbastoCpmRow,
   IbOncoCitaPendiente,
   IbOncoPaginatedResponse,
+  IbOncoReporteSeccsosTipo,
   IbOncoResumenUnidad,
   IbOncoUnidad,
 } from '../../models/ib-onco';
@@ -117,6 +118,7 @@ export class IbOncoPageComponent {
   loadingAlmacenes = signal(false);
   generandoPropuestas = signal(false);
   exportando = signal(false);
+  exportandoSeccsos = signal<IbOncoReporteSeccsosTipo | null>(null);
   exportProgress = signal<string | null>(null);
   snapshotCargadoEn = signal<string | null>(null);
   snapshotInfoLoaded = signal(false);
@@ -366,6 +368,66 @@ export class IbOncoPageComponent {
     } finally {
       this.generandoPropuestas.set(false);
       this.exportProgress.set(null);
+    }
+  }
+
+  async exportarReporteSeccsos(tipo: IbOncoReporteSeccsosTipo): Promise<void> {
+    if (!this.esVistaEstatal() || this.exportandoSeccsos()) return;
+
+    this.exportandoSeccsos.set(tipo);
+    this.error.set(null);
+    try {
+      const reporte = await firstValueFrom(
+        this.ibOncoService.obtenerReporteSeccsos(tipo, this.windowDays())
+      );
+      const workbook = XLSX.utils.book_new();
+      const filas = reporte.data.map(row => ({
+        CLUES: row.cluesimb,
+        'Unidad médica': row.nombreUnidad ?? '',
+        'Clave CNIS': row.claveCnis,
+        Descripción: row.descripcion ?? '',
+        CPM: row.cpm,
+        Existencias: row.existencias,
+        Clasificación: row.clasificacion,
+        'Órdenes históricas encontradas': row.ordenesHistoricas,
+        'Órdenes vigentes': row.ordenesVigentes,
+        'Órdenes vencidas con saldo': row.ordenesVencidasConSaldo,
+        'Piezas vencidas pendientes': row.piezasVencidasPendientes,
+        'Última orden encontrada': row.ultimaOrden ?? '',
+        'Última fecha de emisión': this.formatDateForExcel(row.ultimaFechaEmision),
+        'Última fecha límite': this.formatDateForExcel(row.ultimaFechaLimite),
+        'Snapshot de existencias': this.formatDateForExcel(row.snapshotExistencias),
+      }));
+      this.appendJsonSheet(workbook, 'Claves', filas);
+      const hojaClaves = workbook.Sheets['Claves'];
+      hojaClaves['!cols'] = [
+        { wch: 16 }, { wch: 34 }, { wch: 20 }, { wch: 64 },
+        { wch: 12 }, { wch: 14 }, { wch: 38 }, { wch: 22 },
+        { wch: 18 }, { wch: 26 }, { wch: 26 }, { wch: 24 },
+        { wch: 20 }, { wch: 20 }, { wch: 22 },
+      ];
+      if (hojaClaves['!ref']) hojaClaves['!autofilter'] = { ref: hojaClaves['!ref'] };
+      const alcance = XLSX.utils.aoa_to_sheet([
+        ['REPORTE OPERATIVO SECCSOS · IB-ONCO'],
+        ['Tipo', tipo === 'sin_vigente' ? 'Sin orden vigente' : 'Sin antecedente de orden'],
+        ['Criterio', reporte.criterio],
+        ['Advertencia', reporte.advertencia],
+        ['Ventana para órdenes sin fecha límite', `${reporte.windowDays} días`],
+        ['Generado', reporte.generadoEn],
+        ['Registros', reporte.count],
+        [],
+        ['Alcance', 'Reporte informativo para seguimiento; no constituye autorización de compra, entrega o traslado.'],
+      ]);
+      alcance['!cols'] = [{ wch: 38 }, { wch: 120 }];
+      XLSX.utils.book_append_sheet(workbook, alcance, 'Alcance y criterios');
+      const nombre = tipo === 'sin_vigente'
+        ? 'IB_ONCO_SECCSOS_SIN_ORDEN_VIGENTE'
+        : 'IB_ONCO_SECCSOS_SIN_ANTECEDENTE_ORDEN';
+      XLSX.writeFile(workbook, `${nombre}_${this.timestamp()}.xlsx`, { bookType: 'xlsx' });
+    } catch {
+      this.error.set('No se pudo generar el reporte SECCSOS solicitado.');
+    } finally {
+      this.exportandoSeccsos.set(null);
     }
   }
 

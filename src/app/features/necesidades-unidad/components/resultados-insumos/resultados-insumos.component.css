@@ -1,0 +1,26 @@
+/*
+ * Respaldo para navegadores que no interpretan los colores OKLCH de Tailwind 4.
+ * Los valores hexadecimales evitan que la acción principal quede transparente
+ * mientras se conservan las utilidades modernas declaradas en el template.
+ */
+.boton-agregar-insumo {
+  background-color: #047857;
+  border: 1px solid #047857;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.boton-agregar-insumo:hover {
+  background-color: #065f46;
+  border-color: #065f46;
+}
+
+.boton-agregar-insumo:active {
+  background-color: #064e3b;
+  border-color: #064e3b;
+}
+
+.boton-agregar-insumo:focus {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+}
