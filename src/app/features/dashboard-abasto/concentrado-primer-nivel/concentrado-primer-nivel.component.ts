@@ -193,7 +193,139 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
       'OBSERVACIONES'
     );
 
-    const claves = [...porClave.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const clavesOriginales = [...porClave.entries()].sort(([a], [b]) => a.localeCompare(b));
+    type FilaOperativa = {
+      numero: number | string;
+      clave: string;
+      descripcion: string;
+      tipoInsumo: 'MED' | 'MC' | null;
+      piezas: Map<string, number>;
+      piezasDirectas: number;
+      existenciaAzm: number;
+      existenciaAzt: number;
+      existenciaAze: number;
+      observacion: string;
+      esSustituta: boolean;
+      insertarDespuesDe: string | null;
+      fuentesSustitucion: Array<{
+        clave: string;
+        factor: number;
+        demanda: number;
+        existenciaLocalAplicada: number;
+        faltante: number;
+      }>;
+    };
+    const filasPorClave = new Map<string, FilaOperativa>();
+
+    clavesOriginales.forEach(([clave, item], index) => {
+      const existencias = existenciasPorClave.get(clave);
+      filasPorClave.set(clave, {
+        numero: index + 1,
+        clave,
+        descripcion: item.descripcion,
+        tipoInsumo: item.tipoInsumo,
+        piezas: new Map(item.piezas),
+        piezasDirectas: [...item.piezas.values()].reduce((total, piezas) => total + piezas, 0),
+        existenciaAzm: existencias?.existenciaAzm ?? 0,
+        existenciaAzt: existencias?.existenciaAzt ?? 0,
+        existenciaAze: existencias?.existenciaAze ?? 0,
+        observacion: '',
+        esSustituta: false,
+        insertarDespuesDe: null,
+        fuentesSustitucion: [],
+      });
+    });
+
+    clavesOriginales.forEach(([clave, item], index) => {
+      const existencias = existenciasPorClave.get(clave);
+      const demanda = [...item.piezas.values()].reduce((total, piezas) => total + piezas, 0);
+      const existenciaLocal = this.existenciaLocal(existencias, jurisdiccion);
+      const existenciaLocalAplicada = Math.min(demanda, existenciaLocal);
+      const faltantesPorUnidad = this.distribuirFaltanteProporcional(item.piezas, unidades, existenciaLocalAplicada);
+      const faltante = [...faltantesPorUnidad.values()].reduce((total, piezas) => total + piezas, 0);
+      const alternativa = existencias?.alternativa;
+      const filaOriginal = filasPorClave.get(clave)!;
+      filaOriginal.observacion = this.observacionAlternativa(
+        alternativa?.clave,
+        demanda,
+        existenciaLocalAplicada,
+        faltante,
+        jurisdiccion
+      );
+      if (faltante <= 0 || !alternativa) return;
+
+      let filaSustituta = filasPorClave.get(alternativa.clave);
+      if (!filaSustituta) {
+        filaSustituta = {
+          numero: `${index + 1}.1`,
+          clave: alternativa.clave,
+          descripcion: alternativa.descripcion?.trim() || 'Descripción no disponible',
+          tipoInsumo: alternativa.tipoInsumo,
+          piezas: new Map<string, number>(),
+          piezasDirectas: 0,
+          existenciaAzm: alternativa.existenciaAzm,
+          existenciaAzt: alternativa.existenciaAzt,
+          existenciaAze: alternativa.existenciaAze,
+          observacion: '',
+          esSustituta: true,
+          insertarDespuesDe: clave,
+          fuentesSustitucion: [],
+        };
+        filasPorClave.set(alternativa.clave, filaSustituta);
+      }
+      filaSustituta.esSustituta = true;
+      filaSustituta.insertarDespuesDe ??= clave;
+      if (!filaSustituta.fuentesSustitucion.some(fuente => fuente.clave === clave)) {
+        filaSustituta.fuentesSustitucion.push({
+          clave,
+          factor: alternativa.factor,
+          demanda,
+          existenciaLocalAplicada,
+          faltante,
+        });
+      }
+      for (const unidad of unidades) {
+        const piezasFaltantes = faltantesPorUnidad.get(unidad.cluesimb) ?? 0;
+        const piezasSustitutas = piezasFaltantes > 0
+          ? Math.max(1, Math.ceil((piezasFaltantes * alternativa.factor) - 1e-9))
+          : 0;
+        filaSustituta.piezas.set(
+          unidad.cluesimb,
+          (filaSustituta.piezas.get(unidad.cluesimb) ?? 0) + piezasSustitutas
+        );
+      }
+    });
+
+    for (const fila of filasPorClave.values()) {
+      if (!fila.esSustituta) continue;
+      fila.observacion = this.observacionFilaSustituta(fila.fuentesSustitucion, fila.piezasDirectas > 0);
+    }
+
+    const sustitutasPorOrigen = new Map<string, FilaOperativa[]>();
+    for (const fila of filasPorClave.values()) {
+      if (!fila.insertarDespuesDe) continue;
+      const relacionadas = sustitutasPorOrigen.get(fila.insertarDespuesDe) ?? [];
+      relacionadas.push(fila);
+      sustitutasPorOrigen.set(fila.insertarDespuesDe, relacionadas);
+    }
+    for (const relacionadas of sustitutasPorOrigen.values()) {
+      relacionadas.sort((a, b) => a.clave.localeCompare(b.clave));
+    }
+
+    const filas: FilaOperativa[] = [];
+    const clavesEmitidas = new Set<string>();
+    const agregarFila = (fila: FilaOperativa): void => {
+      if (clavesEmitidas.has(fila.clave)) return;
+      filas.push(fila);
+      clavesEmitidas.add(fila.clave);
+      for (const sustituta of sustitutasPorOrigen.get(fila.clave) ?? []) agregarFila(sustituta);
+    };
+    for (const [clave] of clavesOriginales) {
+      const fila = filasPorClave.get(clave)!;
+      if (fila.insertarDespuesDe && fila.insertarDespuesDe !== clave) continue;
+      agregarFila(fila);
+    }
+    for (const fila of filasPorClave.values()) agregarFila(fila);
     const sheet = workbook.addWorksheet(nombre);
     sheet.addRow(filaRutas);
     sheet.addRow(filaClues);
@@ -204,9 +336,9 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
     const columnaAzt = columnaTotal + 2;
     const columnaAze = columnaTotal + 3;
     const columnaObservaciones = columnaTotal + 4;
-    claves.forEach(([clave, item], index) => {
+    filas.forEach((item, index) => {
       const numeroFila = index + 4;
-      const fila: any[] = [index + 1, clave, item.descripcion, item.tipoInsumo ?? 'SIN CLASIFICAR'];
+      const fila: any[] = [item.numero, item.clave, item.descripcion, item.tipoInsumo ?? 'SIN CLASIFICAR'];
       let total = 0;
       for (const unidad of unidades) {
         const piezas = item.piezas.get(unidad.cluesimb) ?? 0;
@@ -214,36 +346,40 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
         total += piezas;
       }
       fila.push({ formula: `SUM(E${numeroFila}:${sheet.getColumn(ultimaColumnaUnidad).letter}${numeroFila})`, result: total });
-      const existencias = existenciasPorClave.get(clave);
-      fila.push(existencias?.existenciaAzm ?? 0, existencias?.existenciaAzt ?? 0, existencias?.existenciaAze ?? 0);
-      fila.push(this.observacionAlternativa(existencias));
-      sheet.addRow(fila);
+      fila.push(item.existenciaAzm, item.existenciaAzt, item.existenciaAze, item.observacion);
+      const renglon = sheet.addRow(fila);
+      if (item.esSustituta) {
+        renglon.eachCell({ includeEmpty: true }, cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
+          cell.alignment = { ...cell.alignment, vertical: 'top', wrapText: true };
+        });
+        renglon.getCell(2).font = { bold: true, color: { argb: 'FF7A4E00' } };
+      }
     });
 
-    const ultimaFilaDetalle = 3 + claves.length;
+    const ultimaFilaDetalle = 3 + filas.length;
     const filaTotales: any[] = ['', '', 'TOTAL GENERAL', ''];
     let totalJurisdiccion = 0;
     unidades.forEach((unidad, index) => {
-      const totalUnidad = claves.reduce((total, [, item]) => total + (item.piezas.get(unidad.cluesimb) ?? 0), 0);
+      const totalUnidad = filas.reduce((total, item) => total + (item.piezas.get(unidad.cluesimb) ?? 0), 0);
       totalJurisdiccion += totalUnidad;
       const letraColumna = sheet.getColumn(index + 5).letter;
-      filaTotales.push(claves.length
+      filaTotales.push(filas.length
         ? { formula: `SUBTOTAL(9,${letraColumna}4:${letraColumna}${ultimaFilaDetalle})`, result: totalUnidad }
         : 0);
     });
     const letraTotal = sheet.getColumn(columnaTotal).letter;
-    filaTotales.push(claves.length
+    filaTotales.push(filas.length
       ? { formula: `SUBTOTAL(9,${letraTotal}4:${letraTotal}${ultimaFilaDetalle})`, result: totalJurisdiccion }
       : 0);
     for (const columna of [columnaAzm, columnaAzt, columnaAze]) {
       const letraColumna = sheet.getColumn(columna).letter;
-      const totalAlmacen = claves.reduce((total, [clave]) => {
-        const existencias = existenciasPorClave.get(clave);
-        if (columna === columnaAzm) return total + (existencias?.existenciaAzm ?? 0);
-        if (columna === columnaAzt) return total + (existencias?.existenciaAzt ?? 0);
-        return total + (existencias?.existenciaAze ?? 0);
+      const totalAlmacen = filas.reduce((total, item) => {
+        if (columna === columnaAzm) return total + item.existenciaAzm;
+        if (columna === columnaAzt) return total + item.existenciaAzt;
+        return total + item.existenciaAze;
       }, 0);
-      filaTotales.push(claves.length
+      filaTotales.push(filas.length
         ? { formula: `SUBTOTAL(9,${letraColumna}4:${letraColumna}${ultimaFilaDetalle})`, result: totalAlmacen }
         : 0);
     }
@@ -284,19 +420,96 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
     return sheet;
   }
 
+  private existenciaLocal(
+    existencias: MatrizDistribucionPrimerNivelResponse['existenciasAlmacenes'][number] | undefined,
+    jurisdiccion: JurisdiccionDistribucionPrimerNivel
+  ): number {
+    if (jurisdiccion === 'MEXICALI') return Math.max(0, existencias?.existenciaAzm ?? 0);
+    if (jurisdiccion === 'TIJUANA') return Math.max(0, existencias?.existenciaAzt ?? 0);
+    return Math.max(0, existencias?.existenciaAze ?? 0);
+  }
+
+  private distribuirFaltanteProporcional(
+    piezasPorUnidad: Map<string, number>,
+    unidades: MatrizDistribucionPrimerNivelResponse['unidades'],
+    existenciaAplicada: number
+  ): Map<string, number> {
+    const demanda = unidades.reduce(
+      (total, unidad) => total + (piezasPorUnidad.get(unidad.cluesimb) ?? 0),
+      0
+    );
+    const cobertura = Math.min(Math.max(0, Math.floor(existenciaAplicada)), demanda);
+    if (demanda <= 0 || cobertura <= 0) return new Map(piezasPorUnidad);
+
+    const asignaciones = unidades.map((unidad, orden) => {
+      const solicitadas = piezasPorUnidad.get(unidad.cluesimb) ?? 0;
+      const cuotaExacta = (cobertura * solicitadas) / demanda;
+      const asignada = Math.min(solicitadas, Math.floor(cuotaExacta));
+      return {
+        cluesimb: unidad.cluesimb,
+        solicitadas,
+        asignada,
+        residuo: cuotaExacta - asignada,
+        orden,
+      };
+    });
+    let porAsignar = cobertura - asignaciones.reduce((total, item) => total + item.asignada, 0);
+    const prioridad = [...asignaciones].sort((a, b) =>
+      (b.residuo - a.residuo) || (a.orden - b.orden)
+    );
+    while (porAsignar > 0) {
+      let huboAsignacion = false;
+      for (const item of prioridad) {
+        if (porAsignar <= 0) break;
+        if (item.asignada >= item.solicitadas) continue;
+        item.asignada++;
+        porAsignar--;
+        huboAsignacion = true;
+      }
+      if (!huboAsignacion) break;
+    }
+    return new Map(asignaciones.map(item => [
+      item.cluesimb,
+      Math.max(0, item.solicitadas - item.asignada),
+    ]));
+  }
+
   private observacionAlternativa(
-    existencias: MatrizDistribucionPrimerNivelResponse['existenciasAlmacenes'][number] | undefined
+    claveAlternativa: string | undefined,
+    demanda: number,
+    existenciaLocalAplicada: number,
+    faltante: number,
+    jurisdiccion: JurisdiccionDistribucionPrimerNivel
   ): string {
-    const existenciaDirecta = (existencias?.existenciaAzm ?? 0)
-      + (existencias?.existenciaAzt ?? 0)
-      + (existencias?.existenciaAze ?? 0);
-    if (existenciaDirecta > 0) return '';
-    const alternativa = existencias?.alternativa;
-    if (!alternativa) return 'Sin existencia directa ni alternativa con existencia.';
-    return `Sin existencia directa. Alternativa ${alternativa.clave} · AZM ${alternativa.existenciaAzm.toLocaleString('es-MX')}`
-      + ` · AZT ${alternativa.existenciaAzt.toLocaleString('es-MX')} · AZE ${alternativa.existenciaAze.toLocaleString('es-MX')}`
-      + ` · factor ${alternativa.factor.toLocaleString('es-MX', { maximumFractionDigits: 4 })}`
-      + ` · cobertura equivalente ${alternativa.coberturaEquivalente.toLocaleString('es-MX', { maximumFractionDigits: 2 })}`;
+    if (faltante <= 0) {
+      return `La existencia local de ${jurisdiccion} cubre la demanda registrada de ${demanda.toLocaleString('es-MX')} piezas.`;
+    }
+    const cobertura = existenciaLocalAplicada > 0
+      ? `La existencia local de ${jurisdiccion} permite cubrir ${existenciaLocalAplicada.toLocaleString('es-MX')} de ${demanda.toLocaleString('es-MX')} piezas; quedan ${faltante.toLocaleString('es-MX')} sin cobertura directa.`
+      : `Sin existencia local disponible en ${jurisdiccion} para cubrir la demanda registrada de ${demanda.toLocaleString('es-MX')} piezas.`;
+    if (!claveAlternativa) return `${cobertura} No se encontró una alternativa con existencia configurada.`;
+    return `${cobertura} El faltante se incorporó proporcionalmente en la fila consolidada de la clave sustituta ${claveAlternativa}. Validar la alternativa antes del surtimiento.`;
+  }
+
+  private observacionFilaSustituta(
+    fuentes: Array<{
+      clave: string;
+      factor: number;
+      demanda: number;
+      existenciaLocalAplicada: number;
+      faltante: number;
+    }>,
+    incluyeSolicitudDirecta: boolean
+  ): string {
+    const relaciones = fuentes
+      .map(fuente => `${fuente.clave}: faltante ${fuente.faltante.toLocaleString('es-MX')} de ${fuente.demanda.toLocaleString('es-MX')} piezas, cobertura local ${fuente.existenciaLocalAplicada.toLocaleString('es-MX')}, factor ${fuente.factor.toLocaleString('es-MX', { maximumFractionDigits: 4 })}`)
+      .join(', ');
+    const inicio = incluyeSolicitudDirecta
+      ? 'Demanda consolidada. Esta clave fue solicitada directamente y también se agregó como sustituta de '
+      : 'Esta clave se agregó como sustituta de ';
+    return `${inicio}${relaciones} porque no existe disponibilidad directa para esa(s) clave(s).`
+      + ' Las cantidades sustitutas fueron traducidas con los factores configurados y sumadas por unidad.'
+      + ' Todo se incluye en los totales operativos. Validar la sustitución y disponibilidad antes del surtimiento.';
   }
 
   private filtros(paginar: boolean) {
