@@ -188,6 +188,7 @@ export class RadarAbastoService {
   async exportarGlobalV2(params: {
     search?: string; clues?: string; segmento?: RadarGlobalV2Segmento | '';
     estado_operativo?: RadarGlobalV2EstadoOperativo | ''; months?: number;
+    page?: number; pageSize?: number;
   }): Promise<RadarGlobalV2Response> {
     let p = new HttpParams();
     if (params.search) p = p.set('search', params.search);
@@ -195,6 +196,8 @@ export class RadarAbastoService {
     if (params.segmento) p = p.set('segmento', params.segmento);
     if (params.estado_operativo) p = p.set('estado_operativo', params.estado_operativo);
     if (params.months) p = p.set('months', String(params.months));
+    if (params.page) p = p.set('page', String(params.page));
+    if (params.pageSize) p = p.set('pageSize', String(params.pageSize));
     return await firstValueFrom(
       this.http.get<RadarGlobalV2Response>(`${environment.apiUrl}/radar-abasto/v2/export`, { params: p })
     );

@@ -1,0 +1,282 @@
+<main class="universos-page">
+  <header class="page-header">
+    <div>
+      <p class="section-label">Consulta hospitalaria</p>
+      <h1>Universos de Abasto</h1>
+      <p>Consulta las claves CNIS asociadas a cada unidad médica.</p>
+    </div>
+    <img src="imssb-logo.svg" alt="IMSS Bienestar">
+  </header>
+
+  @if (error()) {
+    <div class="alert" role="alert">{{ error() }}</div>
+  }
+  @if (mensajeExito()) {
+    <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-900" role="status">{{ mensajeExito() }}</div>
+  }
+
+  <section class="panel selector-panel">
+    @if (!unidadSeleccionada()) {
+      <div class="hospital-search">
+        <label for="unidad">Hospital</label>
+        <div class="hospital-search-field">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="unidad" type="search" autocomplete="off"
+            [ngModel]="busquedaHospital()" (ngModelChange)="busquedaHospital.set($event)"
+            placeholder="Buscar por nombre o CLUES">
+        </div>
+        <p class="search-help">Escribe al menos 2 caracteres para encontrar un hospital.</p>
+
+        @if (hospitalesFiltrados().length) {
+          <ul class="hospital-results" aria-label="Hospitales encontrados">
+            @for (unidad of hospitalesFiltrados(); track unidad.id) {
+              <li>
+                <button type="button" (click)="seleccionarUnidad(unidad)">
+                  <span class="hospital-result-name">{{ unidad.nombre }}</span>
+                  <span class="hospital-result-meta">{{ unidad.cluesimb || unidad.cluessa || 'Sin CLUES' }} · {{ unidad.totalClaves }} claves</span>
+                </button>
+              </li>
+            }
+          </ul>
+        } @else if (busquedaHospital().trim().length >= 2) {
+          <p class="hospital-empty">No encontramos hospitales con ese nombre o CLUES.</p>
+        }
+      </div>
+    } @else if (unidadSeleccionada(); as unidad) {
+      <div class="unit-summary">
+        <div>
+          <span>Unidad seleccionada</span>
+          <strong>{{ unidad.nombre }}</strong>
+          <small>{{ unidad.cluesimb || unidad.cluessa || 'Sin CLUES registrado' }}</small>
+          <button type="button" class="change-unit" (click)="cambiarUnidad()">Cambiar hospital</button>
+        </div>
+        <div class="total-card">
+          <span>Total de claves</span>
+          <strong>{{ unidad.totalClaves }}</strong>
+        </div>
+      </div>
+    }
+  </section>
+
+  @if (unidadSeleccionada()) {
+    <section class="panel">
+      <div class="table-heading">
+        <div>
+          <h2>Claves del universo</h2>
+          <p>{{ total() }} resultado(s)</p>
+        </div>
+        <button type="button" class="filter-button" (click)="abrirDialogoAgregar()">Agregar clave</button>
+      </div>
+
+      <div class="filters">
+        <label>
+          <span>Clave o descripción</span>
+          <input [(ngModel)]="search" (keyup.enter)="aplicarFiltros()" placeholder="Buscar">
+        </label>
+        <label>
+          <span>Tipo de insumo</span>
+          <select [(ngModel)]="tipoInsumo">
+            <option value="">Todos</option>
+            <option value="Medicamento">Medicamento</option>
+            <option value="Material de curación">Material de curación</option>
+          </select>
+        </label>
+        <label>
+          <span>Habilitación operativa</span>
+          <select [(ngModel)]="activo">
+            <option value="">Todos</option>
+            <option value="true">Habilitadas</option>
+            <option value="false">Deshabilitadas</option>
+          </select>
+        </label>
+        <button type="button" class="filter-button" (click)="aplicarFiltros()">Aplicar filtros</button>
+      </div>
+
+      @if (clavesSinCorrespondencia() > 0) {
+        <p class="mapping-notice">
+          Esta página contiene {{ clavesSinCorrespondencia() }} clave(s) pendiente(s) de correspondencia con el catálogo operativo.
+        </p>
+      }
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Clave</th>
+              <th>Descripción</th>
+              <th>Presentación</th>
+              <th>Tipo de insumo</th>
+              <th>Habilitación operativa</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of claves(); track row.clave) {
+              <tr [class.pending-row]="!row.correspondenciaArticulo">
+                <td class="clave-cell" data-label="Clave">
+                  {{ row.clave }}
+                  @if (!row.correspondenciaArticulo) {
+                    <span class="pending-badge">Pendiente de correspondencia</span>
+                  }
+                </td>
+                <td class="description-cell" data-label="Descripción">
+                  <span class="description-text" [title]="row.descripcion || 'Sin descripción en catálogo'">
+                    {{ row.descripcion || 'Sin descripción en catálogo' }}
+                  </span>
+                </td>
+                <td data-label="Presentación">{{ row.presentacion || '—' }}</td>
+                <td data-label="Tipo de insumo">{{ row.tipoInsumo }}</td>
+                <td data-label="Habilitación"><span [class]="row.activo ? 'status active' : 'status inactive'">{{ row.activo ? 'Habilitada' : 'Deshabilitada' }}</span></td>
+                <td data-label="Acción">
+                  <button type="button" class="text-sm font-semibold text-emerald-800 underline disabled:opacity-40" (click)="solicitarCambioActivo(row)">
+                    {{ row.activo ? 'Deshabilitar' : 'Rehabilitar' }}
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="6" class="empty-state">{{ cargando() ? 'Consultando claves…' : 'No se encontraron claves.' }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="pagination">
+        <div class="pagination-summary">
+          <strong>{{ registroInicial() }}–{{ registroFinal() }}</strong> de {{ total() }} claves
+        </div>
+        <div class="pagination-controls" aria-label="Paginación">
+          <button type="button" class="edge-button" title="Primera página" aria-label="Primera página" (click)="cambiarPagina(1)" [disabled]="page <= 1">«</button>
+          <button type="button" class="nav-button" (click)="cambiarPagina(page - 1)" [disabled]="page <= 1">Anterior</button>
+          @if (paginasVisibles()[0] > 1) { <span class="pagination-ellipsis">…</span> }
+          @for (pagina of paginasVisibles(); track pagina) {
+            <button type="button" class="page-button" [class.current]="pagina === page" [attr.aria-current]="pagina === page ? 'page' : null" (click)="cambiarPagina(pagina)">{{ pagina }}</button>
+          }
+          @if (paginasVisibles()[paginasVisibles().length - 1] < totalPages()) { <span class="pagination-ellipsis">…</span> }
+          <button type="button" class="nav-button" (click)="cambiarPagina(page + 1)" [disabled]="page >= totalPages()">Siguiente</button>
+          <button type="button" class="edge-button" title="Última página" aria-label="Última página" (click)="cambiarPagina(totalPages())" [disabled]="page >= totalPages()">»</button>
+        </div>
+      </footer>
+    </section>
+  }
+</main>
+
+@if (claveCambioActivo(); as clave) {
+  <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">
+    <section role="dialog" aria-modal="true" aria-labelledby="cambio-activo-titulo" class="w-full bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-2xl sm:p-6">
+      <h2 id="cambio-activo-titulo" class="text-xl font-bold text-emerald-900">
+        {{ clave.activo ? 'Deshabilitar clave' : 'Rehabilitar clave' }}
+      </h2>
+      <dl class="mt-4 space-y-3 text-sm">
+        <div><dt class="font-semibold text-gray-600">Hospital</dt><dd>{{ unidadSeleccionada()?.nombre }}</dd></div>
+        <div><dt class="font-semibold text-gray-600">Clave CNIS</dt><dd class="font-mono font-bold">{{ clave.clave }}</dd></div>
+        <div><dt class="font-semibold text-gray-600">Descripción</dt><dd>{{ clave.descripcion || 'Sin descripción en catálogo' }}</dd></div>
+      </dl>
+      <p class="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+        Esta operación sólo afectará el universo del hospital seleccionado.
+      </p>
+      @if (errorCambioActivo()) {
+        <p class="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-800" role="alert">{{ errorCambioActivo() }}</p>
+      }
+      <footer class="mt-5 flex justify-end gap-2">
+        <button type="button" class="min-h-11 rounded-lg border px-4" [disabled]="guardandoCambioActivo()" (click)="cancelarCambioActivo()">Cancelar</button>
+        <button type="button" class="min-h-11 rounded-lg px-4 font-semibold text-white disabled:opacity-40" [class.bg-red-700]="clave.activo" [class.bg-emerald-700]="!clave.activo" [disabled]="guardandoCambioActivo()" (click)="confirmarCambioActivo()">
+          {{ guardandoCambioActivo() ? 'Guardando…' : (clave.activo ? 'Deshabilitar' : 'Rehabilitar') }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (dialogoAgregarAbierto()) {
+  <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">
+    <section role="dialog" aria-modal="true" aria-labelledby="agregar-clave-titulo" class="max-h-[94dvh] w-full overflow-y-auto bg-white p-4 shadow-2xl sm:max-w-3xl sm:rounded-2xl sm:p-6">
+      <header class="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 id="agregar-clave-titulo" class="text-xl font-bold text-emerald-900">Agregar clave</h2>
+          <p class="text-sm text-gray-600">{{ unidadSeleccionada()?.nombre }}</p>
+        </div>
+        <button type="button" class="grid min-h-11 min-w-11 place-items-center rounded-lg text-xl text-gray-600 hover:bg-gray-100" aria-label="Cerrar" (click)="cerrarDialogoAgregar()">×</button>
+      </header>
+
+      @if (!confirmandoIncorporacion()) {
+        <div>
+          <input class="min-h-11 w-full rounded-lg border border-gray-300 px-3" [ngModel]="busquedaCandidato" (ngModelChange)="programarBusquedaCandidatos($event)" placeholder="Escribe una clave o descripción">
+          <p class="mt-1 text-xs text-gray-500">
+            @if (buscandoCandidatos()) { Buscando… } @else { La búsqueda inicia automáticamente desde 2 caracteres. }
+          </p>
+        </div>
+
+        @if (errorDialogo()) { <p class="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-800">{{ errorDialogo() }}</p> }
+
+        <div class="mt-4 max-h-80 space-y-2 overflow-y-auto">
+          @for (item of candidatos(); track item.clave) {
+            <button type="button" class="w-full rounded-xl border p-3 text-left" [class.border-emerald-600]="candidatoSeleccionado()?.clave === item.clave" [class.bg-emerald-50]="candidatoSeleccionado()?.clave === item.clave" [class.cursor-not-allowed]="item.perteneceUniverso" [class.opacity-60]="item.perteneceUniverso" [disabled]="item.perteneceUniverso" (click)="seleccionarCandidato(item)">
+              <span class="font-mono text-sm font-bold text-emerald-900">{{ item.clave }}</span>
+              <span class="mt-1 block text-sm text-gray-800">{{ item.descripcion || 'Sin descripción' }}</span>
+              <span class="mt-1 block text-xs text-gray-500">{{ item.presentacion || 'Sin presentación' }}</span>
+              @if (item.perteneceUniverso) { <span class="mt-2 inline-block rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Ya pertenece al universo</span> }
+              @if (!item.perteneceUniverso && item.clasificacionEstado === 'AUTOMATICA') {
+                <span class="mt-2 inline-block rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">{{ item.tipoInsumo }}</span>
+              }
+              @if (!item.perteneceUniverso && item.clasificacionEstado !== 'AUTOMATICA') {
+                <span class="mt-2 block text-xs font-semibold" [class.text-amber-700]="item.clasificacionEstado === 'MANUAL_160'" [class.text-red-700]="item.clasificacionEstado !== 'MANUAL_160'">{{ item.clasificacionMensaje }}</span>
+              }
+            </button>
+          } @empty {
+            @if (!buscandoCandidatos() && busquedaCandidato.trim().length >= 2) { <p class="py-6 text-center text-sm text-gray-500">No hay resultados para mostrar.</p> }
+          }
+        </div>
+
+        @if (totalPaginasCandidatos() > 1) {
+          <div class="mt-3 flex items-center justify-between text-sm text-gray-600">
+            <span>{{ totalCandidatos() }} resultado(s)</span>
+            <div class="flex gap-2">
+              <button type="button" class="min-h-10 rounded-lg border px-3 disabled:opacity-40" [disabled]="paginaCandidatos <= 1" (click)="buscarCandidatos(paginaCandidatos - 1)">Anterior</button>
+              <span class="self-center">{{ paginaCandidatos }} / {{ totalPaginasCandidatos() }}</span>
+              <button type="button" class="min-h-10 rounded-lg border px-3 disabled:opacity-40" [disabled]="paginaCandidatos >= totalPaginasCandidatos()" (click)="buscarCandidatos(paginaCandidatos + 1)">Siguiente</button>
+            </div>
+          </div>
+        }
+
+        @if (candidatoSeleccionado(); as seleccionado) {
+          <div class="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            @if (seleccionado.clasificacionEstado === 'AUTOMATICA') {
+              <p class="text-sm text-gray-600">Tipo identificado automáticamente por CNIS</p>
+              <strong class="mt-1 block text-emerald-900">{{ seleccionado.tipoInsumo }}</strong>
+            } @else if (seleccionado.clasificacionEstado === 'MANUAL_160') {
+              <label class="block text-sm font-semibold text-gray-800">
+                Tipo de insumo para clave 160 <span class="text-red-700">*</span>
+                <select class="mt-2 min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3" [(ngModel)]="tipoInsumoNuevo">
+                  <option value="">Selecciona un tipo</option>
+                  <option value="Medicamento">Medicamento</option>
+                  <option value="Material de curación">Material de curación</option>
+                </select>
+              </label>
+            } @else {
+              <p class="text-sm font-semibold text-red-800">{{ seleccionado.clasificacionMensaje }}</p>
+              <p class="mt-1 text-xs text-red-700">Esta clave no puede incorporarse.</p>
+            }
+          </div>
+        }
+
+        <footer class="mt-5 flex justify-end gap-2">
+          <button type="button" class="min-h-11 rounded-lg border px-4" (click)="cerrarDialogoAgregar()">Cancelar</button>
+          <button type="button" class="min-h-11 rounded-lg bg-emerald-700 px-4 font-semibold text-white disabled:opacity-40" [disabled]="!clasificacionResuelta(candidatoSeleccionado())" (click)="revisarIncorporacion()">Revisar incorporación</button>
+        </footer>
+      } @else {
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <p class="text-sm text-gray-600">Clave seleccionada</p>
+          <p class="font-mono font-bold text-emerald-900">{{ candidatoSeleccionado()?.clave }}</p>
+          <p class="mt-2 text-sm">{{ candidatoSeleccionado()?.descripcion }}</p>
+          <p class="mt-3 text-sm"><strong>Tipo de insumo:</strong> {{ tipoDefinitivo(candidatoSeleccionado()) }}</p>
+        </div>
+        @if (errorDialogo()) { <p class="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-800">{{ errorDialogo() }}</p> }
+        <p class="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Confirma la incorporación de esta clave al universo del hospital seleccionado.</p>
+        <footer class="mt-5 flex justify-end gap-2">
+          <button type="button" class="min-h-11 rounded-lg border px-4" [disabled]="guardandoIncorporacion()" (click)="confirmandoIncorporacion.set(false)">Volver</button>
+          <button type="button" class="min-h-11 rounded-lg bg-emerald-700 px-4 font-semibold text-white disabled:opacity-40" [disabled]="guardandoIncorporacion()" (click)="guardarIncorporacion()">{{ guardandoIncorporacion() ? 'Guardando…' : 'Confirmar y guardar' }}</button>
+        </footer>
+      }
+    </section>
+  </div>
+}

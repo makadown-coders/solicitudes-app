@@ -11,7 +11,7 @@
         Concentrado Primer Nivel
       </a>
       <button type="button" class="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" (click)="exportarExcel()" [disabled]="loading() || exporting()">
-        {{ exporting() ? 'Preparando Excel…' : 'Exportar Excel' }}
+        {{ exporting() ? 'Preparando Excel…' : 'Exportar Excel operativo' }}
       </button>
     </div>
   </header>
@@ -34,6 +34,7 @@
   </form>
 
   <p class="notice"><strong>Lectura responsable:</strong> “Sin solicitud observada” no significa que la unidad no necesite la clave; indica únicamente que no apareció en los ciclos registrados durante el periodo seleccionado.</p>
+  <p class="notice"><strong>Excel operativo:</strong> exporta claves que requieren seguimiento. Las cubiertas, por observar y CPM sin solicitud permanecen disponibles para consulta y filtrado en esta pantalla.</p>
   @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
 
   <section class="results" aria-live="polite">

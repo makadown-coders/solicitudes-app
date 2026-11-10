@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { RadarGlobalV2EstadoOperativo, RadarGlobalV2OrdenRow, RadarGlobalV2Row, RadarGlobalV2SalidaRow, RadarGlobalV2Segmento } from '../../../models/radar-abasto/RadarAbastoModels';
+import { RadarGlobalV2EstadoOperativo, RadarGlobalV2ExportDetallesResponse, RadarGlobalV2OrdenRow, RadarGlobalV2Row, RadarGlobalV2SalidaRow, RadarGlobalV2Segmento } from '../../../models/radar-abasto/RadarAbastoModels';
 import { RadarAbastoService } from '../../../services/radar-abasto.service';
 import * as XLSX from 'xlsx';
 
@@ -214,17 +214,38 @@ export class RadarGlobalV2Component implements OnInit {
     if (this.exporting()) return;
     this.exporting.set(true); this.error.set('');
     try {
-      const out = await this.radar.exportarGlobalV2({
+      const parametrosExportacion = {
         search: this.search().trim(), clues: this.clues().trim(),
         segmento: this.segmento(), estado_operativo: this.estadoOperativo(), months: this.months()
-      });
-      const rows = out.data ?? [];
+      };
+      const pageSize = 10000;
+      const out = await this.radar.exportarGlobalV2({ ...parametrosExportacion, page: 1, pageSize });
+      const rows = [...(out.data ?? [])];
+      const totalEsperado = out.total;
+      const paginas = Math.ceil(totalEsperado / pageSize);
+      for (let page = 2; page <= paginas; page++) {
+        const siguiente = await this.radar.exportarGlobalV2({ ...parametrosExportacion, page, pageSize });
+        if (siguiente.total !== totalEsperado) {
+          throw new Error('El universo del radar cambió durante la exportación. Intenta nuevamente.');
+        }
+        rows.push(...(siguiente.data ?? []));
+      }
+      const filasUnicas = new Map(rows.map(row => [this.claveFila(row), row]));
+      if (filasUnicas.size !== totalEsperado) {
+        throw new Error('El universo del radar cambió durante la exportación. Intenta nuevamente.');
+      }
+      rows.splice(0, rows.length, ...filasUnicas.values());
       const paresConEvidencia = rows
         .filter(row => row.salida_posterior || row.ordenes_pendientes > 0 || row.recepciones_recientes > 0)
         .map(row => ({ cluesimb: row.cluesimb, clave: row.clave }));
-      const evidencia = paresConEvidencia.length
-        ? await this.radar.exportarGlobalV2Detalles(paresConEvidencia, this.months())
-        : { salidas: [], ordenes: [] };
+      const evidencia: RadarGlobalV2ExportDetallesResponse = { salidas: [], ordenes: [] };
+      for (let offset = 0; offset < paresConEvidencia.length; offset += 5000) {
+        const lote = await this.radar.exportarGlobalV2Detalles(
+          paresConEvidencia.slice(offset, offset + 5000), this.months()
+        );
+        evidencia.salidas.push(...lote.salidas);
+        evidencia.ordenes.push(...lote.ordenes);
+      }
       const indice = new Map(rows.map(row => [this.claveFila(row), row]));
       const radar = rows.map(row => ({
         'Requiere seguimiento': this.requiereSeguimiento(row) ? 'Sí' : 'No',
@@ -318,9 +339,13 @@ export class RadarGlobalV2Component implements OnInit {
       XLSX.utils.book_append_sheet(workbook, this.crearHojaTabla(ordenes, 'Sin órdenes relacionadas'), 'Órdenes contexto');
       const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
       XLSX.writeFile(workbook, `radar_demanda_cobertura_${stamp}.xlsx`, { bookType: 'xlsx' });
-      if (out.truncated) this.error.set('La exportación alcanzó el límite de 50,000 filas. Aplica filtros para obtener el universo restante.');
-    } catch {
-      this.error.set('No fue posible generar el Excel del radar. Intenta aplicar filtros más específicos.');
+      if (rows.length !== totalEsperado) {
+        this.error.set('El universo cambió durante la exportación. Vuelve a generar el archivo.');
+      }
+    } catch (error) {
+      this.error.set(error instanceof Error
+        ? error.message
+        : 'No fue posible generar el Excel operativo del radar. Intenta nuevamente.');
     } finally { this.exporting.set(false); }
   }
 
