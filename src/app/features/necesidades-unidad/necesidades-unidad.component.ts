@@ -35,6 +35,13 @@ import { FeatureFlagsService } from '../../services/feature-flags.service';
 type EstadoBusqueda = 'inicial' | 'escribiendo' | 'cargando' | 'resultados' | 'vacio' | 'error';
 type ModoBusqueda = 'aps' | 'programa' | 'clave';
 
+type ContextoNavegacionAps = {
+  eje: string;
+  grupo: number;
+  resultados: ApsMedicamentoResumen[];
+  total: number;
+};
+
 @Component({
   selector: 'app-necesidades-unidad',
   standalone: true,
@@ -64,6 +71,7 @@ export class NecesidadesUnidadComponent {
   private readonly busqueda$ = new Subject<string>();
   private readonly busquedaAps$ = new Subject<string>();
   private feedbackTimer?: ReturnType<typeof setTimeout>;
+  private contextoNavegacionAps: ContextoNavegacionAps | null = null;
 
   readonly SearchIcon = Search;
   readonly BasketIcon = ShoppingBasket;
@@ -324,7 +332,24 @@ export class NecesidadesUnidadComponent {
       });
   }
 
+  volverACategoriasAps(): void {
+    this.grupoApsSeleccionado.set(null);
+    this.resultadosAps.set([]);
+    this.totalResultadosAps.set(0);
+    this.terminoBusqueda.set('');
+    this.estadoBusqueda.set('inicial');
+  }
+
   abrirMedicamentoAps(medicamento: ApsMedicamentoResumen): void {
+    const grupo = this.grupoApsSeleccionado();
+    this.contextoNavegacionAps = grupo === null
+      ? null
+      : {
+          eje: this.ejeApsSeleccionado(),
+          grupo,
+          resultados: this.resultadosAps(),
+          total: this.totalResultadosAps(),
+        };
     this.modalDetalleApsAbierto.set(true);
     this.detalleAps.set(null);
     this.errorDetalleAps.set('');
@@ -395,11 +420,25 @@ export class NecesidadesUnidadComponent {
       });
       this.modalDetalleApsAbierto.set(false);
       this.detalleAps.set(null);
+      this.restaurarGrupoAps();
     } catch (error: any) {
       this.errorDetalleAps.set(error?.error?.error || 'No pudimos agregar este medicamento. Intenta nuevamente.');
     } finally {
       this.resolviendoAps.set(false);
     }
+  }
+
+  private restaurarGrupoAps(): void {
+    const contexto = this.contextoNavegacionAps;
+    this.contextoNavegacionAps = null;
+    if (!contexto) return;
+
+    this.terminoBusqueda.set('');
+    this.ejeApsSeleccionado.set(contexto.eje);
+    this.grupoApsSeleccionado.set(contexto.grupo);
+    this.resultadosAps.set(contexto.resultados);
+    this.totalResultadosAps.set(contexto.total);
+    this.estadoBusqueda.set(contexto.resultados.length ? 'resultados' : 'vacio');
   }
 
   mostrarMasResultados(): void {
@@ -698,6 +737,10 @@ export class NecesidadesUnidadComponent {
   private async cargarDisponibilidadWishlist(cluesimb?: string): Promise<void> {
     this.cargandoDisponibilidad.set(true);
     try {
+      if (environment.bypassPrimerNivelWishlistFlag) {
+        this.wishlistHabilitada.set(true);
+        return;
+      }
       const flags = await this.featureFlagsService.getEffective({
         cluesimb,
         nivel: 'PRIMER_NIVEL',

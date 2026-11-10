@@ -167,8 +167,9 @@
                     <p class="mt-3 text-sm font-medium text-slate-500">Captura únicamente los insumos que necesitas. Deja los demás en cero.</p>
                   </div>
 
-                  <div class="mt-5 divide-y divide-slate-100 border-y border-slate-100">
-                    @for (insumo of programa.insumos; track insumo.clave) {
+                  <ng-template #listaInsumosPrograma let-insumos>
+                    <div class="divide-y divide-slate-100 border-y border-slate-100">
+                    @for (insumo of insumos; track insumo.clave) {
                       <article class="grid gap-3 py-5 sm:grid-cols-[minmax(0,1fr)_128px] items-center">
                         <div class="min-w-0">
                           <h4 class="text-sm font-bold leading-snug text-slate-900">{{ insumo.nombre || 'Insumo del programa' }}</h4>
@@ -196,7 +197,33 @@
                         </label>
                       </article>
                     }
-                  </div>
+                    </div>
+                  </ng-template>
+
+                  @if (programa.secciones?.length) {
+                    <div class="mt-6 space-y-8">
+                      @for (seccion of programa.secciones; track seccion.codigo) {
+                        <section [attr.aria-labelledby]="'seccion-programa-' + seccion.codigo">
+                          <div class="flex items-start justify-between gap-4 mb-3">
+                            <div class="min-w-0">
+                              <h4 class="text-lg font-bold text-slate-900" [id]="'seccion-programa-' + seccion.codigo">{{ seccion.nombre }}</h4>
+                              @if (seccion.descripcion) {
+                                <p class="mt-1 text-sm leading-relaxed text-slate-600">{{ seccion.descripcion }}</p>
+                              }
+                            </div>
+                            <span class="px-2.5 py-1 text-xs font-bold whitespace-nowrap text-emerald-800 bg-emerald-50 rounded-full">
+                              {{ seccion.insumos.length }} {{ seccion.insumos.length === 1 ? 'clave' : 'claves' }}
+                            </span>
+                          </div>
+                          <ng-container *ngTemplateOutlet="listaInsumosPrograma; context: { $implicit: seccion.insumos }" />
+                        </section>
+                      }
+                    </div>
+                  } @else {
+                    <div class="mt-5">
+                      <ng-container *ngTemplateOutlet="listaInsumosPrograma; context: { $implicit: programa.insumos }" />
+                    </div>
+                  }
                   @if (errorProgramaPreventivo()) { <p class="mt-4 p-3 text-sm font-medium text-rose-800 bg-rose-50 rounded-xl" role="alert">{{ errorProgramaPreventivo() }}</p> }
                   <div class="sticky bottom-20 p-3 mt-5 bg-white/95 rounded-2xl border-slate-200 shadow-lg border backdrop-blur xl:bottom-4">
                     <button type="button" class="w-full h-12 font-bold text-white bg-emerald-700 rounded-xl hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
@@ -253,7 +280,7 @@
               <div class="flex items-center justify-between gap-3 mb-3">
                 <p class="text-sm text-slate-500">{{ totalResultadosAps() }} {{ totalResultadosAps() === 1 ? 'medicamento encontrado' : 'medicamentos encontrados' }}</p>
                 @if (grupoApsSeleccionado()) {
-                  <button type="button" class="text-sm font-semibold text-emerald-700 hover:underline" (click)="seleccionarEjeAps(ejeApsSeleccionado())">Volver a categorías</button>
+                  <button type="button" class="text-sm font-semibold text-emerald-700 hover:underline" (click)="volverACategoriasAps()">Volver a categorías</button>
                 }
               </div>
               <div class="grid gap-3">

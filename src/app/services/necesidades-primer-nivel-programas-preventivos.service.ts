@@ -20,11 +20,20 @@ export interface ProgramaPreventivoInsumo {
   orden: number;
 }
 
+export interface ProgramaPreventivoSeccion {
+  codigo: string;
+  nombre: string;
+  descripcion: string | null;
+  orden: number;
+  insumos: ProgramaPreventivoInsumo[];
+}
+
 export interface ProgramaPreventivoDetalle {
   codigo: string;
   nombre: string;
   descripcion: string | null;
   insumos: ProgramaPreventivoInsumo[];
+  secciones?: ProgramaPreventivoSeccion[];
 }
 
 export interface ResolverProgramaPreventivoResponse {
