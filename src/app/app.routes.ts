@@ -134,6 +134,18 @@ export const routes: Routes = [
     loadComponent: () => import('./features/homologos-config/homologos-config.component')
       .then(m => m.HomologosConfigComponent)
   },
+  {
+    path: 'universos-abasto',
+    title: 'Universos de Abasto',
+    loadComponent: () => import('./features/universos-abasto/universos-abasto.component')
+      .then(m => m.UniversosAbastoComponent)
+  },
+  {
+    path: 'universos-abasto/:clues',
+    title: 'Universos de Abasto',
+    loadComponent: () => import('./features/universos-abasto/universos-abasto.component')
+      .then(m => m.UniversosAbastoComponent)
+  },
   { // TODO: Refactorizar este componente
     path: 'admin-kits',
     loadComponent: () => import('./features/kits/admin-kits/admin-kits.component')

@@ -1,0 +1,111 @@
+.hospital-search {
+  position: relative;
+  max-width: 760px;
+}
+
+.hospital-search-field {
+  position: relative;
+}
+
+.hospital-search-field input {
+  min-height: 50px;
+  padding-left: 42px;
+  font-size: 1rem;
+}
+
+.search-icon {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 15px;
+  transform: translateY(-50%);
+  color: #087f5b;
+  font-size: 1.25rem;
+}
+
+.search-help {
+  margin-top: 6px;
+  color: #687a72;
+  font-size: .76rem;
+}
+
+.hospital-results {
+  position: absolute;
+  z-index: 20;
+  top: 82px;
+  width: 100%;
+  max-height: 360px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #bdcdc5;
+  border-radius: 12px;
+  box-shadow: 0 14px 30px rgba(20, 55, 43, .16);
+}
+
+.hospital-results li + li {
+  border-top: 1px solid #edf2ef;
+}
+
+.hospital-results button {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.hospital-results button:hover,
+.hospital-results button:focus {
+  background: #eaf6f0;
+  outline: 0;
+}
+
+.hospital-result-name {
+  display: block;
+  color: #174f3c;
+  font-weight: 750;
+}
+
+.hospital-result-meta {
+  display: block;
+  margin-top: 3px;
+  color: #687a72;
+  font-size: .78rem;
+}
+
+.hospital-empty {
+  margin-top: 8px;
+  padding: 12px;
+  background: #f5f7f6;
+  border-radius: 9px;
+  color: #687a72;
+  font-size: .84rem;
+}
+
+.unit-summary {
+  margin-top: 0;
+  padding: 14px;
+  background: #f6fbf8;
+  border: 1px solid #bcd8ca;
+  border-radius: 12px;
+}
+
+.change-unit {
+  display: block;
+  margin-top: 9px;
+  color: #087f5b;
+  font-size: .78rem;
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+.change-unit:hover {
+  color: #065f46;
+}
+
+@media (max-width: 700px) {
+  .hospital-results {
+    position: static;
+    margin-top: 6px;
+    max-height: 300px;
+  }
+}
