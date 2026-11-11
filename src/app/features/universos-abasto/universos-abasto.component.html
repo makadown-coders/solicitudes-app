@@ -65,7 +65,12 @@
           <h2>Claves del universo</h2>
           <p>{{ total() }} resultado(s)</p>
         </div>
-        <button type="button" class="filter-button" (click)="abrirDialogoAgregar()">Agregar clave</button>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="min-h-11 rounded-lg border border-emerald-700 bg-white px-4 font-semibold text-emerald-800 disabled:opacity-40" [disabled]="exportando() || total() === 0" (click)="exportarExcel()">
+            {{ exportando() ? 'Exportando…' : 'Exportar Excel' }}
+          </button>
+          <button type="button" class="filter-button" (click)="abrirDialogoAgregar()">Agregar clave</button>
+        </div>
       </div>
 
       <div class="filters">
@@ -92,6 +97,14 @@
         <button type="button" class="filter-button" (click)="aplicarFiltros()">Aplicar filtros</button>
       </div>
 
+      @if (errorExportacion()) {
+        <p class="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{{ errorExportacion() }}</p>
+      }
+
+      <p class="mb-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+        CPM informativo. Los valores sin registro se muestran como 0 y el periodo de referencia no está identificado.
+      </p>
+
       @if (clavesSinCorrespondencia() > 0) {
         <p class="mapping-notice">
           Esta página contiene {{ clavesSinCorrespondencia() }} clave(s) pendiente(s) de correspondencia con el catálogo operativo.
@@ -106,6 +119,7 @@
               <th>Descripción</th>
               <th>Presentación</th>
               <th>Tipo de insumo</th>
+              <th>CPM</th>
               <th>Habilitación operativa</th>
               <th>Acción</th>
             </tr>
@@ -126,6 +140,7 @@
                 </td>
                 <td data-label="Presentación">{{ row.presentacion || '—' }}</td>
                 <td data-label="Tipo de insumo">{{ row.tipoInsumo }}</td>
+                <td data-label="CPM">{{ row.cpm }}</td>
                 <td data-label="Habilitación"><span [class]="row.activo ? 'status active' : 'status inactive'">{{ row.activo ? 'Habilitada' : 'Deshabilitada' }}</span></td>
                 <td data-label="Acción">
                   <button type="button" class="text-sm font-semibold text-emerald-800 underline disabled:opacity-40" (click)="solicitarCambioActivo(row)">
@@ -134,7 +149,7 @@
                 </td>
               </tr>
             } @empty {
-              <tr><td colspan="6" class="empty-state">{{ cargando() ? 'Consultando claves…' : 'No se encontraron claves.' }}</td></tr>
+              <tr><td colspan="7" class="empty-state">{{ cargando() ? 'Consultando claves…' : 'No se encontraron claves.' }}</td></tr>
             }
           </tbody>
         </table>
@@ -214,6 +229,7 @@
               <span class="font-mono text-sm font-bold text-emerald-900">{{ item.clave }}</span>
               <span class="mt-1 block text-sm text-gray-800">{{ item.descripcion || 'Sin descripción' }}</span>
               <span class="mt-1 block text-xs text-gray-500">{{ item.presentacion || 'Sin presentación' }}</span>
+              <span class="mt-2 block text-sm font-semibold text-gray-700">CPM: {{ item.cpm }}</span>
               @if (item.perteneceUniverso) { <span class="mt-2 inline-block rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Ya pertenece al universo</span> }
               @if (!item.perteneceUniverso && item.clasificacionEstado === 'AUTOMATICA') {
                 <span class="mt-2 inline-block rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">{{ item.tipoInsumo }}</span>

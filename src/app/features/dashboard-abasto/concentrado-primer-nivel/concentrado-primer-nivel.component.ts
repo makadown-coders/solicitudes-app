@@ -105,6 +105,9 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
       XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(out.data.map(item => ({
         Jurisdicción: item.jurisdiccion ?? '', CLUES: item.cluesimb, Unidad: item.unidad,
         Clave: item.clave, Nombre: item.nombre ?? '', Descripción: item.descripcion ?? '',
+        'Tipo de insumo': item.tipoInsumo === 'MED'
+          ? 'Medicamento'
+          : item.tipoInsumo === 'MC' ? 'Material de curación' : 'Sin clasificar',
         Origen: this.etiquetaOrigen(item.origen), Código: item.referencia ?? '',
         Referencia: item.etiquetaReferencia, Solicitudes: item.solicitudes, Piezas: item.piezas,
         'Primera solicitud': item.primeraSolicitud, 'Última solicitud': item.ultimaSolicitud,

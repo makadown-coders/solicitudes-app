@@ -1,0 +1,210 @@
+<main class="sandbox-page">
+  <header class="page-header">
+    <div class="title-block"><h1>Solicitudes V2</h1><span class="sandbox-badge">Sandbox 2027</span></div>
+    <p><strong>Captura temporal:</strong> no se guarda, envía ni autoriza ninguna solicitud.</p>
+  </header>
+
+  <section class="context-panel" aria-labelledby="context-title">
+    <div class="context-heading">
+      <div>
+        <h2 id="context-title">Preparar solicitud</h2>
+        <p>Selecciona la unidad y el mes para consultar su catálogo de claves.</p>
+      </div>
+      @if (cambiosSinGuardar()) { <span class="unsaved-dot">Cambios en memoria</span> }
+    </div>
+
+    @if (errorUnidades()) {
+      <div class="alert error" role="alert"><span>{{ errorUnidades() }}</span><button type="button" (click)="cargarUnidades()">Reintentar</button></div>
+    }
+
+    <div class="context-grid">
+      <label class="field hospital-field">
+        <span>Hospital</span>
+        <select [ngModel]="contexto().unidad?.id ?? ''" (ngModelChange)="seleccionarUnidad($event)" [disabled]="cargandoUnidades()">
+          <option value="">{{ cargandoUnidades() ? 'Consultando hospitales…' : 'Selecciona un hospital' }}</option>
+          @for (unidad of unidades(); track unidad.id) {
+            <option [value]="unidad.id">{{ unidad.nombre }} · {{ unidad.cluesimb || unidad.cluessa || 'Sin CLUES' }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Periodo mensual</span>
+        <select [ngModel]="contexto().periodo" (ngModelChange)="actualizarPeriodo($event)">
+          <option value="">Selecciona un mes</option>
+          <option value="2027-01">Enero 2027</option>
+          <option value="2027-02">Febrero 2027</option>
+          <option value="2027-03">Marzo 2027</option>
+          <option value="2027-04">Abril 2027</option>
+          <option value="2027-05">Mayo 2027</option>
+          <option value="2027-06">Junio 2027</option>
+          <option value="2027-07">Julio 2027</option>
+          <option value="2027-08">Agosto 2027</option>
+          <option value="2027-09">Septiembre 2027</option>
+          <option value="2027-10">Octubre 2027</option>
+          <option value="2027-11">Noviembre 2027</option>
+          <option value="2027-12">Diciembre 2027</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Responsable de captura</span>
+        <input type="text" maxlength="255" placeholder="Nombre completo" [ngModel]="contexto().responsableCaptura" (ngModelChange)="actualizarResponsable($event)" />
+      </label>
+
+      <div class="load-action">
+        <span>Catálogo hospitalario</span>
+        <button class="primary-button" type="button" (click)="cargarUniverso()" [disabled]="!contextoValido() || cargandoUniverso()">
+          {{ cargandoUniverso() ? 'Consultando catálogo…' : (universoCargado() ? 'Recargar universo' : 'Comenzar solicitud') }}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  @if (errorUniverso()) {
+    <div class="alert error universe-error" role="alert">
+      <div><strong>No se presentó una carga parcial.</strong><span>{{ errorUniverso() }}</span></div>
+      <button type="button" (click)="cargarUniverso()">Reintentar consulta</button>
+    </div>
+  }
+
+  @if (!universoCargado() && !cargandoUniverso()) {
+    <section class="welcome-state" aria-live="polite">
+      <div class="welcome-mark" aria-hidden="true">+</div>
+      <div>
+        <h2>Tu catálogo hospitalario aparecerá aquí</h2>
+        <p>Selecciona un hospital y periodo para comenzar a preparar tu solicitud.</p>
+      </div>
+    </section>
+  }
+
+  @if (universoCargado()) {
+    <nav class="workflow-tabs" aria-label="Flujo de solicitud">
+      <button type="button" [class.active]="vista() === 'CATALOGO'" (click)="cambiarVista('CATALOGO')">
+        <span>1</span> Catálogo del hospital <strong>{{ resumen().disponibles | number }}</strong>
+      </button>
+      <button type="button" [class.active]="vista() === 'SOLICITUD'" (click)="cambiarVista('SOLICITUD')">
+        <span>2</span> Mi solicitud <strong>{{ resumen().seleccionadas | number }}</strong>
+      </button>
+    </nav>
+
+    <section class="metrics" aria-label="Resumen de captura">
+      <span><strong>{{ resumen().disponibles | number }}</strong> disponibles</span>
+      <span><strong>{{ resumen().seleccionadas | number }}</strong> en Mi solicitud</span>
+      <span><strong>{{ resumen().pendientes | number }}</strong> pendientes de cantidad</span>
+      <span><strong>{{ resumen().positivas | number }}</strong> mayores a cero</span>
+      <span class="pieces"><strong>{{ resumen().piezas | number }}</strong> piezas solicitadas</span>
+    </section>
+
+    @if (vista() === 'CATALOGO') {
+      <section class="workspace-panel" aria-labelledby="catalog-title">
+        <div class="workspace-heading">
+          <div><h2 id="catalog-title">Catálogo del hospital</h2><p>Selecciona las claves que deseas agregar. La cantidad se captura después.</p></div>
+          <button type="button" class="secondary-button" (click)="cambiarVista('SOLICITUD')">Ver Mi solicitud ({{ resumen().seleccionadas }})</button>
+        </div>
+
+        <div class="filters">
+          <label class="field search-field"><span>Buscar clave o descripción</span><input type="search" placeholder="Ej. 010.000 o paracetamol" [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event); aplicarFiltros()" /></label>
+          <label class="field"><span>Tipo de insumo</span><select [ngModel]="tipoInsumo()" (ngModelChange)="tipoInsumo.set($event); aplicarFiltros()"><option value="">Todos los tipos</option>@for (tipo of tiposInsumo(); track tipo) { <option [value]="tipo">{{ tipo }}</option> }</select></label>
+          <label class="field"><span>Estado</span><select [ngModel]="estadoCatalogo()" (ngModelChange)="estadoCatalogo.set($event); aplicarFiltros()"><option value="TODAS">Todas las claves</option><option value="DISPONIBLES">Disponibles para agregar</option><option value="AGREGADAS">Ya agregadas</option></select></label>
+          <button type="button" class="clear-button" (click)="limpiarFiltros()">Limpiar</button>
+        </div>
+
+        <div class="selection-bar">
+          <span>{{ renglonesFiltrados().length | number }} claves coinciden · {{ seleccionCatalogo().size }} seleccionadas</span>
+          <button type="button" class="add-button" (click)="agregarSeleccionadas()" [disabled]="seleccionCatalogo().size === 0">Agregar seleccionadas</button>
+        </div>
+
+        <div class="table-shell catalog-table">
+          <table>
+            <thead><tr><th class="select-column"><input type="checkbox" aria-label="Seleccionar claves visibles" [checked]="paginaCompletaSeleccionada()" (change)="alternarPagina($any($event.target).checked)" /></th><th>Clave CNIS</th><th class="description-heading">Descripción</th><th>Presentación</th><th>Tipo</th><th class="numeric">CPM</th><th>Estado</th></tr></thead>
+            <tbody>
+              @for (row of renglonesVisibles(); track trackByClave($index, row)) {
+                <tr [class.added-row]="estaAgregada(row.claveNormalizada)">
+                  <td data-label="Seleccionar" class="select-column"><input type="checkbox" [checked]="estaSeleccionada(row.claveNormalizada)" [disabled]="estaAgregada(row.claveNormalizada)" (change)="alternarSeleccion(row, $any($event.target).checked)" [attr.aria-label]="'Seleccionar ' + row.clave" /></td>
+                  <td data-label="Clave CNIS"><code>{{ row.clave }}</code></td>
+                  <td data-label="Descripción" class="description"><span class="description-text" [title]="row.descripcion || ''">{{ row.descripcion || 'Sin descripción en catálogo' }}</span></td>
+                  <td data-label="Presentación">{{ row.presentacion || '—' }}</td>
+                  <td data-label="Tipo"><span class="type-pill">{{ row.tipoInsumo }}</span></td>
+                  <td data-label="CPM" class="numeric cpm-value">{{ row.cpm | number }}</td>
+                  <td data-label="Estado"><span class="status-pill" [class.added]="estaAgregada(row.claveNormalizada)">{{ estaAgregada(row.claveNormalizada) ? 'Agregada' : 'Disponible' }}</span></td>
+                </tr>
+              } @empty { <tr><td colspan="7" class="empty-state">No hay claves que coincidan con los filtros.</td></tr> }
+            </tbody>
+          </table>
+        </div>
+
+        @if (totalPaginas() > 1) {
+          <nav class="pagination" aria-label="Paginación del catálogo"><button type="button" (click)="cambiarPagina(pagina() - 1)" [disabled]="pagina() === 1">Anterior</button><span>{{ registroInicial() }}–{{ registroFinal() }} de {{ renglonesFiltrados().length }}</span><button type="button" (click)="cambiarPagina(pagina() + 1)" [disabled]="pagina() === totalPaginas()">Siguiente</button></nav>
+        }
+      </section>
+    } @else {
+      <section class="workspace-panel request-panel" aria-labelledby="request-title">
+        <div class="workspace-heading">
+          <div><h2 id="request-title">Mi solicitud</h2><p>Captura únicamente las cantidades de las claves que elegiste.</p></div>
+          <button type="button" class="secondary-button" (click)="cambiarVista('CATALOGO')">Volver al catálogo</button>
+        </div>
+
+        @if (miSolicitud().length === 0) {
+          <div class="request-empty"><strong>Tu solicitud está vacía</strong><span>Vuelve al catálogo y selecciona las claves que necesitas solicitar.</span><button type="button" class="primary-button" (click)="cambiarVista('CATALOGO')">Explorar catálogo</button></div>
+        } @else {
+          <section class="review-summary" aria-label="Revisión para exportar">
+            <div class="review-context">
+              <span><small>Hospital</small><strong>{{ contexto().unidad?.nombre }}</strong></span>
+              <span><small>CLUES</small><strong>{{ contexto().unidad?.cluesimb || contexto().unidad?.cluessa || 'No disponible' }}</strong></span>
+              <span><small>Periodo</small><strong>{{ contexto().periodo }}</strong></span>
+              @if (contexto().responsableCaptura) { <span><small>Responsable</small><strong>{{ contexto().responsableCaptura }}</strong></span> }
+            </div>
+            <div class="metrics review-counts">
+              <span><strong>{{ resumen().seleccionadas }}</strong> seleccionadas</span>
+              <span><strong>{{ resumen().positivas }}</strong> se incluirán</span>
+              <span><strong>{{ resumen().pendientes }}</strong> pendientes</span>
+              <span><strong>{{ resumen().cero }}</strong> en cero</span>
+              <span><strong>{{ resumen().piezas | number }}</strong> piezas</span>
+            </div>
+            <div class="selection-bar export-action">
+              <p>La simulación preparará internamente las claves con cantidad mayor que cero. No descargará ni enviará el archivo.</p>
+              <button type="button" class="primary-button" (click)="simularEnvio()" [disabled]="articulosExportables().length === 0 || simulandoEnvio()">
+                {{ simulandoEnvio() ? 'Preparando simulación…' : 'Simular envío' }}
+              </button>
+            </div>
+            @if (articulosExportables().length === 0) { <p class="export-hint">Captura al menos una cantidad mayor que cero para habilitar la simulación.</p> }
+            @if (errorSimulacion()) { <p class="export-error" role="alert">{{ errorSimulacion() }}</p> }
+            @if (resultadoSimulacion(); as resultado) {
+              <div class="welcome-state" role="status">
+                <div class="welcome-mark" aria-hidden="true">✓</div>
+                <div>
+                  <h2>Simulación completada</h2>
+                  <p>Tu solicitud se preparó correctamente. En la versión operativa, este proceso realizará el envío correspondiente.</p>
+                  <p><strong>{{ resultado.hospital }}</strong> · {{ resultado.periodo }} · {{ resultado.claves }} claves · {{ resultado.piezas | number }} piezas</p>
+                  <p><strong>Modo de prueba:</strong> no se envió ni registró ninguna solicitud.</p>
+                </div>
+              </div>
+            }
+          </section>
+
+          <div class="table-shell request-table">
+            <table>
+              <thead><tr><th>Clave CNIS</th><th class="description-heading">Descripción</th><th>Presentación</th><th class="numeric">CPM</th><th class="quantity-heading">Cantidad solicitada</th><th>Excel</th><th class="remove-column">Acción</th></tr></thead>
+              <tbody>
+                @for (row of miSolicitud(); track trackByClave($index, row); let index = $index) {
+                  <tr [class.captured-row]="row.cantidad !== null">
+                    <td data-label="Clave CNIS"><code>{{ row.clave }}</code></td>
+                    <td data-label="Descripción" class="description"><span class="description-text" [title]="row.descripcion || ''">{{ row.descripcion || 'Sin descripción en catálogo' }}</span><small>{{ row.tipoInsumo }}</small></td>
+                    <td data-label="Presentación">{{ row.presentacion || '—' }}</td>
+                    <td data-label="CPM" class="numeric cpm-value">{{ row.cpm | number }}</td>
+                    <td data-label="Cantidad" class="quantity-cell"><input #cantidadInput class="quantity-input" type="number" inputmode="numeric" min="0" max="99999" step="1" placeholder="Vacío" [value]="row.cantidad === null ? '' : row.cantidad" (input)="actualizarCantidad(row, cantidadInput)" (keydown)="impedirCaracteresInvalidos($event)" (keydown.enter)="avanzarCantidad($event, index)" [attr.aria-label]="'Cantidad solicitada para ' + row.clave" /></td>
+                    <td data-label="Excel"><span class="status-pill" [class.added]="row.cantidad !== null && row.cantidad > 0">{{ row.cantidad !== null && row.cantidad > 0 ? 'Se incluye' : 'No se exporta' }}</span></td>
+                    <td data-label="Acción"><button type="button" class="remove-button" (click)="quitarDeSolicitud(row)">Quitar</button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
+
+    <aside class="memory-warning" role="note">Los cambios permanecen únicamente en memoria y se perderán al recargar o cerrar esta página.</aside>
+  }
+</main>
