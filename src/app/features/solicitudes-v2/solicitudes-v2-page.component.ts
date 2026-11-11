@@ -39,6 +39,7 @@ export class SolicitudesV2PageComponent {
   readonly errorUniverso = signal('');
   readonly cambiosSinGuardar = signal(false);
   readonly simulandoEnvio = signal(false);
+  readonly descargandoExcel = signal(false);
   readonly errorSimulacion = signal('');
   readonly resultadoSimulacion = signal<{
     hospital: string;
@@ -385,6 +386,27 @@ export class SolicitudesV2PageComponent {
       this.errorSimulacion.set('No fue posible preparar la simulación. Tus cantidades se conservaron; intenta nuevamente.');
     } finally {
       this.simulandoEnvio.set(false);
+    }
+  }
+
+  async descargarExcel(): Promise<void> {
+    if (this.descargandoExcel()) return;
+    const articulos = this.articulosExportables();
+    if (articulos.length === 0) {
+      this.errorSimulacion.set('Captura al menos una cantidad mayor que cero para descargar el Excel.');
+      return;
+    }
+
+    this.descargandoExcel.set(true);
+    this.errorSimulacion.set('');
+    try {
+      const buffer = await this.excel.generarBuffer(this.contexto(), articulos);
+      if (buffer.byteLength === 0) throw new Error('El libro generado está vacío.');
+      this.excel.descargar(buffer, this.contexto());
+    } catch {
+      this.errorSimulacion.set('No fue posible generar el Excel. Tus cantidades se conservaron; intenta nuevamente.');
+    } finally {
+      this.descargandoExcel.set(false);
     }
   }
 

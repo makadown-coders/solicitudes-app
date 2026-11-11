@@ -1,6 +1,7 @@
 import * as ExcelJS from 'exceljs';
 import type { SolicitudV2Contexto, SolicitudV2Renglon } from './solicitudes-v2.model';
 
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const VERDE_INSTITUCIONAL = 'FF006B5F';
 
 export class SolicitudesV2ExcelService {
@@ -77,6 +78,18 @@ export class SolicitudesV2ExcelService {
 
     const contenido = await workbook.xlsx.writeBuffer();
     return contenido as ArrayBuffer;
+  }
+
+  descargar(buffer: ArrayBuffer, contexto: SolicitudV2Contexto): void {
+    const clues = contexto.unidad?.cluesimb || contexto.unidad?.cluessa || 'SIN-CLUES';
+    const identificador = `${clues}-${contexto.periodo}`.replace(/[^A-Z0-9_-]/gi, '_');
+    const blob = new Blob([buffer], { type: XLSX_MIME });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = `Necesidades-SANDBOX-V2-${identificador}.xlsx`;
+    enlace.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   private estilizarTituloYEncabezado(

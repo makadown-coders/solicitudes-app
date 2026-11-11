@@ -163,10 +163,15 @@
               <span><strong>{{ resumen().piezas | number }}</strong> piezas</span>
             </div>
             <div class="selection-bar export-action">
-              <p>La simulación preparará internamente las claves con cantidad mayor que cero. No descargará ni enviará el archivo.</p>
-              <button type="button" class="primary-button" (click)="simularEnvio()" [disabled]="articulosExportables().length === 0 || simulandoEnvio()">
-                {{ simulandoEnvio() ? 'Preparando simulación…' : 'Simular envío' }}
-              </button>
+              <p>La simulación no registra ni envía información. Mientras esta versión sea sandbox, también puedes descargar el Excel de prueba.</p>
+              <div class="title-block">
+                <button type="button" class="secondary-button" (click)="descargarExcel()" [disabled]="articulosExportables().length === 0 || descargandoExcel() || simulandoEnvio()">
+                  {{ descargandoExcel() ? 'Generando Excel…' : 'Descargar Excel' }}
+                </button>
+                <button type="button" class="primary-button" (click)="simularEnvio()" [disabled]="articulosExportables().length === 0 || simulandoEnvio() || descargandoExcel()">
+                  {{ simulandoEnvio() ? 'Preparando simulación…' : 'Simular envío' }}
+                </button>
+              </div>
             </div>
             @if (articulosExportables().length === 0) { <p class="export-hint">Captura al menos una cantidad mayor que cero para habilitar la simulación.</p> }
             @if (errorSimulacion()) { <p class="export-error" role="alert">{{ errorSimulacion() }}</p> }
