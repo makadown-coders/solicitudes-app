@@ -163,29 +163,18 @@
               <span><strong>{{ resumen().piezas | number }}</strong> piezas</span>
             </div>
             <div class="selection-bar export-action">
-              <p>La simulación no registra ni envía información. Mientras esta versión sea sandbox, también puedes descargar el Excel de prueba.</p>
+              <p>El archivo para el usuario contiene sólo su lista. La copia interna agrega el análisis operativo y se muestra únicamente para validar el sandbox.</p>
               <div class="title-block">
-                <button type="button" class="secondary-button" (click)="descargarExcel()" [disabled]="articulosExportables().length === 0 || descargandoExcel() || simulandoEnvio()">
-                  {{ descargandoExcel() ? 'Generando Excel…' : 'Descargar Excel' }}
+                <button type="button" class="secondary-button" (click)="verExcelInterno()" [disabled]="articulosExportables().length === 0 || descargandoExcelInterno() || descargandoExcel()">
+                  {{ descargandoExcelInterno() ? 'Generando copia interna…' : 'Ver Excel interno' }}
                 </button>
-                <button type="button" class="primary-button" (click)="simularEnvio()" [disabled]="articulosExportables().length === 0 || simulandoEnvio() || descargandoExcel()">
-                  {{ simulandoEnvio() ? 'Preparando simulación…' : 'Simular envío' }}
+                <button type="button" class="primary-button" (click)="descargarExcel()" [disabled]="articulosExportables().length === 0 || descargandoExcel() || descargandoExcelInterno()">
+                  {{ descargandoExcel() ? 'Generando Excel…' : 'Descargar Excel' }}
                 </button>
               </div>
             </div>
-            @if (articulosExportables().length === 0) { <p class="export-hint">Captura al menos una cantidad mayor que cero para habilitar la simulación.</p> }
-            @if (errorSimulacion()) { <p class="export-error" role="alert">{{ errorSimulacion() }}</p> }
-            @if (resultadoSimulacion(); as resultado) {
-              <div class="welcome-state" role="status">
-                <div class="welcome-mark" aria-hidden="true">✓</div>
-                <div>
-                  <h2>Simulación completada</h2>
-                  <p>Tu solicitud se preparó correctamente. En la versión operativa, este proceso realizará el envío correspondiente.</p>
-                  <p><strong>{{ resultado.hospital }}</strong> · {{ resultado.periodo }} · {{ resultado.claves }} claves · {{ resultado.piezas | number }} piezas</p>
-                  <p><strong>Modo de prueba:</strong> no se envió ni registró ninguna solicitud.</p>
-                </div>
-              </div>
-            }
+            @if (articulosExportables().length === 0) { <p class="export-hint">Captura al menos una cantidad mayor que cero para habilitar los archivos.</p> }
+            @if (errorExcel()) { <p class="export-error" role="alert">{{ errorExcel() }}</p> }
           </section>
 
           <div class="table-shell request-table">
