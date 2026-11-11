@@ -38,15 +38,9 @@ export class SolicitudesV2PageComponent {
   readonly errorUnidades = signal('');
   readonly errorUniverso = signal('');
   readonly cambiosSinGuardar = signal(false);
-  readonly simulandoEnvio = signal(false);
   readonly descargandoExcel = signal(false);
-  readonly errorSimulacion = signal('');
-  readonly resultadoSimulacion = signal<{
-    hospital: string;
-    periodo: string;
-    claves: number;
-    piezas: number;
-  } | null>(null);
+  readonly descargandoExcelInterno = signal(false);
+  readonly errorExcel = signal('');
 
   readonly busqueda = signal('');
   readonly tipoInsumo = signal('');
@@ -183,8 +177,7 @@ export class SolicitudesV2PageComponent {
 
     this.cargandoUniverso.set(true);
     this.errorUniverso.set('');
-    this.errorSimulacion.set('');
-    this.resultadoSimulacion.set(null);
+    this.errorExcel.set('');
     this.universoCargado.set(false);
     this.renglones.set([]);
 
@@ -345,8 +338,7 @@ export class SolicitudesV2PageComponent {
     );
     if (nuevas.length === 0) return;
     this.miSolicitud.update(rows => [...rows, ...nuevas.map(row => ({ ...row, cantidad: null }))]);
-    this.resultadoSimulacion.set(null);
-    this.errorSimulacion.set('');
+    this.errorExcel.set('');
     this.seleccionCatalogo.set(new Set());
     this.cambiosSinGuardar.set(true);
     this.vista.set('SOLICITUD');
@@ -357,35 +349,28 @@ export class SolicitudesV2PageComponent {
       `La clave ${row.clave} ya tiene una cantidad capturada. ¿Deseas quitarla de Mi solicitud?`,
     )) return;
     this.miSolicitud.update(rows => rows.filter(item => item.claveNormalizada !== row.claveNormalizada));
-    this.resultadoSimulacion.set(null);
-    this.errorSimulacion.set('');
+    this.errorExcel.set('');
     this.cambiosSinGuardar.set(true);
   }
 
-  async simularEnvio(): Promise<void> {
-    if (this.simulandoEnvio()) return;
+  async verExcelInterno(): Promise<void> {
+    if (this.descargandoExcelInterno()) return;
     const articulos = this.articulosExportables();
     if (articulos.length === 0) {
-      this.errorSimulacion.set('Captura al menos una cantidad mayor que cero para simular el envío.');
+      this.errorExcel.set('Captura al menos una cantidad mayor que cero para generar el Excel interno.');
       return;
     }
 
-    this.simulandoEnvio.set(true);
-    this.errorSimulacion.set('');
-    this.resultadoSimulacion.set(null);
+    this.descargandoExcelInterno.set(true);
+    this.errorExcel.set('');
     try {
-      const buffer = await this.excel.generarBuffer(this.contexto(), articulos);
+      const buffer = await this.excel.generarExcelOperativo(this.contexto(), articulos);
       if (buffer.byteLength === 0) throw new Error('El libro generado está vacío.');
-      this.resultadoSimulacion.set({
-        hospital: this.contexto().unidad?.nombre ?? 'Hospital no especificado',
-        periodo: this.contexto().periodo,
-        claves: articulos.length,
-        piezas: articulos.reduce((total, row) => total + (row.cantidad ?? 0), 0),
-      });
+      this.excel.descargar(buffer, this.contexto(), 'INTERNO');
     } catch {
-      this.errorSimulacion.set('No fue posible preparar la simulación. Tus cantidades se conservaron; intenta nuevamente.');
+      this.errorExcel.set('No fue posible generar el Excel interno. Tus cantidades se conservaron; intenta nuevamente.');
     } finally {
-      this.simulandoEnvio.set(false);
+      this.descargandoExcelInterno.set(false);
     }
   }
 
@@ -393,18 +378,18 @@ export class SolicitudesV2PageComponent {
     if (this.descargandoExcel()) return;
     const articulos = this.articulosExportables();
     if (articulos.length === 0) {
-      this.errorSimulacion.set('Captura al menos una cantidad mayor que cero para descargar el Excel.');
+      this.errorExcel.set('Captura al menos una cantidad mayor que cero para descargar el Excel.');
       return;
     }
 
     this.descargandoExcel.set(true);
-    this.errorSimulacion.set('');
+    this.errorExcel.set('');
     try {
-      const buffer = await this.excel.generarBuffer(this.contexto(), articulos);
+      const buffer = await this.excel.generarExcelUsuario(this.contexto(), articulos);
       if (buffer.byteLength === 0) throw new Error('El libro generado está vacío.');
-      this.excel.descargar(buffer, this.contexto());
+      this.excel.descargar(buffer, this.contexto(), 'USUARIO');
     } catch {
-      this.errorSimulacion.set('No fue posible generar el Excel. Tus cantidades se conservaron; intenta nuevamente.');
+      this.errorExcel.set('No fue posible generar el Excel. Tus cantidades se conservaron; intenta nuevamente.');
     } finally {
       this.descargandoExcel.set(false);
     }
@@ -418,8 +403,7 @@ export class SolicitudesV2PageComponent {
     this.miSolicitud.update(rows => rows.map(row =>
       row.claveNormalizada === claveNormalizada ? { ...row, cantidad } : row,
     ));
-    this.resultadoSimulacion.set(null);
-    this.errorSimulacion.set('');
+    this.errorExcel.set('');
     this.cambiosSinGuardar.set(true);
   }
 
@@ -430,8 +414,7 @@ export class SolicitudesV2PageComponent {
     this.vista.set('CATALOGO');
     this.universoCargado.set(false);
     this.cambiosSinGuardar.set(false);
-    this.resultadoSimulacion.set(null);
-    this.errorSimulacion.set('');
+    this.errorExcel.set('');
     this.errorUniverso.set('');
     this.limpiarFiltros();
   }
