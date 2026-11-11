@@ -70,6 +70,12 @@ export const routes: Routes = [
       .then(m => m.LayoutComponent)
   },
   {
+    path: 'solicitudesv2',
+    title: 'Solicitudes V2 · Sandbox',
+    loadComponent: () => import('./features/solicitudes-v2/solicitudes-v2-page.component')
+      .then(m => m.SolicitudesV2PageComponent)
+  },
+  {
     path: 'solicitud-unidad',
     loadComponent: () => import('./layout/layout/layout.component')
       .then(m => m.LayoutComponent)

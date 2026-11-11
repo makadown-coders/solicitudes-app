@@ -11,6 +11,8 @@ export interface UniversoClave {
   descripcion: string | null;
   presentacion: string | null;
   tipoInsumo: string;
+  cpm: number;
+  cpmRegistrado: boolean;
   activo: boolean;
   correspondenciaArticulo: boolean;
 }
@@ -30,6 +32,7 @@ export interface CatalogoClaveCandidata {
   clave: string;
   descripcion: string | null;
   presentacion: string | null;
+  cpm: number;
   perteneceUniverso: boolean;
   clasificacionEstado: 'AUTOMATICA' | 'MANUAL_160' | 'NO_DISPONIBLE' | 'INCOMPATIBLE' | 'AMBIGUA';
   tipoInsumo: 'Medicamento' | 'Material de curación' | null;

@@ -2,7 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { finalize, Subscription } from 'rxjs';
+import { finalize, firstValueFrom, Subscription } from 'rxjs';
+import * as XLSX from 'xlsx';
 import { CatalogoClaveCandidata, UniversoClave, UniversoUnidad } from '../../models/universos-abasto.model';
 import { UniversosAbastoService } from '../../services/universos-abasto.service';
 
@@ -54,6 +55,8 @@ export class UniversosAbastoComponent implements OnDestroy {
   readonly claveCambioActivo = signal<UniversoClave | null>(null);
   readonly guardandoCambioActivo = signal(false);
   readonly errorCambioActivo = signal('');
+  readonly exportando = signal(false);
+  readonly errorExportacion = signal('');
 
   page = 1;
   readonly pageSize = 25;
@@ -116,6 +119,97 @@ export class UniversosAbastoComponent implements OnDestroy {
 
   registroFinal(): number {
     return Math.min(this.page * this.pageSize, this.total());
+  }
+
+  async exportarExcel(): Promise<void> {
+    const unidad = this.unidadSeleccionada();
+    if (!unidad || this.exportando()) return;
+
+    const filtros = {
+      search: this.search.trim() || undefined,
+      tipoInsumo: this.tipoInsumo || undefined,
+      activo: this.activo === '' ? undefined : this.activo === 'true',
+    };
+
+    this.exportando.set(true);
+    this.errorExportacion.set('');
+
+    try {
+      const primera = await firstValueFrom(this.api.listarClaves(unidad.id, {
+        page: 1,
+        pageSize: 100,
+        ...filtros,
+      }));
+      const totalEsperado = primera.pagination.total;
+      const registros = [...primera.data];
+
+      for (let page = 2; page <= primera.pagination.totalPages; page++) {
+        const response = await firstValueFrom(this.api.listarClaves(unidad.id, {
+          page,
+          pageSize: 100,
+          ...filtros,
+        }));
+        if (response.pagination.total !== totalEsperado) {
+          throw new Error('El universo cambió durante la exportación. Vuelve a intentarlo.');
+        }
+        registros.push(...response.data);
+      }
+
+      const unicos = new Map(registros.map(row => [row.clave.trim().toUpperCase(), row]));
+      if (unicos.size !== totalEsperado) {
+        throw new Error('No fue posible validar el total exportado. Vuelve a intentarlo.');
+      }
+
+      const filas = [...unicos.values()].map(row => ({
+        'Clave CNIS': row.clave,
+        'Descripción': row.descripcion || 'Sin descripción en catálogo',
+        'Presentación': row.presentacion || '',
+        'Tipo de insumo': row.tipoInsumo,
+        'CPM': row.cpm,
+        'Estado operativo': row.activo ? 'Habilitada' : 'Deshabilitada',
+      }));
+
+      const detalle = XLSX.utils.json_to_sheet(
+        filas.length ? filas : [{ Mensaje: 'Sin resultados para los filtros seleccionados' }],
+      );
+      detalle['!cols'] = [
+        { wch: 22 }, { wch: 65 }, { wch: 35 }, { wch: 24 },
+        { wch: 12 }, { wch: 23 },
+      ];
+      if (detalle['!ref'] && filas.length) {
+        detalle['!autofilter'] = { ref: detalle['!ref'] };
+      }
+
+      const informacion = XLSX.utils.aoa_to_sheet([
+        ['UNIVERSOS DE ABASTO'],
+        [],
+        ['Unidad médica', unidad.nombre],
+        ['CLUES IMB', unidad.cluesimb || ''],
+        ['CLUES SSA', unidad.cluessa || ''],
+        ['Generado', new Date().toLocaleString('es-MX')],
+        ['Búsqueda', filtros.search || 'Sin filtro'],
+        ['Tipo de insumo', filtros.tipoInsumo || 'Todos'],
+        ['Habilitación operativa', filtros.activo === undefined ? 'Todas' : (filtros.activo ? 'Habilitadas' : 'Deshabilitadas')],
+        ['Total exportado', unicos.size],
+        [],
+        ['Aclaración CPM', 'Los CPM sin registro aparecen como 0.'],
+        ['Periodo de referencia', 'No identificado. El CPM no se presenta como oficial ni vigente.'],
+      ]);
+      informacion['!cols'] = [{ wch: 28 }, { wch: 85 }];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, detalle, 'Universo');
+      XLSX.utils.book_append_sheet(workbook, informacion, 'Información');
+      const identificador = unidad.cluesimb || unidad.cluessa || String(unidad.id);
+      const nombreSeguro = identificador.replace(/[^A-Z0-9_-]/gi, '_');
+      XLSX.writeFile(workbook, `universo_abasto_${nombreSeguro}.xlsx`, { bookType: 'xlsx' });
+    } catch (error) {
+      this.errorExportacion.set(
+        error instanceof Error ? error.message : 'No fue posible exportar el universo.',
+      );
+    } finally {
+      this.exportando.set(false);
+    }
   }
 
   abrirDialogoAgregar(): void {
