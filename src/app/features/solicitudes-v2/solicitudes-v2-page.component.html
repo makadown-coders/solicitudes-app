@@ -1,7 +1,7 @@
 <main class="sandbox-page">
   <header class="page-header">
     <div class="title-block"><h1>Solicitudes V2</h1><span class="sandbox-badge">Sandbox 2027</span></div>
-    <p><strong>Captura temporal:</strong> no se guarda, envía ni autoriza ninguna solicitud.</p>
+    <p><strong>Modo sandbox:</strong> el borrador se conserva en este navegador; no se envía ni registra ninguna solicitud.</p>
   </header>
 
   <section class="context-panel" aria-labelledby="context-title">
@@ -10,7 +10,7 @@
         <h2 id="context-title">Preparar solicitud</h2>
         <p>Selecciona la unidad y el mes para consultar su catálogo de claves.</p>
       </div>
-      @if (cambiosSinGuardar()) { <span class="unsaved-dot">Cambios en memoria</span> }
+      @if (cambiosSinGuardar()) { <span class="unsaved-dot">Borrador local actualizado</span> }
     </div>
 
     @if (errorUnidades()) {
@@ -86,6 +86,9 @@
       <button type="button" [class.active]="vista() === 'SOLICITUD'" (click)="cambiarVista('SOLICITUD')">
         <span>2</span> Mi solicitud <strong>{{ resumen().seleccionadas | number }}</strong>
       </button>
+      <button type="button" [class.active]="vista() === 'REVISION'" (click)="cambiarVista('REVISION')" [disabled]="resumen().seleccionadas === 0">
+        <span>3</span> Revisión
+      </button>
     </nav>
 
     <section class="metrics" aria-label="Resumen de captura">
@@ -99,8 +102,8 @@
     @if (vista() === 'CATALOGO') {
       <section class="workspace-panel" aria-labelledby="catalog-title">
         <div class="workspace-heading">
-          <div><h2 id="catalog-title">Catálogo del hospital</h2><p>Selecciona las claves que deseas agregar. La cantidad se captura después.</p></div>
-          <button type="button" class="secondary-button" (click)="cambiarVista('SOLICITUD')">Ver Mi solicitud ({{ resumen().seleccionadas }})</button>
+          <div><h2 id="catalog-title">Catálogo del hospital</h2><p>Selecciona claves o captura directamente una cantidad para agregarlas a Mi solicitud.</p></div>
+          <button type="button" class="secondary-button" (click)="cambiarVista('SOLICITUD')">Continuar a Mi solicitud ({{ resumen().seleccionadas }})</button>
         </div>
 
         <div class="filters">
@@ -111,25 +114,31 @@
         </div>
 
         <div class="selection-bar">
-          <span>{{ renglonesFiltrados().length | number }} claves coinciden · {{ seleccionCatalogo().size }} seleccionadas</span>
-          <button type="button" class="add-button" (click)="agregarSeleccionadas()" [disabled]="seleccionCatalogo().size === 0">Agregar seleccionadas</button>
+          <span>{{ registroInicial() }}–{{ registroFinal() }} visibles · {{ renglonesFiltrados().length | number }} coincidencias · {{ resumen().seleccionadas }} agregadas · {{ seleccionCatalogo().size }} por agregar</span>
+          <div class="selection-actions">
+            <button type="button" class="clear-button" (click)="seleccionarConjuntoVisible()">Seleccionar visibles</button>
+            <button type="button" class="clear-button" (click)="seleccionarCoincidencias()">Seleccionar coincidencias</button>
+            <button type="button" class="clear-button" (click)="deseleccionarCoincidencias()">Deseleccionar coincidencias</button>
+            <button type="button" class="add-button" (click)="agregarSeleccionadas()" [disabled]="seleccionCatalogo().size === 0">Agregar seleccionadas</button>
+          </div>
         </div>
 
         <div class="table-shell catalog-table">
           <table>
-            <thead><tr><th class="select-column"><input type="checkbox" aria-label="Seleccionar claves visibles" [checked]="paginaCompletaSeleccionada()" (change)="alternarPagina($any($event.target).checked)" /></th><th>Clave CNIS</th><th class="description-heading">Descripción</th><th>Presentación</th><th>Tipo</th><th class="numeric">CPM</th><th>Estado</th></tr></thead>
+            <thead><tr><th class="select-column"><input type="checkbox" aria-label="Seleccionar claves visibles" [checked]="paginaCompletaSeleccionada()" (change)="alternarPagina($any($event.target).checked)" /></th><th>Clave CNIS</th><th class="description-heading">Descripción</th><th>Presentación</th><th>Tipo</th><th class="numeric">CPM</th><th class="quantity-heading">Cantidad solicitada</th><th>Estado</th></tr></thead>
             <tbody>
               @for (row of renglonesVisibles(); track trackByClave($index, row)) {
                 <tr [class.added-row]="estaAgregada(row.claveNormalizada)">
-                  <td data-label="Seleccionar" class="select-column"><input type="checkbox" [checked]="estaSeleccionada(row.claveNormalizada)" [disabled]="estaAgregada(row.claveNormalizada)" (change)="alternarSeleccion(row, $any($event.target).checked)" [attr.aria-label]="'Seleccionar ' + row.clave" /></td>
+                  <td data-label="Seleccionar" class="select-column"><input type="checkbox" [checked]="estaAgregada(row.claveNormalizada) || estaSeleccionada(row.claveNormalizada)" (change)="alternarSeleccion(row, $any($event.target).checked)" [attr.aria-label]="'Seleccionar ' + row.clave" /></td>
                   <td data-label="Clave CNIS"><code>{{ row.clave }}</code></td>
                   <td data-label="Descripción" class="description"><span class="description-text" [title]="row.descripcion || ''">{{ row.descripcion || 'Sin descripción en catálogo' }}</span></td>
                   <td data-label="Presentación">{{ row.presentacion || '—' }}</td>
                   <td data-label="Tipo"><span class="type-pill">{{ row.tipoInsumo }}</span></td>
                   <td data-label="CPM" class="numeric cpm-value">{{ row.cpm | number }}</td>
+                  <td data-label="Cantidad" class="quantity-cell"><input #cantidadInput class="quantity-input" type="number" inputmode="numeric" min="0" max="99999" step="1" placeholder="Vacío" [value]="cantidadCatalogo(row.claveNormalizada)" (input)="actualizarCantidad(row, cantidadInput)" (keydown)="impedirCaracteresInvalidos($event)" (keydown.enter)="avanzarCantidad($event, $index)" [attr.aria-label]="'Cantidad solicitada para ' + row.clave" /></td>
                   <td data-label="Estado"><span class="status-pill" [class.added]="estaAgregada(row.claveNormalizada)">{{ estaAgregada(row.claveNormalizada) ? 'Agregada' : 'Disponible' }}</span></td>
                 </tr>
-              } @empty { <tr><td colspan="7" class="empty-state">No hay claves que coincidan con los filtros.</td></tr> }
+              } @empty { <tr><td colspan="8" class="empty-state">No hay claves que coincidan con los filtros.</td></tr> }
             </tbody>
           </table>
         </div>
@@ -138,7 +147,7 @@
           <nav class="pagination" aria-label="Paginación del catálogo"><button type="button" (click)="cambiarPagina(pagina() - 1)" [disabled]="pagina() === 1">Anterior</button><span>{{ registroInicial() }}–{{ registroFinal() }} de {{ renglonesFiltrados().length }}</span><button type="button" (click)="cambiarPagina(pagina() + 1)" [disabled]="pagina() === totalPaginas()">Siguiente</button></nav>
         }
       </section>
-    } @else {
+    } @else if (vista() === 'SOLICITUD') {
       <section class="workspace-panel request-panel" aria-labelledby="request-title">
         <div class="workspace-heading">
           <div><h2 id="request-title">Mi solicitud</h2><p>Captura únicamente las cantidades de las claves que elegiste.</p></div>
@@ -148,35 +157,6 @@
         @if (miSolicitud().length === 0) {
           <div class="request-empty"><strong>Tu solicitud está vacía</strong><span>Vuelve al catálogo y selecciona las claves que necesitas solicitar.</span><button type="button" class="primary-button" (click)="cambiarVista('CATALOGO')">Explorar catálogo</button></div>
         } @else {
-          <section class="review-summary" aria-label="Revisión para exportar">
-            <div class="review-context">
-              <span><small>Hospital</small><strong>{{ contexto().unidad?.nombre }}</strong></span>
-              <span><small>CLUES</small><strong>{{ contexto().unidad?.cluesimb || contexto().unidad?.cluessa || 'No disponible' }}</strong></span>
-              <span><small>Periodo</small><strong>{{ contexto().periodo }}</strong></span>
-              @if (contexto().responsableCaptura) { <span><small>Responsable</small><strong>{{ contexto().responsableCaptura }}</strong></span> }
-            </div>
-            <div class="metrics review-counts">
-              <span><strong>{{ resumen().seleccionadas }}</strong> seleccionadas</span>
-              <span><strong>{{ resumen().positivas }}</strong> se incluirán</span>
-              <span><strong>{{ resumen().pendientes }}</strong> pendientes</span>
-              <span><strong>{{ resumen().cero }}</strong> en cero</span>
-              <span><strong>{{ resumen().piezas | number }}</strong> piezas</span>
-            </div>
-            <div class="selection-bar export-action">
-              <p>El archivo para el usuario contiene sólo su lista. La copia interna agrega el análisis operativo y se muestra únicamente para validar el sandbox.</p>
-              <div class="title-block">
-                <button type="button" class="secondary-button" (click)="verExcelInterno()" [disabled]="articulosExportables().length === 0 || descargandoExcelInterno() || descargandoExcel()">
-                  {{ descargandoExcelInterno() ? 'Generando copia interna…' : 'Ver Excel interno' }}
-                </button>
-                <button type="button" class="primary-button" (click)="descargarExcel()" [disabled]="articulosExportables().length === 0 || descargandoExcel() || descargandoExcelInterno()">
-                  {{ descargandoExcel() ? 'Generando Excel…' : 'Descargar Excel' }}
-                </button>
-              </div>
-            </div>
-            @if (articulosExportables().length === 0) { <p class="export-hint">Captura al menos una cantidad mayor que cero para habilitar los archivos.</p> }
-            @if (errorExcel()) { <p class="export-error" role="alert">{{ errorExcel() }}</p> }
-          </section>
-
           <div class="table-shell request-table">
             <table>
               <thead><tr><th>Clave CNIS</th><th class="description-heading">Descripción</th><th>Presentación</th><th class="numeric">CPM</th><th class="quantity-heading">Cantidad solicitada</th><th>Excel</th><th class="remove-column">Acción</th></tr></thead>
@@ -195,10 +175,54 @@
               </tbody>
             </table>
           </div>
+          <div class="request-action-bar">
+            <span><strong>{{ resumen().seleccionadas }}</strong> claves</span>
+            <span><strong>{{ resumen().pendientes }}</strong> pendientes</span>
+            <button type="button" class="secondary-button" (click)="cambiarVista('CATALOGO')">Agregar más claves</button>
+            <button type="button" class="primary-button" (click)="cambiarVista('REVISION')">Revisar solicitud</button>
+          </div>
         }
+      </section>
+    } @else {
+      <section class="workspace-panel review-panel" aria-labelledby="review-title">
+        <div class="workspace-heading">
+          <div><h2 id="review-title">Revisión de la solicitud</h2><p>Confirma qué claves formarán parte de la simulación.</p></div>
+          <button type="button" class="secondary-button" (click)="cambiarVista('SOLICITUD')">Volver a Mi solicitud</button>
+        </div>
+        <section class="review-summary" aria-label="Revisión para exportar">
+          <div class="review-context">
+            <span><small>Hospital</small><strong>{{ contexto().unidad?.nombre }}</strong></span>
+            <span><small>CLUES</small><strong>{{ contexto().unidad?.cluesimb || contexto().unidad?.cluessa || 'No disponible' }}</strong></span>
+            <span><small>Periodo</small><strong>{{ contexto().periodo }}</strong></span>
+            @if (contexto().responsableCaptura) { <span><small>Responsable</small><strong>{{ contexto().responsableCaptura }}</strong></span> }
+          </div>
+          <div class="metrics review-counts">
+            <span><strong>{{ resumen().seleccionadas }}</strong> seleccionadas</span>
+            <span><strong>{{ resumen().positivas }}</strong> se incluirán</span>
+            <span><strong>{{ omitidasExcel() }}</strong> se omitirán</span>
+            <span><strong>{{ resumen().piezas | number }}</strong> piezas</span>
+          </div>
+          <p class="export-hint">Las cantidades vacías y en cero no se incluirán en los archivos.</p>
+          <div class="selection-bar export-action">
+            @if (!simulacionCompletada()) {
+              <p>Modo de prueba: no se enviará ni registrará ninguna solicitud.</p>
+              <button type="button" class="primary-button" (click)="simularEnvio()" [disabled]="articulosExportables().length === 0 || simulandoEnvio()">
+                {{ simulandoEnvio() ? 'Enviando solicitud (sandbox)…' : 'Simular envío' }}
+              </button>
+            } @else {
+              <p><strong>Simulación completada.</strong> No se envió ni registró ninguna solicitud.</p>
+              <div class="title-block">
+                <button type="button" class="secondary-button" (click)="verExcelInterno()" [disabled]="descargandoExcelInterno() || descargandoExcel()">{{ descargandoExcelInterno() ? 'Generando copia interna…' : 'Ver Excel interno' }}</button>
+                <button type="button" class="primary-button" (click)="descargarExcel()" [disabled]="descargandoExcel() || descargandoExcelInterno()">{{ descargandoExcel() ? 'Generando Excel…' : 'Descargar Excel' }}</button>
+              </div>
+            }
+          </div>
+          @if (articulosExportables().length === 0) { <p class="export-hint">Captura al menos una cantidad mayor que cero para habilitar la simulación.</p> }
+          @if (errorExcel()) { <p class="export-error" role="alert">{{ errorExcel() }}</p> }
+        </section>
       </section>
     }
 
-    <aside class="memory-warning" role="note">Los cambios permanecen únicamente en memoria y se perderán al recargar o cerrar esta página.</aside>
+    <aside class="memory-warning" role="note">El borrador se conserva localmente en este navegador. Todavía no representa una solicitud enviada ni registrada.</aside>
   }
 </main>
