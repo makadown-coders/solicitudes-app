@@ -1,0 +1,83 @@
+<div class="min-h-screen bg-slate-100">
+  <section class="mx-auto w-full max-w-[1800px] px-4 py-4 sm:px-6 lg:px-8">
+    <!-- Encabezado institucional consistente con solicitudes-app -->
+    <header class="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex items-start gap-3 sm:items-center">
+          <img
+            src="imssb-logo.svg"
+            alt="IMSS-Bienestar"
+            class="h-10 w-auto shrink-0"
+          />
+          <div class="border-l border-gray-200 pl-3">
+            <p class="text-xs font-semibold uppercase tracking-wide text-[#006341]">
+              Módulo administrativo · IMSS-Bienestar Baja California
+            </p>
+            <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">
+              Recursos Humanos
+            </h1>
+          </div>
+        </div>
+
+        <!-- Información del usuario autenticado y cierre de sesión -->
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3 sm:justify-end lg:border-t-0 lg:pt-0">
+          <div
+            id="rh-shell-user-info"
+            class="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2 border border-gray-200"
+          >
+            <span
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#006341]/10 text-[#006341]"
+              aria-hidden="true"
+            >
+              <lucide-icon [img]="icons.user" class="h-4 w-4"></lucide-icon>
+            </span>
+            <div class="min-w-0">
+              <p id="rh-shell-user-name" class="truncate text-sm font-semibold text-slate-800">
+                {{ displayName() }}
+              </p>
+              @if (displayEmail()) {
+                <p id="rh-shell-user-email" class="truncate text-xs text-slate-500">
+                  {{ displayEmail() }}
+                </p>
+              }
+            </div>
+          </div>
+
+          <button
+            id="rh-shell-logout-btn"
+            type="button"
+            (click)="onLogout()"
+            [disabled]="loggingOut()"
+            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-red-50 hover:text-red-700 hover:border-red-200 focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <lucide-icon [img]="icons.logOut" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+            <span>{{ loggingOut() ? 'Cerrando sesión…' : 'Cerrar sesión' }}</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Espacio principal preparado para futuras secciones -->
+    <main class="min-w-0">
+      <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-10">
+        <div class="mx-auto max-w-2xl text-center py-6">
+          <div
+            class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#006341]/10 text-[#006341]"
+            aria-hidden="true"
+          >
+            <lucide-icon [img]="icons.building" class="h-6 w-6"></lucide-icon>
+          </div>
+          <h2 class="text-lg font-bold text-slate-900 sm:text-xl">
+            Panel de Recursos Humanos
+          </h2>
+          <div class="mx-auto my-3 w-16 border-t-2 border-[#CBA135]"></div>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Este espacio concentrará progresivamente las herramientas administrativas autorizadas.
+          </p>
+        </div>
+
+        <router-outlet />
+      </div>
+    </main>
+  </section>
+</div>
