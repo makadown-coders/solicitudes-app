@@ -39,12 +39,16 @@ export class AuthClient {
 
   /**
    * Inicia sesión con correo y contraseña.
-   * Guarda access_token y refresh_token en `TokenStore` y publica inmediatamente el
+   * Limpia cualquier sesión previa para evitar mezcla de tokens/perfiles si el intento falla,
+   * guarda access_token y refresh_token en `TokenStore` y publica inmediatamente el
    * `user` devuelto por el backend en `SessionStore` sin realizar una llamada extra a `/auth/me`.
    */
   async login(email: string, password: string): Promise<LoginResponse> {
-    // Incrementar época al iniciar un nuevo flujo de login invalida cualquier refresh/me previo en vuelo
-    const loginEpoch = this.session.bumpEpoch();
+    // Limpiar sesión previa e incrementar época al iniciar un nuevo flujo de login:
+    // 1) Invalida cualquier refresh/me/logout previo en vuelo.
+    // 2) Evita dejar una sesión anterior a medias o mezclada si este login falla.
+    this.session.clear();
+    const loginEpoch = this.session.currentEpoch;
     this.refreshInFlight = null;
     this.meInFlight = null;
 
@@ -130,16 +134,17 @@ export class AuthClient {
 
   /**
    * Cierra la sesión actual:
-   * - Invalida inmediatamente la época de sesión para que cualquier `refresh()` o `me()`
-   *   pendiente no pueda restaurar tokens ni perfil al resolverse.
-   * - Solicita al backend revocar el `refresh_token` (`POST /auth/logout`).
-   * - Limpia `TokenStore` y `SessionStore` siempre en un bloque `finally`.
+   * - Limpia sincrónicamente `TokenStore` y `SessionStore` e incrementa la época de sesión
+   *   antes del `await` de red para que cualquier `refresh()` o `me()` pendiente quede invalidado
+   *   y ningún `finally` tardío pueda borrar una sesión nueva iniciada posteriormente.
+   * - Solicita al backend revocar el `refresh_token` capturado (`POST /auth/logout`).
    */
   async logout(): Promise<void> {
     const refreshTokenToRevoke = this.tokens.refresh;
 
-    // Invalidamos de inmediato operaciones en vuelo y limpiamos promesas compartidas
-    this.session.bumpEpoch();
+    // Limpieza sincrónica inmediata: incrementa epoch, borra tokens y perfil local
+    this.session.clear();
+    const logoutEpoch = this.session.currentEpoch;
     this.refreshInFlight = null;
     this.meInFlight = null;
 
@@ -152,9 +157,15 @@ export class AuthClient {
         );
       }
     } catch {
-      // Ignoramos errores de red o backend al cerrar sesión; la limpieza local es obligatoria
+      // Ignoramos errores de red o backend al cerrar sesión; la limpieza local ya se aplicó
     } finally {
-      this.session.clear();
+      // Solo aseguramos limpieza si no se inició ninguna sesión nueva durante el await HTTP
+      if (this.session.currentEpoch === logoutEpoch) {
+        this.tokens.clear();
+        this.session.setUser(null);
+        this.session.setLoading(false);
+        this.session.setError(null);
+      }
     }
   }
 
