@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/auth/auth.guard';
 import { CargaMasivaComponent } from './features/carga-masiva/carga-masiva.component';
 import { SolicitudesConfigComponent } from './features/solicitudes-config/solicitudes-config.component';
 import { HomologosConfigComponent } from './features/homologos-config/homologos-config.component';
@@ -311,6 +312,19 @@ export const routes: Routes = [
         title: 'Dashboard Abasto · Acerca de'
       },
     ],
+  },
+  {
+    path: 'login',
+    title: 'Acceso al sistema',
+    loadComponent: () => import('./features/auth/login/login-page.component')
+      .then(m => m.LoginPageComponent),
+  },
+  {
+    path: 'rh',
+    title: 'Recursos Humanos',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/rh/rh-shell.component')
+      .then(m => m.RhShellComponent),
   },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: '**', redirectTo: '/home' },
