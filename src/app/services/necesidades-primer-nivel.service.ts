@@ -25,6 +25,18 @@ export type EnviarNecesidadesPrimerNivelResponse = {
   totalInsumos: number;
   totalPiezas: number;
   recibidoEn: string;
+  desglose?: {
+    medicamentos: number;
+    materialesConsumo: number;
+    sinClasificar: number;
+    porAps: number;
+    porClaveCnis: number;
+    porPrograma: Array<{
+      codigo: string;
+      nombre: string;
+      totalInsumos: number;
+    }>;
+  };
 };
 
 @Injectable({ providedIn: 'root' })
