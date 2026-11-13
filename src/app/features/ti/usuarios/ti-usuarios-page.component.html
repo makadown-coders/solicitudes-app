@@ -913,7 +913,7 @@
         <button
           type="button"
           (click)="requestRolesSave()"
-          [disabled]="rolesSubmitting() || !!rolesError() || rolesCatalog().length === 0"
+          [disabled]="rolesSubmitting() || !!rolesError() || rolesCatalog().length === 0 || !hasRolesChanges()"
           class="rounded-lg bg-[#006341] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004f34] disabled:opacity-60"
         >
           {{ rolesConfirmRemoveStep() ? 'Confirmar reemplazo' : 'Guardar roles' }}

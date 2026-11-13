@@ -88,9 +88,9 @@
 
         <!-- Filtros -->
         <form (ngSubmit)="onSearchSubmit()" class="grid grid-cols-1 gap-3 md:grid-cols-12">
-          <div class="md:col-span-5">
+          <div class="relative md:col-span-5">
             <label for="ti-personas-search-input" class="mb-1 block text-xs font-semibold text-slate-700">
-              Buscar por nombre, unidad o correo
+              Buscar por nombre o correo
             </label>
             <div class="relative flex items-center">
               <lucide-icon [img]="icons.search" class="pointer-events-none absolute left-3 h-4 w-4 text-slate-400" aria-hidden="true"></lucide-icon>
@@ -98,11 +98,19 @@
                 id="ti-personas-search-input"
                 type="text"
                 name="q"
+                role="combobox"
+                autocomplete="off"
+                [attr.aria-autocomplete]="'list'"
+                [attr.aria-expanded]="personaSuggestOpen()"
+                [attr.aria-controls]="personaSuggestOpen() ? 'ti-personas-search-listbox' : null"
+                [attr.aria-activedescendant]="personaSuggestIndex() >= 0 ? 'ti-personas-suggest-opt-' + personaSuggestIndex() : null"
                 [ngModel]="searchDraft()"
-                (ngModelChange)="searchDraft.set($event)"
+                (ngModelChange)="onPersonaSearchInput($event)"
+                (keydown)="onPersonaSearchKeyDown($event)"
+                (blur)="onPersonaSearchBlur()"
                 placeholder="Ej. Dra. Ana Gómez o correo…"
                 maxlength="200"
-                class="w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-20 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+                class="min-h-10 w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-24 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
               />
               @if (searchDraft()) {
                 <button
@@ -124,24 +132,132 @@
                 Buscar
               </button>
             </div>
+
+            @if (personaSuggestOpen()) {
+              <div
+                id="ti-personas-search-dropdown"
+                class="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg"
+              >
+                @if (personaSuggestLoading()) {
+                  <div id="ti-personas-search-loading" class="flex items-center gap-2 px-3 py-2.5 text-xs text-slate-500">
+                    <lucide-icon [img]="icons.loader" class="h-3.5 w-3.5 animate-spin text-[#006341]" aria-hidden="true"></lucide-icon>
+                    <span>Buscando personas…</span>
+                  </div>
+                } @else if (personaSuggestions().length > 0) {
+                  <ul id="ti-personas-search-listbox" role="listbox" class="divide-y divide-gray-100 py-1">
+                    @for (item of personaSuggestions(); track item.id; let i = $index) {
+                      <li
+                        [id]="'ti-personas-suggest-opt-' + i"
+                        role="option"
+                        [attr.aria-selected]="i === personaSuggestIndex()"
+                        (mousedown)="$event.preventDefault(); selectPersonaSuggestion(item)"
+                        class="cursor-pointer px-3 py-2 text-xs transition hover:bg-slate-50"
+                        [class.bg-emerald-50]="i === personaSuggestIndex()"
+                      >
+                        <div class="font-semibold text-slate-900">{{ item.nombre_completo }}</div>
+                        <div class="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                          @if (item.email_principal) {
+                            <span>{{ item.email_principal }}</span>
+                          }
+                          @if (item.unidad_medica) {
+                            <span class="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">{{ item.unidad_medica }}</span>
+                          }
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <div id="ti-personas-search-empty" class="px-3 py-2.5 text-xs text-slate-500">
+                    Sin coincidencias para «{{ searchDraft().trim() }}».
+                  </div>
+                }
+              </div>
+            }
           </div>
 
-          <div class="md:col-span-4">
+          <div class="relative md:col-span-4">
             <label for="ti-personas-unidad-filter" class="mb-1 block text-xs font-semibold text-slate-700">
-              Unidad médica de adscripción
+              Unidad de adscripción
             </label>
-            <select
-              id="ti-personas-unidad-filter"
-              name="unidadFilter"
-              [ngModel]="filterUnidadId()"
-              (ngModelChange)="onUnidadFilterChange($event)"
-              class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
-            >
-              <option [ngValue]="null">Todas las unidades médicas</option>
-              @for (u of unidadesFilterOptions(); track u.id) {
-                <option [ngValue]="u.id">{{ u.nombre }}</option>
+            <div class="relative flex items-center">
+              <lucide-icon [img]="icons.search" class="pointer-events-none absolute left-3 h-4 w-4 text-slate-400" aria-hidden="true"></lucide-icon>
+              <input
+                id="ti-personas-unidad-filter"
+                type="text"
+                name="unidadFilter"
+                role="combobox"
+                autocomplete="off"
+                [attr.aria-autocomplete]="'list'"
+                [attr.aria-expanded]="unidadSuggestOpen()"
+                [attr.aria-controls]="unidadSuggestOpen() ? 'ti-personas-unidad-listbox' : null"
+                [attr.aria-activedescendant]="unidadSuggestIndex() >= 0 ? 'ti-personas-unidad-opt-' + unidadSuggestIndex() : null"
+                [ngModel]="filterUnidadSearch()"
+                (ngModelChange)="onUnidadFilterInput($event)"
+                (focus)="onUnidadFilterFocus()"
+                (keydown)="onUnidadFilterKeyDown($event)"
+                (blur)="onUnidadFilterBlur()"
+                placeholder="Todas las unidades (ej. CENTRAL, TECATE…)"
+                class="min-h-10 w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-9 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+              />
+              @if (filterUnidadSearch() || filterUnidadId() !== null) {
+                <button
+                  id="ti-personas-clear-unidad-btn"
+                  type="button"
+                  (click)="onClearUnidadFilter()"
+                  aria-label="Limpiar unidad de adscripción"
+                  class="absolute right-2 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <lucide-icon [img]="icons.clear" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                </button>
               }
-            </select>
+            </div>
+
+            @if (unidadSuggestOpen()) {
+              <div
+                id="ti-personas-unidad-dropdown"
+                class="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg"
+              >
+                @if (filterUnidadId() !== null) {
+                  <button
+                    id="ti-personas-unidad-all-btn"
+                    type="button"
+                    (mousedown)="$event.preventDefault(); onClearUnidadFilter()"
+                    class="flex w-full items-center justify-between border-b border-gray-100 px-3 py-2 text-left text-xs font-semibold text-[#006341] hover:bg-emerald-50"
+                  >
+                    <span>Todas las unidades</span>
+                    <span>Quitar filtro</span>
+                  </button>
+                }
+                @if (unidadSuggestLoading()) {
+                  <div id="ti-personas-unidad-loading" class="flex items-center gap-2 px-3 py-2.5 text-xs text-slate-500">
+                    <lucide-icon [img]="icons.loader" class="h-3.5 w-3.5 animate-spin text-[#006341]" aria-hidden="true"></lucide-icon>
+                    <span>Buscando unidades…</span>
+                  </div>
+                } @else if (unidadesFilterOptions().length > 0) {
+                  <ul id="ti-personas-unidad-listbox" role="listbox" class="divide-y divide-gray-100 py-1">
+                    @for (u of unidadesFilterOptions(); track u.id; let i = $index) {
+                      <li
+                        [id]="'ti-personas-unidad-opt-' + i"
+                        role="option"
+                        [attr.aria-selected]="i === unidadSuggestIndex() || u.id === filterUnidadId()"
+                        (mousedown)="$event.preventDefault(); selectUnidadFilter(u)"
+                        class="cursor-pointer px-3 py-2 text-xs transition hover:bg-slate-50"
+                        [class.bg-emerald-50]="i === unidadSuggestIndex() || u.id === filterUnidadId()"
+                      >
+                        <div class="font-semibold text-slate-900">{{ u.nombre }}</div>
+                        @if (u.cluesimb || u.cluessa) {
+                          <div class="mt-0.5 text-[11px] text-slate-500">{{ u.cluesimb || u.cluessa }}</div>
+                        }
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <div id="ti-personas-unidad-empty" class="px-3 py-2.5 text-xs text-slate-500">
+                    Sin coincidencias para «{{ filterUnidadSearch().trim() }}».
+                  </div>
+                }
+              </div>
+            }
           </div>
 
           <div class="md:col-span-3">
@@ -153,7 +269,7 @@
               name="pageSize"
               [ngModel]="pageSize()"
               (ngModelChange)="onPageSizeChange($event)"
-              class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+              class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
             >
               <option [ngValue]="10">10 por página</option>
               <option [ngValue]="20">20 por página</option>

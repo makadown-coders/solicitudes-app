@@ -487,4 +487,31 @@ describe('TiUsuariosPageComponent (TI-2D.4A)', () => {
     expect(tableCellsText.includes('Cuentas SSO y Roles')).toBeFalse();
     expect(tableCellsText.includes('Asignar roles ahora')).toBeFalse();
   });
+
+  it('TI-2F.6: Botón Guardar roles deshabilitado sin cambios, ignora orden y no envía PUT sin cambios', async () => {
+    const user = component.usuarios()[1];
+    component.openRolesModal(user);
+    fixture.detectChanges();
+
+    // 1. Inicialmente sin cambios -> deshabilitado y sin PUT al invocar
+    expect(component.hasRolesChanges()).toBeFalse();
+    component.requestRolesSave();
+    await component.submitRolesUpdate();
+    httpMock.expectNone(`${baseUrl}/usuarios/${user.id}/roles`);
+
+    // 2. Cambiar desplegables sin pulsar Agregar -> sigue sin cambios
+    component.onNewRoleCodeChange('ADMIN_TIC');
+    expect(component.hasRolesChanges()).toBeFalse();
+
+    // 3. Agregar y luego quitar la misma asignación -> regresa a sin cambios
+    component.addRoleAssignment();
+    expect(component.hasRolesChanges()).toBeTrue();
+    component.removeRoleAssignment(1);
+    expect(component.hasRolesChanges()).toBeFalse();
+
+    // 4. Quitar todas las asignaciones originales -> habilitado
+    component.removeRoleAssignment(0);
+    expect(component.hasRolesChanges()).toBeTrue();
+    component.closeRolesModal();
+  });
 });

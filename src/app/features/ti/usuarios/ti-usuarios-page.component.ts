@@ -146,6 +146,17 @@ export class TiUsuariosPageComponent implements OnInit {
   readonly rolesSubmitting = signal<boolean>(false);
   readonly rolesModalError = signal<string | null>(null);
 
+  readonly hasRolesChanges = computed(() => {
+    const toKeySet = (list: TiUsuarioRoleAssignment[]): string[] =>
+      list
+        .map((r) => `${r.code}::${r.scope_type}::${r.scope_id}`)
+        .sort();
+    const orig = toKeySet(this.rolesOriginalSnapshot());
+    const curr = toKeySet(this.rolesDraft());
+    if (orig.length !== curr.length) return true;
+    return orig.some((k, i) => k !== curr[i]);
+  });
+
   readonly totalPages = computed(() => {
     const totalCount = this.total();
     const size = this.pageSize();
@@ -691,6 +702,9 @@ export class TiUsuariosPageComponent implements OnInit {
       this.rolesModalError.set('No es posible guardar sin el catálogo completo de roles.');
       return;
     }
+    if (!this.hasRolesChanges()) {
+      return;
+    }
     if (this.hasRemovedExistingRoles() && !this.rolesConfirmRemoveStep()) {
       this.rolesModalError.set(null);
       this.rolesConfirmRemoveStep.set(true);
@@ -701,7 +715,7 @@ export class TiUsuariosPageComponent implements OnInit {
 
   async submitRolesUpdate(): Promise<void> {
     const user = this.rolesModalUser();
-    if (!user || this.rolesSubmitting()) return;
+    if (!user || this.rolesSubmitting() || !this.hasRolesChanges()) return;
 
     this.rolesSubmitting.set(true);
     this.rolesModalError.set(null);

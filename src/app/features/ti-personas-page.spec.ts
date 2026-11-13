@@ -319,5 +319,87 @@ describe('TiPersonasPageComponent y TiPersonasService (Microintervención TI-2C.
       expect(component.personas().length).toBe(1);
       expect(component.personas()[0].id).toBe(102);
     });
+
+    it('17. TI-2G.1: Autocompletado de personas (nombre/correo), selección, teclado, sin coincidencias y limpieza', async () => {
+      svcSpy.listarPersonas.calls.reset();
+
+      await component.cargarSugerenciasPersonas('ana');
+      expect(svcSpy.listarPersonas).toHaveBeenCalledWith({
+        q: 'ana',
+        unidad_medica_id: null,
+        page: 1,
+        pageSize: 8,
+      });
+      expect(component.personaSuggestions().length).toBe(2);
+
+      // Navegación por teclado y selección con Enter
+      component.personaSuggestOpen.set(true);
+      component.onPersonaSearchKeyDown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+      expect(component.personaSuggestIndex()).toBe(0);
+      component.onPersonaSearchKeyDown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+      expect(component.personaSuggestIndex()).toBe(1);
+      component.onPersonaSearchKeyDown(new KeyboardEvent('keydown', { key: 'ArrowUp' }));
+      expect(component.personaSuggestIndex()).toBe(0);
+
+      component.page.set(3);
+      component.onPersonaSearchKeyDown(new KeyboardEvent('keydown', { key: 'Enter' }));
+      expect(component.appliedSearch()).toBe('Dra. Ana Gómez');
+      expect(component.page()).toBe(1);
+      expect(component.personaSuggestOpen()).toBeFalse();
+
+      // Estado sin coincidencias y cierre con Escape
+      svcSpy.listarPersonas.and.resolveTo({ items: [], page: 1, pageSize: 8, total: 0 });
+      component.searchDraft.set('inexistente@imssb.gob.mx');
+      component.personaSuggestOpen.set(true);
+      await component.cargarSugerenciasPersonas('inexistente@imssb.gob.mx');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('#ti-personas-search-empty')?.textContent).toContain('Sin coincidencias');
+      component.onPersonaSearchKeyDown(new KeyboardEvent('keydown', { key: 'Escape' }));
+      expect(component.personaSuggestOpen()).toBeFalse();
+
+      // Limpieza del filtro de persona
+      component.onClearSearch();
+      expect(component.searchDraft()).toBe('');
+      expect(component.appliedSearch()).toBe('');
+      expect(component.page()).toBe(1);
+    });
+
+    it('18. TI-2G.1: Autocompletado de unidades incluyendo OFICINA CENTRAL, selección por id real y limpieza', async () => {
+      svcSpy.buscarUnidades.and.resolveTo({
+        items: [
+          { id: 1, nombre: 'OFICINA CENTRAL', cluessa: null, cluesimb: null },
+          { id: 10, nombre: 'Hospital General Tijuana', cluessa: 'BCSSA000010', cluesimb: 'BCIMB000010' },
+        ],
+        page: 1,
+        pageSize: 50,
+        total: 2,
+      });
+
+      await component.cargarUnidadesFiltro('CENTRAL');
+      expect(svcSpy.buscarUnidades).toHaveBeenCalledWith({ q: 'CENTRAL', page: 1, pageSize: 50 });
+      expect(component.unidadesFilterOptions().some(u => u.nombre === 'OFICINA CENTRAL')).toBeTrue();
+
+      component.page.set(2);
+      component.unidadSuggestOpen.set(true);
+      component.onUnidadFilterKeyDown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+      expect(component.unidadSuggestIndex()).toBe(0);
+      component.onUnidadFilterKeyDown(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+      expect(component.filterUnidadId()).toBe(1);
+      expect(component.filterUnidadSearch()).toBe('OFICINA CENTRAL');
+      expect(component.page()).toBe(1);
+      expect(svcSpy.listarPersonas).toHaveBeenCalledWith({
+        q: undefined,
+        unidad_medica_id: 1,
+        page: 1,
+        pageSize: 20,
+      });
+
+      // Limpieza de unidad
+      component.onClearUnidadFilter();
+      expect(component.filterUnidadId()).toBeNull();
+      expect(component.filterUnidadSearch()).toBe('');
+      expect(component.page()).toBe(1);
+    });
   });
 });

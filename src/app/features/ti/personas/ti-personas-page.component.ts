@@ -85,9 +85,18 @@ export class TiPersonasPageComponent implements OnInit {
   // Filtros y paginación
   readonly searchDraft = signal<string>('');
   readonly appliedSearch = signal<string>('');
+  readonly personaSuggestions = signal<TiPersonaLite[]>([]);
+  readonly personaSuggestLoading = signal<boolean>(false);
+  readonly personaSuggestOpen = signal<boolean>(false);
+  readonly personaSuggestIndex = signal<number>(-1);
+
   readonly filterUnidadId = signal<number | null>(null);
   readonly filterUnidadSearch = signal<string>('');
   readonly unidadesFilterOptions = signal<TiUnidadMedicaItem[]>([]);
+  readonly unidadSuggestLoading = signal<boolean>(false);
+  readonly unidadSuggestOpen = signal<boolean>(false);
+  readonly unidadSuggestIndex = signal<number>(-1);
+
   readonly page = signal<number>(1);
   readonly pageSize = signal<number>(20);
   readonly total = signal<number>(0);
@@ -121,8 +130,11 @@ export class TiPersonasPageComponent implements OnInit {
 
   // Contadores de secuencia para descartar respuestas HTTP fuera de orden
   private listRequestSeq = 0;
+  private personaSuggestSeq = 0;
   private unitSearchSeq = 0;
   private detailRequestSeq = 0;
+  private personaSuggestTimer: ReturnType<typeof setTimeout> | null = null;
+  private unitFilterTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly totalPages = computed(() => {
     const t = this.total();
@@ -154,15 +166,27 @@ export class TiPersonasPageComponent implements OnInit {
   }
 
   async cargarUnidadesFiltro(q = ''): Promise<void> {
+    const seq = ++this.unitSearchSeq;
+    this.unidadSuggestLoading.set(true);
     try {
       const res = await this.tiPersonasService.buscarUnidades({
         q: q.trim() || undefined,
         page: 1,
         pageSize: 50,
       });
+      if (seq !== this.unitSearchSeq) {
+        return;
+      }
       this.unidadesFilterOptions.set(Array.isArray(res?.items) ? res.items : []);
+      this.unidadSuggestIndex.set(-1);
     } catch {
-      // No bloqueamos el listado principal si falla el catálogo auxiliar de filtro
+      if (seq === this.unitSearchSeq) {
+        this.unidadesFilterOptions.set([]);
+      }
+    } finally {
+      if (seq === this.unitSearchSeq) {
+        this.unidadSuggestLoading.set(false);
+      }
     }
   }
 
@@ -215,18 +239,223 @@ export class TiPersonasPageComponent implements OnInit {
   }
 
   onSearchSubmit(): void {
+    this.personaSuggestOpen.set(false);
+    this.personaSuggestIndex.set(-1);
     this.appliedSearch.set(this.searchDraft().trim());
     this.page.set(1);
     void this.cargarPersonas();
   }
 
+  onPersonaSearchInput(value: string): void {
+    this.searchDraft.set(value);
+    const trimmed = value.trim();
+
+    if (this.personaSuggestTimer) {
+      clearTimeout(this.personaSuggestTimer);
+      this.personaSuggestTimer = null;
+    }
+
+    if (trimmed.length < 2) {
+      this.personaSuggestSeq++;
+      this.personaSuggestions.set([]);
+      this.personaSuggestLoading.set(false);
+      this.personaSuggestOpen.set(false);
+      this.personaSuggestIndex.set(-1);
+      return;
+    }
+
+    this.personaSuggestOpen.set(true);
+    this.personaSuggestLoading.set(true);
+    this.personaSuggestIndex.set(-1);
+    this.personaSuggestTimer = setTimeout(() => {
+      void this.cargarSugerenciasPersonas(trimmed);
+    }, 250);
+  }
+
+  async cargarSugerenciasPersonas(q: string): Promise<void> {
+    const seq = ++this.personaSuggestSeq;
+    try {
+      const res = await this.tiPersonasService.listarPersonas({
+        q,
+        unidad_medica_id: this.filterUnidadId(),
+        page: 1,
+        pageSize: 8,
+      });
+      if (seq !== this.personaSuggestSeq) {
+        return;
+      }
+      this.personaSuggestions.set(Array.isArray(res?.items) ? res.items : []);
+      this.personaSuggestIndex.set(-1);
+    } catch {
+      if (seq === this.personaSuggestSeq) {
+        this.personaSuggestions.set([]);
+      }
+    } finally {
+      if (seq === this.personaSuggestSeq) {
+        this.personaSuggestLoading.set(false);
+      }
+    }
+  }
+
+  onPersonaSearchKeyDown(event: KeyboardEvent): void {
+    const list = this.personaSuggestions();
+    if (!this.personaSuggestOpen() || list.length === 0) {
+      if (event.key === 'Escape') {
+        this.personaSuggestOpen.set(false);
+        this.personaSuggestIndex.set(-1);
+      }
+      return;
+    }
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.personaSuggestIndex.set((this.personaSuggestIndex() + 1) % list.length);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.personaSuggestIndex.set((this.personaSuggestIndex() - 1 + list.length) % list.length);
+        break;
+      case 'Enter': {
+        const idx = this.personaSuggestIndex();
+        if (idx >= 0 && list[idx]) {
+          event.preventDefault();
+          this.selectPersonaSuggestion(list[idx]);
+        }
+        break;
+      }
+      case 'Escape':
+        event.preventDefault();
+        this.personaSuggestOpen.set(false);
+        this.personaSuggestIndex.set(-1);
+        break;
+    }
+  }
+
+  selectPersonaSuggestion(persona: TiPersonaLite): void {
+    this.searchDraft.set(persona.nombre_completo);
+    this.appliedSearch.set(persona.nombre_completo);
+    this.personaSuggestOpen.set(false);
+    this.personaSuggestIndex.set(-1);
+    this.page.set(1);
+    void this.cargarPersonas();
+  }
+
+  onPersonaSearchBlur(): void {
+    setTimeout(() => {
+      this.personaSuggestOpen.set(false);
+      this.personaSuggestIndex.set(-1);
+    }, 150);
+  }
+
   onClearSearch(): void {
+    if (this.personaSuggestTimer) {
+      clearTimeout(this.personaSuggestTimer);
+      this.personaSuggestTimer = null;
+    }
+    this.personaSuggestSeq++;
     this.searchDraft.set('');
+    this.personaSuggestions.set([]);
+    this.personaSuggestLoading.set(false);
+    this.personaSuggestOpen.set(false);
+    this.personaSuggestIndex.set(-1);
     if (this.appliedSearch() !== '') {
       this.appliedSearch.set('');
       this.page.set(1);
       void this.cargarPersonas();
     }
+  }
+
+  onUnidadFilterFocus(): void {
+    this.unidadSuggestOpen.set(true);
+    if (this.unidadesFilterOptions().length === 0 && !this.unidadSuggestLoading()) {
+      void this.cargarUnidadesFiltro(this.filterUnidadSearch());
+    }
+  }
+
+  onUnidadFilterInput(value: string): void {
+    this.filterUnidadSearch.set(value);
+    this.unidadSuggestOpen.set(true);
+    this.unidadSuggestIndex.set(-1);
+
+    if (this.unitFilterTimer) {
+      clearTimeout(this.unitFilterTimer);
+      this.unitFilterTimer = null;
+    }
+
+    this.unitFilterTimer = setTimeout(() => {
+      void this.cargarUnidadesFiltro(value);
+    }, 250);
+  }
+
+  onUnidadFilterKeyDown(event: KeyboardEvent): void {
+    const list = this.unidadesFilterOptions();
+    if (!this.unidadSuggestOpen()) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        this.onUnidadFilterFocus();
+      }
+      return;
+    }
+
+    switch (event.key) {
+      case 'ArrowDown':
+        if (list.length > 0) {
+          event.preventDefault();
+          this.unidadSuggestIndex.set((this.unidadSuggestIndex() + 1) % list.length);
+        }
+        break;
+      case 'ArrowUp':
+        if (list.length > 0) {
+          event.preventDefault();
+          this.unidadSuggestIndex.set((this.unidadSuggestIndex() - 1 + list.length) % list.length);
+        }
+        break;
+      case 'Enter':
+        event.preventDefault();
+        if (this.unidadSuggestIndex() >= 0 && list[this.unidadSuggestIndex()]) {
+          this.selectUnidadFilter(list[this.unidadSuggestIndex()]);
+        }
+        break;
+      case 'Escape':
+        event.preventDefault();
+        this.unidadSuggestOpen.set(false);
+        this.unidadSuggestIndex.set(-1);
+        break;
+    }
+  }
+
+  selectUnidadFilter(unidad: TiUnidadMedicaItem): void {
+    this.filterUnidadId.set(unidad.id);
+    this.filterUnidadSearch.set(unidad.nombre);
+    this.unidadSuggestOpen.set(false);
+    this.unidadSuggestIndex.set(-1);
+    this.page.set(1);
+    void this.cargarPersonas();
+  }
+
+  onClearUnidadFilter(): void {
+    if (this.unitFilterTimer) {
+      clearTimeout(this.unitFilterTimer);
+      this.unitFilterTimer = null;
+    }
+    const hadFilter = this.filterUnidadId() !== null;
+    this.filterUnidadId.set(null);
+    this.filterUnidadSearch.set('');
+    this.unidadSuggestOpen.set(false);
+    this.unidadSuggestIndex.set(-1);
+    void this.cargarUnidadesFiltro('');
+    if (hadFilter) {
+      this.page.set(1);
+      void this.cargarPersonas();
+    }
+  }
+
+  onUnidadFilterBlur(): void {
+    setTimeout(() => {
+      this.unidadSuggestOpen.set(false);
+      this.unidadSuggestIndex.set(-1);
+    }, 150);
   }
 
   onUnidadFilterChange(rawVal: string | number | null): void {
