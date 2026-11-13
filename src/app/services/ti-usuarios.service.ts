@@ -62,6 +62,43 @@ export interface TiUsuariosPagedResponse {
   total: number;
 }
 
+export type TiUsuarioStatus = 'ACTIVE' | 'SUSPENDED' | 'INACTIVE';
+
+export interface TiUsuarioStatusUpdateResult {
+  ok: true;
+  id: string;
+  status: TiUsuarioStatus;
+  revoked_sessions: number;
+}
+
+export interface TiUsuarioPasswordResetResult {
+  ok: true;
+  id: string;
+  revoked_sessions: number;
+}
+
+export interface TiUsuarioRolesUpdateResult {
+  ok: true;
+  id: string;
+  roles: TiUsuarioRoleAssignment[];
+}
+
+export interface TiUsuarioCreatePayload {
+  persona_id: number;
+  email: string;
+  name?: string;
+  password: string;
+  status?: TiUsuarioStatus;
+}
+
+export interface TiUsuarioCreateResult {
+  id: string;
+  email: string;
+  name: string;
+  status: TiUsuarioStatus;
+  persona_id: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TiUsuariosService {
   private readonly http = inject(HttpClient);
@@ -106,6 +143,52 @@ export class TiUsuariosService {
       this.http.get<TiUsuariosPagedResponse>(`${this.baseUrl}/usuarios`, {
         params: httpParams,
       })
+    );
+  }
+
+  /**
+   * Cambia el estado de una cuenta SSO (`PATCH /api/ti/usuarios/:id/status`).
+   */
+  async cambiarEstado(id: string, status: TiUsuarioStatus): Promise<TiUsuarioStatusUpdateResult> {
+    return await firstValueFrom(
+      this.http.patch<TiUsuarioStatusUpdateResult>(`${this.baseUrl}/usuarios/${id}/status`, {
+        status,
+      })
+    );
+  }
+
+  /**
+   * Restablece la contraseña de una cuenta SSO (`PUT /api/ti/usuarios/:id/password`).
+   * Nunca registra ni persiste la contraseña.
+   */
+  async restablecerContrasena(id: string, password: string): Promise<TiUsuarioPasswordResetResult> {
+    return await firstValueFrom(
+      this.http.put<TiUsuarioPasswordResetResult>(`${this.baseUrl}/usuarios/${id}/password`, {
+        password,
+      })
+    );
+  }
+
+  /**
+   * Reemplaza el conjunto completo de roles y alcances de una cuenta SSO (`PUT /api/ti/usuarios/:id/roles`).
+   */
+  async actualizarRoles(
+    id: string,
+    roles: TiUsuarioRoleAssignment[]
+  ): Promise<TiUsuarioRolesUpdateResult> {
+    return await firstValueFrom(
+      this.http.put<TiUsuarioRolesUpdateResult>(`${this.baseUrl}/usuarios/${id}/roles`, {
+        roles,
+      })
+    );
+  }
+
+  /**
+   * Crea una nueva cuenta SSO vinculada a una persona existente (`POST /api/ti/usuarios`).
+   */
+  async crearUsuario(payload: TiUsuarioCreatePayload): Promise<TiUsuarioCreateResult> {
+    return await firstValueFrom(
+      this.http.post<TiUsuarioCreateResult>(`${this.baseUrl}/usuarios`, payload)
     );
   }
 }

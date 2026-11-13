@@ -344,8 +344,8 @@ export const routes: Routes = [
       {
         path: 'personas',
         title: 'Administración TI · Personas',
-        loadComponent: () => import('./features/ti/personas/ti-personas-placeholder-page.component')
-          .then(m => m.TiPersonasPlaceholderPageComponent),
+        loadComponent: () => import('./features/ti/personas/ti-personas-page.component')
+          .then(m => m.TiPersonasPageComponent),
       },
     ],
   },
