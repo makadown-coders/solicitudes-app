@@ -110,6 +110,13 @@ export class TiUsuariosPageComponent implements OnInit {
   readonly createSubmitting = signal<boolean>(false);
   readonly createError = signal<string | null>(null);
 
+  // Modal: Alta de rol (POST /api/ti/roles)
+  readonly createRoleModalOpen = signal<boolean>(false);
+  readonly createRoleCodeDraft = signal<string>('');
+  readonly createRoleDescriptionDraft = signal<string>('');
+  readonly createRoleSubmitting = signal<boolean>(false);
+  readonly createRoleError = signal<string | null>(null);
+
   // Modal: Cambio de estado (PATCH /api/ti/usuarios/:id/status)
   readonly statusModalUser = signal<TiUsuarioItem | null>(null);
   readonly statusDraft = signal<TiUsuarioStatus>('ACTIVE');
@@ -595,6 +602,14 @@ export class TiUsuariosPageComponent implements OnInit {
     this.rolesModalError.set(null);
   }
 
+  onNewRoleCodeChange(code: string): void {
+    this.newRoleCode.set(code);
+    this.rolesModalError.set(null);
+    if (code.trim().toUpperCase() === 'ADMIN_TIC' && this.newRoleScopeType() !== 'GLOBAL') {
+      this.onNewScopeTypeChange('GLOBAL');
+    }
+  }
+
   onNewScopeTypeChange(scopeType: 'GLOBAL' | 'CLUES'): void {
     this.newRoleScopeType.set(scopeType);
     this.rolesModalError.set(null);
@@ -631,6 +646,10 @@ export class TiUsuariosPageComponent implements OnInit {
 
     if (!code) {
       this.rolesModalError.set('Selecciona un rol del catálogo.');
+      return;
+    }
+    if (code === 'ADMIN_TIC' && scopeType !== 'GLOBAL') {
+      this.rolesModalError.set('El rol administrativo ADMIN_TIC solo admite alcance GLOBAL.');
       return;
     }
     if (scopeType === 'CLUES' && !scopeId) {
@@ -828,6 +847,58 @@ export class TiUsuariosPageComponent implements OnInit {
     const created = this.lastCreatedUser();
     if (created) {
       this.openRolesModal(created);
+    }
+  }
+
+  // =========================================================================
+  // E. ALTA DE ROL EN CATÁLOGO (POST /api/ti/roles)
+  // =========================================================================
+  openCreateRoleModal(): void {
+    this.actionSuccessMessage.set(null);
+    this.createRoleCodeDraft.set('');
+    this.createRoleDescriptionDraft.set('');
+    this.createRoleError.set(null);
+    this.createRoleModalOpen.set(true);
+  }
+
+  closeCreateRoleModal(): void {
+    this.createRoleError.set(null);
+    this.createRoleModalOpen.set(false);
+  }
+
+  async submitCreateRole(): Promise<void> {
+    if (this.createRoleSubmitting()) return;
+
+    const code = this.createRoleCodeDraft().trim().toUpperCase();
+    if (!code || !/^[A-Z0-9_]{2,64}$/.test(code)) {
+      this.createRoleError.set(
+        'El código debe tener entre 2 y 64 caracteres (solo letras A-Z, números 0-9 y guion bajo _).'
+      );
+      return;
+    }
+
+    if (code === 'ADMIN_TIC' || this.rolesCatalog().some((r) => r.code.trim().toUpperCase() === code)) {
+      this.createRoleError.set(`El rol "${code}" ya existe o está reservado en el catálogo.`);
+      return;
+    }
+
+    const description = this.createRoleDescriptionDraft().trim();
+    if (!description || description.length > 255) {
+      this.createRoleError.set('La descripción es obligatoria (máximo 255 caracteres).');
+      return;
+    }
+
+    this.createRoleSubmitting.set(true);
+    this.createRoleError.set(null);
+    try {
+      const created = await this.tiUsuariosService.crearRol({ code, description });
+      this.closeCreateRoleModal();
+      this.actionSuccessMessage.set(`Rol ${created.code} creado correctamente en el catálogo.`);
+      await this.cargarRoles();
+    } catch (err) {
+      this.handleAdminHttpError(err, this.createRoleError, 'Error al crear el rol en el catálogo.');
+    } finally {
+      this.createRoleSubmitting.set(false);
     }
   }
 }

@@ -362,4 +362,93 @@ describe('TiUsuariosPageComponent (TI-2D.4A)', () => {
     expect(component.actionSuccessMessage()).toContain('Todavía no tiene roles asignados');
     expect(component.lastCreatedUser()?.id).toBe('33333333-3333-4333-8333-333333333333');
   });
+
+  it('TI-2F.2: Creación de rol en catálogo, validaciones, HTTP 201, HTTP 409 y preservación de usuarios', async () => {
+    // 1. Apertura y cancelación sin POST
+    component.openCreateRoleModal();
+    expect(component.createRoleModalOpen()).toBeTrue();
+    component.closeCreateRoleModal();
+    expect(component.createRoleModalOpen()).toBeFalse();
+    httpMock.expectNone(`${baseUrl}/roles`);
+
+    // 2. Validaciones de formato, descripción y duplicado anticipado
+    component.openCreateRoleModal();
+    component.createRoleCodeDraft.set('bad-code!');
+    component.createRoleDescriptionDraft.set('Desc');
+    await component.submitCreateRole();
+    expect(component.createRoleError()).toContain('2 y 64 caracteres');
+
+    component.createRoleCodeDraft.set('ADMIN_TIC');
+    await component.submitCreateRole();
+    expect(component.createRoleError()).toContain('ya existe o está reservado');
+
+    component.createRoleCodeDraft.set('  ib_onco  ');
+    component.createRoleDescriptionDraft.set('   ');
+    await component.submitCreateRole();
+    expect(component.createRoleError()).toContain('descripción es obligatoria');
+
+    // 3. HTTP 409 conserva datos
+    component.createRoleDescriptionDraft.set('  Operación del módulo IB-ONCO  ');
+    const p409 = component.submitCreateRole();
+    const post409 = httpMock.expectOne(`${baseUrl}/roles`);
+    expect(post409.request.method).toBe('POST');
+    expect(post409.request.body).toEqual({
+      code: 'IB_ONCO',
+      description: 'Operación del módulo IB-ONCO',
+    });
+    post409.flush({ ok: false, error: 'Rol duplicado' }, { status: 409, statusText: 'Conflict' });
+    await p409;
+    expect(component.createRoleError()).toContain('Rol duplicado');
+    expect(component.createRoleCodeDraft()).toBe('  ib_onco  ');
+
+    // 4. HTTP 201 cierra diálogo, refresca GET /api/ti/roles y conserva usuarios
+    const usersBefore = component.usuarios().length;
+    const p201 = component.submitCreateRole();
+    const post201 = httpMock.expectOne(`${baseUrl}/roles`);
+    post201.flush(
+      { id: 'r3', code: 'IB_ONCO', description: 'Operación del módulo IB-ONCO' },
+      { status: 201, statusText: 'Created' }
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    const getRoles = httpMock.expectOne(`${baseUrl}/roles`);
+    getRoles.flush([...mockRoles, { id: 'r3', code: 'IB_ONCO', description: 'Operación del módulo IB-ONCO' }]);
+    await p201;
+
+    expect(component.createRoleModalOpen()).toBeFalse();
+    expect(component.rolesCatalog().length).toBe(3);
+    expect(component.usuarios().length).toBe(usersBefore);
+    expect(component.actionSuccessMessage()).toContain('IB_ONCO');
+  });
+
+  it('TI-2F.4: ADMIN_TIC solo admite GLOBAL; los demás roles conservan GLOBAL y CLUES múltiples', async () => {
+    const user = component.usuarios()[1];
+    component.openRolesModal(user);
+
+    // Al seleccionar ADMIN_TIC, normaliza alcance a GLOBAL
+    component.onNewScopeTypeChange('CLUES');
+    httpMock.expectOne((r) => r.url === `${baseUrl}/unidades` && r.method === 'GET').flush({
+      items: [{ id: 10, cluesimb: 'BCIMB00001', cluessa: 'BCSSA00001', nombre: 'Hospital General', municipio: 'Mexicali' }],
+      page: 1,
+      pageSize: 25,
+      total: 1,
+    });
+    await fixture.whenStable();
+
+    component.onNewRoleCodeChange('ADMIN_TIC');
+    expect(component.newRoleScopeType()).toBe('GLOBAL');
+    expect(component.newRoleScopeId()).toBe('*');
+
+    // Si se fuerza CLUES con ADMIN_TIC, addRoleAssignment lo rechaza
+    component.newRoleScopeType.set('CLUES');
+    component.newRoleScopeId.set('BCIMB00001');
+    component.addRoleAssignment();
+    expect(component.rolesModalError()).toContain('ADMIN_TIC solo admite alcance GLOBAL');
+
+    // RECURSOS_HUMANOS admite GLOBAL y múltiples CLUES
+    component.onNewRoleCodeChange('RECURSOS_HUMANOS');
+    component.onNewScopeTypeChange('GLOBAL');
+    component.addRoleAssignment();
+    expect(component.rolesDraft().some((r) => r.code === 'RECURSOS_HUMANOS' && r.scope_type === 'GLOBAL')).toBeTrue();
+  });
 });

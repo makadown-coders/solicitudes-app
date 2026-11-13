@@ -12,6 +12,11 @@ export interface TiRoleCatalogItem {
   description: string | null;
 }
 
+export interface TiRoleCreatePayload {
+  code: string;
+  description: string;
+}
+
 /**
  * Representa una asignación de rol y alcance devuelta por `GET /api/ti/usuarios`.
  *
@@ -189,6 +194,15 @@ export class TiUsuariosService {
   async crearUsuario(payload: TiUsuarioCreatePayload): Promise<TiUsuarioCreateResult> {
     return await firstValueFrom(
       this.http.post<TiUsuarioCreateResult>(`${this.baseUrl}/usuarios`, payload)
+    );
+  }
+
+  /**
+   * Crea un nuevo rol en el catálogo (`POST /api/ti/roles`).
+   */
+  async crearRol(payload: TiRoleCreatePayload): Promise<TiRoleCatalogItem> {
+    return await firstValueFrom(
+      this.http.post<TiRoleCatalogItem>(`${this.baseUrl}/roles`, payload)
     );
   }
 }
