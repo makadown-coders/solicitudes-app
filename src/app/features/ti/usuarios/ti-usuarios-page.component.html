@@ -944,50 +944,97 @@
 
       <!-- Selección de Persona -->
       <div class="mt-4 rounded-lg border border-gray-200 bg-slate-50 p-3">
-        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600">
-          1. Buscar y seleccionar persona activa *
+        <label for="ti-create-persona-search" class="block text-xs font-semibold uppercase tracking-wide text-slate-600">
+          Buscar y seleccionar persona activa *
         </label>
-        <div class="mt-2 flex gap-2">
-          <input
-            type="text"
-            [ngModel]="createPersonaSearch()"
-            (ngModelChange)="createPersonaSearch.set($event)"
-            placeholder="Buscar por nombre o correo..."
-            class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-slate-900"
-          />
-          <button
-            type="button"
-            (click)="searchPersonasForCreate()"
-            [disabled]="createPersonasLoading()"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-          >
-            {{ createPersonasLoading() ? 'Buscando...' : 'Buscar' }}
-          </button>
-        </div>
-
-        @if (createPersonasOptions().length > 0) {
-          <div class="mt-2 max-h-40 divide-y divide-gray-200 overflow-y-auto rounded-lg border border-gray-200 bg-white">
-            @for (p of createPersonasOptions(); track p.id) {
+        <div class="relative mt-2">
+          <div class="relative flex items-center">
+            <lucide-icon [img]="icons.search" class="pointer-events-none absolute left-3 h-4 w-4 text-slate-400" aria-hidden="true"></lucide-icon>
+            <input
+              id="ti-create-persona-search"
+              type="text"
+              role="combobox"
+              autocomplete="off"
+              [attr.aria-autocomplete]="'list'"
+              [attr.aria-expanded]="createPersonaSuggestOpen()"
+              [attr.aria-controls]="createPersonaSuggestOpen() ? 'ti-create-persona-listbox' : null"
+              [attr.aria-activedescendant]="createPersonaSuggestIndex() >= 0 ? 'ti-create-persona-opt-' + createPersonaSuggestIndex() : null"
+              [ngModel]="createPersonaSearch()"
+              (ngModelChange)="onCreatePersonaSearchInput($event)"
+              (keydown)="onCreatePersonaSearchKeyDown($event)"
+              (blur)="onCreatePersonaSearchBlur()"
+              placeholder="Escribe nombre o correo..."
+              class="min-h-10 w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-9 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+            />
+            @if (createPersonaSearch() || createSelectedPersona()) {
               <button
+                id="ti-create-persona-clear-btn"
                 type="button"
-                (click)="selectPersonaForCreate(p)"
-                class="flex w-full items-center justify-between px-3 py-2 text-left text-xs hover:bg-slate-50"
-                [class.bg-emerald-50]="createSelectedPersona()?.id === p.id"
+                (click)="clearCreatePersonaSelection()"
+                aria-label="Limpiar persona seleccionada"
+                class="absolute right-2 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
-                <div>
-                  <div class="font-semibold text-slate-900">{{ p.nombre_completo }}</div>
-                  <div class="text-slate-500">
-                    {{ p.unidad_medica || 'Sin unidad médica' }} · {{ p.email_principal || 'Sin correo principal' }}
-                  </div>
-                </div>
-                @if (createSelectedPersona()?.id === p.id) {
-                  <span class="font-semibold text-[#006341]">Seleccionada</span>
-                }
+                <lucide-icon [img]="icons.clear" class="h-4 w-4" aria-hidden="true"></lucide-icon>
               </button>
             }
           </div>
-        } @else if (!createPersonasLoading()) {
-          <p class="mt-2 text-xs text-slate-500">No se encontraron personas activas con ese criterio.</p>
+
+          @if (createPersonaSuggestOpen()) {
+            <div
+              id="ti-create-persona-dropdown"
+              class="absolute left-0 right-0 top-full z-40 mt-1 max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg"
+            >
+              @if (createPersonasLoading()) {
+                <div id="ti-create-persona-loading" class="flex items-center gap-2 px-3 py-2.5 text-xs text-slate-500">
+                  <lucide-icon [img]="icons.loader" class="h-3.5 w-3.5 animate-spin text-[#006341]" aria-hidden="true"></lucide-icon>
+                  <span>Buscando personas...</span>
+                </div>
+              } @else if (createPersonaSuggestError(); as suggestErr) {
+                <div id="ti-create-persona-error" class="flex items-center justify-between gap-2 px-3 py-2.5 text-xs text-red-700">
+                  <span>{{ suggestErr }}</span>
+                  <button
+                    type="button"
+                    (mousedown)="$event.preventDefault(); searchPersonasForCreate()"
+                    class="font-semibold underline hover:text-red-900"
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              } @else if (createPersonasOptions().length > 0) {
+                <ul id="ti-create-persona-listbox" role="listbox" class="divide-y divide-gray-100 py-1">
+                  @for (p of createPersonasOptions(); track p.id; let i = $index) {
+                    <li
+                      [id]="'ti-create-persona-opt-' + i"
+                      role="option"
+                      [attr.aria-selected]="i === createPersonaSuggestIndex() || createSelectedPersona()?.id === p.id"
+                      (mousedown)="$event.preventDefault(); selectPersonaForCreate(p)"
+                      class="cursor-pointer px-3 py-2 text-xs transition hover:bg-slate-50"
+                      [class.bg-emerald-50]="i === createPersonaSuggestIndex() || createSelectedPersona()?.id === p.id"
+                    >
+                      <div class="font-semibold text-slate-900">{{ p.nombre_completo }}</div>
+                      <div class="mt-0.5 text-[11px] text-slate-500">
+                        {{ p.email_principal || 'Sin correo principal' }} · {{ p.unidad_medica || 'Sin unidad de adscripción' }}
+                      </div>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <div id="ti-create-persona-empty" class="px-3 py-2.5 text-xs text-slate-500">
+                  No se encontraron personas activas con ese criterio.
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        @if (createSelectedPersona(); as sel) {
+          <div id="ti-create-persona-selected" class="mt-2 flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+            <div>
+              <span class="font-semibold">{{ sel.nombre_completo }}</span>
+              <span class="ml-1 text-emerald-700">(#{{ sel.id }})</span>
+            </div>
+            <span class="font-semibold text-[#006341]">Seleccionada</span>
+          </div>
         }
       </div>
 

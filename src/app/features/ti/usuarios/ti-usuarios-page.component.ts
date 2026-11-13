@@ -99,9 +99,14 @@ export class TiUsuariosPageComponent implements OnInit {
     Awaited<ReturnType<TiPersonasService['listarPersonas']>>['items']
   >([]);
   readonly createPersonasLoading = signal<boolean>(false);
+  readonly createPersonaSuggestOpen = signal<boolean>(false);
+  readonly createPersonaSuggestIndex = signal<number>(-1);
+  readonly createPersonaSuggestError = signal<string | null>(null);
   readonly createSelectedPersona = signal<
     Awaited<ReturnType<TiPersonasService['listarPersonas']>>['items'][number] | null
   >(null);
+  private createPersonaSuggestSeq = 0;
+  private createPersonaSuggestTimer: ReturnType<typeof setTimeout> | null = null;
   readonly createEmailDraft = signal<string>('');
   readonly createNameDraft = signal<string>('');
   readonly createPasswordDraft = signal<string>('');
@@ -745,6 +750,10 @@ export class TiUsuariosPageComponent implements OnInit {
     this.createModalOpen.set(true);
     this.createPersonaSearch.set('');
     this.createPersonasOptions.set([]);
+    this.createPersonasLoading.set(false);
+    this.createPersonaSuggestOpen.set(false);
+    this.createPersonaSuggestIndex.set(-1);
+    this.createPersonaSuggestError.set(null);
     this.createSelectedPersona.set(null);
     this.createEmailDraft.set('');
     this.createNameDraft.set('');
@@ -752,36 +761,150 @@ export class TiUsuariosPageComponent implements OnInit {
     this.createPasswordConfirmDraft.set('');
     this.createStatusDraft.set('ACTIVE');
     this.createError.set(null);
-    void this.searchPersonasForCreate();
   }
 
   closeCreateModal(): void {
+    if (this.createPersonaSuggestTimer) {
+      clearTimeout(this.createPersonaSuggestTimer);
+      this.createPersonaSuggestTimer = null;
+    }
+    this.createPersonaSuggestSeq++;
+    this.createPersonaSuggestOpen.set(false);
+    this.createPersonaSuggestIndex.set(-1);
+    this.createPersonaSuggestError.set(null);
     this.createPasswordDraft.set('');
     this.createPasswordConfirmDraft.set('');
     this.createError.set(null);
     this.createModalOpen.set(false);
   }
 
-  async searchPersonasForCreate(): Promise<void> {
+  onCreatePersonaSearchInput(value: string): void {
+    this.createPersonaSearch.set(value);
+    const selected = this.createSelectedPersona();
+    if (selected && value.trim() !== selected.nombre_completo) {
+      this.createSelectedPersona.set(null);
+    }
+
+    if (this.createPersonaSuggestTimer) {
+      clearTimeout(this.createPersonaSuggestTimer);
+      this.createPersonaSuggestTimer = null;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed.length < 2) {
+      this.createPersonaSuggestSeq++;
+      this.createPersonasOptions.set([]);
+      this.createPersonasLoading.set(false);
+      this.createPersonaSuggestOpen.set(false);
+      this.createPersonaSuggestIndex.set(-1);
+      this.createPersonaSuggestError.set(null);
+      return;
+    }
+
+    this.createPersonaSuggestOpen.set(true);
     this.createPersonasLoading.set(true);
+    this.createPersonaSuggestIndex.set(-1);
+    this.createPersonaSuggestError.set(null);
+    this.createPersonaSuggestTimer = setTimeout(() => {
+      void this.searchPersonasForCreate(trimmed);
+    }, 250);
+  }
+
+  async searchPersonasForCreate(qOverride?: string): Promise<void> {
+    const q = (qOverride ?? this.createPersonaSearch()).trim();
+    const seq = ++this.createPersonaSuggestSeq;
+    this.createPersonasLoading.set(true);
+    this.createPersonaSuggestError.set(null);
     try {
       const res = await this.tiPersonasService.listarPersonas({
-        q: this.createPersonaSearch().trim() || undefined,
+        q: q || undefined,
         page: 1,
-        pageSize: 20,
+        pageSize: 10,
       });
-      this.createPersonasOptions.set(res.items);
+      if (seq !== this.createPersonaSuggestSeq) {
+        return;
+      }
+      this.createPersonasOptions.set(Array.isArray(res?.items) ? res.items : []);
+      this.createPersonaSuggestIndex.set(-1);
     } catch {
-      this.createPersonasOptions.set([]);
+      if (seq === this.createPersonaSuggestSeq) {
+        this.createPersonasOptions.set([]);
+        this.createPersonaSuggestError.set('No fue posible buscar personas. Intenta nuevamente.');
+      }
     } finally {
-      this.createPersonasLoading.set(false);
+      if (seq === this.createPersonaSuggestSeq) {
+        this.createPersonasLoading.set(false);
+      }
     }
+  }
+
+  onCreatePersonaSearchKeyDown(event: KeyboardEvent): void {
+    const list = this.createPersonasOptions();
+    if (!this.createPersonaSuggestOpen() || list.length === 0) {
+      if (event.key === 'Escape') {
+        this.createPersonaSuggestOpen.set(false);
+        this.createPersonaSuggestIndex.set(-1);
+      }
+      return;
+    }
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.createPersonaSuggestIndex.set((this.createPersonaSuggestIndex() + 1) % list.length);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.createPersonaSuggestIndex.set((this.createPersonaSuggestIndex() - 1 + list.length) % list.length);
+        break;
+      case 'Enter': {
+        const idx = this.createPersonaSuggestIndex();
+        if (idx >= 0 && list[idx]) {
+          event.preventDefault();
+          this.selectPersonaForCreate(list[idx]);
+        }
+        break;
+      }
+      case 'Escape':
+        event.preventDefault();
+        this.createPersonaSuggestOpen.set(false);
+        this.createPersonaSuggestIndex.set(-1);
+        break;
+    }
+  }
+
+  onCreatePersonaSearchBlur(): void {
+    setTimeout(() => {
+      this.createPersonaSuggestOpen.set(false);
+      this.createPersonaSuggestIndex.set(-1);
+    }, 150);
+  }
+
+  clearCreatePersonaSelection(): void {
+    if (this.createPersonaSuggestTimer) {
+      clearTimeout(this.createPersonaSuggestTimer);
+      this.createPersonaSuggestTimer = null;
+    }
+    this.createPersonaSuggestSeq++;
+    this.createSelectedPersona.set(null);
+    this.createPersonaSearch.set('');
+    this.createPersonasOptions.set([]);
+    this.createPersonasLoading.set(false);
+    this.createPersonaSuggestOpen.set(false);
+    this.createPersonaSuggestIndex.set(-1);
+    this.createPersonaSuggestError.set(null);
+    this.createEmailDraft.set('');
+    this.createNameDraft.set('');
   }
 
   selectPersonaForCreate(
     persona: Awaited<ReturnType<TiPersonasService['listarPersonas']>>['items'][number]
   ): void {
     this.createSelectedPersona.set(persona);
+    this.createPersonaSearch.set(persona.nombre_completo);
+    this.createPersonaSuggestOpen.set(false);
+    this.createPersonaSuggestIndex.set(-1);
+    this.createPersonaSuggestError.set(null);
     this.createError.set(null);
     this.createEmailDraft.set((persona.email_principal ?? '').trim().toLowerCase());
     this.createNameDraft.set((persona.nombre_completo ?? '').trim());

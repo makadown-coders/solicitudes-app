@@ -278,6 +278,7 @@ describe('TiUsuariosPageComponent (TI-2D.4A)', () => {
   it('TI-2D.4B: Alta de cuenta SSO vinculada a persona, validaciones, HTTP 201, HTTP 409 y limpieza de contraseñas', async () => {
     // 1. Apertura y búsqueda de personas activas
     component.openCreateModal();
+    const pSearch = component.searchPersonasForCreate('Operador');
     const pReq = httpMock.expectOne((r) => r.url === `${baseUrl}/personas` && r.method === 'GET');
     pReq.flush({
       items: [
@@ -513,5 +514,117 @@ describe('TiUsuariosPageComponent (TI-2D.4A)', () => {
     component.removeRoleAssignment(0);
     expect(component.hasRolesChanges()).toBeTrue();
     component.closeRolesModal();
+  });
+
+  it('TI-2G.2: Autocompletado de personas en «Crear cuenta SSO» (sin carga inicial, debounce, teclado, selección, limpieza y POST)', async () => {
+    // 1. El modal abre sin mostrar resultados ni consultar personas
+    component.openCreateModal();
+    fixture.detectChanges();
+    httpMock.expectNone(r => r.url.endsWith('/ti/personas'));
+    expect(component.createPersonaSuggestOpen()).toBeFalse();
+    expect(component.createPersonasOptions().length).toBe(0);
+
+    // 2. Menos de dos caracteres no consulta sugerencias
+    component.onCreatePersonaSearchInput('a');
+    expect(component.createPersonaSuggestOpen()).toBeFalse();
+    httpMock.expectNone(r => r.url.endsWith('/ti/personas'));
+
+    // 3. Dos o más caracteres activan búsqueda remota por nombre/correo
+    const p1 = component.searchPersonasForCreate('ana');
+    const req1 = httpMock.expectOne(
+      r => r.url.endsWith('/ti/personas') && r.params.get('q') === 'ana'
+    );
+    req1.flush({
+      items: [
+        {
+          id: 501,
+          nombre_completo: 'Dra. Ana Gómez',
+          unidad_medica_id: 1,
+          unidad_medica: 'OFICINA CENTRAL',
+          email_principal: 'ana.gomez@imssb.gob.mx',
+        },
+      ],
+      page: 1,
+      pageSize: 10,
+      total: 1,
+    });
+    await p1;
+    expect(component.createPersonasOptions().length).toBe(1);
+
+    // 4. Navegación por teclado y selección con Enter (no envía POST)
+    component.createPersonaSuggestOpen.set(true);
+    component.onCreatePersonaSearchKeyDown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+    expect(component.createPersonaSuggestIndex()).toBe(0);
+    component.onCreatePersonaSearchKeyDown(new KeyboardEvent('keydown', { key: 'Enter' }));
+    httpMock.expectNone(`${baseUrl}/usuarios`);
+
+    expect(component.createSelectedPersona()?.id).toBe(501);
+    expect(component.createEmailDraft()).toBe('ana.gomez@imssb.gob.mx');
+    expect(component.createNameDraft()).toBe('Dra. Ana Gómez');
+    expect(component.createPersonaSuggestOpen()).toBeFalse();
+
+    // 5. Escribir nuevamente sin seleccionar limpia la selección previa e impide crear cuenta
+    component.onCreatePersonaSearchInput('Otro');
+    expect(component.createSelectedPersona()).toBeNull();
+    component.createPasswordDraft.set('Secret123!');
+    component.createPasswordConfirmDraft.set('Secret123!');
+    await component.submitCreateUsuario();
+    httpMock.expectNone(`${baseUrl}/usuarios`);
+    expect(component.createError()).toContain('Selecciona una persona activa');
+
+    // 6. Selección por clic, edición de correo/nombre y POST con persona_id real
+    component.selectPersonaForCreate({
+      id: 501,
+      nombre_completo: 'Dra. Ana Gómez',
+      unidad_medica_id: 1,
+      unidad_medica: 'OFICINA CENTRAL',
+      email_principal: 'ana.gomez@imssb.gob.mx',
+    });
+    component.createEmailDraft.set('ana.custom@imssb.gob.mx');
+    component.createNameDraft.set('Ana Gómez');
+    component.createPasswordDraft.set('Secret123!');
+    component.createPasswordConfirmDraft.set('Secret123!');
+
+    const pCreate = component.submitCreateUsuario();
+    const reqCreate = httpMock.expectOne(`${baseUrl}/usuarios`);
+    expect(reqCreate.request.method).toBe('POST');
+    expect(reqCreate.request.body).toEqual({
+      persona_id: 501,
+      email: 'ana.custom@imssb.gob.mx',
+      name: 'Ana Gómez',
+      password: 'Secret123!',
+      status: 'ACTIVE',
+    });
+    reqCreate.flush({
+      user: {
+        id: 'u-501',
+        persona_id: 501,
+        email: 'ana.custom@imssb.gob.mx',
+        name: 'Ana Gómez',
+        status: 'ACTIVE',
+        roles: [],
+      },
+    });
+    await new Promise(r => setTimeout(r, 0));
+    const reqReload = httpMock.expectOne(r => r.url === `${baseUrl}/usuarios` && r.method === 'GET');
+    reqReload.flush({ items: [], page: 1, pageSize: 20, total: 0 });
+    await pCreate;
+
+    expect(component.createModalOpen()).toBeFalse();
+
+    // 7. Limpieza de selección
+    component.openCreateModal();
+    component.selectPersonaForCreate({
+      id: 501,
+      nombre_completo: 'Dra. Ana Gómez',
+      unidad_medica_id: 1,
+      unidad_medica: 'OFICINA CENTRAL',
+      email_principal: 'ana.gomez@imssb.gob.mx',
+    });
+    component.clearCreatePersonaSelection();
+    expect(component.createSelectedPersona()).toBeNull();
+    expect(component.createPersonaSearch()).toBe('');
+    expect(component.createEmailDraft()).toBe('');
+    component.closeCreateModal();
   });
 });
