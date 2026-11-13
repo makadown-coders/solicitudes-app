@@ -19,14 +19,14 @@ import { TokenStore } from '../../../core/auth/token-store.service';
 
 /**
  * Valida y normaliza un parámetro `returnUrl` para garantizar que únicamente
- * permita destinos internos autorizados del módulo administrativo (`/rh` y sus subrutas).
+ * permita destinos internos autorizados de los módulos administrativos (`/rh`, `/ti` y sus subrutas).
  *
  * Rechaza:
  * - Valores vacíos o que no comiencen con `/`.
  * - Rutas relativas a protocolo (`//evil.com`).
  * - Rutas con barras invertidas (`\`) o caracteres de control.
  * - URLs absolutas o esquemas codificados (`http:`, `https:`, `javascript:`).
- * - `/login` o cualquier ruta fuera del árbol `/rh`.
+ * - `/login` o cualquier ruta fuera de los árboles `/rh` y `/ti`.
  */
 export function resolveSafeAdminReturnUrl(rawReturnUrl: string | null | undefined): string {
   if (!rawReturnUrl || typeof rawReturnUrl !== 'string') {
@@ -69,7 +69,13 @@ export function resolveSafeAdminReturnUrl(rawReturnUrl: string | null | undefine
     }
 
     const pathname = parsed.pathname;
-    if (pathname !== '/rh' && !pathname.startsWith('/rh/')) {
+    const isAllowedAdminPath =
+      pathname === '/rh' ||
+      pathname.startsWith('/rh/') ||
+      pathname === '/ti' ||
+      pathname.startsWith('/ti/');
+
+    if (!isAllowedAdminPath) {
       return '/rh';
     }
 

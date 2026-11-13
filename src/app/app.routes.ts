@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
+import { tiAdminGlobalGuard } from './core/auth/ti-admin-global.guard';
 import { CargaMasivaComponent } from './features/carga-masiva/carga-masiva.component';
 import { SolicitudesConfigComponent } from './features/solicitudes-config/solicitudes-config.component';
 import { HomologosConfigComponent } from './features/homologos-config/homologos-config.component';
@@ -325,6 +326,28 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/rh/rh-shell.component')
       .then(m => m.RhShellComponent),
+  },
+  {
+    path: 'ti',
+    title: 'Administración TI',
+    canActivate: [authGuard, tiAdminGlobalGuard],
+    loadComponent: () => import('./features/ti/ti-shell.component')
+      .then(m => m.TiShellComponent),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'usuarios' },
+      {
+        path: 'usuarios',
+        title: 'Administración TI · Usuarios SSO',
+        loadComponent: () => import('./features/ti/usuarios/ti-usuarios-page.component')
+          .then(m => m.TiUsuariosPageComponent),
+      },
+      {
+        path: 'personas',
+        title: 'Administración TI · Personas',
+        loadComponent: () => import('./features/ti/personas/ti-personas-placeholder-page.component')
+          .then(m => m.TiPersonasPlaceholderPageComponent),
+      },
+    ],
   },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: '**', redirectTo: '/home' },

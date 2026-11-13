@@ -1,0 +1,584 @@
+<div class="space-y-6">
+  <!-- Estado de rechazo de autorización / sesión expirada (401/403) -->
+  @if (accessDeniedError(); as deniedMsg) {
+    <div
+      id="ti-usuarios-access-denied"
+      role="alert"
+      class="rounded-2xl border border-red-200 bg-red-50 p-6 shadow-sm"
+    >
+      <div class="flex items-start gap-3">
+        <lucide-icon
+          [img]="icons.shieldAlert"
+          class="mt-0.5 h-6 w-6 shrink-0 text-red-700"
+          aria-hidden="true"
+        ></lucide-icon>
+        <div class="min-w-0 flex-1">
+          <h2 class="text-base font-bold text-red-900">
+            Acceso restringido a Administración TI
+          </h2>
+          <p class="mt-1 text-sm text-red-800">
+            {{ deniedMsg }}
+          </p>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <!-- Panel 1: Catálogo de Roles disponibles en el sistema (GET /api/ti/roles) -->
+    <section
+      id="ti-roles-catalog-section"
+      aria-labelledby="ti-roles-catalog-heading"
+      class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <span
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#006341]/10 text-[#006341]"
+            aria-hidden="true"
+          >
+            <lucide-icon [img]="icons.key" class="h-4 w-4"></lucide-icon>
+          </span>
+          <div>
+            <h2 id="ti-roles-catalog-heading" class="text-base font-bold text-slate-900">
+              Catálogo de Roles SSO
+            </h2>
+            <p class="text-xs text-slate-500">
+              Roles registrados en <code class="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">public.app_roles</code> (solo consulta)
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            id="ti-roles-toggle-btn"
+            type="button"
+            (click)="toggleRolesCatalog()"
+            class="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-gray-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#006341]"
+          >
+            <span>{{ showRolesCatalog() ? 'Ocultar catálogo' : 'Mostrar catálogo' }}</span>
+          </button>
+
+          <button
+            id="ti-roles-refresh-btn"
+            type="button"
+            (click)="cargarRoles()"
+            [disabled]="rolesLoading()"
+            class="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <lucide-icon
+              [img]="rolesLoading() ? icons.loader : icons.refresh"
+              class="h-3.5 w-3.5"
+              [class.animate-spin]="rolesLoading()"
+              aria-hidden="true"
+            ></lucide-icon>
+            <span>Actualizar roles</span>
+          </button>
+        </div>
+      </div>
+
+      @if (showRolesCatalog()) {
+        <div class="mt-4 border-t border-gray-100 pt-4">
+          @if (rolesLoading()) {
+            <div
+              id="ti-roles-loading"
+              class="flex items-center gap-2 py-3 text-sm text-slate-600"
+            >
+              <lucide-icon [img]="icons.loader" class="h-4 w-4 animate-spin text-[#006341]" aria-hidden="true"></lucide-icon>
+              <span>Consultando catálogo de roles…</span>
+            </div>
+          } @else if (rolesError(); as rErr) {
+            <div
+              id="ti-roles-error"
+              role="alert"
+              class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            >
+              <div class="flex items-center gap-2">
+                <lucide-icon [img]="icons.alert" class="h-4 w-4 shrink-0 text-red-600" aria-hidden="true"></lucide-icon>
+                <span>{{ rErr }}</span>
+              </div>
+              <button
+                type="button"
+                (click)="cargarRoles()"
+                class="rounded-lg border border-red-300 bg-white px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+              >
+                Reintentar
+              </button>
+            </div>
+          } @else if (rolesCatalog().length === 0) {
+            <p id="ti-roles-empty" class="py-2 text-sm text-slate-500">
+              No se encontraron roles registrados en el catálogo.
+            </p>
+          } @else {
+            <div
+              id="ti-roles-grid"
+              class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            >
+              @for (role of rolesCatalog(); track role.id) {
+                <div
+                  class="ti-role-catalog-card flex flex-col justify-between rounded-xl border border-gray-200 bg-slate-50/70 p-3"
+                >
+                  <div>
+                    <div class="flex items-center justify-between gap-2">
+                      <span
+                        class="inline-flex items-center gap-1 rounded-md bg-[#006341]/10 px-2 py-0.5 font-mono text-xs font-bold text-[#006341]"
+                      >
+                        <lucide-icon [img]="icons.shield" class="h-3 w-3" aria-hidden="true"></lucide-icon>
+                        {{ role.code }}
+                      </span>
+                    </div>
+                    <p class="mt-2 text-xs text-slate-700">
+                      {{ role.description || 'Sin descripción registrada' }}
+                    </p>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- Panel 2: Consulta paginada de Cuentas SSO (GET /api/ti/usuarios) -->
+    <section
+      id="ti-usuarios-section"
+      aria-labelledby="ti-usuarios-heading"
+      class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5"
+    >
+      <!-- Encabezado y controles de búsqueda / filtro -->
+      <div class="flex flex-col gap-4 border-b border-gray-100 pb-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 id="ti-usuarios-heading" class="text-lg font-bold text-slate-900">
+              Cuentas de Usuario SSO
+            </h2>
+            <p class="text-xs text-slate-500">
+              Directorio de cuentas autenticables, vínculo con persona física, unidad médica de adscripción y roles asignados (solo lectura).
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span
+              id="ti-usuarios-total-badge"
+              class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
+            >
+              <lucide-icon [img]="icons.users" class="h-3.5 w-3.5 text-[#006341]" aria-hidden="true"></lucide-icon>
+              <span>Total: {{ total() }}</span>
+            </span>
+
+            <button
+              id="ti-usuarios-refresh-btn"
+              type="button"
+              (click)="cargarUsuarios()"
+              [disabled]="usuariosLoading()"
+              class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <lucide-icon
+                [img]="usuariosLoading() ? icons.loader : icons.refresh"
+                class="h-4 w-4"
+                [class.animate-spin]="usuariosLoading()"
+                aria-hidden="true"
+              ></lucide-icon>
+              <span>Actualizar</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Barra de filtros: búsqueda por nombre/correo, filtro por estado y tamaño de página -->
+        <form
+          (ngSubmit)="onSearchSubmit()"
+          class="grid grid-cols-1 gap-3 md:grid-cols-12"
+        >
+          <div class="md:col-span-6 lg:col-span-6">
+            <label for="ti-usuarios-search-input" class="block text-xs font-semibold text-slate-700 mb-1">
+              Buscar por nombre, correo o persona vinculada
+            </label>
+            <div class="relative flex items-center">
+              <lucide-icon
+                [img]="icons.search"
+                class="pointer-events-none absolute left-3 h-4 w-4 text-slate-400"
+                aria-hidden="true"
+              ></lucide-icon>
+              <input
+                id="ti-usuarios-search-input"
+                type="text"
+                name="q"
+                [ngModel]="searchDraft()"
+                (ngModelChange)="searchDraft.set($event)"
+                placeholder="Ej. admin@imssbienestar.gob.mx o nombre…"
+                maxlength="200"
+                class="w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-20 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+              />
+              @if (searchDraft()) {
+                <button
+                  id="ti-usuarios-clear-search-btn"
+                  type="button"
+                  (click)="onClearSearch()"
+                  aria-label="Limpiar búsqueda"
+                  class="absolute right-16 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <lucide-icon [img]="icons.clear" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                </button>
+              }
+              <button
+                id="ti-usuarios-search-submit-btn"
+                type="submit"
+                [disabled]="usuariosLoading()"
+                class="absolute right-1.5 rounded-lg bg-[#006341] px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-[#004f34] disabled:opacity-60"
+              >
+                Buscar
+              </button>
+            </div>
+          </div>
+
+          <div class="md:col-span-3 lg:col-span-3">
+            <label for="ti-usuarios-status-select" class="block text-xs font-semibold text-slate-700 mb-1">
+              Estado de cuenta
+            </label>
+            <select
+              id="ti-usuarios-status-select"
+              name="status"
+              [ngModel]="statusFilter()"
+              (ngModelChange)="onStatusChange($event)"
+              class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+            >
+              <option value="">Todos los estados</option>
+              <option value="ACTIVE">Activas (ACTIVE)</option>
+              <option value="SUSPENDED">Suspendidas (SUSPENDED)</option>
+              <option value="INACTIVE">Inactivas (INACTIVE)</option>
+            </select>
+          </div>
+
+          <div class="md:col-span-3 lg:col-span-3">
+            <label for="ti-usuarios-pagesize-select" class="block text-xs font-semibold text-slate-700 mb-1">
+              Registros por página
+            </label>
+            <select
+              id="ti-usuarios-pagesize-select"
+              name="pageSize"
+              [ngModel]="pageSize()"
+              (ngModelChange)="onPageSizeChange($event)"
+              class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+            >
+              <option [ngValue]="10">10 por página</option>
+              <option [ngValue]="20">20 por página</option>
+              <option [ngValue]="50">50 por página</option>
+              <option [ngValue]="100">100 por página</option>
+            </select>
+          </div>
+        </form>
+
+        @if (hasActiveFilters()) {
+          <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-semibold text-slate-700">Filtros aplicados:</span>
+              @if (appliedSearch()) {
+                <span class="rounded-md border border-gray-200 bg-white px-2 py-0.5 font-medium text-slate-800">
+                  Búsqueda: "{{ appliedSearch() }}"
+                </span>
+              }
+              @if (statusFilter()) {
+                <span class="rounded-md border border-gray-200 bg-white px-2 py-0.5 font-medium text-slate-800">
+                  Estado: {{ statusFilter() }}
+                </span>
+              }
+            </div>
+            <button
+              id="ti-usuarios-reset-filters-btn"
+              type="button"
+              (click)="onResetFilters()"
+              class="font-semibold text-[#006341] hover:underline"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Estados de carga, error y lista vacía -->
+      @if (usuariosLoading()) {
+        <div
+          id="ti-usuarios-loading"
+          class="flex flex-col items-center justify-center gap-3 py-12 text-center"
+        >
+          <lucide-icon
+            [img]="icons.loader"
+            class="h-7 w-7 animate-spin text-[#006341]"
+            aria-hidden="true"
+          ></lucide-icon>
+          <p class="text-sm font-medium text-slate-600">
+            Cargando cuentas SSO…
+          </p>
+        </div>
+      } @else if (usuariosError(); as uErr) {
+        <div
+          id="ti-usuarios-error"
+          role="alert"
+          class="my-6 rounded-xl border border-red-200 bg-red-50 p-5"
+        >
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-start gap-2.5">
+              <lucide-icon
+                [img]="icons.alert"
+                class="mt-0.5 h-5 w-5 shrink-0 text-red-600"
+                aria-hidden="true"
+              ></lucide-icon>
+              <div>
+                <h3 class="text-sm font-bold text-red-900">Error al consultar usuarios</h3>
+                <p class="mt-0.5 text-xs text-red-800">{{ uErr }}</p>
+              </div>
+            </div>
+            <button
+              id="ti-usuarios-retry-btn"
+              type="button"
+              (click)="cargarUsuarios()"
+              class="inline-flex min-h-9 items-center justify-center rounded-xl border border-red-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      } @else if (usuarios().length === 0) {
+        <div
+          id="ti-usuarios-empty"
+          class="my-6 rounded-xl border border-dashed border-gray-300 bg-slate-50/60 p-8 text-center"
+        >
+          <lucide-icon
+            [img]="icons.users"
+            class="mx-auto h-8 w-8 text-slate-400"
+            aria-hidden="true"
+          ></lucide-icon>
+          <h3 class="mt-3 text-sm font-bold text-slate-800">
+            No se encontraron cuentas SSO
+          </h3>
+          <p class="mt-1 text-xs text-slate-500">
+            @if (hasActiveFilters()) {
+              No hay registros que coincidan con los criterios de búsqueda o estado seleccionados.
+            } @else {
+              No existen cuentas registradas para mostrar en este momento.
+            }
+          </p>
+        </div>
+      } @else {
+        <!-- Vista de tabla para escritorio (lg+) -->
+        <div class="mt-4 hidden overflow-x-auto lg:block">
+          <table
+            id="ti-usuarios-table"
+            class="min-w-full divide-y divide-gray-200 text-left text-sm"
+          >
+            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <tr>
+                <th scope="col" class="px-4 py-3">Cuenta SSO</th>
+                <th scope="col" class="px-4 py-3">Estado</th>
+                <th scope="col" class="px-4 py-3">Persona vinculada</th>
+                <th scope="col" class="px-4 py-3">Unidad médica de adscripción</th>
+                <th scope="col" class="px-4 py-3">Roles y alcances (scope_type / scope_id)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 bg-white">
+              @for (u of usuarios(); track u.id) {
+                <tr class="ti-usuario-row hover:bg-slate-50/80 transition">
+                  <!-- Cuenta SSO -->
+                  <td class="px-4 py-3.5 align-top">
+                    <p class="font-semibold text-slate-900">
+                      {{ u.name || 'Sin nombre de cuenta' }}
+                    </p>
+                    <p class="mt-0.5 font-mono text-xs text-slate-600">
+                      {{ u.email }}
+                    </p>
+                  </td>
+
+                  <!-- Estado -->
+                  <td class="px-4 py-3.5 align-top whitespace-nowrap">
+                    <span
+                      class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold"
+                      [ngClass]="getStatusBadgeClass(u.status)"
+                    >
+                      {{ getStatusLabel(u.status) }}
+                    </span>
+                  </td>
+
+                  <!-- Persona vinculada -->
+                  <td class="px-4 py-3.5 align-top">
+                    @if (u.persona_id !== null) {
+                      <div class="flex items-start gap-1.5">
+                        <lucide-icon
+                          [img]="icons.userCheck"
+                          class="mt-0.5 h-4 w-4 shrink-0 text-[#006341]"
+                          aria-hidden="true"
+                        ></lucide-icon>
+                        <div>
+                          <p class="font-medium text-slate-800">
+                            {{ u.nombre_completo || 'Persona sin nombre' }}
+                          </p>
+                          <p class="text-xs text-slate-500">
+                            ID persona: #{{ u.persona_id }}
+                          </p>
+                        </div>
+                      </div>
+                    } @else {
+                      <span
+                        class="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-800"
+                      >
+                        <lucide-icon [img]="icons.userMinus" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                        <span>Sin persona vinculada</span>
+                      </span>
+                    }
+                  </td>
+
+                  <!-- Unidad médica de adscripción -->
+                  <td class="px-4 py-3.5 align-top">
+                    @if (u.unidad_medica_id !== null && u.unidad_medica) {
+                      <div class="flex items-start gap-1.5">
+                        <lucide-icon
+                          [img]="icons.building"
+                          class="mt-0.5 h-4 w-4 shrink-0 text-slate-500"
+                          aria-hidden="true"
+                        ></lucide-icon>
+                        <div>
+                          <p class="text-slate-800">{{ u.unidad_medica }}</p>
+                          <p class="text-xs text-slate-500">ID unidad: #{{ u.unidad_medica_id }}</p>
+                        </div>
+                      </div>
+                    } @else {
+                      <span class="text-xs italic text-slate-400">
+                        Sin unidad médica asignada
+                      </span>
+                    }
+                  </td>
+
+                  <!-- Roles y alcances -->
+                  <td class="px-4 py-3.5 align-top">
+                    @if (u.roles && u.roles.length > 0) {
+                      <div class="flex flex-wrap gap-1.5">
+                        @for (r of u.roles; track r.code + ':' + r.scope_type + ':' + r.scope_id) {
+                          <span
+                            class="ti-usuario-role-badge inline-flex items-center gap-1.5 rounded-lg border border-[#006341]/25 bg-[#006341]/5 px-2.5 py-1 text-xs"
+                          >
+                            <span class="font-mono font-bold text-[#006341]">{{ r.code }}</span>
+                            <span class="text-slate-400">·</span>
+                            <span class="font-medium text-slate-700">{{ formatRoleScope(r) }}</span>
+                          </span>
+                        }
+                      </div>
+                    } @else {
+                      <span class="text-xs italic text-slate-400">
+                        Sin roles asignados
+                      </span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Vista de tarjetas para móvil y tablet (< lg) -->
+        <div class="mt-4 grid grid-cols-1 gap-3 lg:hidden">
+          @for (u of usuarios(); track u.id) {
+            <article
+              class="ti-usuario-card rounded-xl border border-gray-200 bg-slate-50/60 p-4 space-y-3"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <h3 class="truncate text-sm font-bold text-slate-900">
+                    {{ u.name || 'Sin nombre de cuenta' }}
+                  </h3>
+                  <p class="truncate font-mono text-xs text-slate-600">
+                    {{ u.email }}
+                  </p>
+                </div>
+                <span
+                  class="shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
+                  [ngClass]="getStatusBadgeClass(u.status)"
+                >
+                  {{ getStatusLabel(u.status) }}
+                </span>
+              </div>
+
+              <div class="grid grid-cols-1 gap-2 border-t border-gray-200/80 pt-2.5 text-xs sm:grid-cols-2">
+                <div>
+                  <span class="font-semibold text-slate-500">Persona vinculada:</span>
+                  @if (u.persona_id !== null) {
+                    <p class="mt-0.5 font-medium text-slate-800">
+                      {{ u.nombre_completo || 'Persona sin nombre' }} (#{{ u.persona_id }})
+                    </p>
+                  } @else {
+                    <p class="mt-0.5 font-medium text-amber-800">Sin persona vinculada</p>
+                  }
+                </div>
+
+                <div>
+                  <span class="font-semibold text-slate-500">Unidad médica:</span>
+                  @if (u.unidad_medica_id !== null && u.unidad_medica) {
+                    <p class="mt-0.5 text-slate-800">
+                      {{ u.unidad_medica }} (#{{ u.unidad_medica_id }})
+                    </p>
+                  } @else {
+                    <p class="mt-0.5 italic text-slate-400">Sin unidad médica asignada</p>
+                  }
+                </div>
+              </div>
+
+              <div class="border-t border-gray-200/80 pt-2.5">
+                <span class="block text-xs font-semibold text-slate-500 mb-1.5">
+                  Roles y alcances:
+                </span>
+                @if (u.roles && u.roles.length > 0) {
+                  <div class="flex flex-wrap gap-1.5">
+                    @for (r of u.roles; track r.code + ':' + r.scope_type + ':' + r.scope_id) {
+                      <span
+                        class="inline-flex items-center gap-1 rounded-lg border border-[#006341]/25 bg-white px-2 py-0.5 text-xs"
+                      >
+                        <span class="font-mono font-bold text-[#006341]">{{ r.code }}</span>
+                        <span class="text-slate-400">·</span>
+                        <span class="font-medium text-slate-700">{{ formatRoleScope(r) }}</span>
+                      </span>
+                    }
+                  </div>
+                } @else {
+                  <span class="text-xs italic text-slate-400">Sin roles asignados</span>
+                }
+              </div>
+            </article>
+          }
+        </div>
+
+        <!-- Pie de paginación -->
+        <div
+          id="ti-usuarios-pagination"
+          class="mt-4 flex flex-col items-center justify-between gap-3 border-t border-gray-100 pt-4 sm:flex-row"
+        >
+          <p class="text-xs text-slate-600">
+            Mostrando <span class="font-semibold text-slate-900">{{ rangeStart() }}</span>
+            a <span class="font-semibold text-slate-900">{{ rangeEnd() }}</span>
+            de <span class="font-semibold text-slate-900">{{ total() }}</span> cuentas
+            (Página {{ page() }} de {{ totalPages() }})
+          </p>
+
+          <div class="flex items-center gap-2">
+            <button
+              id="ti-usuarios-prev-page-btn"
+              type="button"
+              (click)="goToPrevPage()"
+              [disabled]="!canGoPrev()"
+              class="inline-flex min-h-9 items-center gap-1 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <lucide-icon [img]="icons.prev" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+              <span>Anterior</span>
+            </button>
+
+            <button
+              id="ti-usuarios-next-page-btn"
+              type="button"
+              (click)="goToNextPage()"
+              [disabled]="!canGoNext()"
+              class="inline-flex min-h-9 items-center gap-1 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span>Siguiente</span>
+              <lucide-icon [img]="icons.next" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </section>
+  }
+</div>

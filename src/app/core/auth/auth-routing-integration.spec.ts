@@ -149,9 +149,12 @@ describe('Integración de Rutas e Interceptores (Microintervención 5)', () => {
     const rhRoutes = routes.filter(r => r.path === 'rh');
     expect(rhRoutes.length).toBe(1);
 
-    // Verificar que NINGUNA ruta distinta de 'rh' tenga canActivate o canActivateChild
+    const tiRoutes = routes.filter(r => r.path === 'ti');
+    expect(tiRoutes.length).toBe(1);
+
+    // Verificar que NINGUNA ruta pública (distinta de 'rh' y 'ti') tenga canActivate o canActivateChild
     for (const route of routes) {
-      if (route.path !== 'rh') {
+      if (route.path !== 'rh' && route.path !== 'ti') {
         expect(route.canActivate)
           .withContext(`La ruta '${route.path}' no debe tener canActivate`)
           .toBeUndefined();

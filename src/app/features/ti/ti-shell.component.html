@@ -1,0 +1,116 @@
+<div class="min-h-screen bg-slate-100">
+  <section class="mx-auto w-full max-w-[1800px] px-4 py-4 sm:px-6 lg:px-8">
+    <!-- Encabezado institucional del módulo Administración TI -->
+    <header class="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex items-start gap-3 sm:items-center">
+          <img
+            src="imssb-logo.svg"
+            alt="IMSS-Bienestar"
+            class="h-10 w-auto shrink-0"
+          />
+          <div class="border-l border-gray-200 pl-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="text-xs font-semibold uppercase tracking-wide text-[#006341]">
+                Módulo administrativo · IMSS-Bienestar Baja California
+              </p>
+              <span
+                class="inline-flex items-center gap-1 rounded-full bg-[#006341]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#006341]"
+              >
+                <lucide-icon [img]="icons.shieldCheck" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                <span>ADMIN_TIC GLOBAL</span>
+              </span>
+            </div>
+            <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">
+              Administración TI
+            </h1>
+          </div>
+        </div>
+
+        <!-- Información del usuario autenticado y cierre de sesión -->
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3 sm:justify-end lg:border-t-0 lg:pt-0">
+          <div
+            id="ti-shell-user-info"
+            class="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-slate-50 px-3 py-2"
+          >
+            <span
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#006341]/10 text-[#006341]"
+              aria-hidden="true"
+            >
+              <lucide-icon [img]="icons.user" class="h-4 w-4"></lucide-icon>
+            </span>
+            <div class="min-w-0">
+              <p id="ti-shell-user-name" class="truncate text-sm font-semibold text-slate-800">
+                {{ displayName() }}
+              </p>
+              @if (displayEmail()) {
+                <p id="ti-shell-user-email" class="truncate text-xs text-slate-500">
+                  {{ displayEmail() }}
+                </p>
+              }
+            </div>
+          </div>
+
+          <button
+            id="ti-shell-logout-btn"
+            type="button"
+            (click)="onLogout()"
+            [disabled]="loggingOut()"
+            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <lucide-icon [img]="icons.logOut" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+            <span>{{ loggingOut() ? 'Cerrando sesión…' : 'Cerrar sesión' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de navegación inicial del módulo TI -->
+      <nav
+        aria-label="Secciones de Administración TI"
+        class="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4"
+      >
+        <a
+          id="ti-nav-usuarios"
+          routerLink="/ti/usuarios"
+          routerLinkActive="bg-[#006341] text-white border-[#006341] shadow-xs"
+          #rlaUsuarios="routerLinkActive"
+          [class.bg-slate-50]="!rlaUsuarios.isActive"
+          [class.text-slate-700]="!rlaUsuarios.isActive"
+          [class.border-gray-200]="!rlaUsuarios.isActive"
+          class="inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition hover:border-[#006341]/40 focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+        >
+          <lucide-icon [img]="icons.users" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+          <span>Usuarios SSO</span>
+        </a>
+
+        <a
+          id="ti-nav-personas"
+          routerLink="/ti/personas"
+          routerLinkActive="bg-[#006341] text-white border-[#006341] shadow-xs"
+          #rlaPersonas="routerLinkActive"
+          [class.bg-slate-50]="!rlaPersonas.isActive"
+          [class.text-slate-700]="!rlaPersonas.isActive"
+          [class.border-gray-200]="!rlaPersonas.isActive"
+          class="inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition hover:border-[#006341]/40 focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+        >
+          <lucide-icon [img]="icons.personas" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+          <span>Personas</span>
+          <span
+            class="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+            [class.bg-white/20]="rlaPersonas.isActive"
+            [class.text-white]="rlaPersonas.isActive"
+            [class.bg-amber-100]="!rlaPersonas.isActive"
+            [class.text-amber-800]="!rlaPersonas.isActive"
+          >
+            Próxima fase
+          </span>
+        </a>
+      </nav>
+    </header>
+
+    <!-- Contenido de la sección activa -->
+    <main class="min-w-0">
+      <router-outlet />
+    </main>
+  </section>
+</div>

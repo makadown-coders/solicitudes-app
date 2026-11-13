@@ -207,7 +207,11 @@ describe('LoginPageComponent (Microintervención 4)', () => {
     expect(routerSpy.navigateByUrl).toHaveBeenCalledOnceWith('/rh');
   });
 
-  it('9. returnUrl=/rh/asistencias: se conserva como destino interno válido', async () => {
+  it('9. returnUrl=/rh/asistencias y returnUrl=/ti/usuarios: se conservan como destinos internos válidos', async () => {
+    expect(resolveSafeAdminReturnUrl('/ti')).toBe('/ti');
+    expect(resolveSafeAdminReturnUrl('/ti/usuarios?page=2')).toBe('/ti/usuarios?page=2');
+    expect(resolveSafeAdminReturnUrl('/ti/personas')).toBe('/ti/personas');
+
     currentReturnUrl = '/rh/asistencias?periodo=2026-11';
     createComponent();
 
