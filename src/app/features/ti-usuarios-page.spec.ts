@@ -451,4 +451,40 @@ describe('TiUsuariosPageComponent (TI-2D.4A)', () => {
     component.addRoleAssignment();
     expect(component.rolesDraft().some((r) => r.code === 'RECURSOS_HUMANOS' && r.scope_type === 'GLOBAL')).toBeTrue();
   });
+
+  it('TI-2F.5: Sin duplicación visual en DOM: un solo encabezado, un solo botón Crear cuenta, una sola confirmación y celdas limpias', () => {
+    component.actionSuccessMessage.set('Cuenta creada.');
+    component.lastCreatedUser.set({
+      id: '99999999-9999-4999-8999-999999999999',
+      email: 'nueva@ejemplo.gob.mx',
+      name: 'Nueva',
+      status: 'ACTIVE',
+      persona_id: 99,
+      nombre_completo: 'Nueva',
+      unidad_medica_id: null,
+      unidad_medica: null,
+      roles: [],
+    });
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    const h2Matches = Array.from(el.querySelectorAll('h2')).filter((h) =>
+      h.textContent?.includes('Cuentas SSO y Roles')
+    );
+    expect(h2Matches.length).toBe(1);
+
+    const createBtns = Array.from(el.querySelectorAll('button')).filter(
+      (b) => b.textContent?.trim() === 'Crear cuenta'
+    );
+    expect(createBtns.length).toBe(1);
+
+    const statusBanners = el.querySelectorAll('[role="status"]');
+    expect(statusBanners.length).toBe(1);
+
+    const tableCellsText = Array.from(el.querySelectorAll('tbody td'))
+      .map((td) => td.textContent || '')
+      .join(' ');
+    expect(tableCellsText.includes('Cuentas SSO y Roles')).toBeFalse();
+    expect(tableCellsText.includes('Asignar roles ahora')).toBeFalse();
+  });
 });

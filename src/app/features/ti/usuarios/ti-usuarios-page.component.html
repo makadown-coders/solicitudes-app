@@ -155,46 +155,6 @@
               No se encontraron roles registrados en el catálogo.
             </p>
           } @else {
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-bold text-slate-900">Cuentas SSO y Roles</h2>
-        <p class="text-xs text-slate-500">Administración de cuentas vinculadas a Personas y sus permisos.</p>
-      </div>
-      <button
-        type="button"
-        (click)="openCreateModal()"
-        class="inline-flex items-center gap-2 rounded-lg bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#004f34] transition"
-      >
-        Crear cuenta
-      </button>
-    </div>
-
-    @if (actionSuccessMessage()) {
-      <div
-        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800"
-        role="status"
-      >
-        <span>{{ actionSuccessMessage() }}</span>
-        <div class="flex items-center gap-3">
-          @if (lastCreatedUser()) {
-            <button
-              type="button"
-              (click)="openRolesForLastCreated()"
-              class="rounded-md bg-[#006341] px-3 py-1 text-xs font-semibold text-white hover:bg-[#004f34]"
-            >
-              Asignar roles ahora
-            </button>
-          }
-          <button
-            type="button"
-            (click)="actionSuccessMessage.set(null); lastCreatedUser.set(null)"
-            class="text-xs font-semibold text-emerald-700 hover:underline"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    }
             <div
               id="ti-roles-grid"
               class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
@@ -440,91 +400,11 @@
             @if (hasActiveFilters()) {
               No hay registros que coincidan con los criterios de búsqueda o estado seleccionados.
             } @else {
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-bold text-slate-900">Cuentas SSO y Roles</h2>
-        <p class="text-xs text-slate-500">Administración de cuentas vinculadas a Personas y sus permisos.</p>
-      </div>
-      <button
-        type="button"
-        (click)="openCreateModal()"
-        class="inline-flex items-center gap-2 rounded-lg bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#004f34] transition"
-      >
-        Crear cuenta
-      </button>
-    </div>
-
-    @if (actionSuccessMessage()) {
-      <div
-        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800"
-        role="status"
-      >
-        <span>{{ actionSuccessMessage() }}</span>
-        <div class="flex items-center gap-3">
-          @if (lastCreatedUser()) {
-            <button
-              type="button"
-              (click)="openRolesForLastCreated()"
-              class="rounded-md bg-[#006341] px-3 py-1 text-xs font-semibold text-white hover:bg-[#004f34]"
-            >
-              Asignar roles ahora
-            </button>
-          }
-          <button
-            type="button"
-            (click)="actionSuccessMessage.set(null); lastCreatedUser.set(null)"
-            class="text-xs font-semibold text-emerald-700 hover:underline"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    }
               No existen cuentas registradas para mostrar en este momento.
             }
           </p>
         </div>
       } @else {
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-bold text-slate-900">Cuentas SSO y Roles</h2>
-        <p class="text-xs text-slate-500">Administración de cuentas vinculadas a Personas y sus permisos.</p>
-      </div>
-      <button
-        type="button"
-        (click)="openCreateModal()"
-        class="inline-flex items-center gap-2 rounded-lg bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#004f34] transition"
-      >
-        Crear cuenta
-      </button>
-    </div>
-
-    @if (actionSuccessMessage()) {
-      <div
-        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800"
-        role="status"
-      >
-        <span>{{ actionSuccessMessage() }}</span>
-        <div class="flex items-center gap-3">
-          @if (lastCreatedUser()) {
-            <button
-              type="button"
-              (click)="openRolesForLastCreated()"
-              class="rounded-md bg-[#006341] px-3 py-1 text-xs font-semibold text-white hover:bg-[#004f34]"
-            >
-              Asignar roles ahora
-            </button>
-          }
-          <button
-            type="button"
-            (click)="actionSuccessMessage.set(null); lastCreatedUser.set(null)"
-            class="text-xs font-semibold text-emerald-700 hover:underline"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    }
         <!-- Vista de tabla para escritorio (lg+) -->
         <div class="mt-4 hidden overflow-x-auto lg:block">
           <table
@@ -583,46 +463,6 @@
                         </div>
                       </div>
                     } @else {
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-bold text-slate-900">Cuentas SSO y Roles</h2>
-        <p class="text-xs text-slate-500">Administración de cuentas vinculadas a Personas y sus permisos.</p>
-      </div>
-      <button
-        type="button"
-        (click)="openCreateModal()"
-        class="inline-flex items-center gap-2 rounded-lg bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#004f34] transition"
-      >
-        Crear cuenta
-      </button>
-    </div>
-
-    @if (actionSuccessMessage()) {
-      <div
-        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800"
-        role="status"
-      >
-        <span>{{ actionSuccessMessage() }}</span>
-        <div class="flex items-center gap-3">
-          @if (lastCreatedUser()) {
-            <button
-              type="button"
-              (click)="openRolesForLastCreated()"
-              class="rounded-md bg-[#006341] px-3 py-1 text-xs font-semibold text-white hover:bg-[#004f34]"
-            >
-              Asignar roles ahora
-            </button>
-          }
-          <button
-            type="button"
-            (click)="actionSuccessMessage.set(null); lastCreatedUser.set(null)"
-            class="text-xs font-semibold text-emerald-700 hover:underline"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    }
                       <span
                         class="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-800"
                       >
@@ -647,46 +487,6 @@
                         </div>
                       </div>
                     } @else {
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-bold text-slate-900">Cuentas SSO y Roles</h2>
-        <p class="text-xs text-slate-500">Administración de cuentas vinculadas a Personas y sus permisos.</p>
-      </div>
-      <button
-        type="button"
-        (click)="openCreateModal()"
-        class="inline-flex items-center gap-2 rounded-lg bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#004f34] transition"
-      >
-        Crear cuenta
-      </button>
-    </div>
-
-    @if (actionSuccessMessage()) {
-      <div
-        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800"
-        role="status"
-      >
-        <span>{{ actionSuccessMessage() }}</span>
-        <div class="flex items-center gap-3">
-          @if (lastCreatedUser()) {
-            <button
-              type="button"
-              (click)="openRolesForLastCreated()"
-              class="rounded-md bg-[#006341] px-3 py-1 text-xs font-semibold text-white hover:bg-[#004f34]"
-            >
-              Asignar roles ahora
-            </button>
-          }
-          <button
-            type="button"
-            (click)="actionSuccessMessage.set(null); lastCreatedUser.set(null)"
-            class="text-xs font-semibold text-emerald-700 hover:underline"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    }
                       <span class="text-xs italic text-slate-400">
                         Sin unidad médica asignada
                       </span>
@@ -708,46 +508,6 @@
                         }
                       </div>
                     } @else {
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-bold text-slate-900">Cuentas SSO y Roles</h2>
-        <p class="text-xs text-slate-500">Administración de cuentas vinculadas a Personas y sus permisos.</p>
-      </div>
-      <button
-        type="button"
-        (click)="openCreateModal()"
-        class="inline-flex items-center gap-2 rounded-lg bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#004f34] transition"
-      >
-        Crear cuenta
-      </button>
-    </div>
-
-    @if (actionSuccessMessage()) {
-      <div
-        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800"
-        role="status"
-      >
-        <span>{{ actionSuccessMessage() }}</span>
-        <div class="flex items-center gap-3">
-          @if (lastCreatedUser()) {
-            <button
-              type="button"
-              (click)="openRolesForLastCreated()"
-              class="rounded-md bg-[#006341] px-3 py-1 text-xs font-semibold text-white hover:bg-[#004f34]"
-            >
-              Asignar roles ahora
-            </button>
-          }
-          <button
-            type="button"
-            (click)="actionSuccessMessage.set(null); lastCreatedUser.set(null)"
-            class="text-xs font-semibold text-emerald-700 hover:underline"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    }
                       <span class="text-xs italic text-slate-400">
                         Sin roles asignados
                       </span>
@@ -815,46 +575,6 @@
                       {{ u.nombre_completo || 'Persona sin nombre' }} (#{{ u.persona_id }})
                     </p>
                   } @else {
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-bold text-slate-900">Cuentas SSO y Roles</h2>
-        <p class="text-xs text-slate-500">Administración de cuentas vinculadas a Personas y sus permisos.</p>
-      </div>
-      <button
-        type="button"
-        (click)="openCreateModal()"
-        class="inline-flex items-center gap-2 rounded-lg bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#004f34] transition"
-      >
-        Crear cuenta
-      </button>
-    </div>
-
-    @if (actionSuccessMessage()) {
-      <div
-        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800"
-        role="status"
-      >
-        <span>{{ actionSuccessMessage() }}</span>
-        <div class="flex items-center gap-3">
-          @if (lastCreatedUser()) {
-            <button
-              type="button"
-              (click)="openRolesForLastCreated()"
-              class="rounded-md bg-[#006341] px-3 py-1 text-xs font-semibold text-white hover:bg-[#004f34]"
-            >
-              Asignar roles ahora
-            </button>
-          }
-          <button
-            type="button"
-            (click)="actionSuccessMessage.set(null); lastCreatedUser.set(null)"
-            class="text-xs font-semibold text-emerald-700 hover:underline"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    }
                     <p class="mt-0.5 font-medium text-amber-800">Sin persona vinculada</p>
                   }
                 </div>
@@ -866,46 +586,6 @@
                       {{ u.unidad_medica }} (#{{ u.unidad_medica_id }})
                     </p>
                   } @else {
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-bold text-slate-900">Cuentas SSO y Roles</h2>
-        <p class="text-xs text-slate-500">Administración de cuentas vinculadas a Personas y sus permisos.</p>
-      </div>
-      <button
-        type="button"
-        (click)="openCreateModal()"
-        class="inline-flex items-center gap-2 rounded-lg bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#004f34] transition"
-      >
-        Crear cuenta
-      </button>
-    </div>
-
-    @if (actionSuccessMessage()) {
-      <div
-        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800"
-        role="status"
-      >
-        <span>{{ actionSuccessMessage() }}</span>
-        <div class="flex items-center gap-3">
-          @if (lastCreatedUser()) {
-            <button
-              type="button"
-              (click)="openRolesForLastCreated()"
-              class="rounded-md bg-[#006341] px-3 py-1 text-xs font-semibold text-white hover:bg-[#004f34]"
-            >
-              Asignar roles ahora
-            </button>
-          }
-          <button
-            type="button"
-            (click)="actionSuccessMessage.set(null); lastCreatedUser.set(null)"
-            class="text-xs font-semibold text-emerald-700 hover:underline"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    }
                     <p class="mt-0.5 italic text-slate-400">Sin unidad médica asignada</p>
                   }
                 </div>
@@ -928,46 +608,6 @@
                     }
                   </div>
                 } @else {
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-bold text-slate-900">Cuentas SSO y Roles</h2>
-        <p class="text-xs text-slate-500">Administración de cuentas vinculadas a Personas y sus permisos.</p>
-      </div>
-      <button
-        type="button"
-        (click)="openCreateModal()"
-        class="inline-flex items-center gap-2 rounded-lg bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#004f34] transition"
-      >
-        Crear cuenta
-      </button>
-    </div>
-
-    @if (actionSuccessMessage()) {
-      <div
-        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800"
-        role="status"
-      >
-        <span>{{ actionSuccessMessage() }}</span>
-        <div class="flex items-center gap-3">
-          @if (lastCreatedUser()) {
-            <button
-              type="button"
-              (click)="openRolesForLastCreated()"
-              class="rounded-md bg-[#006341] px-3 py-1 text-xs font-semibold text-white hover:bg-[#004f34]"
-            >
-              Asignar roles ahora
-            </button>
-          }
-          <button
-            type="button"
-            (click)="actionSuccessMessage.set(null); lastCreatedUser.set(null)"
-            class="text-xs font-semibold text-emerald-700 hover:underline"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    }
                   <span class="text-xs italic text-slate-400">Sin roles asignados</span>
                 }
               </div>
@@ -1179,46 +819,6 @@
             }
           </div>
         } @else {
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-bold text-slate-900">Cuentas SSO y Roles</h2>
-        <p class="text-xs text-slate-500">Administración de cuentas vinculadas a Personas y sus permisos.</p>
-      </div>
-      <button
-        type="button"
-        (click)="openCreateModal()"
-        class="inline-flex items-center gap-2 rounded-lg bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#004f34] transition"
-      >
-        Crear cuenta
-      </button>
-    </div>
-
-    @if (actionSuccessMessage()) {
-      <div
-        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800"
-        role="status"
-      >
-        <span>{{ actionSuccessMessage() }}</span>
-        <div class="flex items-center gap-3">
-          @if (lastCreatedUser()) {
-            <button
-              type="button"
-              (click)="openRolesForLastCreated()"
-              class="rounded-md bg-[#006341] px-3 py-1 text-xs font-semibold text-white hover:bg-[#004f34]"
-            >
-              Asignar roles ahora
-            </button>
-          }
-          <button
-            type="button"
-            (click)="actionSuccessMessage.set(null); lastCreatedUser.set(null)"
-            class="text-xs font-semibold text-emerald-700 hover:underline"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    }
           <p class="mt-2 text-xs italic text-slate-500">Sin asignaciones seleccionadas.</p>
         }
       </div>
