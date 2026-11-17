@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   AlertCircle,
+  CheckCircle2,
   Eye,
   EyeOff,
   Loader2,
@@ -73,7 +74,9 @@ export function resolveSafeAdminReturnUrl(rawReturnUrl: string | null | undefine
       pathname === '/rh' ||
       pathname.startsWith('/rh/') ||
       pathname === '/ti' ||
-      pathname.startsWith('/ti/');
+      pathname.startsWith('/ti/') ||
+      pathname === '/mi-cuenta' ||
+      pathname.startsWith('/mi-cuenta/');
 
     if (!isAllowedAdminPath) {
       return '/rh';
@@ -108,6 +111,7 @@ export class LoginPageComponent implements OnInit {
     eyeOff: EyeOff,
     logIn: LogIn,
     alertCircle: AlertCircle,
+    checkCircle: CheckCircle2,
     loader: Loader2,
   };
 
@@ -115,6 +119,7 @@ export class LoginPageComponent implements OnInit {
   readonly verifyingExistingSession = signal(false);
   readonly showPassword = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly successMessage = signal<string | null>(null);
   readonly sessionRecoveryWarning = signal<string | null>(null);
 
   /**
@@ -137,7 +142,13 @@ export class LoginPageComponent implements OnInit {
       return;
     }
 
-    // 2) Si venimos redirigidos desde el guard por un fallo temporal de red al consultar /auth/me,
+    // 2) Si venimos redirigidos tras cambiar la contraseña exitosamente, mostrar confirmación
+    const notice = this.sessionStore.consumePostLogoutNotice();
+    if (notice) {
+      this.successMessage.set(notice);
+    }
+
+    // 3) Si venimos redirigidos desde el guard por un fallo temporal de red al consultar /auth/me,
     //    mostrar aviso claro sin provocar un bucle automático /login -> /rh -> /login.
     if (this.sessionStore.error()) {
       this.sessionRecoveryWarning.set(
@@ -224,6 +235,7 @@ export class LoginPageComponent implements OnInit {
 
     this.submitting.set(true);
     this.errorMessage.set(null);
+    this.successMessage.set(null);
     this.sessionRecoveryWarning.set(null);
 
     try {

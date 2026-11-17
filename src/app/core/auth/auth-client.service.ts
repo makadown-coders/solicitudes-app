@@ -2,7 +2,13 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { LoginResponse, MeResponse, RefreshResponse } from './auth.models';
+import {
+  ChangeOwnPasswordRequest,
+  ChangeOwnPasswordResponse,
+  LoginResponse,
+  MeResponse,
+  RefreshResponse,
+} from './auth.models';
 import { SessionStore } from './session-store.service';
 import { TokenStore } from './token-store.service';
 
@@ -167,6 +173,24 @@ export class AuthClient {
         this.session.setError(null);
       }
     }
+  }
+
+  /**
+   * Actualiza la contraseña del usuario autenticado (`PUT /api/auth/me/password`).
+   * Envía exclusivamente `{ current_password, new_password }` sin identificadores adicionales.
+   */
+  async changeOwnPassword(
+    currentPassword: string,
+    newPassword: string
+  ): Promise<ChangeOwnPasswordResponse> {
+    const payload: ChangeOwnPasswordRequest = {
+      current_password: currentPassword,
+      new_password: newPassword,
+    };
+
+    return await firstValueFrom(
+      this.http.put<ChangeOwnPasswordResponse>(`${this.authBaseUrl}/me/password`, payload)
+    );
   }
 
   private async executeRefresh(expectedEpoch: number): Promise<RefreshResponse> {

@@ -10,20 +10,31 @@
             class="h-10 w-auto shrink-0"
           />
           <div class="border-l border-gray-200 pl-3">
-            <p class="text-xs font-semibold uppercase tracking-wide text-[#006341]">
-              Módulo administrativo · IMSS-Bienestar Baja California
-            </p>
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="text-xs font-semibold uppercase tracking-wide text-[#006341]">
+                Módulo administrativo · IMSS-Bienestar Baja California
+              </p>
+              @if (activeScopeLabel(); as scopeBadge) {
+                <span
+                  id="rh-shell-scope-badge"
+                  class="inline-flex items-center gap-1 rounded-full bg-[#006341]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#006341]"
+                >
+                  <lucide-icon [img]="icons.shieldCheck" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                  <span>{{ scopeBadge }}</span>
+                </span>
+              }
+            </div>
             <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">
               Recursos Humanos
             </h1>
           </div>
         </div>
 
-        <!-- Información del usuario autenticado y cierre de sesión -->
+        <!-- Información del usuario autenticado, cambio de contraseña y cierre de sesión -->
         <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3 sm:justify-end lg:border-t-0 lg:pt-0">
           <div
             id="rh-shell-user-info"
-            class="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2 border border-gray-200"
+            class="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-slate-50 px-3 py-2"
           >
             <span
               class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#006341]/10 text-[#006341]"
@@ -43,12 +54,21 @@
             </div>
           </div>
 
+          <a
+            id="rh-shell-change-password-link"
+            routerLink="/mi-cuenta/cambiar-password"
+            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#006341]/40 hover:bg-slate-50 hover:text-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+          >
+            <lucide-icon [img]="icons.keyRound" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+            <span>Cambiar contraseña</span>
+          </a>
+
           <button
             id="rh-shell-logout-btn"
             type="button"
             (click)="onLogout()"
             [disabled]="loggingOut()"
-            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-red-50 hover:text-red-700 hover:border-red-200 focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
+            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <lucide-icon [img]="icons.logOut" class="h-4 w-4" aria-hidden="true"></lucide-icon>
             <span>{{ loggingOut() ? 'Cerrando sesión…' : 'Cerrar sesión' }}</span>
@@ -57,27 +77,297 @@
       </div>
     </header>
 
-    <!-- Espacio principal preparado para futuras secciones -->
-    <main class="min-w-0">
-      <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-10">
-        <div class="mx-auto max-w-2xl text-center py-6">
-          <div
-            class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#006341]/10 text-[#006341]"
-            aria-hidden="true"
-          >
-            <lucide-icon [img]="icons.building" class="h-6 w-6"></lucide-icon>
+    <!-- Contenido principal de Recursos Humanos -->
+    <main class="min-w-0 space-y-6">
+      @if (accessDeniedError(); as deniedMsg) {
+        <div
+          id="rh-access-denied-alert"
+          role="alert"
+          class="rounded-2xl border border-red-200 bg-red-50 p-6 shadow-sm"
+        >
+          <div class="flex items-start gap-3">
+            <lucide-icon
+              [img]="icons.shieldAlert"
+              class="mt-0.5 h-6 w-6 shrink-0 text-red-700"
+              aria-hidden="true"
+            ></lucide-icon>
+            <div>
+              <h2 class="text-base font-bold text-red-900">Acceso restringido a Recursos Humanos</h2>
+              <p class="mt-1 text-sm text-red-800">{{ deniedMsg }}</p>
+            </div>
           </div>
-          <h2 class="text-lg font-bold text-slate-900 sm:text-xl">
-            Panel de Recursos Humanos
-          </h2>
-          <div class="mx-auto my-3 w-16 border-t-2 border-[#CBA135]"></div>
-          <p class="text-sm text-slate-600 leading-relaxed">
-            Este espacio concentrará progresivamente las herramientas administrativas autorizadas.
-          </p>
         </div>
+      } @else {
+        <!-- Sección de contexto de alcance y selección de unidad de trabajo -->
+        <section
+          id="rh-unidad-context-section"
+          aria-labelledby="rh-section-heading"
+          class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+        >
+          <div class="flex flex-col gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 id="rh-section-heading" class="text-lg font-bold text-slate-900">
+                Selección de unidad de trabajo
+              </h2>
+              <p class="mt-0.5 text-xs text-slate-500">
+                Selecciona la unidad de trabajo autorizada para consultar y operar la información de Recursos Humanos.
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              @if (activeScopeLabel(); as scopeLabel) {
+                <span
+                  id="rh-active-scope-pill"
+                  class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <lucide-icon
+                    [img]="icons.shieldCheck"
+                    class="h-3.5 w-3.5 text-[#006341]"
+                    aria-hidden="true"
+                  ></lucide-icon>
+                  <span>Alcance: {{ scopeLabel }}</span>
+                </span>
+              }
+
+              <button
+                id="rh-reload-unidades-btn"
+                type="button"
+                (click)="cargarUnidadesAutorizadas()"
+                [disabled]="loadingUnidades()"
+                class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <lucide-icon
+                  [img]="loadingUnidades() ? icons.loader : icons.refresh"
+                  class="h-4 w-4"
+                  [class.animate-spin]="loadingUnidades()"
+                  aria-hidden="true"
+                ></lucide-icon>
+                <span>Actualizar unidades</span>
+              </button>
+            </div>
+          </div>
+
+          @if (loadingUnidades()) {
+            <div
+              id="rh-unidades-loading"
+              role="status"
+              aria-live="polite"
+              class="mt-5 flex items-center gap-3 rounded-xl border border-gray-200 bg-slate-50 px-4 py-4 text-sm text-slate-600"
+            >
+              <lucide-icon
+                [img]="icons.loader"
+                class="h-5 w-5 animate-spin text-[#006341]"
+                aria-hidden="true"
+              ></lucide-icon>
+              <span>Consultando unidades de trabajo autorizadas…</span>
+            </div>
+          } @else if (errorUnidades(); as errMsg) {
+            <div
+              id="rh-unidades-error"
+              role="alert"
+              class="mt-5 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div class="flex items-start gap-2.5">
+                <lucide-icon
+                  [img]="icons.alert"
+                  class="mt-0.5 h-5 w-5 shrink-0 text-red-600"
+                  aria-hidden="true"
+                ></lucide-icon>
+                <span>{{ errMsg }}</span>
+              </div>
+              <button
+                id="rh-unidades-retry-btn"
+                type="button"
+                (click)="cargarUnidadesAutorizadas()"
+                class="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-800 transition hover:bg-red-100"
+              >
+                Reintentar
+              </button>
+            </div>
+          } @else if (unidadesAutorizadas().length === 0) {
+            <div
+              id="rh-unidades-empty-authorized"
+              role="status"
+              class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900"
+            >
+              <div class="flex items-start gap-3">
+                <lucide-icon
+                  [img]="icons.alert"
+                  class="mt-0.5 h-5 w-5 shrink-0 text-amber-700"
+                  aria-hidden="true"
+                ></lucide-icon>
+                <div>
+                  <p class="font-semibold">Sin unidades de trabajo autorizadas</p>
+                  <p class="mt-1 text-xs text-amber-800">
+                    Tu cuenta no tiene unidades de trabajo activas autorizadas en este momento. Solicita al administrador la verificación de tu alcance en el sistema.
+                  </p>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <!-- Selector autocompletable de Unidad de trabajo -->
+            <div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start">
+              <div class="relative lg:col-span-7">
+                <label
+                  for="rh-unidad-trabajo-input"
+                  class="mb-1.5 block text-sm font-semibold text-slate-700"
+                >
+                  Unidad de trabajo
+                </label>
+
+                <div class="relative flex items-center">
+                  <lucide-icon
+                    [img]="icons.search"
+                    class="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400"
+                    aria-hidden="true"
+                  ></lucide-icon>
+                  <input
+                    id="rh-unidad-trabajo-input"
+                    type="text"
+                    name="unidadTrabajoSearch"
+                    role="combobox"
+                    autocomplete="off"
+                    [readonly]="isSingleCluesUnitLocked()"
+                    [attr.aria-autocomplete]="'list'"
+                    [attr.aria-expanded]="unidadSuggestOpen()"
+                    [attr.aria-controls]="unidadSuggestOpen() ? 'rh-unidad-trabajo-listbox' : null"
+                    [attr.aria-activedescendant]="
+                      unidadSuggestIndex() >= 0 ? 'rh-unidad-trabajo-opt-' + unidadSuggestIndex() : null
+                    "
+                    [ngModel]="unidadSearchDraft()"
+                    (ngModelChange)="onUnidadSearchInput($event)"
+                    (focus)="onUnidadSearchFocus()"
+                    (keydown)="onUnidadSearchKeyDown($event)"
+                    (blur)="onUnidadSearchBlur()"
+                    placeholder="Buscar unidad de trabajo por nombre o CLUES (ej. OFICINA CENTRAL, HOSPITAL, BCIMB…)"
+                    class="min-h-11 w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 read-only:bg-slate-50 read-only:text-slate-700"
+                  />
+                  @if (!isSingleCluesUnitLocked() && (unidadSearchDraft() || selectedUnidadId() !== null)) {
+                    <button
+                      id="rh-unidad-trabajo-clear-btn"
+                      type="button"
+                      (click)="clearUnidadSelection()"
+                      aria-label="Limpiar unidad de trabajo"
+                      class="absolute right-2.5 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    >
+                      <lucide-icon [img]="icons.clear" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                    </button>
+                  }
+                </div>
+
+                @if (isSingleCluesUnitLocked()) {
+                  <p id="rh-single-unit-hint" class="mt-1.5 text-xs text-slate-500">
+                    Unidad asignada automáticamente conforme a tu alcance autorizado.
+                  </p>
+                } @else {
+                  <p class="mt-1.5 text-xs text-slate-500">
+                    Escribe el nombre o clave CLUES de la unidad y selecciona una opción de la lista ({{ unidadesAutorizadas().length }} disponibles).
+                  </p>
+                }
+
+                @if (unidadSuggestOpen()) {
+                  <div
+                    id="rh-unidad-trabajo-dropdown"
+                    class="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg"
+                  >
+                    @if (filteredUnidades().length > 0) {
+                      <ul
+                        id="rh-unidad-trabajo-listbox"
+                        role="listbox"
+                        class="divide-y divide-gray-100 py-1"
+                      >
+                        @for (u of filteredUnidades(); track u.id; let i = $index) {
+                          <li
+                            [id]="'rh-unidad-trabajo-opt-' + i"
+                            role="option"
+                            [attr.aria-selected]="i === unidadSuggestIndex() || u.id === selectedUnidadId()"
+                            (mousedown)="$event.preventDefault(); selectUnidad(u)"
+                            class="cursor-pointer px-3.5 py-2.5 text-xs transition hover:bg-slate-50"
+                            [class.bg-emerald-50]="i === unidadSuggestIndex() || u.id === selectedUnidadId()"
+                          >
+                            <div class="font-semibold text-slate-900">{{ u.nombre }}</div>
+                            @if (hasDisplayableClues(u.cluesimb)) {
+                              <div class="mt-0.5 text-[11px] font-medium text-slate-500">
+                                CLUES: {{ u.cluesimb }}
+                              </div>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    } @else {
+                      <div id="rh-unidad-trabajo-no-matches" class="px-3.5 py-3 text-xs text-slate-500">
+                        No se encontraron unidades autorizadas que coincidan con «{{ unidadSearchDraft().trim() }}».
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Tarjeta de unidad de trabajo seleccionada o estado vacío -->
+              <div class="lg:col-span-5">
+                @if (selectedUnidad(); as sel) {
+                  <div
+                    id="rh-selected-unidad-card"
+                    class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4"
+                  >
+                    <div class="flex items-start gap-3">
+                      <span
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#006341] text-white"
+                        aria-hidden="true"
+                      >
+                        <lucide-icon [img]="icons.building" class="h-4 w-4"></lucide-icon>
+                      </span>
+                      <div class="min-w-0 flex-1">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-[#006341]">
+                          Unidad de trabajo activa
+                        </p>
+                        <p id="rh-selected-unidad-name" class="mt-0.5 text-sm font-bold text-slate-900">
+                          {{ sel.nombre }}
+                        </p>
+                        <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                          @if (hasDisplayableClues(sel.cluesimb)) {
+                            <span id="rh-selected-unidad-clues" class="rounded bg-white px-2 py-0.5 font-medium text-slate-700 border border-emerald-200">
+                              CLUES: {{ sel.cluesimb }}
+                            </span>
+                          } @else {
+                            <span id="rh-selected-unidad-admin-tag" class="rounded bg-white px-2 py-0.5 font-medium text-slate-600 border border-emerald-200">
+                              Unidad administrativa
+                            </span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                } @else {
+                  <div
+                    id="rh-no-unidad-selected-state"
+                    class="rounded-xl border border-dashed border-gray-300 bg-slate-50 p-4 text-center sm:text-left"
+                  >
+                    <div class="flex flex-col items-center gap-2.5 sm:flex-row sm:items-start">
+                      <span
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-200/70 text-slate-600"
+                        aria-hidden="true"
+                      >
+                        <lucide-icon [img]="icons.building" class="h-4 w-4"></lucide-icon>
+                      </span>
+                      <div>
+                        <p class="text-sm font-semibold text-slate-800">
+                          Ninguna unidad de trabajo seleccionada
+                        </p>
+                        <p class="mt-0.5 text-xs text-slate-500">
+                          Busca y selecciona una unidad de trabajo autorizada para comenzar.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </section>
 
         <router-outlet />
-      </div>
+      }
     </main>
   </section>
 </div>

@@ -28,6 +28,7 @@ export class SessionStore {
   private readonly loadingSig = signal<boolean>(false);
   private readonly errorSig = signal<string | null>(null);
   private readonly hydratedSig = signal<boolean>(false);
+  private readonly postLogoutNoticeSig = signal<string | null>(null);
 
   /**
    * Contador monotónico que se incrementa en cada `clear()`, `logout()` o nuevo `login()`.
@@ -46,6 +47,9 @@ export class SessionStore {
 
   /** Señal pública de solo lectura que indica si el perfil ya fue confirmado por el backend en la sesión activa */
   readonly hydrated = this.hydratedSig.asReadonly();
+
+  /** Señal pública de solo lectura con un aviso informativo posterior a cierre de sesión (p. ej. cambio de contraseña) */
+  readonly postLogoutNotice = this.postLogoutNoticeSig.asReadonly();
 
   /** Devuelve sincrónicamente el perfil del usuario actual (o `null`) */
   get currentUser(): UserProfile | null {
@@ -89,6 +93,18 @@ export class SessionStore {
   /** Registra o limpia un mensaje de error de sesión */
   setError(message: string | null): void {
     this.errorSig.set(message);
+  }
+
+  /** Registra o limpia un aviso informativo para mostrarse en la pantalla de login */
+  setPostLogoutNotice(message: string | null): void {
+    this.postLogoutNoticeSig.set(message);
+  }
+
+  /** Consume y limpia el aviso informativo posterior al cierre de sesión */
+  consumePostLogoutNotice(): string | null {
+    const current = this.postLogoutNoticeSig();
+    this.postLogoutNoticeSig.set(null);
+    return current;
   }
 
   /**

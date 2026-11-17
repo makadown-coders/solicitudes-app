@@ -14,6 +14,7 @@ import { AuthClient } from './auth-client.service';
 import { authGuard } from './auth.guard';
 import { authInterceptor } from './auth.interceptor';
 import { MeResponse, UserProfile } from './auth.models';
+import { rhAccessGuard } from './rh-access.guard';
 import { SessionStore } from './session-store.service';
 import { TokenStore } from './token-store.service';
 
@@ -99,7 +100,7 @@ describe('Integración de Rutas e Interceptores (Microintervención 5)', () => {
     expect(location.path()).toBe('/rh');
 
     const rhRoute = routes.find(r => r.path === 'rh');
-    expect(rhRoute?.canActivate).toEqual([authGuard]);
+    expect(rhRoute?.canActivate).toEqual([authGuard, rhAccessGuard]);
     const loadedComponent = await rhRoute!.loadComponent!();
     expect(loadedComponent).toBe(RhShellComponent);
   });
@@ -152,9 +153,13 @@ describe('Integración de Rutas e Interceptores (Microintervención 5)', () => {
     const tiRoutes = routes.filter(r => r.path === 'ti');
     expect(tiRoutes.length).toBe(1);
 
-    // Verificar que NINGUNA ruta pública (distinta de 'rh' y 'ti') tenga canActivate o canActivateChild
+    const miCuentaRoutes = routes.filter(r => r.path === 'mi-cuenta');
+    expect(miCuentaRoutes.length).toBe(1);
+    expect(miCuentaRoutes[0].canActivate).toEqual([authGuard]);
+
+    // Verificar que NINGUNA ruta pública (distinta de 'rh', 'ti' y 'mi-cuenta') tenga canActivate o canActivateChild
     for (const route of routes) {
-      if (route.path !== 'rh' && route.path !== 'ti') {
+      if (route.path !== 'rh' && route.path !== 'ti' && route.path !== 'mi-cuenta') {
         expect(route.canActivate)
           .withContext(`La ruta '${route.path}' no debe tener canActivate`)
           .toBeUndefined();

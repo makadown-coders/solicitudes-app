@@ -49,6 +49,23 @@
           </div>
         }
 
+        <!-- Aviso de confirmación posterior a cambio de contraseña -->
+        @if (successMessage()) {
+          <div
+            id="login-success-alert"
+            role="status"
+            aria-live="polite"
+            class="mb-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"
+          >
+            <lucide-icon
+              [img]="icons.checkCircle"
+              class="h-5 w-5 shrink-0 text-[#006341] mt-0.5"
+              aria-hidden="true"
+            ></lucide-icon>
+            <span class="font-medium">{{ successMessage() }}</span>
+          </div>
+        }
+
         <!-- Mensaje de error de autenticación o conectividad -->
         @if (errorMessage()) {
           <div

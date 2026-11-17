@@ -121,6 +121,7 @@ function matchesSegmentPrefix(subPath: string, prefix: string): boolean {
 /**
  * Determina si una petición HTTP pertenece a la lista blanca estricta de recursos protegidos:
  * - `GET /auth/me`
+ * - `PUT /auth/me/password`
  * - `/ti` y `/ti/*`
  * - `/dispositivos` y `/dispositivos/*`
  * - `/rh` y `/rh/*`
@@ -152,7 +153,12 @@ export function isWhitelistedProtectedRequest(
     return req.method.toUpperCase() === 'GET';
   }
 
-  // 2) Prefijos administrativos protegidos por segmento completo
+  // 2) PUT /auth/me/password
+  if (subPath === '/auth/me/password') {
+    return req.method.toUpperCase() === 'PUT';
+  }
+
+  // 3) Prefijos administrativos protegidos por segmento completo
   return (
     matchesSegmentPrefix(subPath, '/ti') ||
     matchesSegmentPrefix(subPath, '/dispositivos') ||

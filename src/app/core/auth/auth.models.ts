@@ -48,3 +48,19 @@ export interface MeResponse {
   email?: string;
   profile: UserProfile;
 }
+
+/**
+ * Payload de solicitud de PUT /api/auth/me/password
+ */
+export interface ChangeOwnPasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
+/**
+ * Respuesta real de PUT /api/auth/me/password
+ */
+export interface ChangeOwnPasswordResponse {
+  ok: true;
+  revoked_sessions: number;
+}

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import {
   ContactRound,
+  KeyRound,
   LogOut,
   LucideAngularModule,
   ShieldCheck,
@@ -28,6 +29,7 @@ export class TiShellComponent {
     user: User,
     users: Users,
     personas: ContactRound,
+    keyRound: KeyRound,
     logOut: LogOut,
     shieldCheck: ShieldCheck,
   };
