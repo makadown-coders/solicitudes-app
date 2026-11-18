@@ -314,6 +314,102 @@ export interface RhMiContextoResponse {
   permisos: RhMiContextoPermisos;
 }
 
+/**
+ * Filtro de estado aceptado por `GET /api/rh/personas`.
+ */
+export type RhPersonasEstadoFilter = 'activas' | 'inactivas' | 'todas';
+
+/**
+ * DTO administrativo de persona devuelto por `POST /api/rh/personas` y `PATCH /api/rh/personas/:personaId/estado`.
+ */
+export interface RhPersonaAdminDto {
+  persona_id: number;
+  nombre_completo: string;
+  nombres: string | null;
+  apellidos: string | null;
+  cargo: string | null;
+  correo_principal: string | null;
+  unidad_medica_id: number | null;
+  tiene_rfc: boolean;
+  rfc_masked: string | null;
+  tiene_curp: boolean;
+  curp_masked: string | null;
+  activo: boolean;
+  fecha_baja: string | null;
+}
+
+/**
+ * Registro del padrón institucional devuelto por `GET /api/rh/personas`.
+ */
+export interface RhPersonasPadronItem extends RhPersonaAdminDto {
+  unidad_medica_nombre: string | null;
+  unidad_medica_cluesimb: string | null;
+  tiene_cuenta_activa: boolean;
+}
+
+/**
+ * Respuesta paginada de `GET /api/rh/personas`.
+ */
+export interface RhPersonasPadronPagedResponse {
+  items: RhPersonasPadronItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+/**
+ * Parámetros de consulta aceptados por `GET /api/rh/personas`.
+ */
+export interface RhPersonasPadronListParams {
+  q?: string | null;
+  estado?: RhPersonasEstadoFilter;
+  unidadId?: number | null;
+  page?: number;
+  pageSize?: number;
+}
+
+/**
+ * Payload permitido por `POST /api/rh/personas`.
+ */
+export interface RhCreatePersonaPayload {
+  nombres: string;
+  apellidos: string;
+  rfc?: string | null;
+  curp?: string | null;
+  cargo?: string | null;
+  correo_principal?: string | null;
+  unidad_medica_id?: number | null;
+}
+
+/**
+ * Respuesta de `PATCH /api/rh/personas/:personaId/estado`.
+ */
+export interface RhUpdatePersonaEstadoResponse {
+  persona: RhPersonaAdminDto;
+  estado_anterior: boolean;
+  estado_nuevo: boolean;
+  idempotente: boolean;
+  campos_modificados: string[];
+}
+
+/**
+ * Payload parcial permitido por `PATCH /api/rh/personas/:personaId/general`.
+ */
+export interface RhUpdatePersonaGeneralPayload {
+  cargo?: string | null;
+  correo_principal?: string | null;
+  unidad_medica_id?: number | null;
+}
+
+/**
+ * Respuesta de `PATCH /api/rh/personas/:personaId/general`.
+ */
+export interface RhUpdatePersonaGeneralResponse {
+  persona: RhPersonaAdminDto;
+  idempotente: boolean;
+  campos_modificados: string[];
+}
+
 const ALLOWED_PATCH_LABORAL_KEYS: ReadonlyArray<keyof RhUpdateAdscripcionLaboralPayload> = [
   'matricula',
   'puesto',
@@ -332,6 +428,22 @@ const ALLOWED_PATCH_IDENTIFICACION_KEYS: ReadonlyArray<keyof RhUpdatePersonaIden
   'nombre_completo',
   'rfc',
   'curp',
+];
+
+const ALLOWED_CREATE_PERSONA_KEYS: ReadonlyArray<keyof RhCreatePersonaPayload> = [
+  'nombres',
+  'apellidos',
+  'rfc',
+  'curp',
+  'cargo',
+  'correo_principal',
+  'unidad_medica_id',
+];
+
+const ALLOWED_UPDATE_PERSONA_GENERAL_KEYS: ReadonlyArray<keyof RhUpdatePersonaGeneralPayload> = [
+  'cargo',
+  'correo_principal',
+  'unidad_medica_id',
 ];
 
 @Injectable({ providedIn: 'root' })
@@ -536,6 +648,102 @@ export class RhService {
   async obtenerMiContextoRh(): Promise<RhMiContextoResponse> {
     return await firstValueFrom(
       this.http.get<RhMiContextoResponse>(`${this.baseUrl}/mi-contexto`)
+    );
+  }
+
+  /**
+   * Consulta paginada del padrón institucional de personas (`GET /api/rh/personas`).
+   * Exclusivo para `RECURSOS_HUMANOS GLOBAL`.
+   */
+  async listarPersonasPadron(
+    params: RhPersonasPadronListParams = {}
+  ): Promise<RhPersonasPadronPagedResponse> {
+    let httpParams = new HttpParams();
+
+    const q = typeof params.q === 'string' ? params.q.trim() : '';
+    if (q) {
+      httpParams = httpParams.set('q', q);
+    }
+
+    if (params.estado) {
+      httpParams = httpParams.set('estado', params.estado);
+    }
+
+    if (params.unidadId != null) {
+      httpParams = httpParams.set('unidadId', String(params.unidadId));
+    }
+
+    if (params.page != null) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+
+    if (params.pageSize != null) {
+      httpParams = httpParams.set('pageSize', String(params.pageSize));
+    }
+
+    return await firstValueFrom(
+      this.http.get<RhPersonasPadronPagedResponse>(`${this.baseUrl}/personas`, {
+        params: httpParams,
+      })
+    );
+  }
+
+  /**
+   * Alta administrativa de una persona institucional en el padrón (`POST /api/rh/personas`).
+   * Filtra estrictamente a las 7 propiedades permitidas por el backend.
+   */
+  async crearPersonaInstitucional(
+    payload: RhCreatePersonaPayload
+  ): Promise<RhPersonaAdminDto> {
+    const cleanBody: Record<string, unknown> = {};
+    for (const key of ALLOWED_CREATE_PERSONA_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(payload, key) && payload[key] !== undefined) {
+        cleanBody[key] = payload[key];
+      }
+    }
+
+    return await firstValueFrom(
+      this.http.post<RhPersonaAdminDto>(`${this.baseUrl}/personas`, cleanBody)
+    );
+  }
+
+  /**
+   * Cambio controlado de estado administrativo (`activo`) de una persona
+   * (`PATCH /api/rh/personas/:personaId/estado`).
+   */
+  async actualizarEstadoPersona(
+    personaId: number,
+    activo: boolean
+  ): Promise<RhUpdatePersonaEstadoResponse> {
+    return await firstValueFrom(
+      this.http.patch<RhUpdatePersonaEstadoResponse>(
+        `${this.baseUrl}/personas/${personaId}/estado`,
+        { activo: Boolean(activo) }
+      )
+    );
+  }
+
+  /**
+   * Edición parcial de datos generales del directorio institucional de una persona
+   * (`PATCH /api/rh/personas/:personaId/general`).
+   * Filtra estrictamente el cuerpo a `cargo`, `correo_principal` y `unidad_medica_id`.
+   */
+  async actualizarDatosGeneralesPersona(
+    personaId: number,
+    patch: RhUpdatePersonaGeneralPayload
+  ): Promise<RhUpdatePersonaGeneralResponse> {
+    const cleanPatch: Record<string, unknown> = {};
+    for (const key of ALLOWED_UPDATE_PERSONA_GENERAL_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(patch, key) && patch[key] !== undefined) {
+        cleanPatch[key] = patch[key];
+      }
+    }
+
+    return await firstValueFrom(
+      this.http.patch<RhUpdatePersonaGeneralResponse>(
+        `${this.baseUrl}/personas/${personaId}/general`,
+        cleanPatch
+      )
     );
   }
 }

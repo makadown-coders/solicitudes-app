@@ -46,6 +46,7 @@ import {
   RhUpdatePersonaIdentificacionPayload,
 } from '../../services/rh.service';
 import { RhFichaTrabajadorDialogComponent } from './rh-ficha-trabajador-dialog.component';
+import { RhPadronInstitucionalComponent } from './rh-padron-institucional.component';
 
 @Component({
   selector: 'app-rh-shell',
@@ -57,6 +58,7 @@ import { RhFichaTrabajadorDialogComponent } from './rh-ficha-trabajador-dialog.c
     RouterLink,
     LucideAngularModule,
     RhFichaTrabajadorDialogComponent,
+    RhPadronInstitucionalComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rh-shell.component.html',
@@ -117,6 +119,9 @@ export class RhShellComponent implements OnInit, OnDestroy {
 
   /** Selección activa de unidad de trabajo (conserva el id real unidad_medica.id) */
   readonly selectedUnidadId = signal<number | null>(null);
+
+  /** Pestaña interna de administración RH: 'unidad' (Personal por unidad) o 'padron' (Plantilla institucional, solo RH GLOBAL) */
+  readonly activeAdminTab = signal<'unidad' | 'padron'>('unidad');
 
   /** Estado del autocompletado de unidad de trabajo */
   readonly unidadSearchDraft = signal('');
@@ -250,6 +255,28 @@ export class RhShellComponent implements OnInit, OnDestroy {
     const unidad = this.selectedUnidad();
     return Boolean(ctx && ctx.grantedBy === 'RECURSOS_HUMANOS' && unidad !== null);
   });
+
+  /**
+   * Habilita la pestaña «Plantilla institucional» exclusivamente cuando el operador
+   * cuenta con rol estatal `RECURSOS_HUMANOS GLOBAL`.
+   */
+  readonly canManagePadronInstitucional = computed<boolean>(() => {
+    const ctx = this.roleContext();
+    return Boolean(ctx && ctx.grantedBy === 'RECURSOS_HUMANOS' && ctx.scope === 'GLOBAL');
+  });
+
+  setAdminTab(tab: 'unidad' | 'padron'): void {
+    if (tab === 'padron' && !this.canManagePadronInstitucional()) {
+      this.activeAdminTab.set('unidad');
+      return;
+    }
+    this.activeAdminTab.set(tab);
+  }
+
+  onPadronUnauthorized(): void {
+    this.sessionStore.clear();
+    void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh-admin' } });
+  }
 
   readonly selectedCandidataBloqueadaEnUnidad = computed<boolean>(() => {
     const c = this.selectedCandidata();
