@@ -31,6 +31,7 @@ import {
 } from '../../services/rh.service';
 import { authGuard } from '../../core/auth/auth.guard';
 import { resolveSafeAdminReturnUrl } from '../auth/login/login-page.component';
+import { RhAsistenciaDocxService } from './asistencia/rh-asistencia-docx.service';
 import { RhEmployeePortalComponent } from './rh-employee-portal.component';
 import { RhShellComponent } from './rh-shell.component';
 
@@ -3408,5 +3409,392 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     portalFixture.destroy();
     expect(portalFixture.componentInstance.contextoData()).toBeNull();
     expect(portalFixture.componentInstance.loadingContexto()).toBeFalse();
+  });
+
+  // =========================================================================
+  // SUITE RH-3A.2 (MI LISTA DE ASISTENCIA EN /rh: PRECARGA, CASOS DE ADSCRIPCIÓN, CALENDARIO Y DESCARGA DOCX)
+  // =========================================================================
+
+  it('37 (RH-3A.2 #1, #2, #5, #6, #9, #10, #11, #19, #20). Carga de «Mi lista de asistencia» tras GET /api/rh/mi-contexto; precarga desde adscripción vigente, varias adscripciones vigentes, Oficina Central (CLUES N/A), puesto/jornada/horario faltantes, sugerencias editables y edición local sin PATCH ni peticiones administrativas', async () => {
+    setupSession(rhGlobalUser);
+
+    const portalFixture = TestBed.createComponent(RhEmployeePortalComponent);
+    portalFixture.detectChanges();
+
+    // Contexto con 2 adscripciones vigentes (una en unidad médica y otra en OFICINA CENTRAL sin puesto/jornada/horario)
+    httpMock.expectOne(rhMiContextoUrl).flush({
+      modo: 'EMPLEADO',
+      persona: {
+        persona_id: 801,
+        nombre_completo: 'Persona Trabajadora Ejemplo Uno',
+        nombres: 'Persona Trabajadora',
+        apellidos: 'Ejemplo Uno',
+        tiene_rfc: true,
+        rfc_masked: '**********AB1',
+        tiene_curp: true,
+        curp_masked: '****************09',
+      },
+      unidad_referencia: {
+        id: 10,
+        nombre: 'HOSPITAL GENERAL MEXICALI',
+        cluesimb: 'BCIMB000001',
+        origen: 'ADSCRIPCION_RH',
+      },
+      estado_vinculacion_rh: 'ADSCRIPCION_VIGENTE',
+      adscripciones: [
+        {
+          adscripcion_laboral_id: 9101,
+          unidad_medica_id: 10,
+          unidad: { id: 10, nombre: 'HOSPITAL GENERAL MEXICALI', cluesimb: 'BCIMB000001' },
+          matricula: 'MAT-9101',
+          puesto: 'Enfermera General Titulada',
+          turno: 'MATUTINO',
+          jornada: 'LUNES A VIERNES',
+          horario: '07:00 - 15:00 HRS',
+          vigente_desde: '2025-01-01',
+          vigente_hasta: null,
+          activo: true,
+          es_vigente: true,
+          estado_vigencia: 'VIGENTE',
+          observaciones: null,
+        },
+        {
+          adscripcion_laboral_id: 9102,
+          unidad_medica_id: 177,
+          unidad: { id: 177, nombre: 'OFICINA CENTRAL', cluesimb: 'N/A' },
+          matricula: null,
+          puesto: null,
+          turno: null,
+          jornada: null,
+          horario: null,
+          vigente_desde: '2025-06-01',
+          vigente_hasta: null,
+          activo: true,
+          es_vigente: true,
+          estado_vigencia: 'VIGENTE',
+          observaciones: null,
+        },
+      ],
+      permisos: mockMiContextoVigente.permisos,
+    } satisfies RhMiContextoResponse);
+
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    const portalEl = portalFixture.nativeElement as HTMLElement;
+    const asistenciaSection = portalEl.querySelector('#rh-portal-mi-lista-asistencia-section');
+    expect(asistenciaSection).not.toBeNull();
+    expect(portalEl.querySelector('#rh-portal-asistencia-heading')?.textContent).toContain(
+      'Mi lista de asistencia'
+    );
+
+    // 1 y 2. Verificar precarga desde la primera adscripción vigente (9101)
+    const inputNombre = portalEl.querySelector('#rh-asistencia-input-nombre') as HTMLInputElement;
+    const inputPuesto = portalEl.querySelector('#rh-asistencia-input-puesto') as HTMLInputElement;
+    const inputAdscripcion = portalEl.querySelector(
+      '#rh-asistencia-input-adscripcion'
+    ) as HTMLInputElement;
+    const inputJornada = portalEl.querySelector('#rh-asistencia-input-jornada') as HTMLInputElement;
+    const inputHorario = portalEl.querySelector('#rh-asistencia-input-horario') as HTMLInputElement;
+
+    expect(inputNombre.value).toBe('Persona Trabajadora Ejemplo Uno');
+    expect(inputPuesto.value).toBe('Enfermera General Titulada');
+    expect(inputAdscripcion.value).toBe('HOSPITAL GENERAL MEXICALI');
+    expect(inputJornada.value).toBe('LUNES A VIERNES');
+    expect(inputHorario.value).toBe('07:00 - 15:00 HRS');
+
+    // 6. Varias adscripciones vigentes -> muestra selector #rh-asistencia-select-adscripcion
+    const selectAdscripcion = portalEl.querySelector(
+      '#rh-asistencia-select-adscripcion'
+    ) as HTMLSelectElement | null;
+    expect(selectAdscripcion).not.toBeNull();
+    expect(selectAdscripcion!.options.length).toBe(2);
+
+    // 5, 9 y 10. Seleccionar la segunda adscripción vigente (9102 en OFICINA CENTRAL con CLUES N/A y sin puesto/jornada/horario)
+    selectAdscripcion!.value = '9102';
+    selectAdscripcion!.dispatchEvent(new Event('change'));
+    portalFixture.detectChanges();
+
+    expect(inputAdscripcion.value).toBe('OFICINA CENTRAL');
+    // No inventa puesto, jornada ni horario cuando la adscripción los tiene en null
+    expect(inputPuesto.value).toBe('');
+    expect(inputJornada.value).toBe('');
+    expect(inputHorario.value).toBe('');
+
+    // Las sugerencias editables aplican el valor sugerido explícitamente cuando el usuario hace clic
+    (portalEl.querySelector('#rh-asistencia-suggest-jornada-btn') as HTMLButtonElement).click();
+    (portalEl.querySelector('#rh-asistencia-suggest-horario-btn') as HTMLButtonElement).click();
+    portalFixture.detectChanges();
+
+    expect(inputJornada.value).toBe('LUNES A VIERNES');
+    expect(inputHorario.value).toBe('08:00 – 17:00 HRS');
+
+    // 11 y 19. Edición local en el formulario no dispara ningún PATCH/POST/GET administrativo al backend
+    inputPuesto.value = 'Analista Administrativo Estatal';
+    inputPuesto.dispatchEvent(new Event('input'));
+    portalFixture.detectChanges();
+
+    expect(portalEl.querySelector('#rh-asistencia-local-edit-notice')?.textContent).toContain(
+      'no modifican ni actualizan tu expediente laboral'
+    );
+    httpMock.expectNone((r) => r.url.includes('/api/rh/'));
+
+    // 20. Conserva el botón «Ir a Administración RH» para usuarios con rol RH
+    expect(portalEl.querySelector('#rh-portal-go-admin-link')).not.toBeNull();
+  });
+
+  it('38 (RH-3A.2 #3, #4, #7, #8). Trabajador sin adscripción RH (unidad de referencia del directorio) y trabajador con solo adscripciones futuras o históricas (no seleccionadas silenciosamente como vigentes)', async () => {
+    setupSession(unauthorizedAbastoUser);
+
+    const portalFixture = TestBed.createComponent(RhEmployeePortalComponent);
+    portalFixture.detectChanges();
+
+    // 3 y 4. Trabajador en PENDIENTE_ADSCRIPCION_RH con unidad de referencia del directorio
+    httpMock.expectOne(rhMiContextoUrl).flush({
+      modo: 'EMPLEADO',
+      persona: {
+        persona_id: 802,
+        nombre_completo: 'Persona Trabajadora Sin Adscripcion',
+        nombres: 'Persona Trabajadora',
+        apellidos: 'Sin Adscripcion',
+        tiene_rfc: false,
+        rfc_masked: null,
+        tiene_curp: false,
+        curp_masked: null,
+      },
+      unidad_referencia: {
+        id: 20,
+        nombre: 'HOSPITAL GENERAL TIJUANA',
+        cluesimb: 'BCIMB000010',
+        origen: 'DIRECTORIO',
+      },
+      estado_vinculacion_rh: 'PENDIENTE_ADSCRIPCION_RH',
+      adscripciones: [],
+      permisos: mockMiContextoVigente.permisos,
+    } satisfies RhMiContextoResponse);
+
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    const portalEl = portalFixture.nativeElement as HTMLElement;
+    const inputNombre = portalEl.querySelector('#rh-asistencia-input-nombre') as HTMLInputElement;
+    const inputPuesto = portalEl.querySelector('#rh-asistencia-input-puesto') as HTMLInputElement;
+    const inputAdscripcion = portalEl.querySelector(
+      '#rh-asistencia-input-adscripcion'
+    ) as HTMLInputElement;
+    const inputJornada = portalEl.querySelector('#rh-asistencia-input-jornada') as HTMLInputElement;
+    const inputHorario = portalEl.querySelector('#rh-asistencia-input-horario') as HTMLInputElement;
+
+    expect(inputNombre.value).toBe('Persona Trabajadora Sin Adscripcion');
+    expect(inputAdscripcion.value).toBe('HOSPITAL GENERAL TIJUANA');
+    // Identificada explícitamente como unidad de referencia del directorio, no adscripción formal
+    expect(
+      portalEl.querySelector('#rh-asistencia-adscripcion-ref-badge')?.textContent
+    ).toContain('Unidad de referencia del directorio');
+    expect(inputPuesto.value).toBe('');
+    expect(inputJornada.value).toBe('');
+    expect(inputHorario.value).toBe('');
+
+    // 7 y 8. Trabajador con solo adscripción FUTURA e HISTORICA -> NO se seleccionan silenciosamente como vigentes
+    const reloadNonVigentes = portalFixture.componentInstance.cargarMiContexto();
+    httpMock.expectOne(rhMiContextoUrl).flush({
+      modo: 'EMPLEADO',
+      persona: {
+        persona_id: 803,
+        nombre_completo: 'Persona Trabajadora Programada',
+        nombres: 'Persona Trabajadora',
+        apellidos: 'Programada',
+        tiene_rfc: false,
+        rfc_masked: null,
+        tiene_curp: false,
+        curp_masked: null,
+      },
+      unidad_referencia: {
+        id: 177,
+        nombre: 'OFICINA CENTRAL',
+        cluesimb: 'N/A',
+        origen: 'ADSCRIPCION_RH',
+      },
+      estado_vinculacion_rh: 'ADSCRIPCION_FUTURA',
+      adscripciones: [
+        {
+          adscripcion_laboral_id: 9201,
+          unidad_medica_id: 177,
+          unidad: { id: 177, nombre: 'OFICINA CENTRAL', cluesimb: 'N/A' },
+          matricula: 'MAT-FUT',
+          puesto: 'Coordinador Normativo',
+          turno: 'MATUTINO',
+          jornada: 'LUNES A VIERNES',
+          horario: '08:00 - 16:00 HRS',
+          vigente_desde: '2099-01-15',
+          vigente_hasta: null,
+          activo: true,
+          es_vigente: false,
+          estado_vigencia: 'FUTURA',
+          observaciones: null,
+        },
+        {
+          adscripcion_laboral_id: 9202,
+          unidad_medica_id: 30,
+          unidad: { id: 30, nombre: 'HOSPITAL GENERAL ENSENADA', cluesimb: 'BCIMB000020' },
+          matricula: 'MAT-HIST',
+          puesto: 'Analista Previo',
+          turno: 'VESPERTINO',
+          jornada: 'LUNES A VIERNES',
+          horario: '14:00 - 21:30 HRS',
+          vigente_desde: '2024-01-01',
+          vigente_hasta: '2024-12-31',
+          activo: false,
+          es_vigente: false,
+          estado_vigencia: 'HISTORICA',
+          observaciones: null,
+        },
+      ],
+      permisos: mockMiContextoVigente.permisos,
+    } satisfies RhMiContextoResponse);
+    await reloadNonVigentes;
+    portalFixture.detectChanges();
+
+    // Ninguna adscripción futura o histórica se seleccionó silenciosamente
+    expect(portalEl.querySelector('#rh-asistencia-non-vigente-warning')).not.toBeNull();
+    expect(inputPuesto.value).toBe('');
+    expect(inputJornada.value).toBe('');
+    expect(inputHorario.value).toBe('');
+
+    const selectNonVigente = portalEl.querySelector(
+      '#rh-asistencia-select-adscripcion'
+    ) as HTMLSelectElement;
+    expect(selectNonVigente).not.toBeNull();
+    expect(selectNonVigente.value).toBe('NONE');
+    expect(selectNonVigente.textContent).toContain('[Programada (futura)]');
+    expect(selectNonVigente.textContent).toContain('15/01/2099');
+    expect(selectNonVigente.textContent).toContain('[Histórica]');
+    expect(selectNonVigente.textContent).toContain('01/01/2024 a 31/12/2024');
+
+    // Selección explícita de la adscripción futura por el trabajador
+    selectNonVigente.value = '9201';
+    selectNonVigente.dispatchEvent(new Event('change'));
+    portalFixture.detectChanges();
+
+    expect(inputPuesto.value).toBe('Coordinador Normativo');
+    expect(inputAdscripcion.value).toBe('OFICINA CENTRAL');
+    expect(inputJornada.value).toBe('LUNES A VIERNES');
+    expect(inputHorario.value).toBe('08:00 - 16:00 HRS');
+  });
+
+  it('39 (RH-3A.2 #12, #13, #14, #15, #16, #17, #18). Selección de mes y año, febrero bisiesto 2028, aviso de calendario no confirmado, descarga DOCX, prevención de doble descarga, manejo de error de plantilla y limpieza al cerrar sesión', async () => {
+    setupSession(unauthorizedAbastoUser);
+    const docxService = TestBed.inject(RhAsistenciaDocxService);
+
+    const portalFixture = TestBed.createComponent(RhEmployeePortalComponent);
+    portalFixture.detectChanges();
+
+    httpMock.expectOne(rhMiContextoUrl).flush(mockMiContextoVigente);
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    const portalEl = portalFixture.nativeElement as HTMLElement;
+    const selectMonth = portalEl.querySelector('#rh-asistencia-select-month') as HTMLSelectElement;
+    const selectYear = portalEl.querySelector('#rh-asistencia-select-year') as HTMLSelectElement;
+
+    // 12, 13 y 14. Seleccionar Febrero de 2028 (bisiesto = 29 días y calendario sujeto a confirmación)
+    selectMonth.value = '2';
+    selectMonth.dispatchEvent(new Event('change'));
+    selectYear.value = '2028';
+    selectYear.dispatchEvent(new Event('change'));
+    portalFixture.detectChanges();
+
+    expect(portalEl.querySelector('#rh-asistencia-leap-badge')?.textContent).toContain(
+      'Año bisiesto (2028)'
+    );
+    expect(portalEl.querySelector('#rh-asistencia-kpi-total-days')?.textContent?.trim()).toBe('29');
+    expect(
+      portalEl.querySelector('#rh-asistencia-unconfirmed-calendar-notice')?.textContent
+    ).toContain('Calendario sujeto a confirmación de la circular institucional correspondiente.');
+
+    // En 2026 (confirmado por Circular IB-UAF-CRH-0003-2026) el aviso desaparece
+    selectYear.value = '2026';
+    selectYear.dispatchEvent(new Event('change'));
+    portalFixture.detectChanges();
+    expect(portalEl.querySelector('#rh-asistencia-unconfirmed-calendar-notice')).toBeNull();
+    expect(portalEl.querySelector('#rh-asistencia-kpi-total-days')?.textContent?.trim()).toBe('28');
+
+    // Validación cuando falta puesto antes de descargar
+    const inputPuesto = portalEl.querySelector('#rh-asistencia-input-puesto') as HTMLInputElement;
+    inputPuesto.value = '   ';
+    inputPuesto.dispatchEvent(new Event('input'));
+    portalFixture.detectChanges();
+
+    const downloadBtn = portalEl.querySelector(
+      '#rh-asistencia-download-btn'
+    ) as HTMLButtonElement;
+    downloadBtn.click();
+    portalFixture.detectChanges();
+
+    expect(portalEl.querySelector('#rh-asistencia-validation-error')?.textContent).toContain(
+      'El campo «Puesto» es obligatorio'
+    );
+
+    // Restaurar puesto y probar 15 y 17 (descarga DOCX y prevención de doble descarga por clics repetidos)
+    inputPuesto.value = 'Enfermera General Titulada';
+    inputPuesto.dispatchEvent(new Event('input'));
+    portalFixture.detectChanges();
+
+    let resolveDownload!: (fileName: string) => void;
+    const downloadSpy = spyOn(docxService, 'downloadAttendanceDocxFromParams').and.returnValue(
+      new Promise<string>((resolve) => {
+        resolveDownload = resolve;
+      })
+    );
+
+    downloadBtn.click();
+    portalFixture.detectChanges();
+
+    expect(downloadSpy).toHaveBeenCalledTimes(1);
+    expect(downloadBtn.disabled).toBeTrue();
+    expect(downloadBtn.textContent).toContain('Generando documento Word…');
+
+    // Un segundo clic mientras isGenerating() es true no dispara otra descarga
+    downloadBtn.click();
+    expect(downloadSpy).toHaveBeenCalledTimes(1);
+
+    resolveDownload('Lista_Asistencia_2026-02_Maria_Fernanda_Lopez_Ruiz.docx');
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    expect(downloadBtn.disabled).toBeFalse();
+    expect(portalEl.querySelector('#rh-asistencia-download-success')?.textContent).toContain(
+      'Lista_Asistencia_2026-02_Maria_Fernanda_Lopez_Ruiz.docx'
+    );
+
+    // 16. Error en carga de plantilla muestra mensaje amigable en #rh-asistencia-generation-error
+    downloadSpy.and.returnValue(
+      Promise.reject(
+        new Error(
+          'No se encontró la plantilla institucional rh/asistencia/template-membretado-2026.docx (HTTP 404).'
+        )
+      )
+    );
+
+    downloadBtn.click();
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    expect(portalEl.querySelector('#rh-asistencia-generation-error')?.textContent).toContain(
+      'No se encontró la plantilla institucional'
+    );
+
+    // 18. Cierre de sesión limpia toda la información del portal y del formulario sin persistir en storage
+    expect(JSON.stringify(localStorage)).not.toContain('Enfermera General Titulada');
+    expect(JSON.stringify(sessionStorage)).not.toContain('Enfermera General Titulada');
+
+    const logoutPromise = portalFixture.componentInstance.onLogout();
+    portalFixture.detectChanges();
+    expect(portalFixture.componentInstance.contextoData()).toBeNull();
+    expect(portalEl.querySelector('#rh-portal-mi-lista-asistencia-section')).toBeNull();
+
+    httpMock.expectOne(`${authBase}/logout`).flush({ ok: true });
+    await logoutPromise;
+    expect(location.path()).toBe('/login');
   });
 });

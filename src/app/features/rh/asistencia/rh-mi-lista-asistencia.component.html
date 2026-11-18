@@ -1,0 +1,584 @@
+<section
+  id="rh-portal-mi-lista-asistencia-section"
+  aria-labelledby="rh-portal-asistencia-heading"
+  class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+>
+  <!-- Encabezado de la sección «Mi lista de asistencia» -->
+  <div class="flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-center gap-2.5">
+      <span
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#006341]/10 text-[#006341]"
+        aria-hidden="true"
+      >
+        <lucide-icon [img]="icons.calendar" class="h-5 w-5"></lucide-icon>
+      </span>
+      <div>
+        <h2
+          id="rh-portal-asistencia-heading"
+          class="text-base font-bold text-slate-900 sm:text-lg"
+        >
+          Mi lista de asistencia
+        </h2>
+        <p class="text-xs text-slate-500">
+          Generación y descarga de tu formato mensual de asistencia en documento Word editable (.docx)
+        </p>
+      </div>
+    </div>
+
+    @if (calendarSummary().isLeapYear) {
+      <span
+        id="rh-asistencia-leap-badge"
+        class="inline-flex items-center self-start rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 sm:self-auto"
+      >
+        Año bisiesto ({{ calendarSummary().year }})
+      </span>
+    }
+  </div>
+
+  <!-- Aviso de alcance local de edición del formulario -->
+  <div
+    id="rh-asistencia-local-edit-notice"
+    class="mt-4 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700"
+  >
+    <lucide-icon
+      [img]="icons.info"
+      class="mt-0.5 h-4 w-4 shrink-0 text-[#006341]"
+      aria-hidden="true"
+    ></lucide-icon>
+    <p>
+      Los ajustes que realices en este formulario afectan únicamente al documento generado para impresión y
+      <span class="font-semibold text-slate-900">no modifican ni actualizan tu expediente laboral</span>
+      en Recursos Humanos.
+    </p>
+  </div>
+
+  <!-- Selector de adscripción cuando existen varias adscripciones vigentes o solo adscripciones futuras/históricas -->
+  @if (hasMultipleVigentes() || hasOnlyNonVigentes()) {
+    <div
+      id="rh-asistencia-adscripcion-selector-box"
+      class="mt-4 rounded-xl border p-4"
+      [ngClass]="{
+        'border-emerald-200 bg-emerald-50/40': hasMultipleVigentes(),
+        'border-amber-200 bg-amber-50/60': hasOnlyNonVigentes()
+      }"
+    >
+      <label
+        for="rh-asistencia-select-adscripcion"
+        class="block text-xs font-bold uppercase tracking-wide text-slate-800"
+      >
+        @if (hasMultipleVigentes()) {
+          Selecciona la adscripción vigente para rellenar el formato
+        } @else {
+          Adscripciones registradas no vigentes (selección opcional para impresión)
+        }
+      </label>
+
+      @if (hasOnlyNonVigentes()) {
+        <p
+          id="rh-asistencia-non-vigente-warning"
+          class="mt-1 text-xs text-amber-900"
+        >
+          No cuentas con una adscripción vigente activa en este momento.Tus registros programados o históricos no se seleccionan automáticamente como vigentes; puedes elegir uno de manera explícita o capturar manualmente los datos para impresión.
+        </p>
+      }
+
+      <select
+        id="rh-asistencia-select-adscripcion"
+        [value]="selectedAdscripcionId() ?? 'NONE'"
+        (change)="onSelectAdscripcion($any($event.target).value)"
+        class="mt-2 block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 shadow-2xs focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+      >
+        @if (hasOnlyNonVigentes()) {
+          <option value="NONE">
+            -- Sin adscripción seleccionada (captura manual / unidad de referencia) --
+          </option>
+        }
+        @for (item of adscripciones(); track item.adscripcion_laboral_id) {
+          <option [value]="item.adscripcion_laboral_id">
+            {{ formatAdscripcionOptionLabel(item) }}
+          </option>
+        }
+      </select>
+    </div>
+  }
+
+  <!-- Grid principal: Formulario de impresión (izquierda) + Calendario mensual (derecha) -->
+  <div class="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-12">
+    <!-- Columna izquierda: Formulario de datos para impresión y descarga -->
+    <div class="space-y-4 lg:col-span-5">
+      <div class="rounded-xl border border-gray-200 bg-slate-50/50 p-4 sm:p-5">
+        <h3 class="text-sm font-bold text-slate-900">
+          Datos para impresión del formato
+        </h3>
+        <p class="mt-0.5 text-xs text-slate-500">
+          Revisa los datos precargados desde tu perfil y completa los campos faltantes antes de descargar.
+        </p>
+
+        <div class="mt-4 space-y-3.5">
+          <!-- 1. Nombre completo -->
+          <div>
+            <label
+              for="rh-asistencia-input-nombre"
+              class="block text-xs font-semibold uppercase tracking-wide text-slate-700"
+            >
+              Nombre completo <span class="text-red-600">*</span>
+            </label>
+            <input
+              id="rh-asistencia-input-nombre"
+              type="text"
+              [value]="draftNombre()"
+              (input)="onNombreInput($any($event.target).value)"
+              placeholder="Nombre completo del trabajador"
+              class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-900 shadow-2xs focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+            />
+          </div>
+
+          <!-- 2. Puesto -->
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <label
+                for="rh-asistencia-input-puesto"
+                class="block text-xs font-semibold uppercase tracking-wide text-slate-700"
+              >
+                Puesto <span class="text-red-600">*</span>
+              </label>
+              @if (!draftPuesto().trim()) {
+                <span class="text-[11px] font-medium text-amber-700">
+                  Pendiente de capturar para impresión
+                </span>
+              }
+            </div>
+            <input
+              id="rh-asistencia-input-puesto"
+              type="text"
+              [value]="draftPuesto()"
+              (input)="onPuestoInput($any($event.target).value)"
+              placeholder="Ingresa tu puesto o área para impresión"
+              class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-900 shadow-2xs focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+            />
+          </div>
+
+          <!-- 3. Adscripción -->
+          <div>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <label
+                for="rh-asistencia-input-adscripcion"
+                class="block text-xs font-semibold uppercase tracking-wide text-slate-700"
+              >
+                Adscripción
+              </label>
+              @if (isUsingDirectorioReference()) {
+                <span
+                  id="rh-asistencia-adscripcion-ref-badge"
+                  class="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800"
+                >
+                  Unidad de referencia del directorio (no adscripción formal)
+                </span>
+              }
+            </div>
+            <input
+              id="rh-asistencia-input-adscripcion"
+              type="text"
+              [value]="draftAdscripcion()"
+              (input)="onAdscripcionInput($any($event.target).value)"
+              placeholder="Unidad médica o administrativa para impresión"
+              class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-900 shadow-2xs focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+            />
+            <div class="mt-1 flex items-center justify-between gap-2">
+              <span class="text-[11px] text-slate-500">
+                Texto que se imprimirá en el renglón «Adscripción» del formato.
+              </span>
+              <button
+                id="rh-asistencia-suggest-adscripcion-btn"
+                type="button"
+                (click)="applyAdscripcionSuggestion()"
+                class="text-[11px] font-semibold text-[#006341] underline decoration-[#006341]/40 hover:text-[#004f34]"
+              >
+                Usar sugerencia editable: Coordinación Estatal
+              </button>
+            </div>
+          </div>
+
+          <!-- 4. Jornada -->
+          <div>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <label
+                for="rh-asistencia-input-jornada"
+                class="block text-xs font-semibold uppercase tracking-wide text-slate-700"
+              >
+                Jornada
+              </label>
+              <button
+                id="rh-asistencia-suggest-jornada-btn"
+                type="button"
+                (click)="applyJornadaSuggestion()"
+                class="text-[11px] font-semibold text-[#006341] underline decoration-[#006341]/40 hover:text-[#004f34]"
+              >
+                Sugerencia editable: {{ defaultSuggestions.jornada }}
+              </button>
+            </div>
+            <input
+              id="rh-asistencia-input-jornada"
+              type="text"
+              [value]="draftJornada()"
+              (input)="onJornadaInput($any($event.target).value)"
+              [placeholder]="'Sugerencia editable: ' + defaultSuggestions.jornada"
+              class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-900 shadow-2xs focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+            />
+          </div>
+
+          <!-- 5. Horario -->
+          <div>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <label
+                for="rh-asistencia-input-horario"
+                class="block text-xs font-semibold uppercase tracking-wide text-slate-700"
+              >
+                Horario
+              </label>
+              <button
+                id="rh-asistencia-suggest-horario-btn"
+                type="button"
+                (click)="applyHorarioSuggestion()"
+                class="text-[11px] font-semibold text-[#006341] underline decoration-[#006341]/40 hover:text-[#004f34]"
+              >
+                Sugerencia editable: {{ defaultSuggestions.horario }}
+              </button>
+            </div>
+            <input
+              id="rh-asistencia-input-horario"
+              type="text"
+              [value]="draftHorario()"
+              (input)="onHorarioInput($any($event.target).value)"
+              [placeholder]="'Sugerencia editable: ' + defaultSuggestions.horario"
+              class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-900 shadow-2xs focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+            />
+          </div>
+
+          <!-- 6 y 7. Mes y Año -->
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label
+                for="rh-asistencia-select-month"
+                class="block text-xs font-semibold uppercase tracking-wide text-slate-700"
+              >
+                Mes
+              </label>
+              <select
+                id="rh-asistencia-select-month"
+                [value]="selectedMonth()"
+                (change)="onMonthChange($any($event.target).value)"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-900 shadow-2xs focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+              >
+                @for (m of monthsCatalog; track m.value) {
+                  <option [value]="m.value" [selected]="m.value === selectedMonth()">
+                    {{ m.label }}
+                  </option>
+                }
+              </select>
+            </div>
+
+            <div>
+              <label
+                for="rh-asistencia-select-year"
+                class="block text-xs font-semibold uppercase tracking-wide text-slate-700"
+              >
+                Año
+              </label>
+              <select
+                id="rh-asistencia-select-year"
+                [value]="selectedYear()"
+                (change)="onYearChange($any($event.target).value)"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-900 shadow-2xs focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+              >
+                @for (y of availableYears; track y) {
+                  <option [value]="y" [selected]="y === selectedYear()">
+                    {{ y }}
+                  </option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mensajes de validación, error o confirmación de descarga -->
+        @if (validationError(); as valErr) {
+          <div
+            id="rh-asistencia-validation-error"
+            role="alert"
+            class="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950"
+          >
+            <lucide-icon
+              [img]="icons.alertTriangle"
+              class="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+              aria-hidden="true"
+            ></lucide-icon>
+            <span>{{ valErr }}</span>
+          </div>
+        }
+
+        @if (generationError(); as genErr) {
+          <div
+            id="rh-asistencia-generation-error"
+            role="alert"
+            class="mt-4 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-900"
+          >
+            <lucide-icon
+              [img]="icons.alertTriangle"
+              class="mt-0.5 h-4 w-4 shrink-0 text-red-700"
+              aria-hidden="true"
+            ></lucide-icon>
+            <span>{{ genErr }}</span>
+          </div>
+        }
+
+        @if (lastDownloadedFile(); as downloadedName) {
+          <div
+            id="rh-asistencia-download-success"
+            role="status"
+            class="mt-4 flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-950"
+          >
+            <lucide-icon
+              [img]="icons.checkCircle"
+              class="mt-0.5 h-4 w-4 shrink-0 text-emerald-700"
+              aria-hidden="true"
+            ></lucide-icon>
+            <div class="min-w-0">
+              <p class="font-bold">Lista de asistencia descargada correctamente</p>
+              <p class="mt-0.5 truncate font-mono text-[11px] text-emerald-800">
+                {{ downloadedName }}
+              </p>
+            </div>
+          </div>
+        }
+
+        <!-- Botón de descarga DOCX -->
+        <div class="mt-5">
+          <button
+            id="rh-asistencia-download-btn"
+            type="button"
+            (click)="onDownloadDocx()"
+            [disabled]="isGenerating()"
+            class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#006341] px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#004f34] focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            @if (isGenerating()) {
+              <lucide-icon
+                [img]="icons.refreshCw"
+                class="h-4 w-4 animate-spin"
+                aria-hidden="true"
+              ></lucide-icon>
+              <span>Generando documento Word…</span>
+            } @else {
+              <lucide-icon
+                [img]="icons.download"
+                class="h-4 w-4"
+                aria-hidden="true"
+              ></lucide-icon>
+              <span>Descargar lista de asistencia (.docx)</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna derecha: Resumen del periodo y vista previa ligera del calendario mensual -->
+    <div class="space-y-4 lg:col-span-7">
+      <div class="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
+        <div class="flex flex-col gap-3 border-b border-gray-100 pb-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3
+              id="rh-asistencia-calendar-title"
+              class="text-sm font-bold text-slate-900 sm:text-base"
+            >
+              Calendario del periodo: {{ calendarSummary().monthName }} {{ calendarSummary().year }}
+            </h3>
+            <p class="text-xs text-slate-500">
+              Vista previa de días hábiles, fines de semana y descansos generales sombreados en el documento
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+            <span class="inline-flex items-center gap-1.5">
+              <span class="inline-block h-3 w-3 rounded-xs border border-gray-300 bg-white"></span>
+              <span>Día hábil</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <span class="inline-block h-3 w-3 rounded-xs border border-slate-400 bg-slate-300"></span>
+              <span>Fin de semana / descanso general</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Aviso discreto cuando el año no cuenta con circular institucional confirmada -->
+        @if (!calendarSummary().hasConfirmedInstitutionalCalendar) {
+          <div
+            id="rh-asistencia-unconfirmed-calendar-notice"
+            role="status"
+            class="mt-3.5 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-950"
+          >
+            <lucide-icon
+              [img]="icons.info"
+              class="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+              aria-hidden="true"
+            ></lucide-icon>
+            <p>
+              Calendario sujeto a confirmación de la circular institucional correspondiente.
+            </p>
+          </div>
+        }
+
+        <!-- Indicadores básicos del periodo -->
+        <dl
+          id="rh-asistencia-period-kpis"
+          class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4"
+        >
+          <div class="rounded-xl border border-gray-200 bg-slate-50 p-3 text-center">
+            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Días del mes
+            </dt>
+            <dd
+              id="rh-asistencia-kpi-total-days"
+              class="mt-0.5 text-lg font-bold text-slate-900"
+            >
+              {{ calendarSummary().daysInMonth }}
+            </dd>
+          </div>
+
+          <div class="rounded-xl border border-gray-200 bg-slate-50 p-3 text-center">
+            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Fin de semana
+            </dt>
+            <dd
+              id="rh-asistencia-kpi-weekend-days"
+              class="mt-0.5 text-lg font-bold text-slate-800"
+            >
+              {{ calendarSummary().weekendDaysCount }}
+            </dd>
+          </div>
+
+          <div class="rounded-xl border border-gray-200 bg-slate-50 p-3 text-center">
+            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Descansos generales
+            </dt>
+            <dd
+              id="rh-asistencia-kpi-holiday-days"
+              class="mt-0.5 text-lg font-bold text-[#006341]"
+            >
+              {{ calendarSummary().effectiveHolidaysCount }}
+            </dd>
+          </div>
+
+          <div class="rounded-xl border border-gray-200 bg-slate-50 p-3 text-center">
+            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Días hábiles
+            </dt>
+            <dd
+              id="rh-asistencia-kpi-working-days"
+              class="mt-0.5 text-lg font-bold text-slate-900"
+            >
+              {{ calendarSummary().workingDaysCount }}
+            </dd>
+          </div>
+        </dl>
+
+        <!-- Vista previa en dos bloques semanales igual que las dos secciones del documento Word -->
+        <div
+          id="rh-asistencia-calendar-preview"
+          class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2"
+        >
+          <!-- Sección 1: Días 1 hasta antes del primer lunes a partir del día 16 -->
+          <div class="rounded-xl border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200 bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800">
+              Sección 1 (Días 1 al {{ calendarSummary().secondSectionStartDay - 1 }})
+            </div>
+            <div class="divide-y divide-gray-100">
+              @for (day of firstSectionDays(); track day.day) {
+                <div
+                  [attr.data-calendar-day]="day.day"
+                  [attr.data-shaded]="day.isShaded"
+                  class="flex items-center justify-between px-3 py-1.5 text-xs"
+                  [ngClass]="{
+                    'bg-slate-200/85 font-semibold text-slate-800': day.isShaded,
+                    'bg-white text-slate-700': !day.isShaded
+                  }"
+                >
+                  <div class="flex items-center gap-2">
+                    <span class="inline-block w-6 font-mono font-bold text-slate-900">
+                      {{ day.day }}
+                    </span>
+                    <span>{{ day.dayName }}</span>
+                  </div>
+
+                  <div class="text-right">
+                    @if (day.isHoliday) {
+                      <span
+                        class="inline-flex items-center rounded-md border border-[#006341]/30 bg-white px-2 py-0.5 text-[11px] font-semibold text-[#006341]"
+                        [title]="day.holidayName || 'Descanso general'"
+                      >
+                        Descanso general
+                      </span>
+                    } @else if (day.isWeekend) {
+                      <span class="text-[11px] text-slate-600">
+                        Fin de semana
+                      </span>
+                    } @else {
+                      <span class="text-[11px] text-slate-400">
+                        Hábil
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Sección 2: Desde secondSectionStartDay hasta fin de mes -->
+          <div class="rounded-xl border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200 bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800">
+              Sección 2 (Días {{ calendarSummary().secondSectionStartDay }} al {{ calendarSummary().daysInMonth }})
+            </div>
+            <div class="divide-y divide-gray-100">
+              @for (day of secondSectionDays(); track day.day) {
+                <div
+                  [attr.data-calendar-day]="day.day"
+                  [attr.data-shaded]="day.isShaded"
+                  class="flex items-center justify-between px-3 py-1.5 text-xs"
+                  [ngClass]="{
+                    'bg-slate-200/85 font-semibold text-slate-800': day.isShaded,
+                    'bg-white text-slate-700': !day.isShaded
+                  }"
+                >
+                  <div class="flex items-center gap-2">
+                    <span class="inline-block w-6 font-mono font-bold text-slate-900">
+                      {{ day.day }}
+                    </span>
+                    <span>{{ day.dayName }}</span>
+                  </div>
+
+                  <div class="text-right">
+                    @if (day.isHoliday) {
+                      <span
+                        class="inline-flex items-center rounded-md border border-[#006341]/30 bg-white px-2 py-0.5 text-[11px] font-semibold text-[#006341]"
+                        [title]="day.holidayName || 'Descanso general'"
+                      >
+                        Descanso general
+                      </span>
+                    } @else if (day.isWeekend) {
+                      <span class="text-[11px] text-slate-600">
+                        Fin de semana
+                      </span>
+                    } @else {
+                      <span class="text-[11px] text-slate-400">
+                        Hábil
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
