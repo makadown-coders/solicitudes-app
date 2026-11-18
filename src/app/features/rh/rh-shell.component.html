@@ -1307,7 +1307,7 @@
           </div>
         }
 
-        <!-- Diálogo: Ficha individual protegida del trabajador (RH-2B.4D y RH-2B.4F) -->
+        <!-- Diálogo: Ficha individual protegida del trabajador (RH-2B.4D, RH-2B.4F, RH-2B.4H.1 y RH-2B.4H.2) -->
         <app-rh-ficha-trabajador-dialog
           [open]="fichaOpen()"
           [loading]="fichaLoading()"
@@ -1320,11 +1320,17 @@
           [saveLaboralError]="fichaSaveLaboralError()"
           [saveLaboralIsConflict]="fichaSaveLaboralIsConflict()"
           [saveLaboralSuccess]="fichaSaveLaboralSuccess()"
+          [savingIdentificacion]="fichaSavingIdentificacion()"
+          [saveIdentificacionError]="fichaSaveIdentificacionError()"
+          [saveIdentificacionIsConflict]="fichaSaveIdentificacionIsConflict()"
+          [saveIdentificacionSuccess]="fichaSaveIdentificacionSuccess()"
           (closeDialog)="closeFichaTrabajador()"
           (retryLoad)="cargarFichaTrabajador()"
           (saveLaboral)="onSaveFichaLaboral($event)"
+          (saveIdentificacion)="onSaveFichaIdentificacion($event)"
           (reloadFichaOnConflict)="cargarFichaTrabajador()"
           (clearSaveFeedback)="clearFichaSaveFeedback()"
+          (revealAuthLoss)="onFichaRevealAuthLoss($event)"
         />
 
         <router-outlet />

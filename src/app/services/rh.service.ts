@@ -200,6 +200,39 @@ export interface RhUpdateAdscripcionLaboralResponse {
   campos_modificados: string[];
 }
 
+/**
+ * Respuesta real (`200 OK`) de `POST /api/rh/unidades/:unidadId/personal/:adscripcionId/revelar-identificadores`.
+ * Los valores devueltos son exclusivamente para visualización temporal en la ficha activa
+ * y nunca deben persistirse en estado compartido o almacenamiento del navegador.
+ */
+export interface RhRevealIdentificadoresResponse {
+  persona_id: number;
+  rfc: string | null;
+  curp: string | null;
+}
+
+/**
+ * Payload parcial aceptado por `PATCH /api/rh/unidades/:unidadId/personal/:adscripcionId/identificacion`.
+ * Solo se incluyen las propiedades efectivamente modificadas por el operador.
+ */
+export interface RhUpdatePersonaIdentificacionPayload {
+  nombres?: string | null;
+  apellidos?: string | null;
+  nombre_completo?: string;
+  rfc?: string | null;
+  curp?: string | null;
+}
+
+/**
+ * Respuesta real (`200 OK`) de `PATCH /api/rh/unidades/:unidadId/personal/:adscripcionId/identificacion`.
+ * Siempre devuelve `rfc_masked` y `curp_masked` en `personal` (nunca los valores completos).
+ */
+export interface RhUpdatePersonaIdentificacionResponse {
+  unidad: RhUnidadAutorizada;
+  personal: RhTrabajadorFichaPersonal;
+  campos_modificados: string[];
+}
+
 const ALLOWED_PATCH_LABORAL_KEYS: ReadonlyArray<keyof RhUpdateAdscripcionLaboralPayload> = [
   'matricula',
   'puesto',
@@ -210,6 +243,14 @@ const ALLOWED_PATCH_LABORAL_KEYS: ReadonlyArray<keyof RhUpdateAdscripcionLaboral
   'vigente_hasta',
   'activo',
   'observaciones',
+];
+
+const ALLOWED_PATCH_IDENTIFICACION_KEYS: ReadonlyArray<keyof RhUpdatePersonaIdentificacionPayload> = [
+  'nombres',
+  'apellidos',
+  'nombre_completo',
+  'rfc',
+  'curp',
 ];
 
 @Injectable({ providedIn: 'root' })
@@ -353,6 +394,51 @@ export class RhService {
     return await firstValueFrom(
       this.http.patch<RhUpdateAdscripcionLaboralResponse>(
         `${this.baseUrl}/unidades/${unidadId}/personal/${adscripcionId}/laboral`,
+        cleanPatch
+      )
+    );
+  }
+
+  /**
+   * Solicita explícitamente la revelación temporal y auditada de RFC y CURP completos
+   * (`POST /api/rh/unidades/:unidadId/personal/:adscripcionId/revelar-identificadores`).
+   * Envía estrictamente un cuerpo JSON vacío `{}` sin parámetros en query string,
+   * y no persiste ni almacena en caché el resultado dentro del servicio.
+   */
+  async revelarIdentificadoresUnidad(
+    unidadId: number,
+    adscripcionId: number
+  ): Promise<RhRevealIdentificadoresResponse> {
+    const emptyBody: Record<string, never> = {};
+    return await firstValueFrom(
+      this.http.post<RhRevealIdentificadoresResponse>(
+        `${this.baseUrl}/unidades/${unidadId}/personal/${adscripcionId}/revelar-identificadores`,
+        emptyBody
+      )
+    );
+  }
+
+  /**
+   * Actualización parcial, autorizada y auditada de la identificación personal de un trabajador
+   * (`PATCH /api/rh/unidades/:unidadId/personal/:adscripcionId/identificacion`).
+   * Filtra estrictamente el cuerpo a las 5 llaves permitidas (`nombres`, `apellidos`, `nombre_completo`,
+   * `rfc`, `curp`) que fueron provistas explícitamente en `patch`, sin caché ni almacenamiento.
+   */
+  async actualizarIdentificacionPersonalUnidad(
+    unidadId: number,
+    adscripcionId: number,
+    patch: RhUpdatePersonaIdentificacionPayload
+  ): Promise<RhUpdatePersonaIdentificacionResponse> {
+    const cleanPatch: Record<string, unknown> = {};
+    for (const key of ALLOWED_PATCH_IDENTIFICACION_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(patch, key) && patch[key] !== undefined) {
+        cleanPatch[key] = patch[key];
+      }
+    }
+
+    return await firstValueFrom(
+      this.http.patch<RhUpdatePersonaIdentificacionResponse>(
+        `${this.baseUrl}/unidades/${unidadId}/personal/${adscripcionId}/identificacion`,
         cleanPatch
       )
     );

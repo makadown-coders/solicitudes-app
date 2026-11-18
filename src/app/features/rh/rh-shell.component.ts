@@ -42,6 +42,7 @@ import {
   RhTrabajadorFichaResponse,
   RhUnidadAutorizada,
   RhUpdateAdscripcionLaboralPayload,
+  RhUpdatePersonaIdentificacionPayload,
 } from '../../services/rh.service';
 import { RhFichaTrabajadorDialogComponent } from './rh-ficha-trabajador-dialog.component';
 
@@ -171,6 +172,10 @@ export class RhShellComponent implements OnInit, OnDestroy {
   readonly fichaSaveLaboralError = signal<string | null>(null);
   readonly fichaSaveLaboralIsConflict = signal(false);
   readonly fichaSaveLaboralSuccess = signal<string | null>(null);
+  readonly fichaSavingIdentificacion = signal(false);
+  readonly fichaSaveIdentificacionError = signal<string | null>(null);
+  readonly fichaSaveIdentificacionIsConflict = signal(false);
+  readonly fichaSaveIdentificacionSuccess = signal<string | null>(null);
 
   private requestSeq = 0;
   private personalRequestSeq = 0;
@@ -180,6 +185,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
   private vincularSubmitSeq = 0;
   private fichaRequestSeq = 0;
   private fichaSaveSeq = 0;
+  private fichaSaveIdentificacionSeq = 0;
 
   /** Contexto de rol y alcance resuelto desde SessionStore */
   readonly roleContext = computed(() => resolveRhRoleContext(this.user()));
@@ -1231,7 +1237,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
   // ==================== FICHA INDIVIDUAL PROTEGIDA DEL TRABAJADOR (RH-2B.4D Y RH-2B.4F) ====================
 
   openFichaTrabajador(item: RhPersonalUnidadItem): void {
-    if (this.fichaSavingLaboral()) {
+    if (this.fichaSavingLaboral() || this.fichaSavingIdentificacion()) {
       return;
     }
     const unidad = this.selectedUnidad();
@@ -1257,7 +1263,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
   }
 
   closeFichaTrabajador(): void {
-    if (this.fichaSavingLaboral()) {
+    if (this.fichaSavingLaboral() || this.fichaSavingIdentificacion()) {
       return;
     }
     this.resetFichaState();
@@ -1267,6 +1273,178 @@ export class RhShellComponent implements OnInit, OnDestroy {
     this.fichaSaveLaboralError.set(null);
     this.fichaSaveLaboralIsConflict.set(false);
     this.fichaSaveLaboralSuccess.set(null);
+    this.fichaSaveIdentificacionError.set(null);
+    this.fichaSaveIdentificacionIsConflict.set(false);
+    this.fichaSaveIdentificacionSuccess.set(null);
+  }
+
+  onFichaRevealAuthLoss(status: 401 | 403): void {
+    this.resetFichaState();
+    if (status === 401) {
+      this.resetVincularState();
+      this.unidadesAutorizadas.set([]);
+      this.selectedUnidadId.set(null);
+      this.unidadSearchDraft.set('');
+      this.sessionStore.clear();
+      void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh' } });
+      return;
+    }
+
+    // En HTTP 403 sobre revelación de sensibles: cerrar y limpiar inmediatamente la ficha
+    // para que ningún identificador previamente revelado permanezca en memoria ni en pantalla
+    this.accessDeniedError.set(
+      'No tienes autorización vigente para revelar identificadores sensibles en esta ficha (HTTP 403).'
+    );
+  }
+
+  async onSaveFichaIdentificacion(
+    patch: RhUpdatePersonaIdentificacionPayload
+  ): Promise<void> {
+    if (this.fichaSavingIdentificacion() || this.fichaSavingLaboral()) {
+      return;
+    }
+
+    const unidad = this.selectedUnidad();
+    const targetUnidadId = this.fichaTargetUnidadId();
+    const targetAdscripcionId = this.fichaTargetAdscripcionId();
+    const currentFicha = this.fichaData();
+
+    if (
+      !this.fichaOpen() ||
+      !unidad ||
+      targetUnidadId === null ||
+      unidad.id !== targetUnidadId ||
+      targetAdscripcionId === null ||
+      targetAdscripcionId <= 0 ||
+      !currentFicha ||
+      currentFicha.permisos?.puede_editar_identificacion !== true
+    ) {
+      this.fichaSaveIdentificacionError.set(
+        'No es posible guardar los cambios de identificación personal en el contexto actual.'
+      );
+      this.fichaSaveIdentificacionIsConflict.set(false);
+      return;
+    }
+
+    if (!patch || Object.keys(patch).length === 0) {
+      return;
+    }
+
+    const expectedPersonaId = currentFicha.personal?.persona_id;
+    const saveIdSeq = ++this.fichaSaveIdentificacionSeq;
+    this.fichaSavingIdentificacion.set(true);
+    this.fichaSaveIdentificacionError.set(null);
+    this.fichaSaveIdentificacionIsConflict.set(false);
+    this.fichaSaveIdentificacionSuccess.set(null);
+    this.fichaSaveLaboralSuccess.set(null);
+
+    try {
+      const updated = await this.rhService.actualizarIdentificacionPersonalUnidad(
+        targetUnidadId,
+        targetAdscripcionId,
+        patch
+      );
+
+      if (
+        saveIdSeq !== this.fichaSaveIdentificacionSeq ||
+        !this.fichaOpen() ||
+        this.selectedUnidadId() !== targetUnidadId ||
+        this.fichaTargetUnidadId() !== targetUnidadId ||
+        this.fichaTargetAdscripcionId() !== targetAdscripcionId ||
+        !updated?.personal ||
+        Number(updated.personal.persona_id) !== Number(expectedPersonaId)
+      ) {
+        return;
+      }
+
+      // HTTP 200 confirmado: actualizar la sección personal con las máscaras devueltas por el backend,
+      // mostrar confirmación genérica (sin exponer RFC/CURP) y refrescar el padrón de la unidad
+      this.fichaData.set({
+        ...currentFicha,
+        unidad: updated.unidad ?? currentFicha.unidad,
+        personal: updated.personal,
+      });
+      this.fichaFallbackNombre.set(
+        updated.personal.nombre_completo ?? this.fichaFallbackNombre()
+      );
+      this.fichaSaveIdentificacionSuccess.set(
+        'Identificación personal actualizada correctamente'
+      );
+      await this.cargarPersonalUnidadPreservingFicha();
+    } catch (err: unknown) {
+      if (
+        saveIdSeq !== this.fichaSaveIdentificacionSeq ||
+        !this.fichaOpen() ||
+        this.fichaTargetUnidadId() !== targetUnidadId ||
+        this.fichaTargetAdscripcionId() !== targetAdscripcionId
+      ) {
+        return;
+      }
+
+      const status = this.extractHttpStatus(err);
+      const backendMsg = this.extractBackendErrorMessage(err);
+
+      if (status === 401) {
+        this.resetFichaState();
+        this.resetVincularState();
+        this.unidadesAutorizadas.set([]);
+        this.selectedUnidadId.set(null);
+        this.unidadSearchDraft.set('');
+        this.sessionStore.clear();
+        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh' } });
+        return;
+      }
+
+      if (status === 403) {
+        this.resetFichaState();
+        this.resetVincularState();
+        this.unidadesAutorizadas.set([]);
+        this.selectedUnidadId.set(null);
+        this.unidadSearchDraft.set('');
+        this.accessDeniedError.set(
+          backendMsg ??
+            'No tienes autorización para modificar los datos de identificación personal de este trabajador (HTTP 403).'
+        );
+        return;
+      }
+
+      if (status === 409) {
+        this.fichaSaveIdentificacionIsConflict.set(true);
+        this.fichaSaveIdentificacionError.set(
+          backendMsg ??
+            'El RFC o la CURP capturados ya se encuentran registrados en otra persona del directorio institucional (HTTP 409).'
+        );
+        return;
+      }
+
+      if (status === 400) {
+        this.fichaSaveIdentificacionIsConflict.set(false);
+        this.fichaSaveIdentificacionError.set(
+          backendMsg ??
+            'Los datos de identificación capturados no son válidos. Revisa los campos e intenta nuevamente (HTTP 400).'
+        );
+        return;
+      }
+
+      if (status === 404) {
+        this.fichaSaveIdentificacionIsConflict.set(false);
+        this.fichaSaveIdentificacionError.set(
+          backendMsg ??
+            'La persona o la adscripción laboral ya no se encuentra disponible en la unidad (HTTP 404).'
+        );
+        return;
+      }
+
+      this.fichaSaveIdentificacionIsConflict.set(false);
+      this.fichaSaveIdentificacionError.set(
+        backendMsg ??
+          'Error interno del servidor al actualizar la identificación personal. Intenta nuevamente.'
+      );
+    } finally {
+      if (saveIdSeq === this.fichaSaveIdentificacionSeq) {
+        this.fichaSavingIdentificacion.set(false);
+      }
+    }
   }
 
   async onSaveFichaLaboral(patch: RhUpdateAdscripcionLaboralPayload): Promise<void> {
@@ -1471,10 +1649,15 @@ export class RhShellComponent implements OnInit, OnDestroy {
 
     const seq = ++this.fichaRequestSeq;
     this.fichaSaveSeq++;
+    this.fichaSaveIdentificacionSeq++;
     this.fichaSavingLaboral.set(false);
     this.fichaSaveLaboralError.set(null);
     this.fichaSaveLaboralIsConflict.set(false);
     this.fichaSaveLaboralSuccess.set(null);
+    this.fichaSavingIdentificacion.set(false);
+    this.fichaSaveIdentificacionError.set(null);
+    this.fichaSaveIdentificacionIsConflict.set(false);
+    this.fichaSaveIdentificacionSuccess.set(null);
     this.fichaLoading.set(true);
     this.fichaError.set(null);
     this.fichaCanRetry.set(true);
@@ -1564,6 +1747,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
   private resetFichaState(): void {
     this.fichaRequestSeq++;
     this.fichaSaveSeq++;
+    this.fichaSaveIdentificacionSeq++;
     this.fichaOpen.set(false);
     this.fichaTargetUnidadId.set(null);
     this.fichaTargetUnidadNombre.set('');
@@ -1577,6 +1761,10 @@ export class RhShellComponent implements OnInit, OnDestroy {
     this.fichaSaveLaboralError.set(null);
     this.fichaSaveLaboralIsConflict.set(false);
     this.fichaSaveLaboralSuccess.set(null);
+    this.fichaSavingIdentificacion.set(false);
+    this.fichaSaveIdentificacionError.set(null);
+    this.fichaSaveIdentificacionIsConflict.set(false);
+    this.fichaSaveIdentificacionSuccess.set(null);
   }
 
   private extractBackendErrorMessage(err: unknown): string | null {

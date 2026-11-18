@@ -36,7 +36,7 @@ function buildJwtWithExp(expSeconds: number, sub = 'u-rh-test'): string {
   return `${header}.${payload}.sig`;
 }
 
-describe('RhShellComponent & rhAccessGuard (Microintervenciones RH-2A, RH-2B.2, RH-2B.4B, RH-2B.4D y RH-2B.4F)', () => {
+describe('RhShellComponent & rhAccessGuard (Microintervenciones RH-2A, RH-2B.2, RH-2B.4B, RH-2B.4D, RH-2B.4F, RH-2B.4H.1 y RH-2B.4H.2)', () => {
   let fixture: ComponentFixture<RhShellComponent>;
   let component: RhShellComponent;
   let sessionStore: SessionStore;
@@ -55,6 +55,10 @@ describe('RhShellComponent & rhAccessGuard (Microintervenciones RH-2A, RH-2B.2, 
     `${apiBase}/rh/unidades/${unidadId}/personal/${adscripcionId}`;
   const rhFichaLaboralPatchUrl = (unidadId: number, adscripcionId: number) =>
     `${apiBase}/rh/unidades/${unidadId}/personal/${adscripcionId}/laboral`;
+  const rhRevealIdsUrl = (unidadId: number, adscripcionId: number) =>
+    `${apiBase}/rh/unidades/${unidadId}/personal/${adscripcionId}/revelar-identificadores`;
+  const rhIdentificacionPatchUrl = (unidadId: number, adscripcionId: number) =>
+    `${apiBase}/rh/unidades/${unidadId}/personal/${adscripcionId}/identificacion`;
   const rhCandidatasUrl = (unidadId: number) =>
     `${apiBase}/rh/unidades/${unidadId}/personas-candidatas`;
   const rhAdscripcionesUrl = (unidadId: number) =>
@@ -1971,6 +1975,965 @@ describe('RhShellComponent & rhAccessGuard (Microintervenciones RH-2A, RH-2B.2, 
 
     expect(component.fichaOpen()).toBeFalse();
     expect(component.selectedUnidadId()).toBeNull();
+    expect(component.accessDeniedError()).toContain('Permiso revocado');
+  });
+
+  // =========================================================================
+  // SUITE RH-2B.4H.1 (REVELACIÓN TEMPORAL DE RFC Y CURP EN LA FICHA DEL TRABAJADOR)
+  // =========================================================================
+
+  it('29 (RH-2B.4H.1 #1, #2, #3, #4, #5, #6, #7, #8, #9, #10, #11, #12, #21, #22). Visibilidad de «Mostrar identificadores» según permisos y presencia de RFC/CURP; bloqueo programático para RH CLUES y ADMIN_TIC; POST explícito con {} y reemplazo por «Ocultar identificadores» sin persistencia ni segundo POST al ocultar', async () => {
+    setupSession(rhGlobalUser);
+    createComponent();
+
+    httpMock.expectOne(rhUnidadesUrl).flush({
+      scope: 'GLOBAL',
+      unidades: mockUnidadesGlobal,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    component.selectUnidad(mockUnidadesGlobal[0]);
+    httpMock.expectOne((r) => r.url === rhPersonalUrl(10)).flush({
+      unidad: mockUnidadesGlobal[0],
+      items: mockPersonalUnidad10,
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // A) 3, 4 y 5. RH CLUES o ADMIN_TIC sin RH (puede_revelar_sensibles === false):
+    // NO muestra el botón «Mostrar identificadores» ni permite invocación programática
+    component.openFichaTrabajador(mockPersonalUnidad10[0]);
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5001)).flush({
+      ...mockFichaAna5001,
+      permisos: {
+        puede_editar_laboral: true, // RH CLUES
+        puede_revelar_sensibles: false,
+        puede_editar_identificacion: false,
+      },
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#rh-ficha-reveal-ids-btn')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#rh-ficha-hide-ids-btn')).toBeNull();
+
+    const dialogDebugEl = fixture.debugElement.children[0].query(
+      (de) => de.componentInstance && 'onMostrarIdentificadores' in de.componentInstance
+    );
+    const dialogInstance = dialogDebugEl.componentInstance;
+
+    // Intento de invocación programática con puede_revelar_sensibles = false (RH CLUES / ADMIN_TIC)
+    await dialogInstance.onMostrarIdentificadores();
+    httpMock.expectNone((r) => r.url.includes('/revelar-identificadores'));
+    expect(dialogInstance.revealedIds()).toBeNull();
+
+    // B) 3. Cuando puede_revelar_sensibles = true pero tiene_rfc = false y tiene_curp = false (ficha 5002):
+    // tampoco muestra el botón «Mostrar identificadores»
+    component.openFichaTrabajador(mockPersonalUnidad10[1]);
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5002)).flush({
+      ...mockFichaLuis5002,
+      permisos: {
+        puede_editar_laboral: true,
+        puede_revelar_sensibles: true,
+        puede_editar_identificacion: true,
+      },
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#rh-ficha-reveal-ids-btn')).toBeNull();
+    await dialogInstance.onMostrarIdentificadores();
+    httpMock.expectNone((r) => r.url.includes('/revelar-identificadores'));
+
+    // C) 1, 2 y 8. Abrir ficha 5001 con permiso efectivo (RECURSOS_HUMANOS GLOBAL):
+    // RFC y CURP inician enmascarados, NO se revelan automáticamente al abrir ni al iniciar edición laboral, y el botón «Mostrar identificadores» es visible
+    component.openFichaTrabajador(mockPersonalUnidad10[0]);
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5001)).flush(mockFichaAna5001);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    httpMock.expectNone((r) => r.url.includes('/revelar-identificadores'));
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-rfc-masked') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('**********ABC');
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-curp-masked') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('****************01');
+
+    // Verificar aviso institucional presente al pie de la sección de identificación personal
+    const avisoEl = fixture.nativeElement.querySelector(
+      '#rh-ficha-personal-aviso-institucional'
+    ) as HTMLElement | null;
+    expect(avisoEl).not.toBeNull();
+    expect(avisoEl?.textContent).toContain(
+      'La información registrada es de apoyo para la gestión administrativa. La validación de RFC y CURP es estructural y no sustituye el cotejo de documentos oficiales por el área responsable.'
+    );
+
+    // Iniciar edición laboral tampoco revela automáticamente RFC ni CURP
+    (fixture.nativeElement.querySelector('#rh-ficha-edit-laboral-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    httpMock.expectNone((r) => r.url.includes('/revelar-identificadores'));
+    (fixture.nativeElement.querySelector('#rh-ficha-cancel-edit-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const revealBtn = fixture.nativeElement.querySelector(
+      '#rh-ficha-reveal-ids-btn'
+    ) as HTMLButtonElement | null;
+    expect(revealBtn).not.toBeNull();
+    expect(revealBtn?.textContent).toContain('Mostrar identificadores');
+
+    // D) 6, 7 y 9. Al pulsar «Mostrar identificadores», ejecuta POST explícito a /unidades/10/personal/5001/revelar-identificadores con body exacto {}, evita duplicados y muestra valores completos
+    revealBtn!.click();
+    // Intento de clic duplicado mientras está cargando
+    revealBtn!.click();
+    fixture.detectChanges();
+
+    expect(dialogInstance.revealingIds()).toBeTrue();
+    const revealReq = httpMock.expectOne(
+      (r) => r.url === rhRevealIdsUrl(10, 5001) && r.method === 'POST'
+    );
+    expect(revealReq.request.body).toEqual({});
+    expect(Object.keys(revealReq.request.body)).toEqual([]);
+    expect(revealReq.request.params.keys()).toEqual([]);
+
+    revealReq.flush({
+      persona_id: 101,
+      rfc: 'GOMA800101ABC',
+      curp: null, // 10. Respetar null como «No registrado»
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(dialogInstance.revealingIds()).toBeFalse();
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-rfc-masked') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('GOMA800101ABC');
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-curp-masked') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('No registrado');
+
+    // Sustituye el botón por «Ocultar identificadores»
+    expect(fixture.nativeElement.querySelector('#rh-ficha-reveal-ids-btn')).toBeNull();
+    const hideBtn = fixture.nativeElement.querySelector(
+      '#rh-ficha-hide-ids-btn'
+    ) as HTMLButtonElement | null;
+    expect(hideBtn).not.toBeNull();
+    expect(hideBtn?.textContent).toContain('Ocultar identificadores');
+
+    // 21 y 22. No hay persistencia de identificadores en localStorage/sessionStorage ni llamadas a PATCH /identificacion, ni aparecen en la tabla general del padrón
+    expect(JSON.stringify(localStorage)).not.toContain('GOMA800101ABC');
+    expect(JSON.stringify(sessionStorage)).not.toContain('GOMA800101ABC');
+    expect(
+      (fixture.nativeElement.querySelector('#rh-personal-table') as HTMLElement | null)?.textContent
+    ).not.toContain('GOMA800101ABC');
+    httpMock.expectNone((r) => r.url.includes('/identificacion'));
+
+    // E) 11 y 12. Al pulsar «Ocultar identificadores», limpia inmediatamente los valores completos, restaura las máscaras y NO emite otro POST
+    hideBtn!.click();
+    fixture.detectChanges();
+
+    httpMock.expectNone((r) => r.url.includes('/revelar-identificadores'));
+    expect(dialogInstance.revealedIds()).toBeNull();
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-rfc-masked') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('**********ABC');
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-curp-masked') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('****************01');
+    expect(fixture.nativeElement.querySelector('#rh-ficha-reveal-ids-btn')).not.toBeNull();
+  });
+
+  it('30 (RH-2B.4H.1 #13, #14, #15, #16, #17, #18, #19, #20). Protección de memoria ante cambio de contexto, respuestas tardías (ocultar mientras carga, cambiar trabajador, cambiar unidad, cerrar ficha), validación de persona_id discrepante y manejo de errores HTTP 401/403/404/500 sin reintentos automáticos', async () => {
+    setupSession(rhGlobalUser);
+    createComponent();
+
+    httpMock.expectOne(rhUnidadesUrl).flush({
+      scope: 'GLOBAL',
+      unidades: mockUnidadesGlobal,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    component.selectUnidad(mockUnidadesGlobal[0]);
+    httpMock.expectOne((r) => r.url === rhPersonalUrl(10)).flush({
+      unidad: mockUnidadesGlobal[0],
+      items: mockPersonalUnidad10,
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    component.openFichaTrabajador(mockPersonalUnidad10[0]);
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5001)).flush(mockFichaAna5001);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const dialogDebugEl = fixture.debugElement.children[0].query(
+      (de) => de.componentInstance && 'onMostrarIdentificadores' in de.componentInstance
+    );
+    const dialogInstance = dialogDebugEl.componentInstance;
+
+    // 16. Ocultar mientras una revelación está en curso impide que la respuesta tardía vuelva a mostrar los identificadores
+    const pendingReveal1 = dialogInstance.onMostrarIdentificadores();
+    const reqStaleByHide = httpMock.expectOne(
+      (r) => r.url === rhRevealIdsUrl(10, 5001) && r.method === 'POST'
+    );
+    dialogInstance.onOcultarIdentificadores();
+    reqStaleByHide.flush({
+      persona_id: 101,
+      rfc: 'GOMA800101ABC',
+      curp: 'GOMA800101MDFR0001',
+    });
+    await pendingReveal1;
+    fixture.detectChanges();
+
+    expect(dialogInstance.revealedIds()).toBeNull();
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-rfc-masked') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('**********ABC');
+
+    // 17. Respuesta con `persona_id` distinto al de la ficha vigente se descarta y mantiene máscaras
+    const revealMismatchPromise = dialogInstance.onMostrarIdentificadores();
+    httpMock
+      .expectOne((r) => r.url === rhRevealIdsUrl(10, 5001) && r.method === 'POST')
+      .flush({
+        persona_id: 999, // persona_id ajeno
+        rfc: 'AJEN999999XXX',
+        curp: 'AJEN999999HDFR0009',
+      });
+    await revealMismatchPromise;
+    fixture.detectChanges();
+
+    expect(dialogInstance.revealedIds()).toBeNull();
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-rfc-masked') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('**********ABC');
+    expect(fixture.nativeElement.textContent).not.toContain('AJEN999999XXX');
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-reveal-error') as HTMLElement | null)
+        ?.textContent
+    ).toContain('no corresponde al trabajador');
+
+    // 19 y 20. HTTP 500 mantiene la máscara y NO realiza reintentos automáticos
+    const reveal500Promise = dialogInstance.onMostrarIdentificadores();
+    httpMock
+      .expectOne((r) => r.url === rhRevealIdsUrl(10, 5001) && r.method === 'POST')
+      .flush({ error: 'Audit insert failed' }, { status: 500, statusText: 'Internal Server Error' });
+    await reveal500Promise;
+    fixture.detectChanges();
+
+    httpMock.expectNone((r) => r.url.includes('/revelar-identificadores'));
+    expect(dialogInstance.revealedIds()).toBeNull();
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-rfc-masked') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('**********ABC');
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-reveal-error') as HTMLElement | null)
+        ?.textContent
+    ).toContain('Se conservan los valores protegidos');
+
+    // 13. Revelar con éxito y luego cerrar la ficha limpia los valores completos
+    const revealOkPromise = dialogInstance.onMostrarIdentificadores();
+    httpMock
+      .expectOne((r) => r.url === rhRevealIdsUrl(10, 5001) && r.method === 'POST')
+      .flush({
+        persona_id: 101,
+        rfc: 'GOMA800101ABC',
+        curp: 'GOMA800101MDFR0001',
+      });
+    await revealOkPromise;
+    fixture.detectChanges();
+    expect(dialogInstance.revealedIds()?.rfc).toBe('GOMA800101ABC');
+
+    component.closeFichaTrabajador();
+    fixture.detectChanges();
+    expect(dialogInstance.revealedIds()).toBeNull();
+
+    // 14. Cambiar de trabajador invalida una revelación pendiente del trabajador anterior y limpia valores
+    component.openFichaTrabajador(mockPersonalUnidad10[0]); // 5001 (persona 101)
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5001)).flush(mockFichaAna5001);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const pendingWorker1 = dialogInstance.onMostrarIdentificadores();
+    const reqWorker1 = httpMock.expectOne(
+      (r) => r.url === rhRevealIdsUrl(10, 5001) && r.method === 'POST'
+    );
+
+    // Abrir ficha de otro trabajador (5002, persona 102) antes de que responda reqWorker1
+    component.openFichaTrabajador(mockPersonalUnidad10[1]);
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5002)).flush({
+      ...mockFichaLuis5002,
+      personal: {
+        ...mockFichaLuis5002.personal,
+        tiene_rfc: true,
+        rfc_masked: '**********999',
+      },
+      permisos: {
+        puede_editar_laboral: true,
+        puede_revelar_sensibles: true,
+        puede_editar_identificacion: true,
+      },
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Responde tardíamente el POST del trabajador 101 -> debe descartarse
+    reqWorker1.flush({
+      persona_id: 101,
+      rfc: 'GOMA800101ABC',
+      curp: 'GOMA800101MDFR0001',
+    });
+    await pendingWorker1;
+    fixture.detectChanges();
+
+    expect(dialogInstance.revealedIds()).toBeNull();
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-rfc-masked') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('**********999');
+    expect(fixture.nativeElement.textContent).not.toContain('GOMA800101ABC');
+
+    // 15. Cambiar de unidad invalida la respuesta pendiente y limpia valores
+    const pendingBeforeUnitSwitch = dialogInstance.onMostrarIdentificadores();
+    const reqBeforeUnitSwitch = httpMock.expectOne(
+      (r) => r.url === rhRevealIdsUrl(10, 5002) && r.method === 'POST'
+    );
+
+    component.selectUnidad(mockUnidadesGlobal[1]); // Cambia a unidad 20
+    httpMock.expectOne((r) => r.url === rhPersonalUrl(20)).flush({
+      unidad: mockUnidadesGlobal[1],
+      items: [],
+      page: 1,
+      pageSize: 20,
+      total: 0,
+    });
+    reqBeforeUnitSwitch.flush({
+      persona_id: 102,
+      rfc: 'PERL850505999',
+      curp: null,
+    });
+    await pendingBeforeUnitSwitch;
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.fichaOpen()).toBeFalse();
+    expect(dialogInstance.revealedIds()).toBeNull();
+
+    // 18. HTTP 403 al revelar identificadores limpia datos completos y cierra la ficha sin exponer información
+    component.selectUnidad(mockUnidadesGlobal[0]);
+    httpMock.expectOne((r) => r.url === rhPersonalUrl(10)).flush({
+      unidad: mockUnidadesGlobal[0],
+      items: mockPersonalUnidad10,
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    component.openFichaTrabajador(mockPersonalUnidad10[0]);
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5001)).flush(mockFichaAna5001);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const reveal403Promise = dialogInstance.onMostrarIdentificadores();
+    httpMock
+      .expectOne((r) => r.url === rhRevealIdsUrl(10, 5001) && r.method === 'POST')
+      .flush({ error: 'Forbidden' }, { status: 403, statusText: 'Forbidden' });
+    await reveal403Promise;
+    fixture.detectChanges();
+
+    expect(dialogInstance.revealedIds()).toBeNull();
+    expect(component.fichaOpen()).toBeFalse();
+    expect(component.accessDeniedError()).toContain('HTTP 403');
+  });
+
+  // =========================================================================
+  // SUITE RH-2B.4H.2 (EDICIÓN PROTEGIDA DE IDENTIFICACIÓN PERSONAL DESDE LA FICHA RH)
+  // =========================================================================
+
+  it('31 (RH-2B.4H.2 #1, #2, #3, #4, #5, #6, #7, #8, #9, #14, #15). Visibilidad del botón «Editar identificación personal» según permiso efectivo; independencia de la revelación; inicialización de nombres estructurados y heredados; RFC/CURP vacíos al abrir edición (nunca máscaras ni valores revelados); Guardar deshabilitado sin cambios y Cancelar descarta cambios sin emitir PATCH', async () => {
+    setupSession(rhGlobalUser);
+    createComponent();
+
+    httpMock.expectOne(rhUnidadesUrl).flush({
+      scope: 'GLOBAL',
+      unidades: mockUnidadesGlobal,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    component.selectUnidad(mockUnidadesGlobal[0]);
+    httpMock.expectOne((r) => r.url === rhPersonalUrl(10)).flush({
+      unidad: mockUnidadesGlobal[0],
+      items: mockPersonalUnidad10,
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // 2. Sin permiso (puede_editar_identificacion === false, ej. RH CLUES o ADMIN_TIC sin RH GLOBAL):
+    // botón ausente y bloqueo programático
+    component.openFichaTrabajador(mockPersonalUnidad10[0]);
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5001)).flush({
+      ...mockFichaAna5001,
+      permisos: {
+        puede_editar_laboral: true,
+        puede_revelar_sensibles: false,
+        puede_editar_identificacion: false,
+      },
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#rh-ficha-edit-identificacion-btn')).toBeNull();
+
+    const dialogDebugEl = fixture.debugElement.children[0].query(
+      (de) => de.componentInstance && 'startEditIdentificacion' in de.componentInstance
+    );
+    const dialogInstance = dialogDebugEl.componentInstance;
+
+    dialogInstance.startEditIdentificacion();
+    expect(dialogInstance.editIdentificacionMode()).toBeFalse();
+
+    // 1, 3 y 8. Con permiso efectivo (puede_editar_identificacion === true):
+    // Primero revelamos identificadores con RH-2B.4H.1 y luego pulsamos «Editar identificación personal»
+    component.openFichaTrabajador(mockPersonalUnidad10[0]);
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5001)).flush(mockFichaAna5001);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const editIdBtn = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-identificacion-btn'
+    ) as HTMLButtonElement | null;
+    expect(editIdBtn).not.toBeNull();
+    expect(editIdBtn?.textContent).toContain('Editar identificación personal');
+
+    // Revelar temporalmente RFC/CURP antes de abrir edición
+    const revealPromise = dialogInstance.onMostrarIdentificadores();
+    httpMock
+      .expectOne((r) => r.url === rhRevealIdsUrl(10, 5001) && r.method === 'POST')
+      .flush({
+        persona_id: 101,
+        rfc: 'GOMA800101ABC',
+        curp: 'GOMA800101MDFR0001',
+      });
+    await revealPromise;
+    fixture.detectChanges();
+    expect(dialogInstance.revealedIds()?.rfc).toBe('GOMA800101ABC');
+
+    // Al pulsar «Editar identificación personal»:
+    // - Limpia inmediatamente `revealedIds` (no conserva valores revelados)
+    // - NO emite nueva petición a `revelar-identificadores`
+    // - NO inicializa inputs de RFC/CURP con las máscaras ni con los valores previamente revelados
+    editIdBtn!.click();
+    fixture.detectChanges();
+
+    httpMock.expectNone((r) => r.url.includes('/revelar-identificadores'));
+    expect(dialogInstance.revealedIds()).toBeNull();
+    expect(dialogInstance.editIdentificacionMode()).toBeTrue();
+
+    // No permite iniciar edición laboral mientras está activa la edición de identificación
+    expect(fixture.nativeElement.querySelector('#rh-ficha-edit-laboral-btn')).toBeNull();
+    dialogInstance.startEditLaboral();
+    expect(dialogInstance.editMode()).toBeFalse();
+
+    // 4, 6, 7 y 8. Verificar inicialización de nombres estructurados, vista derivada de nombre_completo y campos vacíos de RFC/CURP
+    const nombresInput = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-nombres'
+    ) as HTMLInputElement;
+    const apellidosInput = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-apellidos'
+    ) as HTMLInputElement;
+    const rfcNewInput = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-rfc-new'
+    ) as HTMLInputElement;
+    const curpNewInput = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-curp-new'
+    ) as HTMLInputElement;
+    const derivedFullEl = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-nombre-completo-derived'
+    ) as HTMLElement | null;
+    const saveIdBtn = fixture.nativeElement.querySelector(
+      '#rh-ficha-save-identificacion-btn'
+    ) as HTMLButtonElement;
+
+    expect(nombresInput.value).toBe('Ana');
+    expect(apellidosInput.value).toBe('Gómez');
+    expect(derivedFullEl?.textContent?.trim()).toBe('Ana Gómez');
+    expect(fixture.nativeElement.querySelector('#rh-ficha-edit-nombre-completo')).toBeNull();
+
+    // 7 y 8. Inputs de RFC y CURP inician completamente vacíos (ni máscaras ni valores revelados)
+    expect(rfcNewInput.value).toBe('');
+    expect(curpNewInput.value).toBe('');
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-edit-rfc-status') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('RFC registrado');
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-edit-curp-status') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('CURP registrada');
+
+    // 9 y 15. Sin cambios efectivos (y con inputs de RFC/CURP vacíos que significan conservar), «Guardar cambios» está deshabilitado
+    expect(saveIdBtn.disabled).toBeTrue();
+    expect(dialogInstance.computedIdentificacionPatch()).toEqual({});
+
+    // 6. Al cambiar `nombres` en un registro estructurado, el patch calculado incluye solo `nombres` (no envía `nombre_completo` contradictorio ni RFC/CURP vacíos)
+    nombresInput.value = '  Ana   María  ';
+    nombresInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(derivedFullEl?.textContent?.trim()).toBe('Ana María Gómez');
+    expect(dialogInstance.computedIdentificacionPatch()).toEqual({
+      nombres: 'Ana María',
+    });
+    expect(saveIdBtn.disabled).toBeFalse();
+
+    // 14. Pulsar «Cancelar» descarta el borrador, regresa a consulta enmascarada y no emite PATCH
+    const cancelIdBtn = fixture.nativeElement.querySelector(
+      '#rh-ficha-cancel-identificacion-btn'
+    ) as HTMLButtonElement;
+    cancelIdBtn.click();
+    fixture.detectChanges();
+
+    httpMock.expectNone((r) => r.method === 'PATCH');
+    expect(dialogInstance.editIdentificacionMode()).toBeFalse();
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-rfc-masked') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('**********ABC');
+
+    // 5. Registro heredado (nombres = null, apellidos = null y solo nombre_completo, ficha 5002):
+    // permite editar `nombre_completo` directamente sin heurísticas de división
+    component.openFichaTrabajador(mockPersonalUnidad10[1]);
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5002)).flush({
+      ...mockFichaLuis5002,
+      permisos: {
+        puede_editar_laboral: true,
+        puede_revelar_sensibles: true,
+        puede_editar_identificacion: true,
+      },
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('#rh-ficha-edit-identificacion-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const legacyFullInput = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-nombre-completo'
+    ) as HTMLInputElement | null;
+    expect(legacyFullInput).not.toBeNull();
+    expect(legacyFullInput?.value).toBe('Enf. Luis Pérez');
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-edit-rfc-status') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('RFC no registrado');
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-edit-curp-status') as HTMLElement | null)
+        ?.textContent?.trim()
+    ).toBe('CURP no registrada');
+
+    legacyFullInput!.value = '  Enf. Luis Alberto Pérez  ';
+    legacyFullInput!.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(dialogInstance.computedIdentificacionPatch()).toEqual({
+      nombre_completo: 'Enf. Luis Alberto Pérez',
+    });
+  });
+
+  it('32 (RH-2B.4H.2 #10, #11, #12, #13, #16, #17, #18, #19). Semántica de PATCH parcial para RFC y CURP (reemplazar solo RFC, reemplazar solo CURP, eliminación explícita con confirmación previa enviando null) y validaciones estructurales (rechazo de asteriscos/máscaras, RFC de persona moral de 12 caracteres, CURP inválida y vaciado simultáneo de nombres)', async () => {
+    setupSession(rhGlobalUser);
+    createComponent();
+
+    httpMock.expectOne(rhUnidadesUrl).flush({
+      scope: 'GLOBAL',
+      unidades: mockUnidadesGlobal,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    component.selectUnidad(mockUnidadesGlobal[0]);
+    httpMock.expectOne((r) => r.url === rhPersonalUrl(10)).flush({
+      unidad: mockUnidadesGlobal[0],
+      items: mockPersonalUnidad10,
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    component.openFichaTrabajador(mockPersonalUnidad10[0]);
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5001)).flush(mockFichaAna5001);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const dialogDebugEl = fixture.debugElement.children[0].query(
+      (de) => de.componentInstance && 'startEditIdentificacion' in de.componentInstance
+    );
+    const dialogInstance = dialogDebugEl.componentInstance;
+
+    (fixture.nativeElement.querySelector('#rh-ficha-edit-identificacion-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const nombresInput = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-nombres'
+    ) as HTMLInputElement;
+    const apellidosInput = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-apellidos'
+    ) as HTMLInputElement;
+    const rfcNewInput = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-rfc-new'
+    ) as HTMLInputElement;
+    const curpNewInput = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-curp-new'
+    ) as HTMLInputElement;
+    const saveIdBtn = fixture.nativeElement.querySelector(
+      '#rh-ficha-save-identificacion-btn'
+    ) as HTMLButtonElement;
+
+    // 16. Rechazo de máscaras o asteriscos en RFC y CURP
+    rfcNewInput.value = '**********ABC';
+    rfcNewInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(saveIdBtn.disabled).toBeTrue();
+    expect(
+      fixture.nativeElement.querySelector('#rh-ficha-edit-identificacion-rfc-error')?.textContent
+    ).toContain('asteriscos');
+
+    // 17. Rechazo de RFC de persona moral (12 caracteres: GOM800101ABC)
+    rfcNewInput.value = 'GOM800101ABC';
+    rfcNewInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(saveIdBtn.disabled).toBeTrue();
+    expect(
+      fixture.nativeElement.querySelector('#rh-ficha-edit-identificacion-rfc-error')?.textContent
+    ).toContain('persona moral');
+
+    // 18. Rechazo de CURP inválida (longitud distinta de 18 o asteriscos)
+    rfcNewInput.value = '';
+    rfcNewInput.dispatchEvent(new Event('input'));
+    curpNewInput.value = 'GOMA800101MDFR01'; // 16 caracteres
+    curpNewInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(saveIdBtn.disabled).toBeTrue();
+    expect(
+      fixture.nativeElement.querySelector('#rh-ficha-edit-identificacion-curp-error')?.textContent
+    ).toContain('18 caracteres');
+
+    // Prohibir vaciar simultáneamente nombres y apellidos en un registro que ya los tenía estructurados
+    curpNewInput.value = '';
+    curpNewInput.dispatchEvent(new Event('input'));
+    nombresInput.value = '   ';
+    nombresInput.dispatchEvent(new Event('input'));
+    apellidosInput.value = '';
+    apellidosInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(saveIdBtn.disabled).toBeTrue();
+    expect(
+      fixture.nativeElement.querySelector('#rh-ficha-edit-identificacion-names-error')?.textContent
+    ).toContain('simultáneamente');
+
+    // Restaurar nombres originales
+    nombresInput.value = 'Ana';
+    nombresInput.dispatchEvent(new Event('input'));
+    apellidosInput.value = 'Gómez';
+    apellidosInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    // 10 y 19. Reemplazar únicamente RFC normaliza a mayúsculas y envía exclusivamente `{ rfc: 'GOLA800101XY9' }`
+    rfcNewInput.value = '  gola800101xy9  ';
+    rfcNewInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(dialogInstance.computedIdentificacionPatch()).toEqual({
+      rfc: 'GOLA800101XY9',
+    });
+    expect(Object.keys(dialogInstance.computedIdentificacionPatch())).toEqual(['rfc']);
+    expect(saveIdBtn.disabled).toBeFalse();
+
+    // 11. Limpiar el input de RFC y capturar únicamente una nueva CURP envía exclusivamente `{ curp: 'GOLA800101MDFRPN08' }`
+    rfcNewInput.value = '';
+    rfcNewInput.dispatchEvent(new Event('input'));
+    curpNewInput.value = '  gola800101mdfrpn08  ';
+    curpNewInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(dialogInstance.computedIdentificacionPatch()).toEqual({
+      curp: 'GOLA800101MDFRPN08',
+    });
+    expect(Object.keys(dialogInstance.computedIdentificacionPatch())).toEqual(['curp']);
+
+    // 12 y 13. Eliminación explícita de CURP registrada requiere confirmación dentro del flujo de edición y envía `{ curp: null }`
+    curpNewInput.value = '';
+    curpNewInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const reqClearCurpBtn = fixture.nativeElement.querySelector(
+      '#rh-ficha-request-clear-curp-btn'
+    ) as HTMLButtonElement | null;
+    expect(reqClearCurpBtn).not.toBeNull();
+    reqClearCurpBtn!.click();
+    fixture.detectChanges();
+
+    // Mientras el cuadro de confirmación está abierto, aún no está marcado como null y Guardar está deshabilitado
+    expect(fixture.nativeElement.querySelector('#rh-ficha-confirm-clear-curp-box')).not.toBeNull();
+    expect(saveIdBtn.disabled).toBeTrue();
+
+    // Confirmar la eliminación explícita
+    const confirmClearCurpBtn = fixture.nativeElement.querySelector(
+      '#rh-ficha-confirm-clear-curp-btn'
+    ) as HTMLButtonElement;
+    confirmClearCurpBtn.click();
+    fixture.detectChanges();
+
+    expect(dialogInstance.computedIdentificacionPatch()).toEqual({
+      curp: null,
+    });
+    expect(saveIdBtn.disabled).toBeFalse();
+  });
+
+  it('33 (RH-2B.4H.2 #20, #21, #22, #23, #24, #25, #26, #27). Guardado exitoso HTTP 200 (actualiza ficha con máscaras, limpia borrador sensible, muestra banner y refresca padrón), conflicto HTTP 409 sin revelar identidades, limpieza en 401/403 y protección ante cambio de trabajador, unidad o respuesta obsoleta', async () => {
+    setupSession(rhGlobalUser);
+    createComponent();
+
+    httpMock.expectOne(rhUnidadesUrl).flush({
+      scope: 'GLOBAL',
+      unidades: mockUnidadesGlobal,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    component.selectUnidad(mockUnidadesGlobal[0]);
+    httpMock.expectOne((r) => r.url === rhPersonalUrl(10)).flush({
+      unidad: mockUnidadesGlobal[0],
+      items: mockPersonalUnidad10,
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    component.openFichaTrabajador(mockPersonalUnidad10[0]);
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5001)).flush(mockFichaAna5001);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const dialogDebugEl = fixture.debugElement.children[0].query(
+      (de) => de.componentInstance && 'startEditIdentificacion' in de.componentInstance
+    );
+    const dialogInstance = dialogDebugEl.componentInstance;
+
+    // 20, 21 y 27. Enviar PATCH de identificación -> recibe HTTP 200 con máscaras -> limpia borrador, sale de edición, muestra banner y refresca padrón
+    (fixture.nativeElement.querySelector('#rh-ficha-edit-identificacion-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const nombresInput = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-nombres'
+    ) as HTMLInputElement;
+    const rfcNewInput = fixture.nativeElement.querySelector(
+      '#rh-ficha-edit-rfc-new'
+    ) as HTMLInputElement;
+    nombresInput.value = 'Ana María';
+    nombresInput.dispatchEvent(new Event('input'));
+    rfcNewInput.value = 'GOLA800101XY9';
+    rfcNewInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const saveBtn = fixture.nativeElement.querySelector(
+      '#rh-ficha-save-identificacion-btn'
+    ) as HTMLButtonElement;
+    saveBtn.click();
+    // Intento de doble envío mientras está en curso
+    saveBtn.click();
+    fixture.detectChanges();
+
+    expect(component.fichaSavingIdentificacion()).toBeTrue();
+    // Mientras está guardando, cerrar voluntariamente la ficha está bloqueado
+    component.closeFichaTrabajador();
+    expect(component.fichaOpen()).toBeTrue();
+
+    const patchIdReq = httpMock.expectOne(
+      (r) => r.url === rhIdentificacionPatchUrl(10, 5001) && r.method === 'PATCH'
+    );
+    expect(patchIdReq.request.body).toEqual({
+      nombres: 'Ana María',
+      rfc: 'GOLA800101XY9',
+    });
+    expect(Object.keys(patchIdReq.request.body)).toEqual(['nombres', 'rfc']);
+
+    patchIdReq.flush({
+      unidad: mockUnidadesGlobal[0],
+      personal: {
+        persona_id: 101,
+        nombre_completo: 'Ana María Gómez',
+        nombres: 'Ana María',
+        apellidos: 'Gómez',
+        tiene_rfc: true,
+        rfc_masked: '**********XY9',
+        tiene_curp: true,
+        curp_masked: '****************01',
+        activo: true,
+      },
+      campos_modificados: ['nombres', 'nombre_completo', 'rfc'],
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // 21. Refresca automáticamente el padrón de la unidad para reflejar el nuevo nombre
+    const refreshPersonalReq = httpMock.expectOne(
+      (r) => r.url === rhPersonalUrl(10) && r.method === 'GET'
+    );
+    refreshPersonalReq.flush({
+      unidad: mockUnidadesGlobal[0],
+      items: [
+        { ...mockPersonalUnidad10[0], nombre_completo: 'Ana María Gómez' },
+        mockPersonalUnidad10[1],
+      ],
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Verificar regreso a modo consulta, limpieza de borrador sensible, máscara actualizada y banner de confirmación sin RFC/CURP completo
+    expect(dialogInstance.editIdentificacionMode()).toBeFalse();
+    expect(dialogInstance.draftRfcNew()).toBe('');
+    expect(dialogInstance.draftCurpNew()).toBe('');
+    expect(component.fichaData()?.personal.nombre_completo).toBe('Ana María Gómez');
+    expect(component.fichaData()?.personal.rfc_masked).toBe('**********XY9');
+    expect(component.personalItems()[0].nombre_completo).toBe('Ana María Gómez');
+
+    const successBannerText =
+      (
+        fixture.nativeElement.querySelector(
+          '#rh-ficha-identificacion-success-banner'
+        ) as HTMLElement | null
+      )?.textContent ?? '';
+    expect(successBannerText).toContain('Identificación personal actualizada correctamente');
+    expect(successBannerText).not.toContain('GOLA800101XY9');
+    expect(JSON.stringify(localStorage)).not.toContain('GOLA800101XY9');
+    expect(JSON.stringify(sessionStorage)).not.toContain('GOLA800101XY9');
+
+    // 22. HTTP 409 (RFC o CURP duplicado): muestra mensaje comprensible sin revelar identidades ni reintentar automáticamente, permitiendo corregir el dato
+    (fixture.nativeElement.querySelector('#rh-ficha-edit-identificacion-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const save409Promise = component.onSaveFichaIdentificacion({ rfc: 'RUIC790404ZZ9' });
+    httpMock
+      .expectOne((r) => r.url === rhIdentificacionPatchUrl(10, 5001) && r.method === 'PATCH')
+      .flush(
+        {
+          error:
+            'El RFC proporcionado ya se encuentra registrado en otra persona del directorio institucional',
+        },
+        { status: 409, statusText: 'Conflict' }
+      );
+    await save409Promise;
+    fixture.detectChanges();
+
+    httpMock.expectNone((r) => r.url.includes('/identificacion'));
+    expect(dialogInstance.editIdentificacionMode()).toBeTrue();
+    expect(component.fichaSaveIdentificacionIsConflict()).toBeTrue();
+    expect(
+      (fixture.nativeElement.querySelector('#rh-ficha-identificacion-save-error') as HTMLElement | null)
+        ?.textContent
+    ).toContain('ya se encuentra registrado en otra persona');
+
+    // 25 y 26. Cambiar de trabajador descarta el borrador sensible e invalida respuestas obsoletas
+    dialogInstance.onDraftRfcInput('GOMA800101ZZ9');
+    expect(dialogInstance.draftRfcNew()).toBe('GOMA800101ZZ9');
+
+    component.openFichaTrabajador(mockPersonalUnidad10[1]); // Cambia a trabajador 5002 (persona 102)
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5002)).flush({
+      ...mockFichaLuis5002,
+      permisos: {
+        puede_editar_laboral: true,
+        puede_revelar_sensibles: true,
+        puede_editar_identificacion: true,
+      },
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(dialogInstance.editIdentificacionMode()).toBeFalse();
+    expect(dialogInstance.draftRfcNew()).toBe('');
+
+    // 24. Cambiar de unidad mientras se edita identificación cierra la ficha y limpia el borrador sensible
+    (fixture.nativeElement.querySelector('#rh-ficha-edit-identificacion-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    dialogInstance.onDraftCurpInput('PERL850505HDFR0005');
+    expect(dialogInstance.draftCurpNew()).toBe('PERL850505HDFR0005');
+
+    component.selectUnidad(mockUnidadesGlobal[1]); // Unidad 20
+    httpMock.expectOne((r) => r.url === rhPersonalUrl(20)).flush({
+      unidad: mockUnidadesGlobal[1],
+      items: [],
+      page: 1,
+      pageSize: 20,
+      total: 0,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.fichaOpen()).toBeFalse();
+    expect(dialogInstance.editIdentificacionMode()).toBeFalse();
+    expect(dialogInstance.draftCurpNew()).toBe('');
+
+    // 23. HTTP 403 al guardar identificación limpia todos los borradores sensibles y cierra la ficha
+    component.selectUnidad(mockUnidadesGlobal[0]);
+    httpMock.expectOne((r) => r.url === rhPersonalUrl(10)).flush({
+      unidad: mockUnidadesGlobal[0],
+      items: mockPersonalUnidad10,
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    component.openFichaTrabajador(mockPersonalUnidad10[0]);
+    httpMock.expectOne((r) => r.url === rhFichaUrl(10, 5001)).flush(mockFichaAna5001);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('#rh-ficha-edit-identificacion-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    dialogInstance.onDraftRfcInput('GOMA800101ZZ9');
+
+    const saveId403Promise = component.onSaveFichaIdentificacion({ rfc: 'GOMA800101ZZ9' });
+    httpMock
+      .expectOne((r) => r.url === rhIdentificacionPatchUrl(10, 5001) && r.method === 'PATCH')
+      .flush({ error: 'Permiso revocado' }, { status: 403, statusText: 'Forbidden' });
+    await saveId403Promise;
+    fixture.detectChanges();
+
+    expect(component.fichaOpen()).toBeFalse();
+    expect(dialogInstance.draftRfcNew()).toBe('');
     expect(component.accessDeniedError()).toContain('Permiso revocado');
   });
 });
