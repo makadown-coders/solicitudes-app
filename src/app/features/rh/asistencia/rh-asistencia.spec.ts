@@ -170,7 +170,7 @@ describe('RhAsistenciaCalendarService & RhAsistenciaDocxService (Microintervenci
   });
 
   it('5. Carga la plantilla institucional real (.docx), sustituye nombre, puesto, adscripción, jornada, horario, mes y año, recorta días en febrero, aplica sombreado y conserva los membretes oficiales', async () => {
-    expect(RH_ASISTENCIA_TEMPLATE_PATH).toBe('rh/asistencia/template-membretado-2026.docx');
+    expect(RH_ASISTENCIA_TEMPLATE_PATH).toBe('/rh/asistencia/template-membretado-2026.docx');
 
     const blob = await docxService.generateAttendanceDocxFromParams({
       nombre: 'PERSONA TRABAJADORA INSTITUCIONAL UNO',

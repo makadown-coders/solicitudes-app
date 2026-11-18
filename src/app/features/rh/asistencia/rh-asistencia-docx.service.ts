@@ -10,7 +10,7 @@ import {
 
 const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 const SHADED_DAY_HEX = 'A6A6A6'; // Gris institucional para sábados, domingos y descansos generales
-export const RH_ASISTENCIA_TEMPLATE_PATH = 'rh/asistencia/template-membretado-2026.docx';
+export const RH_ASISTENCIA_TEMPLATE_PATH = '/rh/asistencia/template-membretado-2026.docx';
 
 export interface RhAsistenciaDocxGenerateOptions {
   calendar: RhAsistenciaMonthCalendarSummary;
