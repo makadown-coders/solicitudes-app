@@ -89,12 +89,12 @@ export function hasRhAccessRole(user: UserProfile | null | undefined): boolean {
 }
 
 /**
- * Guard funcional (`CanActivateFn`) para proteger la navegación hacia `/rh`.
+ * Guard funcional (`CanActivateFn`) para proteger la navegación hacia `/rh-admin`.
  *
  * - Debe ejecutarse después de `authGuard` (`canActivate: [authGuard, rhAccessGuard]`).
  * - Considera la hidratación asíncrona de la sesión: si `SessionStore` aún no está hidratado,
  *   espera a `session.hydrate()` antes de evaluar los roles para no rechazar prematuramente al usuario.
- * - Si no existe sesión confirmada tras hidratar, redirige a `/login?returnUrl=/rh`.
+ * - Si no existe sesión confirmada tras hidratar, redirige a `/login?returnUrl=/rh-admin`.
  * - Si el usuario está autenticado pero carece de `RECURSOS_HUMANOS` (`GLOBAL` o `CLUES`) y de
  *   `ADMIN_TIC GLOBAL`, deniega la navegación redirigiendo hacia `/home` sin destruir su sesión.
  */
@@ -108,7 +108,7 @@ export const rhAccessGuard: CanActivateFn = async (_route, state): Promise<boole
 
   if (!session.isHydrated || !session.currentUser) {
     return router.createUrlTree(['/login'], {
-      queryParams: { returnUrl: state.url || '/rh' },
+      queryParams: { returnUrl: state.url || '/rh-admin' },
     });
   }
 

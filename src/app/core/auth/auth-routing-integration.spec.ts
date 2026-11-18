@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { routes } from '../../app.routes';
 import { LoginPageComponent } from '../../features/auth/login/login-page.component';
+import { RhEmployeePortalComponent } from '../../features/rh/rh-employee-portal.component';
 import { RhShellComponent } from '../../features/rh/rh-shell.component';
 import { LoaderService } from '../../services/loader.service';
 import { loaderInterceptor } from '../loader/loader.interceptor';
@@ -90,7 +91,7 @@ describe('Integración de Rutas e Interceptores (Microintervención 5)', () => {
     expect(location.path()).toBe('/login?returnUrl=%2Frh');
   });
 
-  it('4. Una sesión confirmada permite acceder a /rh y carga RhShellComponent', async () => {
+  it('4. Una sesión confirmada permite acceder a /rh (RhEmployeePortalComponent) y a /rh-admin (RhShellComponent)', async () => {
     const validAt = buildJwtWithExp(Math.floor(Date.now() / 1000) + 600);
     tokenStore.set(validAt, 'valid-rt');
     sessionStore.setUser(mockUser);
@@ -100,9 +101,18 @@ describe('Integración de Rutas e Interceptores (Microintervención 5)', () => {
     expect(location.path()).toBe('/rh');
 
     const rhRoute = routes.find(r => r.path === 'rh');
-    expect(rhRoute?.canActivate).toEqual([authGuard, rhAccessGuard]);
-    const loadedComponent = await rhRoute!.loadComponent!();
-    expect(loadedComponent).toBe(RhShellComponent);
+    expect(rhRoute?.canActivate).toEqual([authGuard]);
+    const loadedPortalComponent = await rhRoute!.loadComponent!();
+    expect(loadedPortalComponent).toBe(RhEmployeePortalComponent);
+
+    const navigatedAdmin = await router.navigateByUrl('/rh-admin');
+    expect(navigatedAdmin).toBeTrue();
+    expect(location.path()).toBe('/rh-admin');
+
+    const rhAdminRoute = routes.find(r => r.path === 'rh-admin');
+    expect(rhAdminRoute?.canActivate).toEqual([authGuard, rhAccessGuard]);
+    const loadedAdminComponent = await rhAdminRoute!.loadComponent!();
+    expect(loadedAdminComponent).toBe(RhShellComponent);
   });
 
   it('5. La recarga de /rh con token persistido no hidratado exige verificación /auth/me contra backend', async () => {
@@ -157,9 +167,14 @@ describe('Integración de Rutas e Interceptores (Microintervención 5)', () => {
     expect(miCuentaRoutes.length).toBe(1);
     expect(miCuentaRoutes[0].canActivate).toEqual([authGuard]);
 
-    // Verificar que NINGUNA ruta pública (distinta de 'rh', 'ti' y 'mi-cuenta') tenga canActivate o canActivateChild
+    // Verificar que NINGUNA ruta pública (distinta de 'rh', 'rh-admin', 'ti' y 'mi-cuenta') tenga canActivate o canActivateChild
     for (const route of routes) {
-      if (route.path !== 'rh' && route.path !== 'ti' && route.path !== 'mi-cuenta') {
+      if (
+        route.path !== 'rh' &&
+        route.path !== 'rh-admin' &&
+        route.path !== 'ti' &&
+        route.path !== 'mi-cuenta'
+      ) {
         expect(route.canActivate)
           .withContext(`La ruta '${route.path}' no debe tener canActivate`)
           .toBeUndefined();

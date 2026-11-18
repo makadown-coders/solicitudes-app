@@ -1,0 +1,119 @@
+<div class="min-h-screen bg-slate-100">
+  <section class="mx-auto w-full max-w-[1800px] px-4 py-4 sm:px-6 lg:px-8">
+    <!-- Encabezado institucional del portal personal /rh -->
+    <header class="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex items-start gap-3 sm:items-center">
+          <img
+            src="imssb-logo.svg"
+            alt="IMSS-Bienestar"
+            class="h-10 w-auto shrink-0"
+          />
+          <div class="border-l border-gray-200 pl-3">
+            <p class="text-xs font-semibold uppercase tracking-wide text-[#006341]">
+              Portal del trabajador · IMSS-Bienestar Baja California
+            </p>
+            <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">
+              Mi espacio laboral
+            </h1>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3 sm:justify-end lg:border-t-0 lg:pt-0">
+          <div
+            id="rh-portal-user-info"
+            class="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-slate-50 px-3 py-2"
+          >
+            <span
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#006341]/10 text-[#006341]"
+              aria-hidden="true"
+            >
+              <lucide-icon [img]="icons.user" class="h-4 w-4"></lucide-icon>
+            </span>
+            <div class="min-w-0">
+              <p id="rh-portal-user-name" class="truncate text-sm font-semibold text-slate-800">
+                {{ displayName() }}
+              </p>
+              @if (displayEmail()) {
+                <p id="rh-portal-user-email" class="truncate text-xs text-slate-500">
+                  {{ displayEmail() }}
+                </p>
+              }
+            </div>
+          </div>
+
+          @if (canAccessRhAdmin()) {
+            <a
+              id="rh-portal-go-admin-link"
+              routerLink="/rh-admin"
+              class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-[#004f34] focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+            >
+              <lucide-icon [img]="icons.shieldCheck" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+              <span>Ir a Administración RH</span>
+            </a>
+          }
+
+          <a
+            id="rh-portal-change-password-link"
+            routerLink="/mi-cuenta/cambiar-password"
+            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#006341]/40 hover:bg-slate-50 hover:text-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+          >
+            <lucide-icon [img]="icons.keyRound" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+            <span>Cambiar contraseña</span>
+          </a>
+
+          <button
+            id="rh-portal-logout-btn"
+            type="button"
+            (click)="onLogout()"
+            [disabled]="loggingOut()"
+            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <lucide-icon [img]="icons.logOut" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+            <span>{{ loggingOut() ? 'Cerrando sesión…' : 'Cerrar sesión' }}</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Estado de transición para /rh antes de RH-2C.4 -->
+    <main class="min-w-0">
+      <section
+        id="rh-portal-transition-card"
+        aria-labelledby="rh-portal-transition-heading"
+        class="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm sm:p-10"
+      >
+        <div
+          class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#006341]/10 text-[#006341]"
+          aria-hidden="true"
+        >
+          <lucide-icon [img]="icons.briefcase" class="h-6 w-6"></lucide-icon>
+        </div>
+
+        <h2
+          id="rh-portal-transition-heading"
+          class="text-lg font-bold text-slate-900 sm:text-xl"
+        >
+          Mi espacio laboral estará disponible próximamente
+        </h2>
+
+        <p class="mx-auto mt-2 max-w-xl text-sm text-slate-600">
+          Este entorno está reservado para la consulta individual de tu información laboral en IMSS-Bienestar.
+        </p>
+
+        @if (canAccessRhAdmin()) {
+          <div class="mt-6 flex justify-center">
+            <a
+              id="rh-portal-card-go-admin-link"
+              routerLink="/rh-admin"
+              class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#006341] px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#004f34] focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+            >
+              <lucide-icon [img]="icons.shieldCheck" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+              <span>Ir a Administración RH</span>
+            </a>
+          </div>
+        }
+      </section>
+    </main>
+  </section>
+</div>

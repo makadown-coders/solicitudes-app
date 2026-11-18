@@ -73,6 +73,8 @@ export function resolveSafeAdminReturnUrl(rawReturnUrl: string | null | undefine
     const isAllowedAdminPath =
       pathname === '/rh' ||
       pathname.startsWith('/rh/') ||
+      pathname === '/rh-admin' ||
+      pathname.startsWith('/rh-admin/') ||
       pathname === '/ti' ||
       pathname.startsWith('/ti/') ||
       pathname === '/mi-cuenta' ||

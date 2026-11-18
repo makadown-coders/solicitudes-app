@@ -13,6 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import {
   AlertCircle,
+  Briefcase,
   Building2,
   CheckCircle2,
   ChevronLeft,
@@ -70,6 +71,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
     user: User,
     userPlus: UserPlus,
     users: Users,
+    briefcase: Briefcase,
     eye: Eye,
     keyRound: KeyRound,
     logOut: LogOut,
@@ -499,7 +501,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
       const status = this.extractHttpStatus(err);
       if (status === 401) {
         this.sessionStore.clear();
-        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh' } });
+        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh-admin' } });
         return;
       }
 
@@ -685,7 +687,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
         this.selectedUnidadId.set(null);
         this.unidadSearchDraft.set('');
         this.sessionStore.clear();
-        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh' } });
+        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh-admin' } });
         return;
       }
 
@@ -960,7 +962,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
         this.selectedUnidadId.set(null);
         this.unidadSearchDraft.set('');
         this.sessionStore.clear();
-        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh' } });
+        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh-admin' } });
         return;
       }
 
@@ -1181,7 +1183,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
         this.selectedUnidadId.set(null);
         this.unidadSearchDraft.set('');
         this.sessionStore.clear();
-        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh' } });
+        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh-admin' } });
         return;
       }
 
@@ -1286,7 +1288,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
       this.selectedUnidadId.set(null);
       this.unidadSearchDraft.set('');
       this.sessionStore.clear();
-      void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh' } });
+      void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh-admin' } });
       return;
     }
 
@@ -1391,7 +1393,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
         this.selectedUnidadId.set(null);
         this.unidadSearchDraft.set('');
         this.sessionStore.clear();
-        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh' } });
+        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh-admin' } });
         return;
       }
 
@@ -1530,7 +1532,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
         this.selectedUnidadId.set(null);
         this.unidadSearchDraft.set('');
         this.sessionStore.clear();
-        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh' } });
+        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh-admin' } });
         return;
       }
 
@@ -1701,7 +1703,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
         this.selectedUnidadId.set(null);
         this.unidadSearchDraft.set('');
         this.sessionStore.clear();
-        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh' } });
+        void this.router.navigate(['/login'], { queryParams: { returnUrl: '/rh-admin' } });
         return;
       }
 

@@ -28,6 +28,9 @@ import {
   RhTrabajadorFichaResponse,
   RhUnidadAutorizada,
 } from '../../services/rh.service';
+import { authGuard } from '../../core/auth/auth.guard';
+import { resolveSafeAdminReturnUrl } from '../auth/login/login-page.component';
+import { RhEmployeePortalComponent } from './rh-employee-portal.component';
 import { RhShellComponent } from './rh-shell.component';
 
 function buildJwtWithExp(expSeconds: number, sub = 'u-rh-test'): string {
@@ -36,7 +39,7 @@ function buildJwtWithExp(expSeconds: number, sub = 'u-rh-test'): string {
   return `${header}.${payload}.sig`;
 }
 
-describe('RhShellComponent & rhAccessGuard (Microintervenciones RH-2A, RH-2B.2, RH-2B.4B, RH-2B.4D, RH-2B.4F, RH-2B.4H.1 y RH-2B.4H.2)', () => {
+describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microintervenciones RH-2A, RH-2B.2, RH-2B.4B, RH-2B.4D, RH-2B.4F, RH-2B.4H.1, RH-2B.4H.2 y RH-2C.3)', () => {
   let fixture: ComponentFixture<RhShellComponent>;
   let component: RhShellComponent;
   let sessionStore: SessionStore;
@@ -193,7 +196,7 @@ describe('RhShellComponent & rhAccessGuard (Microintervenciones RH-2A, RH-2B.2, 
     fixture.detectChanges();
   }
 
-  function runRhAccessGuard(url = '/rh'): Promise<boolean | UrlTree> {
+  function runRhAccessGuard(url = '/rh-admin'): Promise<boolean | UrlTree> {
     const dummyRoute = {} as ActivatedRouteSnapshot;
     const dummyState = { url } as RouterStateSnapshot;
     return TestBed.runInInjectionContext(
@@ -202,41 +205,44 @@ describe('RhShellComponent & rhAccessGuard (Microintervenciones RH-2A, RH-2B.2, 
   }
 
   // =========================================================================
-  // SUITE RH-2A (PRESERVACIÓN ÍNTEGRA DE SELECCIÓN DE UNIDAD Y GUARD)
+  // SUITE RH-2A + RH-2C.3 (PRESERVACIÓN ÍNTEGRA DE SELECCIÓN DE UNIDAD, GUARD Y SEPARACIÓN /rh vs /rh-admin)
   // =========================================================================
 
-  it('1 (RH-2A). Usuario sin sesión: navegar a /rh redirige a /login?returnUrl=%2Frh', async () => {
+  it('1 (RH-2A + RH-2C.3 #1, #19). Usuario sin sesión: navegar a /rh-admin redirige a /login?returnUrl=%2Frh-admin y navegar a /rh redirige a /login?returnUrl=%2Frh', async () => {
+    await router.navigateByUrl('/rh-admin');
+    expect(location.path()).toBe('/login?returnUrl=%2Frh-admin');
+
     await router.navigateByUrl('/rh');
     expect(location.path()).toBe('/login?returnUrl=%2Frh');
   });
 
-  it('2 (RH-2A). Usuario autenticado sin rol RH ni ADMIN_TIC GLOBAL: acceso denegado redirigiendo a /home', async () => {
+  it('2 (RH-2A + RH-2C.3 #2, #6). Usuario autenticado sin rol RH ni ADMIN_TIC GLOBAL: acceso denegado en /rh-admin redirigiendo a /home sin perder sesión', async () => {
     expect(hasRhAccessRole(unauthorizedAbastoUser)).toBeFalse();
     setupSession(unauthorizedAbastoUser);
-    await router.navigateByUrl('/rh');
+    await router.navigateByUrl('/rh-admin');
 
     expect(location.path()).toBe('/home');
     expect(sessionStore.currentUser).toEqual(unauthorizedAbastoUser);
   });
 
-  it('3, 4, 5 y 6 (RH-2A). RECURSOS_HUMANOS GLOBAL, RECURSOS_HUMANOS CLUES, ADMIN_TIC GLOBAL e hidratación asíncrona funcionan correctamente', async () => {
+  it('3, 4, 5 y 6 (RH-2A + RH-2C.3 #3, #4, #5). RECURSOS_HUMANOS GLOBAL, RECURSOS_HUMANOS CLUES, ADMIN_TIC GLOBAL e hidratación asíncrona acceden a /rh-admin correctamente', async () => {
     expect(resolveRhRoleContext(rhGlobalUser)?.badgeLabel).toBe('RECURSOS_HUMANOS GLOBAL');
     setupSession(rhGlobalUser);
-    expect(await runRhAccessGuard('/rh')).toBeTrue();
+    expect(await runRhAccessGuard('/rh-admin')).toBeTrue();
 
     expect(resolveRhRoleContext(rhCluesSingleUser)?.badgeLabel).toBe('RECURSOS_HUMANOS CLUES');
     setupSession(rhCluesSingleUser);
-    expect(await runRhAccessGuard('/rh')).toBeTrue();
+    expect(await runRhAccessGuard('/rh-admin')).toBeTrue();
 
     expect(resolveRhRoleContext(adminTicGlobalUser)?.badgeLabel).toBe('ADMIN_TIC GLOBAL');
     setupSession(adminTicGlobalUser);
-    expect(await runRhAccessGuard('/rh')).toBeTrue();
+    expect(await runRhAccessGuard('/rh-admin')).toBeTrue();
 
     // Hidratación asíncrona
     const validAt = buildJwtWithExp(Math.floor(Date.now() / 1000) + 600);
     sessionStore.clear();
     tokenStore.set(validAt, 'rt-hydrate');
-    const guardPromise = runRhAccessGuard('/rh');
+    const guardPromise = runRhAccessGuard('/rh-admin');
     const meReq = httpMock.expectOne(`${authBase}/me`);
     meReq.flush({
       auth_user_id: rhCluesSingleUser.id,
@@ -2935,5 +2941,108 @@ describe('RhShellComponent & rhAccessGuard (Microintervenciones RH-2A, RH-2B.2, 
     expect(component.fichaOpen()).toBeFalse();
     expect(dialogInstance.draftRfcNew()).toBe('');
     expect(component.accessDeniedError()).toContain('Permiso revocado');
+  });
+
+  // =========================================================================
+  // SUITE RH-2C.3 (SEPARACIÓN DE /rh Y /rh-admin, COMPONENTE TEMPORAL Y NAVEGACIÓN ENTRE ENTORNOS)
+  // =========================================================================
+
+  it('34 (RH-2C.3 #7, #8, #9, #10, #11, #18, #19, #20, #22). Configuración de rutas /rh (authGuard -> RhEmployeePortalComponent) y /rh-admin (authGuard + rhAccessGuard -> RhShellComponent); transición en /rh sin peticiones administrativas; visibilidad condicional de «Ir a Administración RH»; regreso «Mi espacio laboral» desde /rh-admin y returnUrl=/rh-admin ante 401', async () => {
+    // 7 y 8. Verificar definición de rutas /rh y /rh-admin en app.routes.ts
+    const rhPortalRoute = routes.find((r) => r.path === 'rh');
+    const rhAdminRoute = routes.find((r) => r.path === 'rh-admin');
+
+    expect(rhPortalRoute).toBeDefined();
+    expect(rhPortalRoute?.canActivate).toEqual([authGuard]);
+    expect(await rhPortalRoute!.loadComponent!()).toBe(RhEmployeePortalComponent);
+
+    expect(rhAdminRoute).toBeDefined();
+    expect(rhAdminRoute?.canActivate).toEqual([authGuard, rhAccessGuard]);
+    expect(await rhAdminRoute!.loadComponent!()).toBe(RhShellComponent);
+
+    // 7, 8, 9 y 22. Empleado autenticado sin rol administrativo RH entra a /rh:
+    // - Ve «Mi espacio laboral estará disponible próximamente»
+    // - NO dispara ninguna petición administrativa a /api/rh/*
+    // - NO ve el botón «Ir a Administración RH»
+    // - NO puede navegar a /rh-admin (redirigido a /home)
+    setupSession(unauthorizedAbastoUser);
+    const navEmployee = await router.navigateByUrl('/rh');
+    expect(navEmployee).toBeTrue();
+    expect(location.path()).toBe('/rh');
+
+    const portalFixture = TestBed.createComponent(RhEmployeePortalComponent);
+    portalFixture.detectChanges();
+
+    httpMock.expectNone((r) => r.url.includes('/api/rh/'));
+
+    const portalText = (portalFixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(portalText).toContain('Mi espacio laboral estará disponible próximamente');
+    expect(portalFixture.nativeElement.querySelector('#rh-portal-go-admin-link')).toBeNull();
+    expect(portalFixture.nativeElement.querySelector('#rh-portal-card-go-admin-link')).toBeNull();
+    expect(portalFixture.nativeElement.querySelector('#rh-personal-table')).toBeNull();
+
+    // 9 y 10. Usuario con rol autorizado para /rh-admin (RECURSOS_HUMANOS GLOBAL, RECURSOS_HUMANOS CLUES o ADMIN_TIC GLOBAL)
+    // ve «Ir a Administración RH» en /rh y el enlace navega a /rh-admin
+    setupSession(rhGlobalUser);
+    portalFixture.detectChanges();
+
+    const goAdminHeaderLink = portalFixture.nativeElement.querySelector(
+      '#rh-portal-go-admin-link'
+    ) as HTMLAnchorElement | null;
+    const goAdminCardLink = portalFixture.nativeElement.querySelector(
+      '#rh-portal-card-go-admin-link'
+    ) as HTMLAnchorElement | null;
+    expect(goAdminHeaderLink).not.toBeNull();
+    expect(goAdminCardLink).not.toBeNull();
+    expect(goAdminHeaderLink?.textContent).toContain('Ir a Administración RH');
+    expect(goAdminHeaderLink?.getAttribute('href')).toBe('/rh-admin');
+
+    const navToAdmin = await router.navigateByUrl('/rh-admin');
+    expect(navToAdmin).toBeTrue();
+    expect(location.path()).toBe('/rh-admin');
+
+    // 11. En /rh-admin (RhShellComponent) existe la acción «Mi espacio laboral» que apunta a /rh y navega de regreso
+    createComponent();
+    const pendingUnidadesReqs = httpMock.match(rhUnidadesUrl);
+    expect(pendingUnidadesReqs.length).toBeGreaterThanOrEqual(1);
+    for (const req of pendingUnidadesReqs) {
+      req.flush({
+        scope: 'GLOBAL',
+        unidades: mockUnidadesGlobal,
+      });
+    }
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const myWorkspaceLink = fixture.nativeElement.querySelector(
+      '#rh-shell-my-workspace-link'
+    ) as HTMLAnchorElement | null;
+    expect(myWorkspaceLink).not.toBeNull();
+    expect(myWorkspaceLink?.textContent).toContain('Mi espacio laboral');
+    expect(myWorkspaceLink?.getAttribute('href')).toBe('/rh');
+
+    const navBackToPortal = await router.navigateByUrl('/rh');
+    expect(navBackToPortal).toBeTrue();
+    expect(location.path()).toBe('/rh');
+
+    // 18, 19 y 20. En /rh-admin, si una petición responde HTTP 401, limpia sesión y redirige a /login?returnUrl=%2Frh-admin,
+    // y resolveSafeAdminReturnUrl acepta tanto /rh como /rh-admin sin redirecciones circulares
+    expect(resolveSafeAdminReturnUrl('/rh')).toBe('/rh');
+    expect(resolveSafeAdminReturnUrl('/rh-admin')).toBe('/rh-admin');
+    expect(resolveSafeAdminReturnUrl('/rh-admin?unidad=10')).toBe('/rh-admin?unidad=10');
+
+    const reload401Promise = component.cargarUnidadesAutorizadas();
+    httpMock
+      .expectOne(rhUnidadesUrl)
+      .flush({ error: 'Token expired' }, { status: 401, statusText: 'Unauthorized' });
+    await Promise.resolve();
+    httpMock
+      .expectOne(`${authBase}/refresh`)
+      .flush({ error: 'Refresh expired' }, { status: 401, statusText: 'Unauthorized' });
+    await reload401Promise;
+    await fixture.whenStable();
+
+    expect(sessionStore.currentUser).toBeNull();
+    expect(location.path()).toBe('/login?returnUrl=%2Frh-admin');
   });
 });

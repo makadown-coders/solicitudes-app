@@ -339,7 +339,14 @@ export const routes: Routes = [
   },
   {
     path: 'rh',
-    title: 'Recursos Humanos',
+    title: 'Mi espacio laboral',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/rh/rh-employee-portal.component')
+      .then(m => m.RhEmployeePortalComponent),
+  },
+  {
+    path: 'rh-admin',
+    title: 'Recursos Humanos · Administración',
     canActivate: [authGuard, rhAccessGuard],
     loadComponent: () => import('./features/rh/rh-shell.component')
       .then(m => m.RhShellComponent),
