@@ -22,6 +22,7 @@ import {
 import { SessionStore } from '../../core/auth/session-store.service';
 import { TokenStore } from '../../core/auth/token-store.service';
 import {
+  RhMiContextoResponse,
   RhPersonaCandidataItem,
   RhPersonalUnidadItem,
   RhService,
@@ -39,7 +40,7 @@ function buildJwtWithExp(expSeconds: number, sub = 'u-rh-test'): string {
   return `${header}.${payload}.sig`;
 }
 
-describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microintervenciones RH-2A, RH-2B.2, RH-2B.4B, RH-2B.4D, RH-2B.4F, RH-2B.4H.1, RH-2B.4H.2 y RH-2C.3)', () => {
+describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microintervenciones RH-2A, RH-2B.2, RH-2B.4B, RH-2B.4D, RH-2B.4F, RH-2B.4H.1, RH-2B.4H.2, RH-2C.3 y RH-2C.4)', () => {
   let fixture: ComponentFixture<RhShellComponent>;
   let component: RhShellComponent;
   let sessionStore: SessionStore;
@@ -52,6 +53,7 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
 
   const apiBase = environment.apiUrl.replace(/\/+$/, '');
   const authBase = `${apiBase}/auth`;
+  const rhMiContextoUrl = `${apiBase}/rh/mi-contexto`;
   const rhUnidadesUrl = `${apiBase}/rh/unidades-autorizadas`;
   const rhPersonalUrl = (unidadId: number) => `${apiBase}/rh/unidades/${unidadId}/personal`;
   const rhFichaUrl = (unidadId: number, adscripcionId: number) =>
@@ -2944,11 +2946,59 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
   });
 
   // =========================================================================
-  // SUITE RH-2C.3 (SEPARACIÓN DE /rh Y /rh-admin, COMPONENTE TEMPORAL Y NAVEGACIÓN ENTRE ENTORNOS)
+  // SUITE RH-2C.3 + RH-2C.4 (PORTAL DE AUTOGESTIÓN /rh Y SEPARACIÓN DE /rh-admin)
   // =========================================================================
 
-  it('34 (RH-2C.3 #7, #8, #9, #10, #11, #18, #19, #20, #22). Configuración de rutas /rh (authGuard -> RhEmployeePortalComponent) y /rh-admin (authGuard + rhAccessGuard -> RhShellComponent); transición en /rh sin peticiones administrativas; visibilidad condicional de «Ir a Administración RH»; regreso «Mi espacio laboral» desde /rh-admin y returnUrl=/rh-admin ante 401', async () => {
-    // 7 y 8. Verificar definición de rutas /rh y /rh-admin en app.routes.ts
+  const mockMiContextoVigente: RhMiContextoResponse = {
+    modo: 'EMPLEADO',
+    persona: {
+      persona_id: 701,
+      nombre_completo: 'María Fernanda López Ruiz',
+      nombres: 'María Fernanda',
+      apellidos: 'López Ruiz',
+      tiene_rfc: true,
+      rfc_masked: '**********1A9',
+      tiene_curp: true,
+      curp_masked: '****************08',
+    },
+    unidad_referencia: {
+      id: 10,
+      nombre: 'HOSPITAL GENERAL MEXICALI',
+      cluesimb: 'BCIMB000001',
+      origen: 'ADSCRIPCION_RH',
+    },
+    estado_vinculacion_rh: 'ADSCRIPCION_VIGENTE',
+    adscripciones: [
+      {
+        adscripcion_laboral_id: 9001,
+        unidad_medica_id: 10,
+        unidad: {
+          id: 10,
+          nombre: 'HOSPITAL GENERAL MEXICALI',
+          cluesimb: 'BCIMB000001',
+        },
+        matricula: 'EMP-9001',
+        puesto: 'Enfermera General Titulada',
+        turno: 'MATUTINO',
+        jornada: '8 HORAS',
+        horario: '07:00 - 15:00',
+        vigente_desde: '2025-03-15',
+        vigente_hasta: null,
+        activo: true,
+        es_vigente: true,
+        estado_vigencia: 'VIGENTE',
+        observaciones: null,
+      },
+    ],
+    permisos: {
+      puede_ver_perfil_propio: true,
+      puede_administrar_personal_desde_autogestion: false,
+      puede_revelar_identificadores_desde_autogestion: false,
+      puede_editar_identificacion_desde_autogestion: false,
+    },
+  };
+
+  it('34 (RH-2C.3 + RH-2C.4 #1-#8, #19-#22, #26). Configuración de rutas /rh y /rh-admin; empleado sin rol RH carga GET /api/rh/mi-contexto con adscripción vigente, identificadores enmascarados sin controles administrativos ni botón «Ir a Administración RH»; usuario con rol RH sí ve el enlace y navega entre /rh y /rh-admin', async () => {
     const rhPortalRoute = routes.find((r) => r.path === 'rh');
     const rhAdminRoute = routes.find((r) => r.path === 'rh-admin');
 
@@ -2960,11 +3010,11 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     expect(rhAdminRoute?.canActivate).toEqual([authGuard, rhAccessGuard]);
     expect(await rhAdminRoute!.loadComponent!()).toBe(RhShellComponent);
 
-    // 7, 8, 9 y 22. Empleado autenticado sin rol administrativo RH entra a /rh:
-    // - Ve «Mi espacio laboral estará disponible próximamente»
-    // - NO dispara ninguna petición administrativa a /api/rh/*
-    // - NO ve el botón «Ir a Administración RH»
-    // - NO puede navegar a /rh-admin (redirigido a /home)
+    // 2, 3, 4, 5, 6, 7, 8, 19, 20 y 22. Empleado autenticado sin rol administrativo RH entra a /rh:
+    // - Dispara exactamente una llamada a GET /api/rh/mi-contexto sin query params
+    // - Muestra «Cargando tu espacio laboral…» mientras responde y luego su perfil institucional y adscripción vigente
+    // - NO dispara ninguna petición administrativa a /api/rh/unidades*
+    // - NO muestra botón «Ir a Administración RH», ni botón «Mostrar identificadores», ni edición laboral/personal
     setupSession(unauthorizedAbastoUser);
     const navEmployee = await router.navigateByUrl('/rh');
     expect(navEmployee).toBeTrue();
@@ -2973,27 +3023,98 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     const portalFixture = TestBed.createComponent(RhEmployeePortalComponent);
     portalFixture.detectChanges();
 
-    httpMock.expectNone((r) => r.url.includes('/api/rh/'));
+    // Estado inicial de carga sin datos ficticios
+    expect(portalFixture.componentInstance.loadingContexto()).toBeTrue();
+    expect(portalFixture.nativeElement.querySelector('#rh-portal-loading')).not.toBeNull();
+    expect(portalFixture.nativeElement.querySelector('#rh-portal-perfil-card')).toBeNull();
 
-    const portalText = (portalFixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(portalText).toContain('Mi espacio laboral estará disponible próximamente');
-    expect(portalFixture.nativeElement.querySelector('#rh-portal-go-admin-link')).toBeNull();
-    expect(portalFixture.nativeElement.querySelector('#rh-portal-card-go-admin-link')).toBeNull();
-    expect(portalFixture.nativeElement.querySelector('#rh-personal-table')).toBeNull();
+    // Exactamente 1 petición a GET /api/rh/mi-contexto sin parámetros y ninguna a endpoints administrativos
+    const miContextoReq = httpMock.expectOne(
+      (r) => r.url.startsWith(rhMiContextoUrl) && r.method === 'GET'
+    );
+    expect(miContextoReq.request.urlWithParams).toBe(rhMiContextoUrl);
+    expect(miContextoReq.request.params.keys().length).toBe(0);
+    httpMock.expectNone((r) => r.url.includes('/api/rh/unidades'));
 
-    // 9 y 10. Usuario con rol autorizado para /rh-admin (RECURSOS_HUMANOS GLOBAL, RECURSOS_HUMANOS CLUES o ADMIN_TIC GLOBAL)
-    // ve «Ir a Administración RH» en /rh y el enlace navega a /rh-admin
+    miContextoReq.flush(mockMiContextoVigente);
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    expect(portalFixture.componentInstance.loadingContexto()).toBeFalse();
+    expect(portalFixture.nativeElement.querySelector('#rh-portal-loading')).toBeNull();
+
+    const portalEl = portalFixture.nativeElement as HTMLElement;
+    expect(portalEl.querySelector('#rh-portal-perfil-nombre-completo')?.textContent).toContain(
+      'María Fernanda López Ruiz'
+    );
+    expect(portalEl.querySelector('#rh-portal-perfil-nombres')?.textContent).toContain(
+      'María Fernanda'
+    );
+    expect(portalEl.querySelector('#rh-portal-perfil-apellidos')?.textContent).toContain(
+      'López Ruiz'
+    );
+    expect(portalEl.querySelector('#rh-portal-perfil-rfc')?.textContent).toContain(
+      '**********1A9'
+    );
+    expect(portalEl.querySelector('#rh-portal-perfil-curp')?.textContent).toContain(
+      '****************08'
+    );
+
+    // Unidad de adscripción vigente
+    expect(portalEl.querySelector('#rh-portal-unidad-heading')?.textContent).toContain(
+      'Mi unidad de adscripción'
+    );
+    expect(portalEl.querySelector('#rh-portal-unidad-nombre')?.textContent).toContain(
+      'HOSPITAL GENERAL MEXICALI'
+    );
+    expect(portalEl.querySelector('#rh-portal-unidad-clues')?.textContent).toContain(
+      'CLUES: BCIMB000001'
+    );
+
+    // Adscripción vigente y fecha formateada DD/MM/YYYY sin desfase de zona horaria
+    const adscripcionCard = portalEl.querySelector('[data-adscripcion-id="9001"]');
+    expect(adscripcionCard).not.toBeNull();
+    expect(adscripcionCard?.getAttribute('data-estado-vigencia')).toBe('VIGENTE');
+    expect(adscripcionCard?.textContent).toContain('EMP-9001');
+    expect(adscripcionCard?.textContent).toContain('Enfermera General Titulada');
+    expect(adscripcionCard?.textContent).toContain('MATUTINO');
+    expect(adscripcionCard?.textContent).toContain('8 HORAS');
+    expect(adscripcionCard?.textContent).toContain('07:00 - 15:00');
+    expect(adscripcionCard?.textContent).toContain('15/03/2025');
+    expect(adscripcionCard?.textContent).toContain('Sin fecha de término');
+    expect(adscripcionCard?.textContent).toContain('Vigente');
+
+    // Aviso institucional discreto
+    expect(portalEl.querySelector('#rh-portal-aviso-institucional')?.textContent).toContain(
+      'La información registrada es de apoyo para la gestión administrativa y no sustituye el cotejo de documentos oficiales por las áreas responsables.'
+    );
+
+    // Ausencia total de controles administrativos o de revelación/edición en /rh
+    expect(portalEl.querySelector('#rh-portal-go-admin-link')).toBeNull();
+    expect(portalEl.querySelector('#rh-ficha-reveal-ids-btn')).toBeNull();
+    expect(portalEl.querySelector('#rh-ficha-edit-identificacion-btn')).toBeNull();
+    expect(portalEl.querySelector('#rh-ficha-edit-laboral-btn')).toBeNull();
+    expect(portalEl.querySelector('#rh-personal-table')).toBeNull();
+    expect(portalEl.textContent).not.toContain('Mostrar identificadores');
+    expect(portalEl.textContent).not.toContain('Editar identificación');
+
+    // 13, 14, 15, 20 y 21. Usuarios con RECURSOS_HUMANOS GLOBAL, RECURSOS_HUMANOS CLUES y ADMIN_TIC GLOBAL
+    // sí ven el botón «Ir a Administración RH» en /rh
+    setupSession(rhCluesSingleUser);
+    portalFixture.detectChanges();
+    expect(portalEl.querySelector('#rh-portal-go-admin-link')).not.toBeNull();
+
+    setupSession(adminTicGlobalUser);
+    portalFixture.detectChanges();
+    expect(portalEl.querySelector('#rh-portal-go-admin-link')).not.toBeNull();
+
     setupSession(rhGlobalUser);
     portalFixture.detectChanges();
 
-    const goAdminHeaderLink = portalFixture.nativeElement.querySelector(
+    const goAdminHeaderLink = portalEl.querySelector(
       '#rh-portal-go-admin-link'
     ) as HTMLAnchorElement | null;
-    const goAdminCardLink = portalFixture.nativeElement.querySelector(
-      '#rh-portal-card-go-admin-link'
-    ) as HTMLAnchorElement | null;
     expect(goAdminHeaderLink).not.toBeNull();
-    expect(goAdminCardLink).not.toBeNull();
     expect(goAdminHeaderLink?.textContent).toContain('Ir a Administración RH');
     expect(goAdminHeaderLink?.getAttribute('href')).toBe('/rh-admin');
 
@@ -3001,7 +3122,7 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     expect(navToAdmin).toBeTrue();
     expect(location.path()).toBe('/rh-admin');
 
-    // 11. En /rh-admin (RhShellComponent) existe la acción «Mi espacio laboral» que apunta a /rh y navega de regreso
+    // En /rh-admin (RhShellComponent) existe la acción «Mi espacio laboral» que apunta a /rh y navega de regreso
     createComponent();
     const pendingUnidadesReqs = httpMock.match(rhUnidadesUrl);
     expect(pendingUnidadesReqs.length).toBeGreaterThanOrEqual(1);
@@ -3025,8 +3146,6 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     expect(navBackToPortal).toBeTrue();
     expect(location.path()).toBe('/rh');
 
-    // 18, 19 y 20. En /rh-admin, si una petición responde HTTP 401, limpia sesión y redirige a /login?returnUrl=%2Frh-admin,
-    // y resolveSafeAdminReturnUrl acepta tanto /rh como /rh-admin sin redirecciones circulares
     expect(resolveSafeAdminReturnUrl('/rh')).toBe('/rh');
     expect(resolveSafeAdminReturnUrl('/rh-admin')).toBe('/rh-admin');
     expect(resolveSafeAdminReturnUrl('/rh-admin?unidad=10')).toBe('/rh-admin?unidad=10');
@@ -3044,5 +3163,250 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
 
     expect(sessionStore.currentUser).toBeNull();
     expect(location.path()).toBe('/login?returnUrl=%2Frh-admin');
+  });
+
+  it('35 (RH-2C.4 #6, #9, #10, #11, #12). Estados de vinculación PENDIENTE_ADSCRIPCION_RH (unidad de directorio e identificadores no registrados), ADSCRIPCION_FUTURA, ADSCRIPCION_HISTORICA, priorización visual y soporte de OFICINA CENTRAL (cluesimb = "N/A")', async () => {
+    setupSession(unauthorizedAbastoUser);
+
+    // Caso A: PENDIENTE_ADSCRIPCION_RH + OFICINA CENTRAL (id=177, cluesimb="N/A") + sin RFC ni CURP
+    const portalFixture = TestBed.createComponent(RhEmployeePortalComponent);
+    portalFixture.detectChanges();
+
+    httpMock.expectOne(rhMiContextoUrl).flush({
+      modo: 'EMPLEADO',
+      persona: {
+        persona_id: 702,
+        nombre_completo: 'Jorge Alberto Méndez',
+        nombres: null,
+        apellidos: null,
+        tiene_rfc: false,
+        rfc_masked: null,
+        tiene_curp: false,
+        curp_masked: null,
+      },
+      unidad_referencia: {
+        id: 177,
+        nombre: 'OFICINA CENTRAL',
+        cluesimb: 'N/A',
+        origen: 'DIRECTORIO',
+      },
+      estado_vinculacion_rh: 'PENDIENTE_ADSCRIPCION_RH',
+      adscripciones: [],
+      permisos: mockMiContextoVigente.permisos,
+    } satisfies RhMiContextoResponse);
+
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    const portalEl = portalFixture.nativeElement as HTMLElement;
+    expect(portalEl.querySelector('#rh-portal-perfil-rfc')?.textContent).toContain('No registrado');
+    expect(portalEl.querySelector('#rh-portal-perfil-curp')?.textContent).toContain('No registrada');
+
+    // Presenta la unidad del directorio como «Unidad de referencia institucional» y maneja OFICINA CENTRAL sin CLUES convencional
+    expect(portalEl.querySelector('#rh-portal-unidad-heading')?.textContent).toContain(
+      'Unidad de referencia institucional'
+    );
+    expect(portalEl.querySelector('#rh-portal-unidad-origen-badge')?.textContent).toContain(
+      'Referencia directorio'
+    );
+    expect(portalEl.querySelector('#rh-portal-unidad-nombre')?.textContent).toContain(
+      'OFICINA CENTRAL'
+    );
+    expect(portalEl.querySelector('#rh-portal-unidad-clues')?.textContent).toContain(
+      'Sin CLUES convencional'
+    );
+    expect(portalEl.querySelector('#rh-portal-banner-pendiente')?.textContent).toContain(
+      'Aún no cuentas con una adscripción laboral registrada en RH'
+    );
+
+    // Caso B: ADSCRIPCION_FUTURA con adscripción futura e histórica -> ordena FUTURA antes que HISTORICA
+    const reloadFutura = portalFixture.componentInstance.cargarMiContexto();
+    httpMock.expectOne(rhMiContextoUrl).flush({
+      modo: 'EMPLEADO',
+      persona: mockMiContextoVigente.persona,
+      unidad_referencia: {
+        id: 177,
+        nombre: 'OFICINA CENTRAL',
+        cluesimb: 'N/A',
+        origen: 'ADSCRIPCION_RH',
+      },
+      estado_vinculacion_rh: 'ADSCRIPCION_FUTURA',
+      adscripciones: [
+        {
+          adscripcion_laboral_id: 9010,
+          unidad_medica_id: 20,
+          unidad: { id: 20, nombre: 'HOSPITAL GENERAL TIJUANA', cluesimb: 'BCIMB000010' },
+          matricula: 'EMP-HIST',
+          puesto: 'Auxiliar Administrativo',
+          turno: 'VESPERTINO',
+          jornada: '8 HORAS',
+          horario: '14:00 - 21:30',
+          vigente_desde: '2024-01-01',
+          vigente_hasta: '2024-12-31',
+          activo: false,
+          es_vigente: false,
+          estado_vigencia: 'HISTORICA',
+          observaciones: null,
+        },
+        {
+          adscripcion_laboral_id: 9011,
+          unidad_medica_id: 177,
+          unidad: { id: 177, nombre: 'OFICINA CENTRAL', cluesimb: 'N/A' },
+          matricula: 'EMP-FUT',
+          puesto: 'Analista Estatal RH',
+          turno: 'MATUTINO',
+          jornada: '8 HORAS',
+          horario: '08:00 - 16:00',
+          vigente_desde: '2099-01-15',
+          vigente_hasta: null,
+          activo: true,
+          es_vigente: false,
+          estado_vigencia: 'FUTURA',
+          observaciones: null,
+        },
+      ],
+      permisos: mockMiContextoVigente.permisos,
+    } satisfies RhMiContextoResponse);
+    await reloadFutura;
+    portalFixture.detectChanges();
+
+    expect(portalEl.querySelector('#rh-portal-banner-futura')?.textContent).toContain(
+      'Existe una adscripción laboral programada que todavía no se encuentra vigente'
+    );
+
+    const renderedCards = Array.from(
+      portalEl.querySelectorAll('#rh-portal-adscripciones-list article')
+    );
+    expect(renderedCards.length).toBe(2);
+    expect(renderedCards[0].getAttribute('data-estado-vigencia')).toBe('FUTURA');
+    expect(renderedCards[0].textContent).toContain('Programada (futura)');
+    expect(renderedCards[0].textContent).toContain('OFICINA CENTRAL');
+    expect(renderedCards[0].textContent).toContain('Sin CLUES convencional');
+    expect(renderedCards[0].textContent).toContain('15/01/2099');
+    expect(renderedCards[1].getAttribute('data-estado-vigencia')).toBe('HISTORICA');
+    expect(renderedCards[1].textContent).toContain('Histórica');
+    expect(renderedCards[1].textContent).toContain('31/12/2024');
+
+    // Caso C: ADSCRIPCION_HISTORICA exclusivamente
+    const reloadHistorica = portalFixture.componentInstance.cargarMiContexto();
+    httpMock.expectOne(rhMiContextoUrl).flush({
+      modo: 'EMPLEADO',
+      persona: mockMiContextoVigente.persona,
+      unidad_referencia: {
+        id: 20,
+        nombre: 'HOSPITAL GENERAL TIJUANA',
+        cluesimb: 'BCIMB000010',
+        origen: 'ADSCRIPCION_RH',
+      },
+      estado_vinculacion_rh: 'ADSCRIPCION_HISTORICA',
+      adscripciones: [
+        {
+          adscripcion_laboral_id: 9010,
+          unidad_medica_id: 20,
+          unidad: { id: 20, nombre: 'HOSPITAL GENERAL TIJUANA', cluesimb: 'BCIMB000010' },
+          matricula: 'EMP-HIST',
+          puesto: 'Auxiliar Administrativo',
+          turno: 'VESPERTINO',
+          jornada: '8 HORAS',
+          horario: '14:00 - 21:30',
+          vigente_desde: '2024-01-01',
+          vigente_hasta: '2024-12-31',
+          activo: false,
+          es_vigente: false,
+          estado_vigencia: 'HISTORICA',
+          observaciones: null,
+        },
+      ],
+      permisos: mockMiContextoVigente.permisos,
+    } satisfies RhMiContextoResponse);
+    await reloadHistorica;
+    portalFixture.detectChanges();
+
+    expect(portalEl.querySelector('#rh-portal-banner-historica')?.textContent).toContain(
+      'Consulta de adscripciones laborales históricas'
+    );
+  });
+
+  it('36 (RH-2C.4 #16, #17, #18, #23, #24, #25). Manejo de errores HTTP 403 (cuenta sin persona o inactiva), HTTP 500 con reintento manual, HTTP 401 (redirige a /login?returnUrl=%2Frh), cierre de sesión, ngOnDestroy y no persistencia en almacenamiento del navegador', async () => {
+    setupSession(unauthorizedAbastoUser);
+
+    const portalFixture = TestBed.createComponent(RhEmployeePortalComponent);
+    portalFixture.detectChanges();
+
+    // 17. HTTP 403 -> muestra alerta segura sin botón de reintento ni inventar CLUES
+    httpMock.expectOne(rhMiContextoUrl).flush(
+      {
+        error:
+          'La cuenta autenticada no tiene una persona activa asociada en el directorio institucional',
+      },
+      { status: 403, statusText: 'Forbidden' }
+    );
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    const portalEl = portalFixture.nativeElement as HTMLElement;
+    expect(portalEl.querySelector('#rh-portal-forbidden-alert')).not.toBeNull();
+    expect(portalEl.querySelector('#rh-portal-forbidden-text')?.textContent).toContain(
+      'no tiene una persona activa asociada'
+    );
+    expect(portalEl.querySelector('#rh-portal-retry-btn')).toBeNull();
+    expect(portalEl.querySelector('#rh-portal-perfil-card')).toBeNull();
+
+    // 18. HTTP 500 -> muestra mensaje de error y botón de reintento manual (#rh-portal-retry-btn)
+    const retryAfter500 = portalFixture.componentInstance.cargarMiContexto();
+    httpMock
+      .expectOne(rhMiContextoUrl)
+      .flush({ error: 'Error interno al consultar contexto' }, { status: 500, statusText: 'Server Error' });
+    await retryAfter500;
+    portalFixture.detectChanges();
+
+    expect(portalEl.querySelector('#rh-portal-error-alert')).not.toBeNull();
+    const retryBtn = portalEl.querySelector('#rh-portal-retry-btn') as HTMLButtonElement | null;
+    expect(retryBtn).not.toBeNull();
+
+    // Clic en Reintentar dispara nueva consulta y carga el contexto
+    retryBtn!.click();
+    portalFixture.detectChanges();
+    httpMock.expectOne(rhMiContextoUrl).flush(mockMiContextoVigente);
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    expect(portalEl.querySelector('#rh-portal-error-alert')).toBeNull();
+    expect(portalEl.querySelector('#rh-portal-perfil-card')).not.toBeNull();
+
+    // 25. No persiste datos personales ni adscripciones en localStorage ni sessionStorage
+    expect(JSON.stringify(localStorage)).not.toContain('María Fernanda López Ruiz');
+    expect(JSON.stringify(localStorage)).not.toContain('**********1A9');
+    expect(JSON.stringify(sessionStorage)).not.toContain('María Fernanda López Ruiz');
+    expect(JSON.stringify(sessionStorage)).not.toContain('**********1A9');
+
+    // 23 y 24. Cerrar sesión desde /rh limpia el estado personal e invoca logout -> /login
+    const logoutPromise = portalFixture.componentInstance.onLogout();
+    expect(portalFixture.componentInstance.contextoData()).toBeNull();
+    httpMock.expectOne(`${authBase}/logout`).flush({ ok: true });
+    await logoutPromise;
+    expect(location.path()).toBe('/login');
+
+    // 16. HTTP 401 en GET /api/rh/mi-contexto limpia datos del perfil, limpia sesión y redirige a /login?returnUrl=%2Frh
+    setupSession(unauthorizedAbastoUser);
+    const load401Promise = portalFixture.componentInstance.cargarMiContexto();
+    httpMock
+      .expectOne(rhMiContextoUrl)
+      .flush({ error: 'No autenticado' }, { status: 401, statusText: 'Unauthorized' });
+    await Promise.resolve();
+    httpMock
+      .expectOne(`${authBase}/refresh`)
+      .flush({ error: 'Refresh inválido' }, { status: 401, statusText: 'Unauthorized' });
+    await load401Promise;
+    await portalFixture.whenStable();
+
+    expect(portalFixture.componentInstance.contextoData()).toBeNull();
+    expect(sessionStore.currentUser).toBeNull();
+    expect(location.path()).toBe('/login?returnUrl=%2Frh');
+
+    // Destruir el componente limpia cualquier estado local remanente
+    portalFixture.destroy();
+    expect(portalFixture.componentInstance.contextoData()).toBeNull();
+    expect(portalFixture.componentInstance.loadingContexto()).toBeFalse();
   });
 });

@@ -1,6 +1,6 @@
 <div class="min-h-screen bg-slate-100">
   <section class="mx-auto w-full max-w-[1800px] px-4 py-4 sm:px-6 lg:px-8">
-    <!-- Encabezado institucional del portal personal /rh -->
+    <!-- A. Encabezado institucional del portal personal /rh -->
     <header class="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div class="flex items-start gap-3 sm:items-center">
@@ -76,44 +76,555 @@
       </div>
     </header>
 
-    <!-- Estado de transición para /rh antes de RH-2C.4 -->
-    <main class="min-w-0">
-      <section
-        id="rh-portal-transition-card"
-        aria-labelledby="rh-portal-transition-heading"
-        class="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm sm:p-10"
-      >
-        <div
-          class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#006341]/10 text-[#006341]"
-          aria-hidden="true"
+    <!-- Contenido principal de autogestión /rh -->
+    <main class="min-w-0 space-y-6">
+      <!-- 1. Estado de carga inicial -->
+      @if (loadingContexto() && !contextoData()) {
+        <section
+          id="rh-portal-loading"
+          aria-live="polite"
+          class="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm sm:p-10"
         >
-          <lucide-icon [img]="icons.briefcase" class="h-6 w-6"></lucide-icon>
+          <div
+            class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#006341]/10 text-[#006341]"
+            aria-hidden="true"
+          >
+            <lucide-icon [img]="icons.refreshCw" class="h-6 w-6 animate-spin"></lucide-icon>
+          </div>
+          <h2 class="text-base font-bold text-slate-900 sm:text-lg">
+            Cargando tu espacio laboral…
+          </h2>
+          <p class="mx-auto mt-1 max-w-md text-sm text-slate-600">
+            Consultando tu perfil institucional y situación de adscripción registrada en Recursos Humanos.
+          </p>
+        </section>
+      }
+
+      <!-- 2. Estado HTTP 403 (Cuenta inactiva, persona inactiva o cuenta sin persona asociada) -->
+      @if (forbiddenMessage()) {
+        <section
+          id="rh-portal-forbidden-alert"
+          role="alert"
+          class="rounded-2xl border border-amber-300 bg-amber-50 p-6 shadow-sm sm:p-8"
+        >
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800"
+              aria-hidden="true"
+            >
+              <lucide-icon [img]="icons.shieldAlert" class="h-6 w-6"></lucide-icon>
+            </div>
+            <div class="min-w-0 flex-1">
+              <h2 class="text-base font-bold text-amber-950 sm:text-lg">
+                Espacio personal de autogestión no disponible para esta cuenta
+              </h2>
+              <p id="rh-portal-forbidden-text" class="mt-1.5 text-sm text-amber-900">
+                {{ forbiddenMessage() }}
+              </p>
+              <p class="mt-2 text-xs text-amber-800">
+                Para consultar información individual en este portal es necesario que tu cuenta de acceso esté vinculada a un registro activo en el directorio institucional de personas. Si requieres asistencia, comunícate con Recursos Humanos o Administración TI.
+              </p>
+
+              @if (canAccessRhAdmin()) {
+                <div class="mt-4">
+                  <a
+                    id="rh-portal-forbidden-go-admin-link"
+                    routerLink="/rh-admin"
+                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-[#004f34] focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+                  >
+                    <lucide-icon [img]="icons.shieldCheck" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                    <span>Ir a Administración RH</span>
+                  </a>
+                </div>
+              }
+            </div>
+          </div>
+        </section>
+      }
+
+      <!-- 3. Estado HTTP 500 o error de red -->
+      @if (errorMessage()) {
+        <section
+          id="rh-portal-error-alert"
+          role="alert"
+          class="rounded-2xl border border-red-200 bg-red-50 p-6 shadow-sm sm:p-8"
+        >
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="flex items-start gap-3.5">
+              <div
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-700"
+                aria-hidden="true"
+              >
+                <lucide-icon [img]="icons.alertTriangle" class="h-5 w-5"></lucide-icon>
+              </div>
+              <div>
+                <h2 class="text-base font-bold text-red-950">
+                  No se pudo consultar tu información laboral
+                </h2>
+                <p id="rh-portal-error-text" class="mt-1 text-sm text-red-800">
+                  {{ errorMessage() }}
+                </p>
+              </div>
+            </div>
+
+            @if (canRetry()) {
+              <button
+                id="rh-portal-retry-btn"
+                type="button"
+                (click)="cargarMiContexto()"
+                [disabled]="loadingContexto()"
+                class="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-700 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <lucide-icon [img]="icons.refreshCw" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                <span>Reintentar</span>
+              </button>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- 4. Contexto cargado exitosamente -->
+      @if (contextoData(); as ctx) {
+        <!-- Grid superior: B. Mi perfil institucional + C. Unidad de adscripción / referencia -->
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <!-- B. Tarjeta «Mi perfil institucional» (Solo consulta, identificadores enmascarados) -->
+          <section
+            id="rh-portal-perfil-card"
+            aria-labelledby="rh-portal-perfil-heading"
+            class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 lg:col-span-7"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4">
+              <div class="flex items-center gap-2.5">
+                <span
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#006341]/10 text-[#006341]"
+                  aria-hidden="true"
+                >
+                  <lucide-icon [img]="icons.user" class="h-5 w-5"></lucide-icon>
+                </span>
+                <div>
+                  <h2 id="rh-portal-perfil-heading" class="text-base font-bold text-slate-900 sm:text-lg">
+                    Mi perfil institucional
+                  </h2>
+                  <p class="text-xs text-slate-500">
+                    Identificación registrada en el padrón institucional
+                  </p>
+                </div>
+              </div>
+
+              <span
+                class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600"
+              >
+                Solo consulta
+              </span>
+            </div>
+
+            <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div class="rounded-xl border border-gray-100 bg-slate-50/70 p-3.5 sm:col-span-2">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Nombre completo
+                </dt>
+                <dd id="rh-portal-perfil-nombre-completo" class="mt-1 text-base font-bold text-slate-900">
+                  {{ ctx.persona.nombre_completo }}
+                </dd>
+              </div>
+
+              @if (ctx.persona.nombres || ctx.persona.apellidos) {
+                <div class="rounded-xl border border-gray-100 bg-slate-50/70 p-3.5">
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Nombre(s)
+                  </dt>
+                  <dd id="rh-portal-perfil-nombres" class="mt-1 text-sm font-medium text-slate-800">
+                    {{ ctx.persona.nombres || 'No desglosado' }}
+                  </dd>
+                </div>
+
+                <div class="rounded-xl border border-gray-100 bg-slate-50/70 p-3.5">
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Apellidos
+                  </dt>
+                  <dd id="rh-portal-perfil-apellidos" class="mt-1 text-sm font-medium text-slate-800">
+                    {{ ctx.persona.apellidos || 'No desglosado' }}
+                  </dd>
+                </div>
+              }
+
+              <div class="rounded-xl border border-gray-100 bg-slate-50/70 p-3.5">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  RFC (enmascarado)
+                </dt>
+                <dd
+                  id="rh-portal-perfil-rfc"
+                  class="mt-1 font-mono text-sm font-semibold text-slate-800"
+                >
+                  @if (ctx.persona.tiene_rfc && ctx.persona.rfc_masked) {
+                    {{ ctx.persona.rfc_masked }}
+                  } @else {
+                    <span class="font-sans font-normal text-slate-500">No registrado</span>
+                  }
+                </dd>
+              </div>
+
+              <div class="rounded-xl border border-gray-100 bg-slate-50/70 p-3.5">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  CURP (enmascarada)
+                </dt>
+                <dd
+                  id="rh-portal-perfil-curp"
+                  class="mt-1 font-mono text-sm font-semibold text-slate-800"
+                >
+                  @if (ctx.persona.tiene_curp && ctx.persona.curp_masked) {
+                    {{ ctx.persona.curp_masked }}
+                  } @else {
+                    <span class="font-sans font-normal text-slate-500">No registrada</span>
+                  }
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <!-- C. Tarjeta «Mi unidad de adscripción» o «Unidad de referencia institucional» -->
+          <section
+            id="rh-portal-unidad-card"
+            aria-labelledby="rh-portal-unidad-heading"
+            class="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 lg:col-span-5"
+          >
+            <div>
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4">
+                <div class="flex items-center gap-2.5">
+                  <span
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#006341]/10 text-[#006341]"
+                    aria-hidden="true"
+                  >
+                    <lucide-icon [img]="icons.building" class="h-5 w-5"></lucide-icon>
+                  </span>
+                  <div>
+                    <h2 id="rh-portal-unidad-heading" class="text-base font-bold text-slate-900 sm:text-lg">
+                      {{ unidadCardTitle() }}
+                    </h2>
+                    <p class="text-xs text-slate-500">
+                      @if (ctx.unidad_referencia?.origen === 'ADSCRIPCION_RH') {
+                        Origen: Adscripción registrada en Recursos Humanos
+                      } @else if (ctx.unidad_referencia?.origen === 'DIRECTORIO') {
+                        Origen: Directorio institucional (referencia previa a adscripción RH)
+                      } @else {
+                        Ubicación organizacional
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                @if (ctx.unidad_referencia; as unidadRef) {
+                  @if (unidadRef.origen === 'ADSCRIPCION_RH') {
+                    <span
+                      id="rh-portal-unidad-origen-badge"
+                      class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800"
+                    >
+                      Adscripción RH
+                    </span>
+                  } @else {
+                    <span
+                      id="rh-portal-unidad-origen-badge"
+                      class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800"
+                    >
+                      Referencia directorio
+                    </span>
+                  }
+                }
+              </div>
+
+              @if (ctx.unidad_referencia; as unidadRef) {
+                <div class="mt-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
+                  <p
+                    id="rh-portal-unidad-nombre"
+                    class="text-base font-bold text-slate-900 sm:text-lg"
+                  >
+                    {{ unidadRef.nombre }}
+                  </p>
+
+                  <div class="mt-2 flex flex-wrap items-center gap-2">
+                    @if (isCluesConvencional(unidadRef.cluesimb)) {
+                      <span
+                        id="rh-portal-unidad-clues"
+                        class="inline-flex items-center rounded-lg border border-[#006341]/25 bg-[#006341]/10 px-2.5 py-1 font-mono text-xs font-semibold text-[#006341]"
+                      >
+                        CLUES: {{ unidadRef.cluesimb }}
+                      </span>
+                    } @else {
+                      <span
+                        id="rh-portal-unidad-clues"
+                        class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700"
+                      >
+                        Sin CLUES convencional · Unidad administrativa
+                      </span>
+                    }
+                  </div>
+
+                  @if (unidadRef.origen === 'DIRECTORIO') {
+                    <p
+                      id="rh-portal-unidad-directorio-note"
+                      class="mt-3 text-xs leading-relaxed text-slate-600"
+                    >
+                      Esta unidad corresponde a tu registro de referencia en el directorio institucional y no constituye por sí misma una adscripción laboral formalizada en Recursos Humanos.
+                    </p>
+                  }
+                </div>
+              } @else {
+                <div
+                  id="rh-portal-unidad-empty"
+                  class="mt-4 rounded-xl border border-dashed border-gray-300 bg-slate-50 p-4 text-sm text-slate-600"
+                >
+                  Aún no se cuenta con una unidad médica o administrativa asociada a tu registro.
+                </div>
+              }
+            </div>
+
+            <!-- Estado resumido de vinculación RH al pie de la tarjeta de unidad -->
+            <div class="mt-4 border-t border-gray-100 pt-3">
+              @switch (ctx.estado_vinculacion_rh) {
+                @case ('ADSCRIPCION_VIGENTE') {
+                  <p id="rh-portal-estado-vinculacion-summary" class="text-xs font-medium text-emerald-800">
+                    Estado en RH: Adscripción laboral vigente registrada.
+                  </p>
+                }
+                @case ('ADSCRIPCION_FUTURA') {
+                  <p id="rh-portal-estado-vinculacion-summary" class="text-xs font-medium text-blue-800">
+                    Estado en RH: Cuentas con una adscripción laboral programada que aún no inicia su vigencia.
+                  </p>
+                }
+                @case ('ADSCRIPCION_HISTORICA') {
+                  <p id="rh-portal-estado-vinculacion-summary" class="text-xs font-medium text-slate-700">
+                    Estado en RH: Se registran adscripciones históricas en consulta, sin asignación vigente activa.
+                  </p>
+                }
+                @case ('PENDIENTE_ADSCRIPCION_RH') {
+                  <p id="rh-portal-estado-vinculacion-summary" class="text-xs font-medium text-amber-800">
+                    Estado en RH: Pendiente de registro de adscripción laboral formal.
+                  </p>
+                }
+              }
+            </div>
+          </section>
         </div>
 
-        <h2
-          id="rh-portal-transition-heading"
-          class="text-lg font-bold text-slate-900 sm:text-xl"
+        <!-- D. Sección «Mis adscripciones laborales» y estados de vinculación RH -->
+        <section
+          id="rh-portal-adscripciones-section"
+          aria-labelledby="rh-portal-adscripciones-heading"
+          class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
         >
-          Mi espacio laboral estará disponible próximamente
-        </h2>
+          <div class="flex flex-col gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-2.5">
+              <span
+                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#006341]/10 text-[#006341]"
+                aria-hidden="true"
+              >
+                <lucide-icon [img]="icons.briefcase" class="h-5 w-5"></lucide-icon>
+              </span>
+              <div>
+                <h2
+                  id="rh-portal-adscripciones-heading"
+                  class="text-base font-bold text-slate-900 sm:text-lg"
+                >
+                  Mis adscripciones laborales
+                </h2>
+                <p class="text-xs text-slate-500">
+                  Asignaciones laborales registradas en Recursos Humanos para tu perfil
+                </p>
+              </div>
+            </div>
 
-        <p class="mx-auto mt-2 max-w-xl text-sm text-slate-600">
-          Este entorno está reservado para la consulta individual de tu información laboral en IMSS-Bienestar.
-        </p>
-
-        @if (canAccessRhAdmin()) {
-          <div class="mt-6 flex justify-center">
-            <a
-              id="rh-portal-card-go-admin-link"
-              routerLink="/rh-admin"
-              class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#006341] px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#004f34] focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+            <span
+              id="rh-portal-adscripciones-count"
+              class="inline-flex items-center self-start rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 sm:self-auto"
             >
-              <lucide-icon [img]="icons.shieldCheck" class="h-4 w-4" aria-hidden="true"></lucide-icon>
-              <span>Ir a Administración RH</span>
-            </a>
+              {{ adscripcionesOrdenadas().length }}
+              {{ adscripcionesOrdenadas().length === 1 ? 'registro' : 'registros' }}
+            </span>
           </div>
-        }
-      </section>
+
+          <!-- Banners explícitos según estado_vinculacion_rh -->
+          @switch (ctx.estado_vinculacion_rh) {
+            @case ('PENDIENTE_ADSCRIPCION_RH') {
+              <div
+                id="rh-portal-banner-pendiente"
+                class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950"
+              >
+                <p class="text-sm font-bold">
+                  Aún no cuentas con una adscripción laboral registrada en RH
+                </p>
+                <p class="mt-1 text-xs leading-relaxed text-amber-900">
+                  Tu perfil personal se encuentra activo en el directorio institucional, pero el área de Recursos Humanos todavía no ha registrado una adscripción laboral formal asociada a tu expediente.
+                </p>
+              </div>
+            }
+            @case ('ADSCRIPCION_FUTURA') {
+              <div
+                id="rh-portal-banner-futura"
+                class="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-950"
+              >
+                <p class="text-sm font-bold">
+                  Existe una adscripción laboral programada que todavía no se encuentra vigente
+                </p>
+                <p class="mt-1 text-xs leading-relaxed text-blue-900">
+                  A continuación puedes consultar los detalles y la fecha de inicio programada para tu asignación laboral.
+                </p>
+              </div>
+            }
+            @case ('ADSCRIPCION_HISTORICA') {
+              <div
+                id="rh-portal-banner-historica"
+                class="mt-4 rounded-xl border border-slate-300 bg-slate-100 p-4 text-slate-900"
+              >
+                <p class="text-sm font-bold">
+                  Consulta de adscripciones laborales históricas (sin asignación vigente actual)
+                </p>
+                <p class="mt-1 text-xs leading-relaxed text-slate-700">
+                  Los siguientes registros corresponden a periodos laborales concluidos o inactivos y se muestran únicamente como antecedente informativo.
+                </p>
+              </div>
+            }
+          }
+
+          <!-- Listado en tarjetas responsivas de adscripciones propias (solo lectura) -->
+          @if (adscripcionesOrdenadas().length > 0) {
+            <div id="rh-portal-adscripciones-list" class="mt-4 space-y-4">
+              @for (item of adscripcionesOrdenadas(); track item.adscripcion_laboral_id) {
+                <article
+                  [attr.data-adscripcion-id]="item.adscripcion_laboral_id"
+                  [attr.data-estado-vigencia]="item.estado_vigencia"
+                  class="rounded-xl border p-4 transition sm:p-5"
+                  [ngClass]="{
+                    'border-emerald-300 bg-emerald-50/30': item.estado_vigencia === 'VIGENTE',
+                    'border-blue-200 bg-blue-50/25': item.estado_vigencia === 'FUTURA',
+                    'border-gray-200 bg-slate-50/70': item.estado_vigencia === 'HISTORICA'
+                  }"
+                >
+                  <div class="flex flex-col gap-3 border-b border-gray-200/80 pb-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div class="flex flex-wrap items-center gap-2">
+                        <h3 class="text-base font-bold text-slate-900">
+                          {{ item.unidad.nombre }}
+                        </h3>
+                        <span
+                          class="inline-flex items-center rounded-md border border-slate-200 bg-white px-2 py-0.5 font-mono text-xs font-medium text-slate-700"
+                        >
+                          {{ formatCluesLabel(item.unidad.cluesimb) }}
+                        </span>
+                      </div>
+                      <p class="mt-0.5 text-xs text-slate-600">
+                        Puesto:
+                        <span class="font-semibold text-slate-800">
+                          {{ item.puesto || 'No especificado' }}
+                        </span>
+                      </p>
+                    </div>
+
+                    <!-- Etiqueta de Estado de vigencia -->
+                    <div class="flex items-center gap-2 self-start sm:self-auto">
+                      @switch (item.estado_vigencia) {
+                        @case ('VIGENTE') {
+                          <span
+                            class="rh-adscripcion-estado-badge inline-flex items-center rounded-full border border-emerald-300 bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-900"
+                          >
+                            Vigente
+                          </span>
+                        }
+                        @case ('FUTURA') {
+                          <span
+                            class="rh-adscripcion-estado-badge inline-flex items-center rounded-full border border-blue-300 bg-blue-100 px-3 py-1 text-xs font-bold text-blue-900"
+                          >
+                            Programada (futura)
+                          </span>
+                        }
+                        @case ('HISTORICA') {
+                          <span
+                            class="rh-adscripcion-estado-badge inline-flex items-center rounded-full border border-slate-300 bg-slate-200 px-3 py-1 text-xs font-bold text-slate-800"
+                          >
+                            Histórica
+                          </span>
+                        }
+                      }
+                    </div>
+                  </div>
+
+                  <dl class="mt-3.5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="rounded-lg border border-gray-200/70 bg-white p-2.5">
+                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Matrícula
+                      </dt>
+                      <dd class="mt-0.5 font-mono font-semibold text-slate-800">
+                        {{ item.matricula || 'No registrada' }}
+                      </dd>
+                    </div>
+
+                    <div class="rounded-lg border border-gray-200/70 bg-white p-2.5">
+                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Turno
+                      </dt>
+                      <dd class="mt-0.5 font-medium text-slate-800">
+                        {{ item.turno || 'No especificado' }}
+                      </dd>
+                    </div>
+
+                    <div class="rounded-lg border border-gray-200/70 bg-white p-2.5">
+                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Jornada
+                      </dt>
+                      <dd class="mt-0.5 font-medium text-slate-800">
+                        {{ item.jornada || 'No especificada' }}
+                      </dd>
+                    </div>
+
+                    <div class="rounded-lg border border-gray-200/70 bg-white p-2.5">
+                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Horario
+                      </dt>
+                      <dd class="mt-0.5 font-medium text-slate-800">
+                        {{ item.horario || 'No especificado' }}
+                      </dd>
+                    </div>
+
+                    <div class="rounded-lg border border-gray-200/70 bg-white p-2.5 sm:col-span-1 lg:col-span-2">
+                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Vigente desde
+                      </dt>
+                      <dd class="mt-0.5 font-medium text-slate-800">
+                        {{ formatIsoDate(item.vigente_desde) }}
+                      </dd>
+                    </div>
+
+                    <div class="rounded-lg border border-gray-200/70 bg-white p-2.5 sm:col-span-1 lg:col-span-2">
+                      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Vigente hasta
+                      </dt>
+                      <dd class="mt-0.5 font-medium text-slate-800">
+                        {{ formatIsoDate(item.vigente_hasta) }}
+                      </dd>
+                    </div>
+                  </dl>
+                </article>
+              }
+            </div>
+          }
+        </section>
+      }
+
+      <!-- E. Aviso institucional discreto -->
+      <footer
+        id="rh-portal-aviso-institucional"
+        class="rounded-2xl border border-gray-200 bg-white px-5 py-4 text-xs text-slate-600 shadow-xs"
+      >
+        <div class="flex items-start gap-2.5 sm:items-center">
+          <lucide-icon
+            [img]="icons.info"
+            class="mt-0.5 h-4 w-4 shrink-0 text-[#006341] sm:mt-0"
+            aria-hidden="true"
+          ></lucide-icon>
+          <p>
+            La información registrada es de apoyo para la gestión administrativa y no sustituye el cotejo de documentos oficiales por las áreas responsables.
+          </p>
+        </div>
+      </footer>
     </main>
   </section>
 </div>

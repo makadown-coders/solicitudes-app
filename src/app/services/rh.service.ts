@@ -233,6 +233,87 @@ export interface RhUpdatePersonaIdentificacionResponse {
   campos_modificados: string[];
 }
 
+/**
+ * Estado de vinculación laboral RH del empleado autenticado (`GET /api/rh/mi-contexto`).
+ */
+export type RhMiContextoEstadoVinculacion =
+  | 'ADSCRIPCION_VIGENTE'
+  | 'ADSCRIPCION_HISTORICA'
+  | 'ADSCRIPCION_FUTURA'
+  | 'PENDIENTE_ADSCRIPCION_RH';
+
+/**
+ * Estado de vigencia calculado por el backend para una adscripción laboral propia.
+ */
+export type RhAdscripcionEstadoVigencia = 'VIGENTE' | 'HISTORICA' | 'FUTURA';
+
+/**
+ * Datos personales propios enmascarados devueltos por `GET /api/rh/mi-contexto`.
+ * Nunca incluye RFC ni CURP completos.
+ */
+export interface RhMiContextoPersona {
+  persona_id: number;
+  nombre_completo: string;
+  nombres: string | null;
+  apellidos: string | null;
+  tiene_rfc: boolean;
+  rfc_masked: string | null;
+  tiene_curp: boolean;
+  curp_masked: string | null;
+}
+
+/**
+ * Unidad de referencia o adscripción principal devuelta por `GET /api/rh/mi-contexto`.
+ */
+export interface RhMiContextoUnidadReferencia {
+  id: number;
+  nombre: string;
+  cluesimb: string | null;
+  origen: 'ADSCRIPCION_RH' | 'DIRECTORIO';
+}
+
+/**
+ * Registro de adscripción laboral propio devuelto por `GET /api/rh/mi-contexto`.
+ */
+export interface RhMiContextoAdscripcionPropia {
+  adscripcion_laboral_id: number;
+  unidad_medica_id: number;
+  unidad: RhUnidadAutorizada;
+  matricula: string | null;
+  puesto: string | null;
+  turno: string | null;
+  jornada: string | null;
+  horario: string | null;
+  vigente_desde: string;
+  vigente_hasta: string | null;
+  activo: boolean;
+  es_vigente: boolean;
+  estado_vigencia: RhAdscripcionEstadoVigencia;
+  observaciones: string | null;
+}
+
+/**
+ * Permisos fijos del entorno de autogestión (`/rh`) devueltos por `GET /api/rh/mi-contexto`.
+ */
+export interface RhMiContextoPermisos {
+  puede_ver_perfil_propio: true;
+  puede_administrar_personal_desde_autogestion: false;
+  puede_revelar_identificadores_desde_autogestion: false;
+  puede_editar_identificacion_desde_autogestion: false;
+}
+
+/**
+ * Respuesta real (`200 OK`) de `GET /api/rh/mi-contexto`.
+ */
+export interface RhMiContextoResponse {
+  modo: 'EMPLEADO';
+  persona: RhMiContextoPersona;
+  unidad_referencia: RhMiContextoUnidadReferencia | null;
+  estado_vinculacion_rh: RhMiContextoEstadoVinculacion;
+  adscripciones: RhMiContextoAdscripcionPropia[];
+  permisos: RhMiContextoPermisos;
+}
+
 const ALLOWED_PATCH_LABORAL_KEYS: ReadonlyArray<keyof RhUpdateAdscripcionLaboralPayload> = [
   'matricula',
   'puesto',
@@ -441,6 +522,20 @@ export class RhService {
         `${this.baseUrl}/unidades/${unidadId}/personal/${adscripcionId}/identificacion`,
         cleanPatch
       )
+    );
+  }
+
+  /**
+   * Consulta el contexto individual de autogestión del empleado autenticado
+   * (`GET /api/rh/mi-contexto`).
+   *
+   * - No envía parámetros de consulta, `persona_id` ni `unidadId`.
+   * - La identidad se resuelve exclusivamente en el backend a partir del token autenticado.
+   * - No persiste ni almacena en caché el resultado dentro del servicio.
+   */
+  async obtenerMiContextoRh(): Promise<RhMiContextoResponse> {
+    return await firstValueFrom(
+      this.http.get<RhMiContextoResponse>(`${this.baseUrl}/mi-contexto`)
     );
   }
 }
