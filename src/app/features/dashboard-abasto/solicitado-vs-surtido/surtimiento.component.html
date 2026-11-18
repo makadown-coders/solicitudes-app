@@ -1,0 +1,34 @@
+<a routerLink="../concentrado-primer-nivel">← Concentrado de Primer Nivel</a>
+<h2>Solicitado vs. surtido SAS</h2>
+<p>Compare el pedido de cada centro de salud con los despachos registrados por almacén.</p>
+<fieldset [disabled]="ocupado()">
+<section><div class="controles">
+<label>Mes del pedido<input type="month" [(ngModel)]="mes" (change)="cambiarMes()"></label>
+<label>Almacén<select [(ngModel)]="zona" (change)="editarVentana()"><option value="">Todos</option>@for(v of ventanas;track v.zona){<option>{{v.zona}}</option>}</select></label></div>
+@for(v of ventanas;track v.zona){@if(!zona || zona===v.zona){<div class="controles"><strong>{{v.zona}}</strong>
+@if(informe();as r){<label>Almacén institucional<select [(ngModel)]="v.almacenId" (change)="editarVentana()"><option [ngValue]="undefined">Seleccione almacén</option>@for(a of r.almacenes;track a.id){<option [ngValue]="a.id">{{a.nombre}} ({{a.id}})</option>}</select></label>}
+<label>Desde<input type="date" [(ngModel)]="v.desde" (change)="editarVentana()"></label><label>Hasta<input type="date" [(ngModel)]="v.hasta" (change)="editarVentana()"></label></div>}}
+<button (click)="analizar()">{{ocupado()?'Consultando…':'Analizar surtimiento'}}</button></section>
+@if(error()){<p role="alert">{{error()}}</p>}
+@if(informe();as r){
+<p><strong>Corte {{r.corte}}</strong> · Cifras preliminares. La última salida registrada no acredita el cierre del almacén ni la recepción por la unidad.</p>
+@if(pendiente()){<p role="status">Hay cambios por aplicar. Pulse «Analizar surtimiento» para actualizar los resultados.</p>}
+@if(grupos().length){<section><h3>Seleccione el pedido que se comparará</h3>
+@for(g of grupos();track g.clues){<label>{{g.clues}}<select [(ngModel)]="pedidos[g.clues]" (change)="editarVentana()"><option value="">Pendiente de selección</option>
+@for(c of g.items;track c.id){<option [value]="c.id">{{c.fecha}} · {{c.tipo}} · {{c.periodo}} · {{c.id}}</option>}</select></label>}</section>}
+@if(r.movimientos.length){<section><h3>Movimientos que acreditan despacho</h3><p>Marque únicamente las combinaciones confirmadas por el almacén para este análisis.</p>
+@for(m of r.movimientos;track m.id){<label><input type="checkbox" [checked]="movimientos.has(m.id)" (change)="marcar(movimientos,m.id,$any($event.target).checked)"> {{m.etiqueta}}</label>}</section>}
+<section><h3>Resultados</h3><p>{{r.filas.length}} renglones de conciliación · {{r.sinSolicitud.length}} salidas agrupadas sin pedido identificado · {{r.incidencias.length}} incidencias</p>
+<p><strong>Al corte, en {{resumen().lineas}} renglones comparables:</strong> {{resumen().solicitado | number}} solicitados · {{resumen().pendiente | number}} pendientes · cobertura {{resumen().cobertura===null?'—':(resumen().cobertura|number:'1.0-1')+'%'}}.</p>
+<p>La cobertura toma como máximo el pedido de cada clave. Con un solo almacén seleccionado, se muestra su aportación frente al pedido completo.</p>
+<button (click)="excel()" [disabled]="pendiente()">Exportar análisis completo a Excel</button>
+<div class="controles"><label>Mostrar<select [ngModel]="vista()" (ngModelChange)="vista.set($event);pagina.set(1)"><option [ngValue]="false">Conciliación</option><option [ngValue]="true">Salidas sin solicitud</option></select></label>
+<label>Municipio<input [ngModel]="municipio()" (ngModelChange)="municipio.set($event);pagina.set(1)"></label>
+<label>Unidad o CLUES<input [ngModel]="unidad()" (ngModelChange)="unidad.set($event);pagina.set(1)"></label>
+<label>Clave CNIS<input [ngModel]="clave()" (ngModelChange)="clave.set($event);pagina.set(1)"></label></div>
+<div class="tabla"><table><thead><tr>@for(t of ['Unidad / CLUES','Municipio','Clave y descripción','Solicitado','SAS acreditado','Pendiente','Excedente','Cobertura','Surtido/solicitado','Estado'];track t){<th>{{t}}</th>}</tr></thead>
+<tbody>@for(f of filtradas().slice((pagina()-1)*50,pagina()*50);track $index){<tr><td>{{f.nombre}}<br>{{f.clues}}</td><td>{{f.municipio}}</td><td>{{f.clave}}<br>{{f.descripcion}}</td><td>{{f.solicitado??'—'}}</td><td>{{f.surtido}}</td><td>{{f.pendiente??'—'}}</td><td>{{f.excedente??'—'}}</td><td>{{f.cobertura===null?'—':(f.cobertura|number:'1.0-1')+'%'}}</td><td>{{f.relacion===null?'—':(f.relacion|number:'1.0-1')+'%'}}</td><td>{{f.estado}}
+@if(f.validar){<details><summary>Revisar presentación</summary><p>Pedido: {{f.medida||'Sin unidad declarada'}}. SAS: {{f.presentacionSas||'Sin descripción'}}.</p><label><input type="checkbox" [checked]="presentaciones.has(idPresentacion(f))" (change)="marcar(presentaciones,idPresentacion(f),$any($event.target).checked)"> Confirmo que ambas cantidades usan la misma presentación</label></details>}</td></tr>}@empty{<tr><td colspan="10">Sin renglones para estos filtros.</td></tr>}</tbody></table></div>
+<button [disabled]="pagina()<=1" (click)="pagina.set(pagina()-1)">Anterior</button> Página {{pagina()}} <button [disabled]="pagina()*50>=filtradas().length" (click)="pagina.set(pagina()+1)">Siguiente</button></section>
+<details><summary>Incidencias ({{r.incidencias.length}})</summary><ul>@for(i of r.incidencias;track i){<li>{{i}}</li>}</ul></details>
+}</fieldset>

@@ -290,6 +290,11 @@ export const routes: Routes = [
         title: 'Dashboard Abasto - Radar de demanda y cobertura'
       },
       {
+        path: 'solicitado-vs-surtido',
+        loadComponent: () => import('./features/dashboard-abasto/solicitado-vs-surtido/surtimiento.component').then(m => m.SurtimientoComponent),
+        title: 'Solicitado vs. surtido SAS'
+      },
+      {
         path: 'concentrado-primer-nivel',
         loadComponent: () => import('./features/dashboard-abasto/concentrado-primer-nivel/concentrado-primer-nivel.component')
           .then(m => m.ConcentradoPrimerNivelComponent),
