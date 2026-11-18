@@ -366,6 +366,967 @@
           }
         </section>
 
+        <!-- Sección del padrón laboral: Personal de la unidad -->
+        @if (!loadingUnidades() && !errorUnidades() && unidadesAutorizadas().length > 0) {
+          <section
+            id="rh-personal-unidad-section"
+            aria-labelledby="rh-personal-heading"
+            class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+          >
+            @if (selectedUnidad(); as selUnidad) {
+              <!-- Encabezado y controles de Personal de la unidad -->
+              <div class="flex flex-col gap-4 border-b border-gray-100 pb-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 id="rh-personal-heading" class="text-lg font-bold text-slate-900">
+                      Personal de la unidad
+                    </h2>
+                    <p id="rh-personal-unidad-subtitle" class="mt-0.5 text-xs text-slate-500">
+                      Padrón laboral con adscripción registrada en
+                      <span class="font-semibold text-slate-700">{{ selUnidad.nombre }}</span>.
+                    </p>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span
+                      id="rh-personal-total-badge"
+                      class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                    >
+                      <lucide-icon [img]="icons.users" class="h-3.5 w-3.5 text-[#006341]" aria-hidden="true"></lucide-icon>
+                      <span>Total: {{ personalTotal() }}</span>
+                    </span>
+
+                    <button
+                      id="rh-personal-refresh-btn"
+                      type="button"
+                      (click)="cargarPersonalUnidad()"
+                      [disabled]="loadingPersonal()"
+                      class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <lucide-icon
+                        [img]="loadingPersonal() ? icons.loader : icons.refresh"
+                        class="h-4 w-4"
+                        [class.animate-spin]="loadingPersonal()"
+                        aria-hidden="true"
+                      ></lucide-icon>
+                      <span>Actualizar padrón</span>
+                    </button>
+
+                    @if (canVincularTrabajador()) {
+                      <button
+                        id="rh-open-vincular-btn"
+                        type="button"
+                        (click)="openVincularDialog()"
+                        class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#006341] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#004f34] focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+                      >
+                        <lucide-icon [img]="icons.userPlus" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                        <span>Vincular trabajador</span>
+                      </button>
+                    }
+                  </div>
+                </div>
+
+                @if (vincularSuccessBanner(); as successMsg) {
+                  <div
+                    id="rh-vincular-success-banner"
+                    role="status"
+                    aria-live="polite"
+                    class="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+                  >
+                    <div class="flex items-center gap-2.5">
+                      <lucide-icon
+                        [img]="icons.checkCircle"
+                        class="h-5 w-5 shrink-0 text-[#006341]"
+                        aria-hidden="true"
+                      ></lucide-icon>
+                      <span class="font-semibold">{{ successMsg }}</span>
+                    </div>
+                    <button
+                      id="rh-vincular-success-dismiss-btn"
+                      type="button"
+                      (click)="dismissVincularSuccessBanner()"
+                      aria-label="Cerrar confirmación"
+                      class="rounded-lg p-1 text-emerald-700 hover:bg-emerald-100"
+                    >
+                      <lucide-icon [img]="icons.clear" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                    </button>
+                  </div>
+                }
+
+                <!-- Buscador por nombre o matrícula y selector de tamaño de página -->
+                <form (ngSubmit)="onPersonalSearchSubmit()" class="grid grid-cols-1 gap-3 md:grid-cols-12">
+                  <div class="relative md:col-span-8 lg:col-span-7">
+                    <label
+                      for="rh-personal-search-input"
+                      class="mb-1 block text-xs font-semibold text-slate-700"
+                    >
+                      Buscar por nombre o matrícula
+                    </label>
+                    <div class="relative flex items-center">
+                      <lucide-icon
+                        [img]="icons.search"
+                        class="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400"
+                        aria-hidden="true"
+                      ></lucide-icon>
+                      <input
+                        id="rh-personal-search-input"
+                        type="text"
+                        name="personalSearch"
+                        autocomplete="off"
+                        [ngModel]="personalSearchDraft()"
+                        (ngModelChange)="onPersonalSearchInput($event)"
+                        placeholder="Ej. Dra. Ana Gómez o MAT-1001…"
+                        maxlength="200"
+                        class="min-h-11 w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-24 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+                      />
+                      @if (personalSearchDraft() || hasActivePersonalSearch()) {
+                        <button
+                          id="rh-personal-clear-search-btn"
+                          type="button"
+                          (click)="onClearPersonalSearch()"
+                          aria-label="Limpiar búsqueda de personal"
+                          class="absolute right-16 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                        >
+                          <lucide-icon [img]="icons.clear" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                        </button>
+                      }
+                      <button
+                        id="rh-personal-search-submit-btn"
+                        type="submit"
+                        [disabled]="loadingPersonal()"
+                        class="absolute right-1.5 rounded-lg bg-[#006341] px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#004f34] disabled:opacity-60"
+                      >
+                        Buscar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="md:col-span-4 lg:col-span-3">
+                    <label
+                      for="rh-personal-pagesize-select"
+                      class="mb-1 block text-xs font-semibold text-slate-700"
+                    >
+                      Registros por página
+                    </label>
+                    <select
+                      id="rh-personal-pagesize-select"
+                      name="personalPageSize"
+                      [ngModel]="personalPageSize()"
+                      (ngModelChange)="onPersonalPageSizeChange($event)"
+                      [disabled]="loadingPersonal()"
+                      class="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+                    >
+                      <option [ngValue]="10">10 por página</option>
+                      <option [ngValue]="20">20 por página</option>
+                      <option [ngValue]="50">50 por página</option>
+                      <option [ngValue]="100">100 por página</option>
+                    </select>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Estados del listado de personal -->
+              @if (loadingPersonal()) {
+                <div
+                  id="rh-personal-loading"
+                  role="status"
+                  aria-live="polite"
+                  class="mt-5 flex items-center gap-3 rounded-xl border border-gray-200 bg-slate-50 px-4 py-6 text-sm text-slate-600"
+                >
+                  <lucide-icon
+                    [img]="icons.loader"
+                    class="h-5 w-5 animate-spin text-[#006341]"
+                    aria-hidden="true"
+                  ></lucide-icon>
+                  <span>Consultando personal adscrito a la unidad…</span>
+                </div>
+              } @else if (errorPersonal(); as errPersonal) {
+                <div
+                  id="rh-personal-error"
+                  role="alert"
+                  class="mt-5 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div class="flex items-start gap-2.5">
+                    <lucide-icon
+                      [img]="icons.alert"
+                      class="mt-0.5 h-5 w-5 shrink-0 text-red-600"
+                      aria-hidden="true"
+                    ></lucide-icon>
+                    <span>{{ errPersonal }}</span>
+                  </div>
+                  <button
+                    id="rh-personal-retry-btn"
+                    type="button"
+                    (click)="cargarPersonalUnidad()"
+                    class="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-800 transition hover:bg-red-100"
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              } @else if (personalItems().length === 0) {
+                @if (hasActivePersonalSearch()) {
+                  <div
+                    id="rh-personal-search-empty"
+                    role="status"
+                    class="mt-5 rounded-xl border border-gray-200 bg-slate-50 p-6 text-center"
+                  >
+                    <p class="text-sm font-semibold text-slate-800">
+                      No se encontraron coincidencias para la búsqueda
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500">
+                      No existen trabajadores adscritos en esta unidad que coincidan con «{{ personalAppliedSearch() }}».
+                    </p>
+                    <button
+                      id="rh-personal-empty-clear-btn"
+                      type="button"
+                      (click)="onClearPersonalSearch()"
+                      class="mt-3 inline-flex min-h-9 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      Limpiar búsqueda
+                    </button>
+                  </div>
+                } @else {
+                  <div
+                    id="rh-personal-unit-empty"
+                    role="status"
+                    class="mt-5 rounded-xl border border-gray-200 bg-slate-50 p-6 text-center"
+                  >
+                    <p class="text-sm font-semibold text-slate-800">
+                      Esta unidad no tiene personal adscrito registrado en RH
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500">
+                      Aún no existen registros de adscripción laboral formal para {{ selUnidad.nombre }}.
+                    </p>
+                  </div>
+                }
+              } @else {
+                <!-- Vista de tabla en escritorio -->
+                <div class="mt-5 hidden overflow-x-auto rounded-xl border border-gray-200 md:block">
+                  <table id="rh-personal-table" class="min-w-full divide-y divide-gray-200 text-left text-sm">
+                    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                      <tr>
+                        <th scope="col" class="px-4 py-3">Nombre completo</th>
+                        <th scope="col" class="px-4 py-3">Matrícula</th>
+                        <th scope="col" class="px-4 py-3">Puesto</th>
+                        <th scope="col" class="px-4 py-3">Turno</th>
+                        <th scope="col" class="px-4 py-3">Jornada</th>
+                        <th scope="col" class="px-4 py-3">Horario</th>
+                        <th scope="col" class="px-4 py-3">Vigencia</th>
+                        <th scope="col" class="px-4 py-3">Estado de adscripción</th>
+                        <th scope="col" class="px-4 py-3 text-right">Ficha</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white">
+                      @for (item of personalItems(); track item.adscripcion_laboral_id) {
+                        <tr class="rh-personal-row transition hover:bg-slate-50/80">
+                          <td class="px-4 py-3 font-semibold text-slate-900">
+                            {{ item.nombre_completo }}
+                          </td>
+                          <td class="px-4 py-3 font-mono text-xs text-slate-700">
+                            {{ item.matricula || 'Sin matrícula' }}
+                          </td>
+                          <td class="px-4 py-3 text-slate-700">
+                            {{ item.puesto || 'Sin especificar' }}
+                          </td>
+                          <td class="px-4 py-3 text-slate-700">
+                            {{ item.turno || 'Sin especificar' }}
+                          </td>
+                          <td class="px-4 py-3 text-slate-700">
+                            {{ item.jornada || 'Sin especificar' }}
+                          </td>
+                          <td class="px-4 py-3 text-slate-700">
+                            {{ item.horario || 'Sin especificar' }}
+                          </td>
+                          <td class="px-4 py-3 text-xs text-slate-600">
+                            <div>Desde: {{ item.vigente_desde || 'Sin especificar' }}</div>
+                            @if (item.vigente_hasta) {
+                              <div class="text-slate-500">Hasta: {{ item.vigente_hasta }}</div>
+                            } @else {
+                              <div class="text-slate-400">Hasta: Indefinida</div>
+                            }
+                          </td>
+                          <td class="px-4 py-3">
+                            @if (item.activo) {
+                              <span
+                                class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800"
+                              >
+                                Activa
+                              </span>
+                            } @else {
+                              <span
+                                class="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-700"
+                              >
+                                Inactiva
+                              </span>
+                            }
+                          </td>
+                          <td class="px-4 py-3 text-right">
+                            <button
+                              [id]="'rh-ver-ficha-btn-' + item.adscripcion_laboral_id"
+                              type="button"
+                              (click)="openFichaTrabajador(item)"
+                              class="rh-ver-ficha-btn inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#006341]/40 hover:bg-emerald-50/50 hover:text-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+                            >
+                              <lucide-icon [img]="icons.eye" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                              <span>Ver ficha</span>
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Vista en tarjetas para móvil / pantallas pequeñas -->
+                <div id="rh-personal-mobile-cards" class="mt-5 space-y-3 md:hidden">
+                  @for (item of personalItems(); track item.adscripcion_laboral_id) {
+                    <article
+                      class="rh-personal-card rounded-xl border border-gray-200 bg-white p-4 shadow-xs"
+                    >
+                      <div class="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 class="text-sm font-bold text-slate-900">
+                            {{ item.nombre_completo }}
+                          </h3>
+                          <p class="mt-0.5 font-mono text-xs text-slate-600">
+                            Matrícula: {{ item.matricula || 'Sin matrícula' }}
+                          </p>
+                        </div>
+                        @if (item.activo) {
+                          <span
+                            class="inline-flex shrink-0 items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800"
+                          >
+                            Activa
+                          </span>
+                        } @else {
+                          <span
+                            class="inline-flex shrink-0 items-center rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-700"
+                          >
+                            Inactiva
+                          </span>
+                        }
+                      </div>
+
+                      <dl class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-gray-100 pt-3 text-xs">
+                        <div>
+                          <dt class="font-semibold text-slate-500">Puesto</dt>
+                          <dd class="mt-0.5 text-slate-800">{{ item.puesto || 'Sin especificar' }}</dd>
+                        </div>
+                        <div>
+                          <dt class="font-semibold text-slate-500">Turno</dt>
+                          <dd class="mt-0.5 text-slate-800">{{ item.turno || 'Sin especificar' }}</dd>
+                        </div>
+                        <div>
+                          <dt class="font-semibold text-slate-500">Jornada</dt>
+                          <dd class="mt-0.5 text-slate-800">{{ item.jornada || 'Sin especificar' }}</dd>
+                        </div>
+                        <div>
+                          <dt class="font-semibold text-slate-500">Horario</dt>
+                          <dd class="mt-0.5 text-slate-800">{{ item.horario || 'Sin especificar' }}</dd>
+                        </div>
+                        <div class="col-span-2">
+                          <dt class="font-semibold text-slate-500">Vigencia</dt>
+                          <dd class="mt-0.5 text-slate-800">
+                            Desde {{ item.vigente_desde || 'Sin especificar' }}
+                            @if (item.vigente_hasta) {
+                              · Hasta {{ item.vigente_hasta }}
+                            } @else {
+                              · Vigencia indefinida
+                            }
+                          </dd>
+                        </div>
+                      </dl>
+
+                      <div class="mt-3 flex justify-end border-t border-gray-100 pt-3">
+                        <button
+                          [id]="'rh-ver-ficha-mobile-btn-' + item.adscripcion_laboral_id"
+                          type="button"
+                          (click)="openFichaTrabajador(item)"
+                          class="rh-ver-ficha-mobile-btn inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#006341]/40 hover:bg-emerald-50/50 hover:text-[#006341]"
+                        >
+                          <lucide-icon [img]="icons.eye" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                          <span>Ver ficha</span>
+                        </button>
+                      </div>
+                    </article>
+                  }
+                </div>
+
+                <!-- Controles de paginación -->
+                <div
+                  id="rh-personal-pagination"
+                  class="mt-4 flex flex-col items-center justify-between gap-3 border-t border-gray-100 pt-4 text-xs text-slate-600 sm:flex-row"
+                >
+                  <div>
+                    Mostrando <span class="font-semibold text-slate-800">{{ personalRangeStart() }}</span>
+                    a <span class="font-semibold text-slate-800">{{ personalRangeEnd() }}</span>
+                    de <span class="font-semibold text-slate-800">{{ personalTotal() }}</span> registros
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <button
+                      id="rh-personal-prev-btn"
+                      type="button"
+                      (click)="goToPrevPersonalPage()"
+                      [disabled]="!canPersonalGoPrev()"
+                      class="inline-flex min-h-9 items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <lucide-icon [img]="icons.prev" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                      <span>Anterior</span>
+                    </button>
+
+                    <span id="rh-personal-page-indicator" class="px-2 font-semibold text-slate-800">
+                      Página {{ personalPage() }} de {{ personalTotalPages() }}
+                    </span>
+
+                    <button
+                      id="rh-personal-next-btn"
+                      type="button"
+                      (click)="goToNextPersonalPage()"
+                      [disabled]="!canPersonalGoNext()"
+                      class="inline-flex min-h-9 items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span>Siguiente</span>
+                      <lucide-icon [img]="icons.next" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            } @else {
+              <!-- Invitación cuando no hay unidad seleccionada -->
+              <div
+                id="rh-personal-invite-select-unit"
+                class="rounded-xl border border-dashed border-gray-300 bg-slate-50 p-6 text-center"
+              >
+                <div
+                  class="mx-auto mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-[#006341]/10 text-[#006341]"
+                  aria-hidden="true"
+                >
+                  <lucide-icon [img]="icons.users" class="h-5 w-5"></lucide-icon>
+                </div>
+                <h2 id="rh-personal-heading" class="text-base font-bold text-slate-900">
+                  Personal de la unidad
+                </h2>
+                <p class="mt-1 text-xs text-slate-500">
+                  Selecciona una unidad de trabajo en la parte superior para consultar su padrón laboral registrado en Recursos Humanos.
+                </p>
+              </div>
+            }
+          </section>
+        }
+
+        <!-- Diálogo responsive: Vincular trabajador a la unidad (RH-2B.4B) -->
+        @if (vincularOpen() && selectedUnidad(); as vincularUnidad) {
+          <div
+            id="rh-vincular-dialog-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rh-vincular-dialog-title"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 sm:p-5"
+          >
+            <div
+              id="rh-vincular-dialog"
+              class="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
+            >
+              <!-- Encabezado del diálogo -->
+              <div class="flex items-start justify-between gap-3 border-b border-gray-200 bg-slate-50 px-5 py-4">
+                <div class="flex items-start gap-3">
+                  <span
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#006341] text-white"
+                    aria-hidden="true"
+                  >
+                    <lucide-icon [img]="icons.userPlus" class="h-5 w-5"></lucide-icon>
+                  </span>
+                  <div>
+                    <h2 id="rh-vincular-dialog-title" class="text-base font-bold text-slate-900 sm:text-lg">
+                      Vincular trabajador a la unidad
+                    </h2>
+                    <p id="rh-vincular-dialog-unidad" class="mt-0.5 text-xs text-slate-600">
+                      Unidad seleccionada:
+                      <span class="font-semibold text-slate-900">{{ vincularTargetUnidadNombre() }}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  id="rh-vincular-close-btn"
+                  type="button"
+                  (click)="closeVincularDialog()"
+                  [disabled]="vincularSubmitting()"
+                  aria-label="Cerrar formulario de vinculación"
+                  class="rounded-xl p-1.5 text-slate-500 transition hover:bg-slate-200/70 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <lucide-icon [img]="icons.clear" class="h-5 w-5" aria-hidden="true"></lucide-icon>
+                </button>
+              </div>
+
+              <!-- Cuerpo desplazable del formulario -->
+              <form
+                id="rh-vincular-form"
+                (ngSubmit)="onSubmitVincular()"
+                class="flex-1 space-y-5 overflow-y-auto px-5 py-5"
+              >
+                @if (vincularError(); as formErr) {
+                  <div
+                    id="rh-vincular-form-error"
+                    role="alert"
+                    class="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-800"
+                  >
+                    <lucide-icon
+                      [img]="icons.alert"
+                      class="mt-0.5 h-4 w-4 shrink-0 text-red-600"
+                      aria-hidden="true"
+                    ></lucide-icon>
+                    <span>{{ formErr }}</span>
+                  </div>
+                }
+
+                <!-- SECCIÓN A: Persona existente -->
+                <div class="rounded-xl border border-gray-200 bg-slate-50/70 p-4">
+                  <h3 class="text-xs font-bold uppercase tracking-wide text-[#006341]">
+                    A. Persona existente
+                  </h3>
+                  <p class="mt-0.5 text-xs text-slate-500">
+                    Busca en el directorio institucional por nombre o matrícula. No se crean personas nuevas desde este módulo.
+                  </p>
+
+                  <div class="relative mt-3">
+                    <label
+                      for="rh-vincular-persona-input"
+                      class="mb-1 block text-xs font-semibold text-slate-700"
+                    >
+                      Buscar persona <span class="text-red-600">*</span>
+                    </label>
+
+                    <div class="relative flex items-center">
+                      <lucide-icon
+                        [img]="loadingCandidatas() ? icons.loader : icons.search"
+                        class="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400"
+                        [class.animate-spin]="loadingCandidatas()"
+                        aria-hidden="true"
+                      ></lucide-icon>
+
+                      <input
+                        id="rh-vincular-persona-input"
+                        type="text"
+                        name="candidataSearch"
+                        role="combobox"
+                        autocomplete="off"
+                        [disabled]="vincularSubmitting()"
+                        [attr.aria-autocomplete]="'list'"
+                        [attr.aria-expanded]="candidataSuggestOpen()"
+                        [attr.aria-controls]="candidataSuggestOpen() ? 'rh-vincular-persona-listbox' : null"
+                        [attr.aria-activedescendant]="
+                          candidataSuggestIndex() >= 0 ? 'rh-vincular-persona-opt-' + candidataSuggestIndex() : null
+                        "
+                        [ngModel]="candidataSearchDraft()"
+                        (ngModelChange)="onCandidataSearchInput($event)"
+                        (focus)="onCandidataSearchFocus()"
+                        (keydown)="onCandidataSearchKeyDown($event)"
+                        (blur)="onCandidataSearchBlur()"
+                        placeholder="Escribe el nombre o matrícula para buscar…"
+                        maxlength="200"
+                        class="min-h-11 w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 disabled:bg-slate-100"
+                      />
+
+                      @if (candidataSearchDraft() || selectedCandidata() !== null) {
+                        <button
+                          id="rh-vincular-persona-clear-btn"
+                          type="button"
+                          (click)="clearSelectedCandidata()"
+                          [disabled]="vincularSubmitting()"
+                          aria-label="Limpiar persona seleccionada"
+                          class="absolute right-2.5 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                        >
+                          <lucide-icon [img]="icons.clear" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                        </button>
+                      }
+                    </div>
+
+                    @if (errorCandidatas(); as errCand) {
+                      <p id="rh-vincular-candidatas-error" class="mt-1.5 text-xs text-red-700">
+                        {{ errCand }}
+                      </p>
+                    }
+
+                    <!-- Lista desplegable de autocompletado remoto -->
+                    @if (candidataSuggestOpen()) {
+                      <div
+                        id="rh-vincular-persona-dropdown"
+                        class="absolute left-0 right-0 top-full z-40 mt-1 max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg"
+                      >
+                        @if (loadingCandidatas()) {
+                          <div
+                            id="rh-vincular-persona-loading"
+                            class="flex items-center gap-2 px-3.5 py-3 text-xs text-slate-600"
+                          >
+                            <lucide-icon
+                              [img]="icons.loader"
+                              class="h-4 w-4 animate-spin text-[#006341]"
+                              aria-hidden="true"
+                            ></lucide-icon>
+                            <span>Buscando personas candidatas…</span>
+                          </div>
+                        } @else if (candidataItems().length > 0) {
+                          <ul
+                            id="rh-vincular-persona-listbox"
+                            role="listbox"
+                            class="divide-y divide-gray-100 py-1"
+                          >
+                            @for (c of candidataItems(); track c.persona_id; let idx = $index) {
+                              <li
+                                [id]="'rh-vincular-persona-opt-' + idx"
+                                role="option"
+                                [attr.aria-selected]="idx === candidataSuggestIndex() || selectedCandidata()?.persona_id === c.persona_id"
+                                (mousedown)="$event.preventDefault(); selectCandidata(c)"
+                                class="cursor-pointer px-3.5 py-2.5 text-xs transition hover:bg-slate-50"
+                                [class.bg-emerald-50]="idx === candidataSuggestIndex() || selectedCandidata()?.persona_id === c.persona_id"
+                              >
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                  <span class="font-semibold text-slate-900">{{ c.nombre_completo }}</span>
+
+                                  @if (c.situacion_rh === 'DISPONIBLE_DIRECTORIO' && !c.tiene_adscripcion_rh_en_unidad && !c.requiere_validacion_previa) {
+                                    <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                                      Disponible en directorio
+                                    </span>
+                                  } @else if (c.situacion_rh === 'YA_ADSCRITA_EN_UNIDAD' || c.tiene_adscripcion_rh_en_unidad) {
+                                    <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                                      Ya adscrita en la unidad
+                                    </span>
+                                  } @else {
+                                    <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900">
+                                      Requiere validación previa
+                                    </span>
+                                  }
+                                </div>
+
+                                <div class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+                                  @if (c.cargo_directorio) {
+                                    <span>Cargo directorio: {{ c.cargo_directorio }}</span>
+                                  }
+                                  @if (c.unidad_medica_directorio) {
+                                    <span>Unidad directorio: {{ c.unidad_medica_directorio }}</span>
+                                  }
+                                </div>
+                              </li>
+                            }
+                          </ul>
+                        } @else if (candidataSearchedOnce()) {
+                          <div id="rh-vincular-persona-no-matches" class="px-3.5 py-3 text-xs text-slate-500">
+                            No se encontraron personas candidatas que coincidan con «{{ candidataSearchDraft().trim() }}».
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Tarjeta y avisos de situación de la persona candidata seleccionada -->
+                  @if (selectedCandidata(); as selCand) {
+                    <div
+                      id="rh-vincular-selected-persona-card"
+                      class="mt-3 rounded-xl border border-gray-200 bg-white p-3.5 text-xs"
+                    >
+                      <div class="flex items-start justify-between gap-2">
+                        <div>
+                          <p class="font-bold text-slate-900">{{ selCand.nombre_completo }}</p>
+                          @if (selCand.cargo_directorio) {
+                            <p class="mt-0.5 text-slate-600">
+                              Cargo en directorio: {{ selCand.cargo_directorio }}
+                            </p>
+                          }
+                          @if (selCand.unidad_medica_directorio) {
+                            <p class="mt-0.5 text-slate-600">
+                              Unidad en directorio: {{ selCand.unidad_medica_directorio }}
+                            </p>
+                          }
+                        </div>
+                        <button
+                          id="rh-vincular-change-persona-btn"
+                          type="button"
+                          (click)="clearSelectedCandidata()"
+                          [disabled]="vincularSubmitting()"
+                          class="shrink-0 rounded-lg border border-gray-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+                        >
+                          Cambiar
+                        </button>
+                      </div>
+
+                      @if (selectedCandidataBloqueadaEnUnidad()) {
+                        <div
+                          id="rh-vincular-alert-ya-adscrita"
+                          role="alert"
+                          class="mt-3 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900"
+                        >
+                          <lucide-icon
+                            [img]="icons.alert"
+                            class="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+                            aria-hidden="true"
+                          ></lucide-icon>
+                          <div>
+                            <p class="font-semibold">Ya cuenta con una adscripción RH en esta unidad</p>
+                            <p class="mt-0.5 text-[11px] text-amber-800">
+                              Esta persona ya tiene una adscripción registrada en {{ vincularTargetUnidadNombre() }}. No es posible crear una adscripción duplicada desde este formulario.
+                            </p>
+                          </div>
+                        </div>
+                      } @else if (selectedCandidataRequiereValidacion()) {
+                        <div
+                          id="rh-vincular-alert-requiere-validacion"
+                          role="alert"
+                          class="mt-3 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900"
+                        >
+                          <lucide-icon
+                            [img]="icons.alert"
+                            class="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+                            aria-hidden="true"
+                          ></lucide-icon>
+                          <div>
+                            <p class="font-semibold">La vinculación requiere revisión administrativa</p>
+                            <p class="mt-0.5 text-[11px] text-amber-800">
+                              Esta persona cuenta con una adscripción activa en otra unidad o está asociada a otra unidad en el directorio institucional. Su cambio o comisión requiere revisión administrativa previa.
+                            </p>
+                          </div>
+                        </div>
+                      } @else {
+                        <div
+                          id="rh-vincular-status-disponible"
+                          class="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-[#006341]"
+                        >
+                          <lucide-icon [img]="icons.checkCircle" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                          <span>Disponible en directorio para vincular a la unidad</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- SECCIÓN B: Información laboral -->
+                <div class="rounded-xl border border-gray-200 bg-white p-4">
+                  <h3 class="text-xs font-bold uppercase tracking-wide text-[#006341]">
+                    B. Información laboral
+                  </h3>
+                  <p class="mt-0.5 text-xs text-slate-500">
+                    Captura los datos de la adscripción laboral en la unidad y confirma la fecha real de inicio de vigencia.
+                  </p>
+
+                  <div class="mt-3 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                    <div>
+                      <label
+                        for="rh-vincular-matricula-input"
+                        class="mb-1 block text-xs font-semibold text-slate-700"
+                      >
+                        Matrícula <span class="font-normal text-slate-400">(opcional, máx. 64)</span>
+                      </label>
+                      <input
+                        id="rh-vincular-matricula-input"
+                        type="text"
+                        name="vincularMatricula"
+                        autocomplete="off"
+                        maxlength="64"
+                        [disabled]="vincularSubmitting()"
+                        [ngModel]="vincularMatricula()"
+                        (ngModelChange)="vincularMatricula.set($event)"
+                        placeholder="Ej. MAT-1003"
+                        class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        for="rh-vincular-puesto-input"
+                        class="mb-1 block text-xs font-semibold text-slate-700"
+                      >
+                        Puesto <span class="font-normal text-slate-400">(opcional, máx. 160)</span>
+                      </label>
+                      <input
+                        id="rh-vincular-puesto-input"
+                        type="text"
+                        name="vincularPuesto"
+                        autocomplete="off"
+                        maxlength="160"
+                        [disabled]="vincularSubmitting()"
+                        [ngModel]="vincularPuesto()"
+                        (ngModelChange)="vincularPuesto.set($event)"
+                        placeholder="Ej. Analista Administrativo"
+                        class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        for="rh-vincular-turno-input"
+                        class="mb-1 block text-xs font-semibold text-slate-700"
+                      >
+                        Turno <span class="font-normal text-slate-400">(opcional, máx. 60)</span>
+                      </label>
+                      <input
+                        id="rh-vincular-turno-input"
+                        type="text"
+                        name="vincularTurno"
+                        autocomplete="off"
+                        maxlength="60"
+                        [disabled]="vincularSubmitting()"
+                        [ngModel]="vincularTurno()"
+                        (ngModelChange)="vincularTurno.set($event)"
+                        placeholder="Ej. MATUTINO"
+                        class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        for="rh-vincular-jornada-input"
+                        class="mb-1 block text-xs font-semibold text-slate-700"
+                      >
+                        Jornada <span class="font-normal text-slate-400">(opcional, máx. 80)</span>
+                      </label>
+                      <input
+                        id="rh-vincular-jornada-input"
+                        type="text"
+                        name="vincularJornada"
+                        autocomplete="off"
+                        maxlength="80"
+                        [disabled]="vincularSubmitting()"
+                        [ngModel]="vincularJornada()"
+                        (ngModelChange)="vincularJornada.set($event)"
+                        placeholder="Ej. 8 HORAS"
+                        class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+                      />
+                    </div>
+
+                    <div class="sm:col-span-2">
+                      <label
+                        for="rh-vincular-horario-input"
+                        class="mb-1 block text-xs font-semibold text-slate-700"
+                      >
+                        Horario <span class="font-normal text-slate-400">(opcional, máx. 120)</span>
+                      </label>
+                      <input
+                        id="rh-vincular-horario-input"
+                        type="text"
+                        name="vincularHorario"
+                        autocomplete="off"
+                        maxlength="120"
+                        [disabled]="vincularSubmitting()"
+                        [ngModel]="vincularHorario()"
+                        (ngModelChange)="vincularHorario.set($event)"
+                        placeholder="Ej. 08:00 - 16:00"
+                        class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        for="rh-vincular-vigente-desde-input"
+                        class="mb-1 block text-xs font-semibold text-slate-700"
+                      >
+                        Vigente desde <span class="text-red-600">*</span>
+                      </label>
+                      <input
+                        id="rh-vincular-vigente-desde-input"
+                        type="date"
+                        name="vincularVigenteDesde"
+                        required
+                        [disabled]="vincularSubmitting()"
+                        [ngModel]="vincularVigenteDesde()"
+                        (ngModelChange)="vincularVigenteDesde.set($event)"
+                        class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        for="rh-vincular-vigente-hasta-input"
+                        class="mb-1 block text-xs font-semibold text-slate-700"
+                      >
+                        Vigente hasta <span class="font-normal text-slate-400">(opcional)</span>
+                      </label>
+                      <input
+                        id="rh-vincular-vigente-hasta-input"
+                        type="date"
+                        name="vincularVigenteHasta"
+                        [min]="vincularVigenteDesde() || null"
+                        [disabled]="vincularSubmitting()"
+                        [ngModel]="vincularVigenteHasta()"
+                        (ngModelChange)="vincularVigenteHasta.set($event)"
+                        class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+                      />
+                    </div>
+                  </div>
+
+                  @if (vincularDatesOrderInvalid()) {
+                    <p
+                      id="rh-vincular-dates-error"
+                      role="alert"
+                      class="mt-2.5 text-xs font-semibold text-red-700"
+                    >
+                      La fecha «Vigente hasta» no puede ser anterior a «Vigente desde».
+                    </p>
+                  }
+
+                  @if (vincularFieldLengthError(); as lenErr) {
+                    <p
+                      id="rh-vincular-length-error"
+                      role="alert"
+                      class="mt-2.5 text-xs font-semibold text-red-700"
+                    >
+                      {{ lenErr }}
+                    </p>
+                  }
+                </div>
+
+                <!-- Acciones del diálogo -->
+                <div class="flex flex-col-reverse items-stretch justify-end gap-2.5 border-t border-gray-100 pt-4 sm:flex-row sm:items-center">
+                  <button
+                    id="rh-vincular-cancel-btn"
+                    type="button"
+                    (click)="closeVincularDialog()"
+                    [disabled]="vincularSubmitting()"
+                    class="inline-flex min-h-10 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    id="rh-vincular-submit-btn"
+                    type="submit"
+                    [disabled]="!canSubmitVincular()"
+                    class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#006341] px-5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#004f34] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    @if (vincularSubmitting()) {
+                      <lucide-icon [img]="icons.loader" class="h-4 w-4 animate-spin" aria-hidden="true"></lucide-icon>
+                      <span>Vinculando trabajador…</span>
+                    } @else {
+                      <lucide-icon [img]="icons.userPlus" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                      <span>Confirmar vinculación</span>
+                    }
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        }
+
+        <!-- Diálogo: Ficha individual protegida del trabajador (RH-2B.4D y RH-2B.4F) -->
+        <app-rh-ficha-trabajador-dialog
+          [open]="fichaOpen()"
+          [loading]="fichaLoading()"
+          [error]="fichaError()"
+          [canRetry]="fichaCanRetry()"
+          [ficha]="fichaData()"
+          [fallbackNombre]="fichaFallbackNombre()"
+          [fallbackUnidadNombre]="fichaTargetUnidadNombre()"
+          [savingLaboral]="fichaSavingLaboral()"
+          [saveLaboralError]="fichaSaveLaboralError()"
+          [saveLaboralIsConflict]="fichaSaveLaboralIsConflict()"
+          [saveLaboralSuccess]="fichaSaveLaboralSuccess()"
+          (closeDialog)="closeFichaTrabajador()"
+          (retryLoad)="cargarFichaTrabajador()"
+          (saveLaboral)="onSaveFichaLaboral($event)"
+          (reloadFichaOnConflict)="cargarFichaTrabajador()"
+          (clearSaveFeedback)="clearFichaSaveFeedback()"
+        />
+
         <router-outlet />
       }
     </main>

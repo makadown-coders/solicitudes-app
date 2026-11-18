@@ -1,0 +1,659 @@
+@if (open) {
+  <div
+    id="rh-ficha-dialog-backdrop"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="rh-ficha-dialog-title"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 sm:p-5"
+  >
+    <div
+      id="rh-ficha-dialog"
+      class="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
+    >
+      <!-- Encabezado de la ficha -->
+      <div class="flex items-start justify-between gap-3 border-b border-gray-200 bg-slate-50 px-5 py-4">
+        <div class="flex items-start gap-3">
+          <span
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#006341] text-white"
+            aria-hidden="true"
+          >
+            <lucide-icon [img]="icons.fileText" class="h-5 w-5"></lucide-icon>
+          </span>
+          <div>
+            <h2 id="rh-ficha-dialog-title" class="text-base font-bold text-slate-900 sm:text-lg">
+              Ficha del trabajador
+            </h2>
+            <p id="rh-ficha-header-worker" class="mt-0.5 text-sm font-semibold text-slate-800">
+              {{ headerNombre }}
+            </p>
+            <p id="rh-ficha-header-unidad" class="mt-0.5 text-xs text-slate-600">
+              Unidad de trabajo:
+              <span class="font-semibold text-slate-900">{{ headerUnidad }}</span>
+            </p>
+          </div>
+        </div>
+
+        <button
+          id="rh-ficha-close-btn"
+          type="button"
+          (click)="onClose()"
+          [disabled]="savingLaboral"
+          aria-label="Cerrar ficha del trabajador"
+          class="rounded-xl p-1.5 text-slate-500 transition hover:bg-slate-200/70 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <lucide-icon [img]="icons.clear" class="h-5 w-5" aria-hidden="true"></lucide-icon>
+        </button>
+      </div>
+
+      <!-- Cuerpo desplazable de la ficha -->
+      <div class="flex-1 space-y-5 overflow-y-auto px-5 py-5">
+        @if (loading) {
+          <div
+            id="rh-ficha-loading"
+            role="status"
+            aria-live="polite"
+            class="flex items-center gap-3 rounded-xl border border-gray-200 bg-slate-50 px-4 py-6 text-sm text-slate-600"
+          >
+            <lucide-icon
+              [img]="icons.loader"
+              class="h-5 w-5 animate-spin text-[#006341]"
+              aria-hidden="true"
+            ></lucide-icon>
+            <span>Consultando ficha protegida del trabajador…</span>
+          </div>
+        } @else if (error) {
+          <div
+            id="rh-ficha-error"
+            role="alert"
+            class="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div class="flex items-start gap-2.5">
+              <lucide-icon
+                [img]="icons.alert"
+                class="mt-0.5 h-5 w-5 shrink-0 text-red-600"
+                aria-hidden="true"
+              ></lucide-icon>
+              <span>{{ error }}</span>
+            </div>
+
+            @if (canRetry) {
+              <button
+                id="rh-ficha-retry-btn"
+                type="button"
+                (click)="onRetry()"
+                class="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-800 transition hover:bg-red-100"
+              >
+                <lucide-icon [img]="icons.refresh" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                <span>Reintentar</span>
+              </button>
+            }
+          </div>
+        } @else if (ficha; as data) {
+          @if (saveLaboralSuccess; as successMsg) {
+            <div
+              id="rh-ficha-laboral-success-banner"
+              role="status"
+              aria-live="polite"
+              class="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-900"
+            >
+              <div class="flex items-center gap-2">
+                <lucide-icon
+                  [img]="icons.checkCircle"
+                  class="h-4 w-4 shrink-0 text-[#006341]"
+                  aria-hidden="true"
+                ></lucide-icon>
+                <span class="font-semibold">{{ successMsg }}</span>
+              </div>
+              <button
+                id="rh-ficha-laboral-success-dismiss-btn"
+                type="button"
+                (click)="clearSaveFeedback.emit()"
+                aria-label="Cerrar aviso de confirmación"
+                class="rounded-lg p-1 text-emerald-700 hover:bg-emerald-100"
+              >
+                <lucide-icon [img]="icons.clear" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+              </button>
+            </div>
+          }
+
+          <!-- SECCIÓN A: Identificación personal (exclusivamente modo consulta) -->
+          <section
+            id="rh-ficha-personal-section"
+            aria-labelledby="rh-ficha-personal-heading"
+            class="rounded-xl border border-gray-200 bg-slate-50/70 p-4"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200/80 pb-2.5">
+              <h3
+                id="rh-ficha-personal-heading"
+                class="text-xs font-bold uppercase tracking-wide text-[#006341]"
+              >
+                A. Identificación personal
+              </h3>
+
+              @if (data.personal.activo) {
+                <span
+                  id="rh-ficha-personal-estado"
+                  class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800"
+                >
+                  Persona activa
+                </span>
+              } @else {
+                <span
+                  id="rh-ficha-personal-estado"
+                  class="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-700"
+                >
+                  Persona inactiva
+                </span>
+              }
+            </div>
+
+            <dl class="mt-3 grid grid-cols-1 gap-x-4 gap-y-3 text-xs sm:grid-cols-2">
+              <div class="sm:col-span-2">
+                <dt class="font-semibold text-slate-500">Nombre completo</dt>
+                <dd id="rh-ficha-nombre-completo" class="mt-0.5 text-sm font-bold text-slate-900">
+                  {{ data.personal.nombre_completo || 'Sin especificar' }}
+                </dd>
+              </div>
+
+              <div>
+                <dt class="font-semibold text-slate-500">Nombres</dt>
+                <dd id="rh-ficha-nombres" class="mt-0.5 text-slate-800">
+                  {{ data.personal.nombres || 'No especificado' }}
+                </dd>
+              </div>
+
+              <div>
+                <dt class="font-semibold text-slate-500">Apellidos</dt>
+                <dd id="rh-ficha-apellidos" class="mt-0.5 text-slate-800">
+                  {{ data.personal.apellidos || 'No especificado' }}
+                </dd>
+              </div>
+
+              <div>
+                <dt class="font-semibold text-slate-500">RFC (protegido)</dt>
+                <dd
+                  id="rh-ficha-rfc-masked"
+                  class="mt-0.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 font-mono text-xs text-slate-800"
+                >
+                  @if (data.personal.tiene_rfc && data.personal.rfc_masked) {
+                    {{ data.personal.rfc_masked }}
+                  } @else {
+                    <span class="font-sans text-slate-500">No registrado</span>
+                  }
+                </dd>
+              </div>
+
+              <div>
+                <dt class="font-semibold text-slate-500">CURP (protegida)</dt>
+                <dd
+                  id="rh-ficha-curp-masked"
+                  class="mt-0.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 font-mono text-xs text-slate-800"
+                >
+                  @if (data.personal.tiene_curp && data.personal.curp_masked) {
+                    {{ data.personal.curp_masked }}
+                  } @else {
+                    <span class="font-sans text-slate-500">No registrado</span>
+                  }
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <!-- SECCIÓN B: Información laboral (consulta o edición según permisos.puede_editar_laboral) -->
+          <section
+            id="rh-ficha-laboral-section"
+            aria-labelledby="rh-ficha-laboral-heading"
+            class="rounded-xl border border-gray-200 bg-white p-4"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3
+                  id="rh-ficha-laboral-heading"
+                  class="text-xs font-bold uppercase tracking-wide text-[#006341]"
+                >
+                  B. Información laboral
+                </h3>
+
+                @if (data.laboral.activo) {
+                  <span
+                    id="rh-ficha-laboral-estado"
+                    class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800"
+                  >
+                    Adscripción activa
+                  </span>
+                } @else {
+                  <span
+                    id="rh-ficha-laboral-estado"
+                    class="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-700"
+                  >
+                    Adscripción inactiva
+                  </span>
+                }
+              </div>
+
+              @if (data.permisos.puede_editar_laboral && !editMode()) {
+                <button
+                  id="rh-ficha-edit-laboral-btn"
+                  type="button"
+                  (click)="startEditLaboral()"
+                  class="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-[#006341]/40 hover:bg-emerald-50/50 hover:text-[#006341]"
+                >
+                  <lucide-icon [img]="icons.pencil" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                  <span>Editar información laboral</span>
+                </button>
+              }
+            </div>
+
+            @if (!editMode()) {
+              <!-- Vista de solo lectura de Información laboral -->
+              <dl class="mt-3 grid grid-cols-1 gap-x-4 gap-y-3 text-xs sm:grid-cols-2">
+                <div>
+                  <dt class="font-semibold text-slate-500">Matrícula</dt>
+                  <dd id="rh-ficha-matricula" class="mt-0.5 font-mono text-slate-900">
+                    {{ data.laboral.matricula || 'Sin registrar' }}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt class="font-semibold text-slate-500">Puesto</dt>
+                  <dd id="rh-ficha-puesto" class="mt-0.5 text-slate-900">
+                    {{ data.laboral.puesto || 'No especificado' }}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt class="font-semibold text-slate-500">Turno</dt>
+                  <dd id="rh-ficha-turno" class="mt-0.5 text-slate-900">
+                    {{ data.laboral.turno || 'No especificado' }}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt class="font-semibold text-slate-500">Jornada</dt>
+                  <dd id="rh-ficha-jornada" class="mt-0.5 text-slate-900">
+                    {{ data.laboral.jornada || 'No especificado' }}
+                  </dd>
+                </div>
+
+                <div class="sm:col-span-2">
+                  <dt class="font-semibold text-slate-500">Horario</dt>
+                  <dd id="rh-ficha-horario" class="mt-0.5 text-slate-900">
+                    {{ data.laboral.horario || 'No especificado' }}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt class="font-semibold text-slate-500">Vigente desde</dt>
+                  <dd id="rh-ficha-vigente-desde" class="mt-0.5 text-slate-900">
+                    {{ formatIsoDateDisplay(data.laboral.vigente_desde, 'No especificado') }}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt class="font-semibold text-slate-500">Vigente hasta</dt>
+                  <dd id="rh-ficha-vigente-hasta" class="mt-0.5 text-slate-900">
+                    {{ formatIsoDateDisplay(data.laboral.vigente_hasta, 'Indefinida') }}
+                  </dd>
+                </div>
+
+                <div class="sm:col-span-2">
+                  <dt class="font-semibold text-slate-500">Observaciones</dt>
+                  <dd id="rh-ficha-observaciones" class="mt-0.5 text-slate-800">
+                    {{ data.laboral.observaciones || 'Sin observaciones registradas' }}
+                  </dd>
+                </div>
+              </dl>
+            } @else {
+              <!-- Modo edición de Información laboral (RH-2B.4F) -->
+              <form
+                id="rh-ficha-laboral-edit-form"
+                (ngSubmit)="onSubmitEditLaboral()"
+                class="mt-3 space-y-4"
+              >
+                @if (saveLaboralError; as srvErr) {
+                  <div
+                    id="rh-ficha-laboral-save-error"
+                    role="alert"
+                    class="rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-800"
+                  >
+                    <div class="flex items-start gap-2.5">
+                      <lucide-icon
+                        [img]="icons.alert"
+                        class="mt-0.5 h-4 w-4 shrink-0 text-red-600"
+                        aria-hidden="true"
+                      ></lucide-icon>
+                      <div class="flex-1">
+                        <p class="font-semibold">{{ srvErr }}</p>
+                        @if (saveLaboralIsConflict) {
+                          <div class="mt-2.5 flex flex-wrap items-center gap-2">
+                            <button
+                              id="rh-ficha-conflict-reload-btn"
+                              type="button"
+                              (click)="onReloadAfterConflict()"
+                              [disabled]="savingLaboral"
+                              class="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-red-300 bg-white px-2.5 py-1 text-xs font-semibold text-red-800 transition hover:bg-red-100"
+                            >
+                              <lucide-icon [img]="icons.refresh" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                              <span>Recargar ficha</span>
+                            </button>
+                            <button
+                              id="rh-ficha-conflict-cancel-btn"
+                              type="button"
+                              (click)="cancelEditLaboral()"
+                              [disabled]="savingLaboral"
+                              class="inline-flex min-h-8 items-center rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                            >
+                              Cancelar edición
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                @if (localValidationError(); as localErr) {
+                  <div
+                    id="rh-ficha-laboral-local-error"
+                    role="alert"
+                    class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-800"
+                  >
+                    {{ localErr }}
+                  </div>
+                }
+
+                <div class="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                  <div>
+                    <label
+                      for="rh-ficha-edit-matricula"
+                      class="mb-1 block text-xs font-semibold text-slate-700"
+                    >
+                      Matrícula <span class="font-normal text-slate-400">(opcional, máx. 64)</span>
+                    </label>
+                    <input
+                      id="rh-ficha-edit-matricula"
+                      type="text"
+                      name="editMatricula"
+                      autocomplete="off"
+                      maxlength="64"
+                      [disabled]="savingLaboral"
+                      [value]="draftMatricula()"
+                      (input)="draftMatricula.set($any($event.target).value)"
+                      placeholder="Sin registrar"
+                      class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 disabled:bg-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      for="rh-ficha-edit-puesto"
+                      class="mb-1 block text-xs font-semibold text-slate-700"
+                    >
+                      Puesto <span class="font-normal text-slate-400">(opcional, máx. 160)</span>
+                    </label>
+                    <input
+                      id="rh-ficha-edit-puesto"
+                      type="text"
+                      name="editPuesto"
+                      autocomplete="off"
+                      maxlength="160"
+                      [disabled]="savingLaboral"
+                      [value]="draftPuesto()"
+                      (input)="draftPuesto.set($any($event.target).value)"
+                      placeholder="No especificado"
+                      class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 disabled:bg-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      for="rh-ficha-edit-turno"
+                      class="mb-1 block text-xs font-semibold text-slate-700"
+                    >
+                      Turno <span class="font-normal text-slate-400">(opcional, máx. 60)</span>
+                    </label>
+                    <input
+                      id="rh-ficha-edit-turno"
+                      type="text"
+                      name="editTurno"
+                      autocomplete="off"
+                      maxlength="60"
+                      [disabled]="savingLaboral"
+                      [value]="draftTurno()"
+                      (input)="draftTurno.set($any($event.target).value)"
+                      placeholder="No especificado"
+                      class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 disabled:bg-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      for="rh-ficha-edit-jornada"
+                      class="mb-1 block text-xs font-semibold text-slate-700"
+                    >
+                      Jornada <span class="font-normal text-slate-400">(opcional, máx. 80)</span>
+                    </label>
+                    <input
+                      id="rh-ficha-edit-jornada"
+                      type="text"
+                      name="editJornada"
+                      autocomplete="off"
+                      maxlength="80"
+                      [disabled]="savingLaboral"
+                      [value]="draftJornada()"
+                      (input)="draftJornada.set($any($event.target).value)"
+                      placeholder="No especificado"
+                      class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 disabled:bg-slate-100"
+                    />
+                  </div>
+
+                  <div class="sm:col-span-2">
+                    <label
+                      for="rh-ficha-edit-horario"
+                      class="mb-1 block text-xs font-semibold text-slate-700"
+                    >
+                      Horario <span class="font-normal text-slate-400">(opcional, máx. 120)</span>
+                    </label>
+                    <input
+                      id="rh-ficha-edit-horario"
+                      type="text"
+                      name="editHorario"
+                      autocomplete="off"
+                      maxlength="120"
+                      [disabled]="savingLaboral"
+                      [value]="draftHorario()"
+                      (input)="draftHorario.set($any($event.target).value)"
+                      placeholder="No especificado"
+                      class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 disabled:bg-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      for="rh-ficha-edit-vigente-desde"
+                      class="mb-1 block text-xs font-semibold text-slate-700"
+                    >
+                      Vigente desde <span class="text-red-600">*</span>
+                    </label>
+                    <input
+                      id="rh-ficha-edit-vigente-desde"
+                      type="date"
+                      name="editVigenteDesde"
+                      required
+                      [disabled]="savingLaboral"
+                      [value]="draftVigenteDesde()"
+                      (input)="draftVigenteDesde.set($any($event.target).value)"
+                      class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 disabled:bg-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      for="rh-ficha-edit-vigente-hasta"
+                      class="mb-1 block text-xs font-semibold text-slate-700"
+                    >
+                      Vigente hasta <span class="font-normal text-slate-400">(opcional)</span>
+                    </label>
+                    <input
+                      id="rh-ficha-edit-vigente-hasta"
+                      type="date"
+                      name="editVigenteHasta"
+                      [min]="draftVigenteDesde() || null"
+                      [disabled]="savingLaboral"
+                      [value]="draftVigenteHasta()"
+                      (input)="draftVigenteHasta.set($any($event.target).value)"
+                      class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 disabled:bg-slate-100"
+                    />
+                  </div>
+
+                  <div class="sm:col-span-2">
+                    <label class="inline-flex cursor-pointer items-center gap-2.5 text-xs font-semibold text-slate-800">
+                      <input
+                        id="rh-ficha-edit-activo"
+                        type="checkbox"
+                        name="editActivo"
+                        [disabled]="savingLaboral"
+                        [checked]="draftActivo()"
+                        (change)="draftActivo.set(!!$any($event.target).checked)"
+                        class="h-4 w-4 rounded border-gray-300 text-[#006341] focus:ring-[#006341]"
+                      />
+                      <span>Adscripción laboral activa</span>
+                    </label>
+                  </div>
+
+                  <div class="sm:col-span-2">
+                    <label
+                      for="rh-ficha-edit-observaciones"
+                      class="mb-1 block text-xs font-semibold text-slate-700"
+                    >
+                      Observaciones <span class="font-normal text-slate-400">(opcional, máx. 2000)</span>
+                    </label>
+                    <textarea
+                      id="rh-ficha-edit-observaciones"
+                      name="editObservaciones"
+                      rows="3"
+                      maxlength="2000"
+                      [disabled]="savingLaboral"
+                      [value]="draftObservaciones()"
+                      (input)="draftObservaciones.set($any($event.target).value)"
+                      placeholder="Sin observaciones registradas"
+                      class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 disabled:bg-slate-100"
+                    ></textarea>
+                  </div>
+                </div>
+
+                @if (datesValidationError(); as dateErr) {
+                  <p
+                    id="rh-ficha-edit-dates-error"
+                    role="alert"
+                    class="text-xs font-semibold text-red-700"
+                  >
+                    {{ dateErr }}
+                  </p>
+                }
+
+                @if (fieldLengthError(); as lenErr) {
+                  <p
+                    id="rh-ficha-edit-length-error"
+                    role="alert"
+                    class="text-xs font-semibold text-red-700"
+                  >
+                    {{ lenErr }}
+                  </p>
+                }
+
+                <div class="flex flex-col-reverse items-stretch justify-end gap-2 border-t border-gray-100 pt-3 sm:flex-row sm:items-center">
+                  <button
+                    id="rh-ficha-cancel-edit-btn"
+                    type="button"
+                    (click)="cancelEditLaboral()"
+                    [disabled]="savingLaboral"
+                    class="inline-flex min-h-9 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    id="rh-ficha-save-edit-btn"
+                    type="submit"
+                    [disabled]="!canSaveLaboral()"
+                    class="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-[#006341] px-4 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#004f34] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    @if (savingLaboral) {
+                      <lucide-icon [img]="icons.loader" class="h-3.5 w-3.5 animate-spin" aria-hidden="true"></lucide-icon>
+                      <span>Guardando cambios…</span>
+                    } @else {
+                      <lucide-icon [img]="icons.save" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                      <span>Guardar cambios</span>
+                    }
+                  </button>
+                </div>
+              </form>
+            }
+          </section>
+
+          <!-- SECCIÓN INFORMATIVA DE PERMISOS DEL OPERADOR -->
+          <section
+            id="rh-ficha-permisos-section"
+            aria-labelledby="rh-ficha-permisos-heading"
+            class="rounded-xl border border-gray-200 bg-slate-50 px-4 py-3 text-xs"
+          >
+            <div class="flex items-center gap-1.5 font-semibold text-slate-700">
+              <lucide-icon
+                [img]="icons.shieldCheck"
+                class="h-4 w-4 text-[#006341]"
+                aria-hidden="true"
+              ></lucide-icon>
+              <h3 id="rh-ficha-permisos-heading">Permisos efectivos del operador en esta ficha</h3>
+            </div>
+
+            <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div
+                id="rh-ficha-perm-laboral"
+                class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5"
+              >
+                <span class="block text-[11px] text-slate-500">Edición laboral</span>
+                <span class="font-semibold text-slate-800">
+                  {{ data.permisos.puede_editar_laboral ? 'Autorizada por rol' : 'Solo lectura' }}
+                </span>
+              </div>
+
+              <div
+                id="rh-ficha-perm-revelar"
+                class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5"
+              >
+                <span class="block text-[11px] text-slate-500">Consulta de sensibles</span>
+                <span class="font-semibold text-slate-800">
+                  {{ data.permisos.puede_revelar_sensibles ? 'Nivel estatal RH' : 'Enmascarado' }}
+                </span>
+              </div>
+
+              <div
+                id="rh-ficha-perm-identificacion"
+                class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5"
+              >
+                <span class="block text-[11px] text-slate-500">Corrección identificación</span>
+                <span class="font-semibold text-slate-800">
+                  {{ data.permisos.puede_editar_identificacion ? 'Nivel estatal RH' : 'Restringida' }}
+                </span>
+              </div>
+            </div>
+          </section>
+        }
+      </div>
+
+      <!-- Pie del diálogo -->
+      <div class="flex items-center justify-end border-t border-gray-200 bg-slate-50 px-5 py-3.5">
+        <button
+          id="rh-ficha-footer-close-btn"
+          type="button"
+          (click)="onClose()"
+          [disabled]="savingLaboral"
+          class="inline-flex min-h-10 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Cerrar ficha
+        </button>
+      </div>
+    </div>
+  </div>
+}
