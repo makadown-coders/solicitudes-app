@@ -1,4 +1,7 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/auth/auth.guard';
+import { rhAccessGuard } from './core/auth/rh-access.guard';
+import { tiAdminGlobalGuard } from './core/auth/ti-admin-global.guard';
 import { CargaMasivaComponent } from './features/carga-masiva/carga-masiva.component';
 import { SolicitudesConfigComponent } from './features/solicitudes-config/solicitudes-config.component';
 import { HomologosConfigComponent } from './features/homologos-config/homologos-config.component';
@@ -309,6 +312,64 @@ export const routes: Routes = [
         loadComponent: () => import('./features/dashboard-abasto/acerca/acerca.component')
           .then(m => m.AcercaComponent),
         title: 'Dashboard Abasto · Acerca de'
+      },
+    ],
+  },
+  {
+    path: 'login',
+    title: 'Acceso al sistema',
+    loadComponent: () => import('./features/auth/login/login-page.component')
+      .then(m => m.LoginPageComponent),
+  },
+  {
+    path: 'mi-cuenta',
+    title: 'Mi cuenta',
+    canActivate: [authGuard],
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'cambiar-password' },
+      {
+        path: 'cambiar-password',
+        title: 'Mi cuenta · Cambiar contraseña',
+        loadComponent: () =>
+          import('./features/auth/change-password/change-password-page.component').then(
+            m => m.ChangePasswordPageComponent
+          ),
+      },
+    ],
+  },
+  {
+    path: 'rh',
+    title: 'Mi espacio laboral',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/rh/rh-employee-portal.component')
+      .then(m => m.RhEmployeePortalComponent),
+  },
+  {
+    path: 'rh-admin',
+    title: 'Recursos Humanos · Administración',
+    canActivate: [authGuard, rhAccessGuard],
+    loadComponent: () => import('./features/rh/rh-shell.component')
+      .then(m => m.RhShellComponent),
+  },
+  {
+    path: 'ti',
+    title: 'Administración TI',
+    canActivate: [authGuard, tiAdminGlobalGuard],
+    loadComponent: () => import('./features/ti/ti-shell.component')
+      .then(m => m.TiShellComponent),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'usuarios' },
+      {
+        path: 'usuarios',
+        title: 'Administración TI · Usuarios SSO',
+        loadComponent: () => import('./features/ti/usuarios/ti-usuarios-page.component')
+          .then(m => m.TiUsuariosPageComponent),
+      },
+      {
+        path: 'personas',
+        title: 'Administración TI · Personas',
+        loadComponent: () => import('./features/ti/personas/ti-personas-page.component')
+          .then(m => m.TiPersonasPageComponent),
       },
     ],
   },
