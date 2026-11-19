@@ -145,28 +145,135 @@
         </div>
       } @else if (activeTab() === 'laboral') {
         <!-- B. Situación laboral -->
-        <div class="space-y-3">
-          <!-- Distinción visual explícita -->
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
-              <div class="font-semibold text-slate-800">Unidad de referencia del directorio</div>
-              <p class="mt-1 text-slate-700">
-                {{ persona.unidad_medica_nombre ? persona.unidad_medica_nombre + ' (' + (persona.unidad_medica_cluesimb || 'N/A') + ')' : 'Sin unidad de referencia' }}
-              </p>
-              <p class="mt-1 text-[11px] text-slate-500">
-                Dato administrativo del directorio; no equivale a adscripción laboral oficial.
-              </p>
-            </div>
-
-            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
-              <div class="font-semibold text-slate-800">Adscripción laboral oficial</div>
-              <p class="mt-1 text-slate-600">
-                La consulta directa de adscripciones oficiales por persona aún no dispone de un endpoint dedicado en el padrón; consúltala por unidad en la pestaña «Personal por unidad».
-              </p>
-            </div>
+        <div class="space-y-4">
+          <!-- 1. Unidad de referencia del directorio -->
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
+            <div class="font-semibold text-slate-800">Unidad de referencia del directorio</div>
+            <p class="mt-1 text-slate-700">
+              {{ persona.unidad_medica_nombre ? persona.unidad_medica_nombre + ' (' + (persona.unidad_medica_cluesimb || 'N/A') + ')' : 'Sin unidad de referencia' }}
+            </p>
+            <p class="mt-1 text-[11px] text-slate-500">
+              Dato administrativo del directorio; no representa necesariamente la adscripción laboral oficial.
+            </p>
           </div>
 
-          <!-- Comisiones laborales -->
+          <!-- 2. Adscripciones laborales oficiales -->
+          <div class="space-y-2.5 rounded-lg border border-slate-200 bg-white p-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="text-sm font-semibold text-slate-900">Adscripciones laborales oficiales</h3>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                [disabled]="adscripcionesLoading()"
+                (click)="loadAdscripciones()"
+              >
+                <lucide-icon [img]="icons.refresh" class="h-3.5 w-3.5" [ngClass]="adscripcionesLoading() ? 'animate-spin' : ''" />
+                Actualizar
+              </button>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5" role="tablist" aria-label="Filtro de vigencia de adscripciones">
+              @for (opt of [
+                { id: 'todas', label: 'Todas' },
+                { id: 'vigentes', label: 'Vigentes' },
+                { id: 'futuras', label: 'Futuras' },
+                { id: 'historicas', label: 'Históricas' }
+              ]; track opt.id) {
+                <button
+                  type="button"
+                  role="tab"
+                  [attr.aria-selected]="adscripcionesEstadoFilter() === opt.id"
+                  class="rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
+                  [ngClass]="
+                    adscripcionesEstadoFilter() === opt.id
+                      ? 'border-emerald-700 bg-emerald-700 text-white'
+                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                  "
+                  (click)="onSelectAdscripcionesFilter($any(opt.id))"
+                >
+                  {{ opt.label }}
+                </button>
+              }
+            </div>
+
+            @if (adscripcionesLoading()) {
+              <div class="flex items-center justify-center gap-2 py-5 text-xs text-slate-600">
+                <lucide-icon [img]="icons.loader" class="h-4 w-4 animate-spin text-emerald-700" />
+                <span>Cargando adscripciones laborales oficiales...</span>
+              </div>
+            } @else if (adscripcionesError()) {
+              <div class="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+                <lucide-icon [img]="icons.alert" class="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{{ adscripcionesError() }}</span>
+              </div>
+            } @else if (adscripciones().length === 0) {
+              <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-xs text-slate-600">
+                Sin adscripciones laborales registradas.
+              </div>
+            } @else {
+              <div class="space-y-2">
+                @for (a of adscripciones(); track a.adscripcion_laboral_id) {
+                  <div class="rounded-lg border border-slate-200 bg-slate-50/50 p-3 text-xs">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span
+                        class="inline-flex rounded-full px-2 py-0.5 font-semibold"
+                        [ngClass]="{
+                          'bg-emerald-100 text-emerald-800': a.estado_vigencia === 'VIGENTE',
+                          'bg-sky-100 text-sky-800': a.estado_vigencia === 'FUTURA',
+                          'bg-slate-200 text-slate-700': a.estado_vigencia === 'HISTORICA'
+                        }"
+                      >
+                        {{ a.estado_vigencia }}
+                      </span>
+                      <span class="text-slate-600">{{ a.vigente_desde }} — {{ a.vigente_hasta || 'Vigencia abierta' }}</span>
+                      @if (!a.activo) {
+                        <span class="rounded bg-slate-200 px-1.5 py-0.5 text-[11px] text-slate-700">Inactiva administrativamente</span>
+                      }
+                    </div>
+                    <div class="mt-1 font-medium text-slate-900">
+                      {{ a.unidad_nombre || 'Unidad #' + a.unidad_medica_id }} ({{ a.unidad_cluesimb || 'N/A' }})
+                    </div>
+                    <div class="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-slate-600">
+                      @if (a.puesto) { <span><strong>Puesto:</strong> {{ a.puesto }}</span> }
+                      @if (a.matricula) { <span><strong>Matrícula:</strong> {{ a.matricula }}</span> }
+                      @if (a.turno) { <span><strong>Turno:</strong> {{ a.turno }}</span> }
+                      @if (a.jornada) { <span><strong>Jornada:</strong> {{ a.jornada }}</span> }
+                      @if (a.horario) { <span><strong>Horario:</strong> {{ a.horario }}</span> }
+                    </div>
+                    @if (a.observaciones) {
+                      <p class="mt-0.5 text-slate-600"><strong>Observaciones:</strong> {{ a.observaciones }}</p>
+                    }
+                  </div>
+                }
+              </div>
+
+              <div class="flex items-center justify-between border-t border-slate-200 pt-2 text-xs text-slate-600">
+                <span>Total: {{ adscripcionesTotal() }} · Página {{ adscripcionesPage() }} de {{ adscripcionesTotalPages() }}</span>
+                <div class="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 hover:bg-slate-50 disabled:opacity-40"
+                    [disabled]="!canGoAdsPrev()"
+                    (click)="onAdsPrevPage()"
+                  >
+                    <lucide-icon [img]="icons.prev" class="h-3.5 w-3.5" />
+                    Anterior
+                  </button>
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 hover:bg-slate-50 disabled:opacity-40"
+                    [disabled]="!canGoAdsNext()"
+                    (click)="onAdsNextPage()"
+                  >
+                    Siguiente
+                    <lucide-icon [img]="icons.next" class="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- 3. Comisiones laborales -->
           <div class="flex items-center justify-between">
             <h3 class="text-sm font-semibold text-slate-900">Comisiones laborales</h3>
             <div class="flex items-center gap-2">

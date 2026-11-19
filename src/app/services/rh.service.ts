@@ -612,6 +612,57 @@ const ALLOWED_ANULAR_VACACION_KEYS: ReadonlyArray<keyof RhAnularVacacionPayload>
   'motivo_anulacion',
 ];
 
+/**
+ * Estado de vigencia calculado por backend para una adscripción laboral por persona.
+ */
+export type RhAdscripcionPersonaEstadoVigencia = 'VIGENTE' | 'FUTURA' | 'HISTORICA';
+
+/**
+ * Filtro de estado aceptado por `GET /api/rh/personas/:personaId/adscripciones`.
+ */
+export type RhAdscripcionesPersonaEstadoFilter = 'todas' | 'vigentes' | 'futuras' | 'historicas';
+
+/**
+ * DTO de adscripción laboral por persona devuelto por `GET /api/rh/personas/:personaId/adscripciones`.
+ */
+export interface RhAdscripcionPersonaDto {
+  adscripcion_laboral_id: number;
+  persona_id: number;
+  unidad_medica_id: number;
+  unidad_nombre: string | null;
+  unidad_cluesimb: string | null;
+  matricula: string | null;
+  puesto: string | null;
+  turno: string | null;
+  jornada: string | null;
+  horario: string | null;
+  vigente_desde: string;
+  vigente_hasta: string | null;
+  activo: boolean;
+  estado_vigencia: RhAdscripcionPersonaEstadoVigencia;
+  observaciones: string | null;
+}
+
+/**
+ * Respuesta paginada de `GET /api/rh/personas/:personaId/adscripciones`.
+ */
+export interface RhAdscripcionesPersonaListResponse {
+  persona_id: number;
+  items: RhAdscripcionPersonaDto[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+/**
+ * Parámetros de consulta aceptados por `GET /api/rh/personas/:personaId/adscripciones`.
+ */
+export interface RhAdscripcionesPersonaListParams {
+  estado?: RhAdscripcionesPersonaEstadoFilter;
+  page?: number;
+  pageSize?: number;
+}
+
 const ALLOWED_PATCH_LABORAL_KEYS: ReadonlyArray<keyof RhUpdateAdscripcionLaboralPayload> = [
   'matricula',
   'puesto',
@@ -1098,6 +1149,33 @@ export class RhService {
       this.http.patch<RhAnularVacacionResponse>(
         `${this.baseUrl}/personas/${personaId}/vacaciones/${registroId}/anular`,
         cleanBody
+      )
+    );
+  }
+
+  /**
+   * Consulta paginada de las adscripciones laborales oficiales de una persona
+   * (`GET /api/rh/personas/:personaId/adscripciones`).
+   */
+  async listAdscripcionesPorPersona(
+    personaId: number,
+    params: RhAdscripcionesPersonaListParams = {}
+  ): Promise<RhAdscripcionesPersonaListResponse> {
+    let httpParams = new HttpParams();
+    if (params.estado) {
+      httpParams = httpParams.set('estado', params.estado);
+    }
+    if (params.page && params.page > 0) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+    if (params.pageSize && params.pageSize > 0) {
+      httpParams = httpParams.set('pageSize', String(params.pageSize));
+    }
+
+    return await firstValueFrom(
+      this.http.get<RhAdscripcionesPersonaListResponse>(
+        `${this.baseUrl}/personas/${personaId}/adscripciones`,
+        { params: httpParams }
       )
     );
   }

@@ -60,11 +60,74 @@ describe('RhExpedienteConsolidadoComponent (RH-4A.5A)', () => {
     expect(component.activeTab()).toBe('generales');
   });
 
-  it('carga comisiones bajo demanda al abrir Situación laboral (vigente, futura, concluida) y distingue adscripción oficial', async () => {
+  it('carga adscripciones oficiales y comisiones bajo demanda al abrir Situación laboral', async () => {
     component.ngOnChanges({
       persona: new SimpleChange(undefined, component.persona, true),
     });
     component.onSelectTab('laboral');
+
+    const reqAds = httpMock.expectOne(
+      (r) => r.url.endsWith('/api/rh/personas/701/adscripciones') && r.method === 'GET'
+    );
+    reqAds.flush({
+      persona_id: 701,
+      items: [
+        {
+          adscripcion_laboral_id: 901,
+          persona_id: 701,
+          unidad_medica_id: 177,
+          unidad_nombre: 'OFICINA CENTRAL',
+          unidad_cluesimb: 'N/A',
+          matricula: 'MAT-01',
+          puesto: 'Coordinación',
+          turno: null,
+          jornada: null,
+          horario: null,
+          vigente_desde: '2026-01-01',
+          vigente_hasta: null,
+          activo: true,
+          estado_vigencia: 'VIGENTE',
+          observaciones: null,
+        },
+        {
+          adscripcion_laboral_id: 902,
+          persona_id: 701,
+          unidad_medica_id: 12,
+          unidad_nombre: 'HOSPITAL GENERAL MEXICALI',
+          unidad_cluesimb: 'BCIMB000012',
+          matricula: null,
+          puesto: 'Apoyo',
+          turno: null,
+          jornada: null,
+          horario: null,
+          vigente_desde: '2027-01-01',
+          vigente_hasta: '2027-06-30',
+          activo: true,
+          estado_vigencia: 'FUTURA',
+          observaciones: null,
+        },
+        {
+          adscripcion_laboral_id: 903,
+          persona_id: 701,
+          unidad_medica_id: 12,
+          unidad_nombre: 'HOSPITAL GENERAL MEXICALI',
+          unidad_cluesimb: 'BCIMB000012',
+          matricula: null,
+          puesto: 'Auxiliar',
+          turno: null,
+          jornada: null,
+          horario: null,
+          vigente_desde: '2024-01-01',
+          vigente_hasta: '2024-12-31',
+          activo: false,
+          estado_vigencia: 'HISTORICA',
+          observaciones: 'Inactiva',
+        },
+      ],
+      page: 1,
+      pageSize: 10,
+      total: 3,
+    });
 
     const req = httpMock.expectOne(
       (r) => r.url.endsWith('/api/rh/personas/701/comisiones') && r.method === 'GET'
@@ -130,9 +193,54 @@ describe('RhExpedienteConsolidadoComponent (RH-4A.5A)', () => {
     });
 
     await new Promise((r) => setTimeout(r, 0));
+    expect(component.adscripciones().length).toBe(3);
+    expect(component.adscripciones()[0].unidad_cluesimb).toBe('N/A');
+    expect(component.adscripciones()[0].estado_vigencia).toBe('VIGENTE');
+    expect(component.adscripciones()[1].estado_vigencia).toBe('FUTURA');
+    expect(component.adscripciones()[2].estado_vigencia).toBe('HISTORICA');
     expect(component.comisionesVigentes().length).toBe(1);
     expect(component.comisionesFuturas().length).toBe(1);
     expect(component.comisionesConcluidas().length).toBe(1);
+  });
+
+  it('soporta filtros, paginación y descarta respuestas pendientes al cambiar de trabajador (RH-4A.5C)', async () => {
+    component.ngOnChanges({
+      persona: new SimpleChange(undefined, component.persona, true),
+    });
+    component.onSelectTab('laboral');
+
+    const reqAds1 = httpMock.expectOne((r) => r.url.endsWith('/api/rh/personas/701/adscripciones'));
+    const reqCom1 = httpMock.expectOne((r) => r.url.endsWith('/api/rh/personas/701/comisiones'));
+    reqCom1.flush({ persona_id: 701, items: [], page: 1, pageSize: 50, total: 0 });
+    reqAds1.flush({ persona_id: 701, items: [], page: 1, pageSize: 1, total: 2 });
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Filtro y paginación
+    component.onSelectAdscripcionesFilter('historicas');
+    const reqHist = httpMock.expectOne(
+      (r) =>
+        r.url.endsWith('/api/rh/personas/701/adscripciones') &&
+        r.params.get('estado') === 'historicas' &&
+        r.params.get('page') === '1'
+    );
+    reqHist.flush({ persona_id: 701, items: [], page: 1, pageSize: 1, total: 2 });
+    await new Promise((r) => setTimeout(r, 0));
+
+    component.onAdsNextPage();
+    const reqP2 = httpMock.expectOne(
+      (r) =>
+        r.url.endsWith('/api/rh/personas/701/adscripciones') &&
+        r.params.get('page') === '2'
+    );
+
+    // Cambiar de trabajador antes de que responda reqP2 -> respuesta obsoleta descartada
+    const otraPersona: RhPersonasPadronItem = { ...personaOficinaCentral, persona_id: 702, nombre_completo: 'Otro Trabajador' };
+    component.persona = otraPersona;
+    component.ngOnChanges({ persona: new SimpleChange(personaOficinaCentral, otraPersona, false) });
+
+    reqP2.flush({ persona_id: 701, items: [{ adscripcion_laboral_id: 999 } as any], page: 2, pageSize: 1, total: 2 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(component.adscripciones().length).toBe(0);
   });
 
   it('carga historial vacacional bajo demanda (registrado y anulado) y limpia datos al cerrar', async () => {
@@ -212,6 +320,8 @@ describe('RhExpedienteConsolidadoComponent (RH-4A.5A)', () => {
       persona: new SimpleChange(undefined, component.persona, true),
     });
     component.onSelectTab('laboral');
+    const reqAds = httpMock.expectOne((r) => r.url.endsWith('/api/rh/personas/701/adscripciones'));
+    reqAds.flush({ error: 'Forbidden' }, { status: 403, statusText: 'Forbidden' });
     const req = httpMock.expectOne((r) => r.url.endsWith('/api/rh/personas/701/comisiones'));
     req.flush({ error: 'Forbidden' }, { status: 403, statusText: 'Forbidden' });
     await new Promise((r) => setTimeout(r, 0));
