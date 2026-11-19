@@ -532,13 +532,13 @@
             />
           </div>
 
-          <!-- Unidad médica (opcional, con búsqueda) -->
-          <div class="space-y-2 rounded-xl border border-gray-200 bg-slate-50/70 p-3">
+          <!-- Unidad de adscripción (opcional, autocompletado dinámico) -->
+          <div class="relative space-y-2 rounded-xl border border-gray-200 bg-slate-50/70 p-3">
             <div class="flex items-center justify-between">
-              <label for="ti-persona-unidad-select" class="text-xs font-semibold text-slate-700">
-                Unidad médica de adscripción (opcional)
+              <label for="ti-persona-unidad-search-input" class="text-xs font-semibold text-slate-700">
+                Unidad de adscripción (opcional)
               </label>
-              @if (formUnidadId() !== null) {
+              @if (formUnidadId() !== null || formUnidadQuery().trim().length > 0) {
                 <button
                   id="ti-persona-clear-unidad-btn"
                   type="button"
@@ -550,38 +550,64 @@
               }
             </div>
 
-            <div class="flex gap-2">
+            <div class="relative">
               <input
                 id="ti-persona-unidad-search-input"
                 type="text"
                 name="unidadQuery"
+                role="combobox"
+                autocomplete="off"
+                [attr.aria-autocomplete]="'list'"
+                [attr.aria-expanded]="formUnidadSuggestOpen()"
+                [attr.aria-controls]="formUnidadSuggestOpen() ? 'ti-persona-unidad-listbox' : null"
+                [attr.aria-activedescendant]="formUnidadSuggestIndex() >= 0 ? 'ti-persona-unidad-opt-' + formUnidadSuggestIndex() : null"
                 [ngModel]="formUnidadQuery()"
-                (ngModelChange)="formUnidadQuery.set($event)"
-                placeholder="Buscar unidad por nombre o CLUES…"
-                class="flex-1 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-xs text-slate-900 focus:border-[#006341] focus:outline-none"
+                (ngModelChange)="onFormUnidadInput($event)"
+                (focus)="onFormUnidadFocus()"
+                (blur)="onFormUnidadBlur()"
+                (keydown)="onFormUnidadKeyDown($event)"
+                placeholder="Buscar unidad por nombre o CLUESIMB (ej. OFICINA CENTRAL)…"
+                class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
               />
-              <button
-                type="button"
-                (click)="buscarUnidadesParaFormulario(formUnidadQuery())"
-                [disabled]="formUnidadesLoading()"
-                class="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Buscar
-              </button>
+
+              @if (formUnidadSuggestOpen()) {
+                <ul
+                  id="ti-persona-unidad-listbox"
+                  role="listbox"
+                  class="absolute left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+                >
+                  @if (formUnidadesLoading()) {
+                    <li class="px-3 py-2 text-xs text-slate-500">Buscando unidades…</li>
+                  } @else if (formUnidadesFiltered().length === 0) {
+                    <li class="px-3 py-2 text-xs text-slate-500">No se encontraron unidades coincidentes.</li>
+                  } @else {
+                    @for (u of formUnidadesFiltered(); track u.id; let idx = $index) {
+                      <li
+                        [id]="'ti-persona-unidad-opt-' + idx"
+                        role="option"
+                        [attr.aria-selected]="formUnidadId() === u.id"
+                        (mousedown)="$event.preventDefault(); selectFormUnidad(u)"
+                        class="cursor-pointer px-3 py-2 text-xs transition-colors"
+                        [ngClass]="
+                          idx === formUnidadSuggestIndex() || formUnidadId() === u.id
+                            ? 'bg-emerald-50 text-emerald-900'
+                            : 'text-slate-800 hover:bg-slate-50'
+                        "
+                      >
+                        <div class="font-medium">{{ u.nombre }}</div>
+                        <div class="text-[11px] text-slate-500">CLUESIMB: {{ u.cluesimb || 'N/A' }}</div>
+                      </li>
+                    }
+                  }
+                </ul>
+              }
             </div>
 
-            <select
-              id="ti-persona-unidad-select"
-              name="unidadId"
-              [ngModel]="formUnidadId()"
-              (ngModelChange)="onFormUnidadSelect($event)"
-              class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
-            >
-              <option [ngValue]="null">Sin unidad médica de adscripción</option>
-              @for (u of formUnidadesOptions(); track u.id) {
-                <option [ngValue]="u.id">{{ u.nombre }}</option>
-              }
-            </select>
+            @if (formUnidadQuery().trim().length > 0 && formUnidadId() === null) {
+              <p class="text-[11px] text-amber-800">
+                Selecciona una unidad de la lista de coincidencias o limpia el campo para dejarla sin unidad de adscripción.
+              </p>
+            }
           </div>
 
           <!-- Correo principal (opcional) -->

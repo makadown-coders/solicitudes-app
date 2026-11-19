@@ -257,6 +257,36 @@
               <td class="px-4 py-3 text-right">
                 <div class="inline-flex flex-wrap items-center justify-end gap-1.5">
                   <button
+                    [id]="'rh-padron-expediente-btn-' + p.persona_id"
+                    type="button"
+                    (click)="openExpedienteDialog(p)"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-slate-200"
+                  >
+                    <lucide-icon [img]="icons.expediente" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                    <span>Ver expediente</span>
+                  </button>
+
+                  <button
+                    [id]="'rh-padron-vacaciones-btn-' + p.persona_id"
+                    type="button"
+                    (click)="openVacacionesDialog(p)"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-sky-300 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-900 hover:bg-sky-100"
+                  >
+                    <lucide-icon [img]="icons.vacaciones" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                    <span>Vacaciones</span>
+                  </button>
+
+                  <button
+                    [id]="'rh-padron-comisiones-btn-' + p.persona_id"
+                    type="button"
+                    (click)="openComisionesDialog(p)"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
+                  >
+                    <lucide-icon [img]="icons.comision" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                    <span>Comisiones</span>
+                  </button>
+
+                  <button
                     [id]="'rh-padron-edit-general-btn-' + p.persona_id"
                     type="button"
                     (click)="openEditGeneralDialog(p)"
@@ -708,4 +738,37 @@
       </div>
     </div>
   </div>
+}
+
+<!-- Panel: Comisiones laborales (RH-4A.3B) -->
+@if (comisionesTargetPersona(); as comisionesPersona) {
+  <app-rh-comisiones-laborales
+    [persona]="comisionesPersona"
+    [unidades]="unidades"
+    [canManage]="true"
+    (closed)="closeComisionesDialog()"
+    (unauthorized)="unauthorized.emit()"
+  />
+}
+
+<!-- Panel: Vacaciones y kardex (RH-4A.4B) -->
+@if (vacacionesTargetPersona(); as vacacionesPersona) {
+  <app-rh-vacaciones
+    [persona]="vacacionesPersona"
+    [canManage]="true"
+    (closed)="closeVacacionesDialog()"
+    (unauthorized)="unauthorized.emit()"
+  />
+}
+
+<!-- Panel: Expediente administrativo consolidado (RH-4A.5A) -->
+@if (expedienteTargetPersona(); as expedientePersona) {
+  <app-rh-expediente-consolidado
+    [persona]="expedientePersona"
+    [canManage]="true"
+    (closed)="closeExpedienteDialog()"
+    (unauthorized)="unauthorized.emit()"
+    (openComisiones)="closeExpedienteDialog(); openComisionesDialog($event)"
+    (openVacaciones)="closeExpedienteDialog(); openVacacionesDialog($event)"
+  />
 }

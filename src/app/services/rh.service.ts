@@ -410,6 +410,208 @@ export interface RhUpdatePersonaGeneralResponse {
   campos_modificados: string[];
 }
 
+/**
+ * Estado de vigencia calculado por backend para una comisión laboral.
+ */
+export type RhComisionEstadoVigencia = 'VIGENTE' | 'FUTURA' | 'CONCLUIDA';
+
+/**
+ * Filtro de estado aceptado por `GET /api/rh/personas/:personaId/comisiones`.
+ */
+export type RhComisionesEstadoFilter = 'todas' | 'vigentes' | 'futuras' | 'concluidas';
+
+/**
+ * DTO de comisión laboral devuelto por el backend RH.
+ */
+export interface RhComisionLaboralDto {
+  id: number;
+  persona_id: number;
+  adscripcion_origen_id: number | null;
+  sin_adscripcion_formal_origen: boolean;
+  unidad_destino_id: number | null;
+  unidad_destino_nombre: string | null;
+  unidad_destino_cluesimb: string | null;
+  area_destino_texto: string | null;
+  fecha_inicio: string;
+  fecha_fin: string | null;
+  motivo: string | null;
+  oficio_referencia: string | null;
+  observaciones: string | null;
+  activo: boolean;
+  estado_vigencia: RhComisionEstadoVigencia;
+}
+
+/**
+ * Respuesta paginada de `GET /api/rh/personas/:personaId/comisiones`.
+ */
+export interface RhComisionesListResponse {
+  persona_id: number;
+  items: RhComisionLaboralDto[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+/**
+ * Parámetros de consulta aceptados por `GET /api/rh/personas/:personaId/comisiones`.
+ */
+export interface RhComisionesListParams {
+  estado?: RhComisionesEstadoFilter;
+  page?: number;
+  pageSize?: number;
+}
+
+/**
+ * Payload permitido por `POST /api/rh/personas/:personaId/comisiones`.
+ */
+export interface RhCreateComisionPayload {
+  adscripcion_origen_id?: number | null;
+  unidad_destino_id?: number | null;
+  area_destino_texto?: string | null;
+  fecha_inicio: string;
+  fecha_fin?: string | null;
+  motivo?: string | null;
+  oficio_referencia?: string | null;
+  observaciones?: string | null;
+}
+
+/**
+ * Payload permitido por `PATCH /api/rh/personas/:personaId/comisiones/:comisionId/concluir`.
+ */
+export interface RhConcluirComisionPayload {
+  fecha_fin?: string | null;
+  observaciones?: string | null;
+}
+
+/**
+ * Respuesta de `PATCH /api/rh/personas/:personaId/comisiones/:comisionId/concluir`.
+ */
+export interface RhConcluirComisionResponse {
+  comision: RhComisionLaboralDto;
+  idempotente: boolean;
+}
+
+const ALLOWED_CREATE_COMISION_KEYS: ReadonlyArray<keyof RhCreateComisionPayload> = [
+  'adscripcion_origen_id',
+  'unidad_destino_id',
+  'area_destino_texto',
+  'fecha_inicio',
+  'fecha_fin',
+  'motivo',
+  'oficio_referencia',
+  'observaciones',
+];
+
+const ALLOWED_CONCLUIR_COMISION_KEYS: ReadonlyArray<keyof RhConcluirComisionPayload> = [
+  'fecha_fin',
+  'observaciones',
+];
+
+/**
+ * Estado administrativo de un registro vacacional.
+ */
+export type RhVacacionEstado = 'REGISTRADO' | 'ANULADO';
+
+/**
+ * Filtro de estado aceptado por `GET /api/rh/personas/:personaId/vacaciones`.
+ */
+export type RhVacacionesEstadoFilter = 'todos' | 'registrados' | 'anulados';
+
+/**
+ * DTO de registro vacacional devuelto por el backend RH.
+ */
+export interface RhVacacionRegistroDto {
+  id: number;
+  persona_id: number;
+  adscripcion_id: number | null;
+  anio_ciclo: number;
+  periodo_referencia: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  dias_registrados: number;
+  documento_referencia: string | null;
+  observaciones: string | null;
+  estado: RhVacacionEstado;
+  motivo_anulacion: string | null;
+  anulado_en: string | null;
+  creado_en: string;
+  actualizado_en: string;
+}
+
+/**
+ * Respuesta paginada de `GET /api/rh/personas/:personaId/vacaciones`.
+ */
+export interface RhVacacionesListResponse {
+  persona_id: number;
+  items: RhVacacionRegistroDto[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+/**
+ * Parámetros de consulta aceptados por `GET /api/rh/personas/:personaId/vacaciones`.
+ */
+export interface RhVacacionesListParams {
+  anio_ciclo?: number | null;
+  estado?: RhVacacionesEstadoFilter;
+  page?: number;
+  pageSize?: number;
+}
+
+/**
+ * Payload permitido por `POST /api/rh/personas/:personaId/vacaciones`.
+ */
+export interface RhCreateVacacionPayload {
+  adscripcion_id?: number | null;
+  anio_ciclo: number;
+  periodo_referencia: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  dias_registrados: number;
+  documento_referencia?: string | null;
+  observaciones?: string | null;
+}
+
+/**
+ * Respuesta de `POST /api/rh/personas/:personaId/vacaciones`.
+ */
+export interface RhCreateVacacionResponse {
+  registro: RhVacacionRegistroDto;
+  tiene_superposicion: boolean;
+  registros_superpuestos_ids: number[];
+}
+
+/**
+ * Payload permitido por `PATCH /api/rh/personas/:personaId/vacaciones/:registroId/anular`.
+ */
+export interface RhAnularVacacionPayload {
+  motivo_anulacion: string;
+}
+
+/**
+ * Respuesta de `PATCH /api/rh/personas/:personaId/vacaciones/:registroId/anular`.
+ */
+export interface RhAnularVacacionResponse {
+  registro: RhVacacionRegistroDto;
+  idempotente: boolean;
+}
+
+const ALLOWED_CREATE_VACACION_KEYS: ReadonlyArray<keyof RhCreateVacacionPayload> = [
+  'adscripcion_id',
+  'anio_ciclo',
+  'periodo_referencia',
+  'fecha_inicio',
+  'fecha_fin',
+  'dias_registrados',
+  'documento_referencia',
+  'observaciones',
+];
+
+const ALLOWED_ANULAR_VACACION_KEYS: ReadonlyArray<keyof RhAnularVacacionPayload> = [
+  'motivo_anulacion',
+];
+
 const ALLOWED_PATCH_LABORAL_KEYS: ReadonlyArray<keyof RhUpdateAdscripcionLaboralPayload> = [
   'matricula',
   'puesto',
@@ -743,6 +945,159 @@ export class RhService {
       this.http.patch<RhUpdatePersonaGeneralResponse>(
         `${this.baseUrl}/personas/${personaId}/general`,
         cleanPatch
+      )
+    );
+  }
+
+  /**
+   * Consulta paginada del historial de comisiones laborales de una persona
+   * (`GET /api/rh/personas/:personaId/comisiones`).
+   */
+  async listComisionesPorPersona(
+    personaId: number,
+    params: RhComisionesListParams = {}
+  ): Promise<RhComisionesListResponse> {
+    let httpParams = new HttpParams();
+    if (params.estado) {
+      httpParams = httpParams.set('estado', params.estado);
+    }
+    if (params.page && params.page > 0) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+    if (params.pageSize && params.pageSize > 0) {
+      httpParams = httpParams.set('pageSize', String(params.pageSize));
+    }
+
+    return await firstValueFrom(
+      this.http.get<RhComisionesListResponse>(
+        `${this.baseUrl}/personas/${personaId}/comisiones`,
+        { params: httpParams }
+      )
+    );
+  }
+
+  /**
+   * Registro de una nueva comisión laboral para una persona
+   * (`POST /api/rh/personas/:personaId/comisiones`).
+   * Filtra estrictamente el cuerpo a las propiedades permitidas por el backend.
+   */
+  async crearComisionPersona(
+    personaId: number,
+    payload: RhCreateComisionPayload
+  ): Promise<RhComisionLaboralDto> {
+    const cleanBody: Record<string, unknown> = {};
+    for (const key of ALLOWED_CREATE_COMISION_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(payload, key) && payload[key] !== undefined) {
+        cleanBody[key] = payload[key];
+      }
+    }
+
+    return await firstValueFrom(
+      this.http.post<RhComisionLaboralDto>(
+        `${this.baseUrl}/personas/${personaId}/comisiones`,
+        cleanBody
+      )
+    );
+  }
+
+  /**
+   * Conclusión administrativa controlada e idempotente de una comisión laboral
+   * (`PATCH /api/rh/personas/:personaId/comisiones/:comisionId/concluir`).
+   * Filtra estrictamente el cuerpo a `fecha_fin` y `observaciones`.
+   */
+  async concluirComisionPersona(
+    personaId: number,
+    comisionId: number,
+    payload: RhConcluirComisionPayload = {}
+  ): Promise<RhConcluirComisionResponse> {
+    const cleanBody: Record<string, unknown> = {};
+    for (const key of ALLOWED_CONCLUIR_COMISION_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(payload, key) && payload[key] !== undefined) {
+        cleanBody[key] = payload[key];
+      }
+    }
+
+    return await firstValueFrom(
+      this.http.patch<RhConcluirComisionResponse>(
+        `${this.baseUrl}/personas/${personaId}/comisiones/${comisionId}/concluir`,
+        cleanBody
+      )
+    );
+  }
+
+  /**
+   * Consulta paginada del historial/kardex de registros vacacionales de una persona
+   * (`GET /api/rh/personas/:personaId/vacaciones`).
+   */
+  async listVacacionesPorPersona(
+    personaId: number,
+    params: RhVacacionesListParams = {}
+  ): Promise<RhVacacionesListResponse> {
+    let httpParams = new HttpParams();
+    if (params.anio_ciclo != null && Number.isInteger(params.anio_ciclo)) {
+      httpParams = httpParams.set('anio_ciclo', String(params.anio_ciclo));
+    }
+    if (params.estado) {
+      httpParams = httpParams.set('estado', params.estado);
+    }
+    if (params.page && params.page > 0) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+    if (params.pageSize && params.pageSize > 0) {
+      httpParams = httpParams.set('pageSize', String(params.pageSize));
+    }
+
+    return await firstValueFrom(
+      this.http.get<RhVacacionesListResponse>(
+        `${this.baseUrl}/personas/${personaId}/vacaciones`,
+        { params: httpParams }
+      )
+    );
+  }
+
+  /**
+   * Registro administrativo de un periodo vacacional para una persona
+   * (`POST /api/rh/personas/:personaId/vacaciones`).
+   */
+  async crearVacacionPersona(
+    personaId: number,
+    payload: RhCreateVacacionPayload
+  ): Promise<RhCreateVacacionResponse> {
+    const cleanBody: Record<string, unknown> = {};
+    for (const key of ALLOWED_CREATE_VACACION_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(payload, key) && payload[key] !== undefined) {
+        cleanBody[key] = payload[key];
+      }
+    }
+
+    return await firstValueFrom(
+      this.http.post<RhCreateVacacionResponse>(
+        `${this.baseUrl}/personas/${personaId}/vacaciones`,
+        cleanBody
+      )
+    );
+  }
+
+  /**
+   * Anulación lógica e idempotente de un registro vacacional
+   * (`PATCH /api/rh/personas/:personaId/vacaciones/:registroId/anular`).
+   */
+  async anularVacacionPersona(
+    personaId: number,
+    registroId: number,
+    payload: RhAnularVacacionPayload
+  ): Promise<RhAnularVacacionResponse> {
+    const cleanBody: Record<string, unknown> = {};
+    for (const key of ALLOWED_ANULAR_VACACION_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(payload, key) && payload[key] !== undefined) {
+        cleanBody[key] = payload[key];
+      }
+    }
+
+    return await firstValueFrom(
+      this.http.patch<RhAnularVacacionResponse>(
+        `${this.baseUrl}/personas/${personaId}/vacaciones/${registroId}/anular`,
+        cleanBody
       )
     );
   }

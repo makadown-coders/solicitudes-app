@@ -114,6 +114,26 @@ export class TiPersonasPageComponent implements OnInit {
   readonly formUnidadQuery = signal<string>('');
   readonly formUnidadesOptions = signal<TiUnidadMedicaItem[]>([]);
   readonly formUnidadesLoading = signal<boolean>(false);
+  readonly formUnidadSuggestOpen = signal<boolean>(false);
+  readonly formUnidadSuggestIndex = signal<number>(-1);
+  private formUnitSearchSeq = 0;
+  private formUnitSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  private formUnitBlurTimer: ReturnType<typeof setTimeout> | null = null;
+
+  readonly formUnidadesFiltered = computed<TiUnidadMedicaItem[]>(() => {
+    const raw = this.formUnidadQuery().trim().replace(/\s+/g, ' ').toLowerCase();
+    const list = this.formUnidadesOptions();
+    if (!raw) {
+      return list.slice(0, 15);
+    }
+    return list
+      .filter((u) => {
+        const nombre = (u.nombre ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+        const cluesimb = (u.cluesimb ?? '').trim().toLowerCase();
+        return nombre.includes(raw) || cluesimb.includes(raw);
+      })
+      .slice(0, 15);
+  });
 
   readonly formCorreoPrincipal = signal<string>('');
   readonly formComplementarios = signal<string[]>([]);
@@ -565,7 +585,9 @@ export class TiPersonasPageComponent implements OnInit {
       this.formNombre.set(nombre);
       this.formUnidadId.set(detalle.unidad_medica_id ?? null);
       this.formUnidadNombre.set(detalle.unidad_medica ?? null);
-      this.formUnidadQuery.set('');
+      this.formUnidadQuery.set(detalle.unidad_medica ?? '');
+      this.formUnidadSuggestOpen.set(false);
+      this.formUnidadSuggestIndex.set(-1);
       this.formCorreoPrincipal.set(principal);
       this.formComplementarios.set(complementarios);
 
@@ -599,46 +621,132 @@ export class TiPersonasPageComponent implements OnInit {
   closeFormModal(): void {
     if (this.formSaving()) return;
     this.formModalOpen.set(false);
+    this.formUnidadSuggestOpen.set(false);
+    this.formUnidadSuggestIndex.set(-1);
     this.editSnapshot = null;
   }
 
   async buscarUnidadesParaFormulario(query: string): Promise<void> {
-    const seq = ++this.unitSearchSeq;
+    const seq = ++this.formUnitSearchSeq;
     this.formUnidadesLoading.set(true);
     try {
+      const normalized = query.trim().replace(/\s+/g, ' ');
       const res = await this.tiPersonasService.buscarUnidades({
-        q: query.trim() || undefined,
+        q: normalized || undefined,
         page: 1,
         pageSize: 30,
       });
-      if (seq !== this.unitSearchSeq) return;
+      if (seq !== this.formUnitSearchSeq) return;
       this.formUnidadesOptions.set(Array.isArray(res?.items) ? res.items : []);
     } catch {
-      if (seq !== this.unitSearchSeq) return;
+      if (seq !== this.formUnitSearchSeq) return;
       this.formUnidadesOptions.set([]);
     } finally {
-      if (seq === this.unitSearchSeq) {
+      if (seq === this.formUnitSearchSeq) {
         this.formUnidadesLoading.set(false);
       }
     }
   }
 
-  onFormUnidadSelect(rawVal: string | number | null): void {
-    if (rawVal === null || rawVal === '') {
+  onFormUnidadInput(rawValue: string): void {
+    const text = rawValue ?? '';
+    this.formUnidadQuery.set(text);
+    this.formUnidadSuggestOpen.set(true);
+    this.formUnidadSuggestIndex.set(-1);
+
+    // Si el usuario modifica el texto respecto a la unidad seleccionada, invalidar el ID previo
+    const selectedName = (this.formUnidadNombre() ?? '').trim();
+    if (this.formUnidadId() !== null && text.trim() !== selectedName) {
       this.formUnidadId.set(null);
       this.formUnidadNombre.set(null);
+    }
+
+    if (this.formUnitSearchTimer) {
+      clearTimeout(this.formUnitSearchTimer);
+    }
+    this.formUnitSearchTimer = setTimeout(() => {
+      void this.buscarUnidadesParaFormulario(text);
+    }, 180);
+  }
+
+  onFormUnidadFocus(): void {
+    if (this.formUnitBlurTimer) {
+      clearTimeout(this.formUnitBlurTimer);
+      this.formUnitBlurTimer = null;
+    }
+    this.formUnidadSuggestOpen.set(true);
+    if (this.formUnidadesOptions().length === 0) {
+      void this.buscarUnidadesParaFormulario(this.formUnidadQuery());
+    }
+  }
+
+  onFormUnidadBlur(): void {
+    this.formUnitBlurTimer = setTimeout(() => {
+      this.formUnidadSuggestOpen.set(false);
+      this.formUnidadSuggestIndex.set(-1);
+    }, 150);
+  }
+
+  onFormUnidadKeyDown(event: KeyboardEvent): void {
+    const list = this.formUnidadesFiltered();
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.formUnidadSuggestOpen.set(true);
+      if (list.length > 0) {
+        this.formUnidadSuggestIndex.update((i) => (i + 1) % list.length);
+      }
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (list.length > 0) {
+        this.formUnidadSuggestIndex.update((i) => (i <= 0 ? list.length - 1 : i - 1));
+      }
+      return;
+    }
+    if (event.key === 'Enter' && this.formUnidadSuggestOpen()) {
+      const idx = this.formUnidadSuggestIndex();
+      if (idx >= 0 && idx < list.length) {
+        event.preventDefault();
+        this.selectFormUnidad(list[idx]);
+      }
+      return;
+    }
+    if (event.key === 'Escape') {
+      this.formUnidadSuggestOpen.set(false);
+      this.formUnidadSuggestIndex.set(-1);
+    }
+  }
+
+  selectFormUnidad(unidad: TiUnidadMedicaItem): void {
+    this.formUnidadId.set(unidad.id);
+    this.formUnidadNombre.set(unidad.nombre);
+    this.formUnidadQuery.set(unidad.nombre);
+    this.formUnidadSuggestOpen.set(false);
+    this.formUnidadSuggestIndex.set(-1);
+  }
+
+  onFormUnidadSelect(rawVal: string | number | null): void {
+    if (rawVal === null || rawVal === '') {
+      this.clearFormUnidad();
       return;
     }
     const id = Number(rawVal);
     if (!Number.isFinite(id)) return;
+    const found = this.formUnidadesOptions().find((u) => u.id === id);
+    if (found) {
+      this.selectFormUnidad(found);
+      return;
+    }
     this.formUnidadId.set(id);
-    const found = this.formUnidadesOptions().find(u => u.id === id);
-    this.formUnidadNombre.set(found?.nombre ?? this.formUnidadNombre());
   }
 
   clearFormUnidad(): void {
     this.formUnidadId.set(null);
     this.formUnidadNombre.set(null);
+    this.formUnidadQuery.set('');
+    this.formUnidadSuggestOpen.set(false);
+    this.formUnidadSuggestIndex.set(-1);
   }
 
   addComplementario(): void {
@@ -682,6 +790,13 @@ export class TiPersonasPageComponent implements OnInit {
     const nombre = this.formNombre().trim();
     if (!nombre) {
       this.formError.set('El nombre completo es obligatorio.');
+      return;
+    }
+
+    if (this.formUnidadQuery().trim().length > 0 && this.formUnidadId() === null) {
+      this.formError.set(
+        'Selecciona una unidad de adscripción de la lista de coincidencias o limpia el campo para dejarla sin unidad.'
+      );
       return;
     }
 
