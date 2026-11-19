@@ -16,7 +16,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "allowedCommonJsDependencies": ["sql.js"],
+            "allowedCommonJsDependencies": ["sql.js", "jszip"],
             "outputPath": "dist/solicitudes-app",
             "index": "src/index.html",
             "browser": "src/main.ts",

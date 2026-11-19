@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
@@ -20,7 +21,7 @@ const VACIO: ConcentradoPrimerNivelResponse = {
 @Component({
   selector: 'app-concentrado-primer-nivel',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './concentrado-primer-nivel.component.html',
   styleUrl: './concentrado-primer-nivel.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

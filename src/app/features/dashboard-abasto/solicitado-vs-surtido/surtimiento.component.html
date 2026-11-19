@@ -1,0 +1,43 @@
+<a routerLink="../concentrado-primer-nivel">← Concentrado de Primer Nivel</a>
+<h2>Solicitado vs. surtido SAS</h2>
+<p>Compare las solicitudes acumuladas de cada centro de salud con los despachos registrados por almacén.</p>
+<fieldset [disabled]="ocupado()">
+<section><div class="controles">
+<label>Mes del pedido<input type="month" [(ngModel)]="mes" (change)="cambiarMes()"></label>
+<label>Almacén<select [(ngModel)]="zona" (change)="editarVentana()"><option value="">Todos</option>@for(v of ventanas;track v.zona){<option>{{v.zona}}</option>}</select></label></div>
+@for(v of ventanas;track v.zona){@if(!zona || zona===v.zona){<div class="controles"><strong>{{v.zona}}</strong>
+<label>Desde<input type="date" [(ngModel)]="v.desde" (change)="editarVentana()"></label><label>Hasta<input type="date" [(ngModel)]="v.hasta" (change)="editarVentana()"></label></div>}}
+<button (click)="analizar()">{{ocupado()?'Consultando…':'Analizar surtimiento'}}</button></section>
+@if(error()){<p role="alert">{{error()}}</p>}
+@if(informe();as r){
+<p><strong>Corte {{r.corte}}</strong> · El surtido registrado SAS suma las cantidades con su signo original. Cifras preliminares. La última salida registrada no acredita el cierre del almacén ni la recepción por la unidad.</p>
+@if(pendiente()){<p role="status">Hay cambios por aplicar. Pulse «Analizar surtimiento» para actualizar los resultados.</p>}
+<section><h3>Resultados</h3><small>Las cantidades solicitadas corresponden a la suma de registros del periodo. Las reexportaciones o correcciones podrían incrementar el total.</small><p>{{pedidosFiltrados().length}} renglones de conciliación · {{sinPedidoFiltradas().length}} salidas agrupadas sin pedido identificado</p>
+<p><strong>Al corte, en {{resumen().lineas}} renglones comparables:</strong> {{resumen().solicitado | number}} solicitados · {{resumen().pendiente | number}} pendientes · cobertura {{resumen().cobertura===null?'N/D':(resumen().cobertura|number:'1.0-2')+'%'}}.</p>
+<p>La cobertura toma como máximo el pedido de cada clave. Con un solo almacén seleccionado, se muestra su aportación frente al pedido completo.</p>
+<button (click)="excel()" [disabled]="pendiente()">Exportar análisis completo a Excel</button>
+<div class="controles"><label>Mostrar<select [ngModel]="vista()" (ngModelChange)="vista.set($event);pagina.set(1)"><option [ngValue]="false">Conciliación</option><option [ngValue]="true">Salidas sin solicitud</option></select></label>
+<label>Municipio<input [ngModel]="municipio()" (ngModelChange)="municipio.set($event);pagina.set(1)"></label>
+<label>Unidad o CLUES<input [ngModel]="unidad()" (ngModelChange)="unidad.set($event);pagina.set(1)"></label>
+<label>Clave CNIS<input [ngModel]="clave()" (ngModelChange)="clave.set($event);pagina.set(1)"></label></div>
+<section><h3>Cobertura de abasto por unidad médica</h3>
+<p>El porcentaje de claves abastecidas indica cuántas claves evaluables alcanzaron el total solicitado. N/D indica que falta información para calcular el porcentaje.</p>
+@if(sinEvaluar()){<small>{{sinEvaluar()}} renglones con solicitud positiva quedaron fuera de los porcentajes.</small>}
+<div class="barras" aria-label="Porcentaje de claves abastecidas por unidad">@for(u of unidades();track u.clues){
+<div class="barra-unidad"><span>{{u.nombre}} · {{u.clues}}</span><small>{{u.evaluables}} evaluables</small>
+<div class="pista">@if(u.porClaves!==null){<i [style.width.%]="u.porClaves" [class.media]="u.porClaves>=50" [class.alta]="u.porClaves>=80"></i>}</div>
+<b>{{u.porClaves===null?'N/D':(u.porClaves|number:'1.0-2')+'%'}}</b></div>
+}@empty{<p>Sin unidades para estos filtros.</p>}</div>
+<div class="tabla ejecutiva"><table><thead><tr>@for(t of ['Municipio','Unidad médica','CLUES','Claves solicitadas','Evaluables','Cubiertas','Parciales','Sin salida','% claves abastecidas','Cobertura por cantidad registrada'];track t){<th>{{t}}</th>}</tr></thead>
+<tbody>@for(u of unidades();track u.clues){<tr><td>{{u.municipio}}</td><td>{{u.nombre}}</td><td>{{u.clues}}</td><td>{{u.solicitadas}}</td><td>{{u.evaluables}}</td><td>{{u.cubiertas}}</td><td>{{u.parciales}}</td><td>{{u.sinSalida}}</td><td>{{u.porClaves===null?'N/D':(u.porClaves|number:'1.0-2')+'%'}}</td><td>{{u.porCantidad===null?'N/D':(u.porCantidad|number:'1.0-2')+'%'}}</td></tr>}</tbody></table></div>
+<small>La cobertura por cantidad registrada suma unidades de insumos distintos. Es un indicador operativo. Cada clave aporta como máximo su cantidad solicitada.</small></section>
+<h3>Detalle por clave</h3><div class="tabla"><table><thead><tr>@for(t of ['Unidad / CLUES','Municipio','Clave y descripción','Solicitado acumulado','Surtido registrado SAS','Pendiente','Excedente','Cobertura','Surtido/solicitado'];track t){<th>{{t}}</th>}</tr></thead>
+<tbody>@for(f of filtradas().slice((pagina()-1)*50,pagina()*50);track $index){<tr><td>{{f.nombre}}<br>{{f.clues}}</td><td>{{f.municipio}}</td><td>{{f.clave}}<br>{{f.descripcion}}</td><td>{{f.solicitado??'—'}}</td><td>{{f.surtido}}</td><td>{{f.pendiente??'—'}}</td><td>{{f.excedente??'—'}}</td><td>{{f.cobertura===null?'N/D':(f.cobertura|number:'1.0-2')+'%'}}</td><td>{{f.relacion===null?'N/D':(f.relacion|number:'1.0-2')+'%'}}</td></tr>}@empty{<tr><td colspan="9">Sin renglones para estos filtros.</td></tr>}</tbody></table></div>
+<button [disabled]="pagina()<=1" (click)="pagina.set(pagina()-1)">Anterior</button> Página {{pagina()}} <button [disabled]="pagina()*50>=filtradas().length" (click)="pagina.set(pagina()+1)">Siguiente</button></section>
+<section><h3>Posibles sustituciones identificadas</h3>
+<p>Estas relaciones proceden del catálogo de homólogos y muestran cobertura potencial. No modifican el surtimiento directo ni sus porcentajes.</p>
+<p><strong>{{sustitucionesFiltradas().length}}</strong> candidatos encontrados con los filtros actuales.</p>
+<div class="tabla sustituciones"><table><thead><tr>@for(t of ['Municipio','Unidad médica / CLUES','Clave solicitada','Pendiente directo','Clave sustituta surtida','Cantidad sustituta','Factor','Equivalente potencial','Potencial aplicable','Relación'];track t){<th>{{t}}</th>}</tr></thead>
+<tbody>@for(s of sustitucionesFiltradas();track s.clues+'|'+s.claveSolicitada+'|'+s.claveSustituta){<tr [class.ambigua]="s.ambigua"><td>{{s.municipio}}</td><td>{{s.nombre}}<br>{{s.clues}}</td><td>{{s.claveSolicitada}}<br>{{s.descripcionSolicitada}}</td><td>{{s.pendienteDirecto | number:'1.0-4'}}</td><td>{{s.claveSustituta}}<br>{{s.descripcionSas}}</td><td>{{s.cantidadSustituta | number:'1.0-4'}}</td><td>{{s.factor | number:'1.0-10'}}</td><td>{{s.cantidadEquivalente | number:'1.0-4'}}</td><td>{{s.potencialAplicable | number:'1.0-4'}}</td><td>{{s.estado}}</td></tr>}@empty{<tr><td colspan="10">No se identificaron sustituciones potenciales con estos filtros.</td></tr>}</tbody></table></div>
+<small>Cuando existen varios candidatos o una sustituta corresponde a más de un faltante, la relación se muestra como ambigua y no se distribuye automáticamente.</small></section>
+}</fieldset>

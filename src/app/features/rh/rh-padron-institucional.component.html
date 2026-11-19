@@ -1,0 +1,711 @@
+<section
+  id="rh-padron-institucional-section"
+  aria-labelledby="rh-padron-heading"
+  class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+>
+  <!-- Encabezado y botón «Registrar persona» -->
+  <div class="flex flex-col gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-center gap-2.5">
+      <span
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#006341]/10 text-[#006341]"
+        aria-hidden="true"
+      >
+        <lucide-icon [img]="icons.users" class="h-5 w-5"></lucide-icon>
+      </span>
+      <div>
+        <h2 id="rh-padron-heading" class="text-lg font-bold text-slate-900">
+          Plantilla institucional
+        </h2>
+        <p class="text-xs text-slate-500">
+          Padrón completo de personas registradas en el directorio institucional, independientemente de sus adscripciones laborales
+        </p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <button
+        id="rh-padron-refresh-btn"
+        type="button"
+        (click)="cargarPadron()"
+        [disabled]="loading()"
+        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <lucide-icon
+          [img]="icons.refresh"
+          class="h-4 w-4"
+          [class.animate-spin]="loading()"
+          aria-hidden="true"
+        ></lucide-icon>
+        <span>Actualizar</span>
+      </button>
+
+      <button
+        id="rh-padron-open-create-btn"
+        type="button"
+        (click)="openCreateDialog()"
+        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-[#004f34]"
+      >
+        <lucide-icon [img]="icons.userPlus" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+        <span>Registrar persona</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Banner de confirmación tras alta o cambio de estado -->
+  @if (successBanner(); as msg) {
+    <div
+      id="rh-padron-success-banner"
+      role="status"
+      class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+    >
+      <div class="flex items-center gap-2">
+        <lucide-icon [img]="icons.checkCircle" class="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true"></lucide-icon>
+        <span>{{ msg }}</span>
+      </div>
+      <button
+        type="button"
+        (click)="successBanner.set(null)"
+        class="rounded-lg p-1 text-emerald-700 hover:bg-emerald-100"
+        aria-label="Cerrar aviso"
+      >
+        <lucide-icon [img]="icons.clear" class="h-4 w-4"></lucide-icon>
+      </button>
+    </div>
+  }
+
+  <!-- Barra de búsqueda, filtro de estado y total -->
+  <div class="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <div class="flex flex-1 flex-col gap-3 sm:flex-row sm:items-end">
+      <div class="flex-1">
+        <label for="rh-padron-search-input" class="block text-xs font-semibold uppercase tracking-wide text-slate-600">
+          Buscar por nombre o apellidos
+        </label>
+        <div class="mt-1 flex gap-2">
+          <input
+            id="rh-padron-search-input"
+            type="text"
+            [value]="searchDraft()"
+            (input)="onSearchInput($any($event.target).value)"
+            (keydown.enter)="onSubmitSearch()"
+            placeholder="Ej. Nombre o apellido"
+            class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+          />
+          <button
+            id="rh-padron-search-btn"
+            type="button"
+            (click)="onSubmitSearch()"
+            [disabled]="loading()"
+            class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-slate-800 px-3.5 py-2 text-sm font-semibold text-white hover:bg-slate-900 disabled:opacity-60"
+          >
+            <lucide-icon [img]="icons.search" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+            <span>Buscar</span>
+          </button>
+          @if (appliedSearch()) {
+            <button
+              id="rh-padron-clear-search-btn"
+              type="button"
+              (click)="onClearSearch()"
+              class="inline-flex min-h-10 items-center justify-center rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Limpiar
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="w-full sm:w-48">
+        <label for="rh-padron-estado-select" class="block text-xs font-semibold uppercase tracking-wide text-slate-600">
+          Estado
+        </label>
+        <select
+          id="rh-padron-estado-select"
+          [value]="estadoFilter()"
+          (change)="onEstadoFilterChange($any($event.target).value)"
+          class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+        >
+          <option value="todas">Todas</option>
+          <option value="activas">Activas</option>
+          <option value="inactivas">Inactivas</option>
+        </select>
+      </div>
+    </div>
+
+    <div
+      id="rh-padron-total-badge"
+      class="inline-flex items-center self-start rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 lg:self-end"
+    >
+      Total: {{ total() }} {{ total() === 1 ? 'persona' : 'personas' }}
+    </div>
+  </div>
+
+  <!-- Estados de error 403 o error general -->
+  @if (forbiddenError(); as forbMsg) {
+    <div
+      id="rh-padron-forbidden-alert"
+      role="alert"
+      class="mt-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900"
+    >
+      <lucide-icon [img]="icons.shieldAlert" class="mt-0.5 h-5 w-5 shrink-0 text-red-700"></lucide-icon>
+      <span>{{ forbMsg }}</span>
+    </div>
+  } @else if (error(); as errMsg) {
+    <div
+      id="rh-padron-error-alert"
+      role="alert"
+      class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900"
+    >
+      <div class="flex items-start gap-2.5">
+        <lucide-icon [img]="icons.alert" class="mt-0.5 h-5 w-5 shrink-0 text-red-700"></lucide-icon>
+        <span>{{ errMsg }}</span>
+      </div>
+      <button
+        type="button"
+        (click)="cargarPadron()"
+        class="rounded-lg bg-red-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-800"
+      >
+        Reintentar
+      </button>
+    </div>
+  } @else if (loading() && items().length === 0) {
+    <div id="rh-padron-loading" class="mt-6 flex items-center justify-center gap-2 py-10 text-sm text-slate-600">
+      <lucide-icon [img]="icons.loader" class="h-5 w-5 animate-spin text-[#006341]"></lucide-icon>
+      <span>Cargando padrón institucional…</span>
+    </div>
+  } @else if (items().length === 0) {
+    <div
+      id="rh-padron-empty"
+      class="mt-6 rounded-xl border border-dashed border-gray-300 bg-slate-50 p-8 text-center text-sm text-slate-600"
+    >
+      @if (appliedSearch()) {
+        No se encontraron personas que coincidan con «{{ appliedSearch() }}».
+      } @else {
+        No hay personas registradas en el padrón con el filtro seleccionado.
+      }
+    </div>
+  } @else {
+    <!-- Tabla institucional del padrón -->
+    <div class="mt-4 overflow-x-auto rounded-xl border border-gray-200">
+      <table id="rh-padron-table" class="min-w-full divide-y divide-gray-200 text-left text-sm">
+        <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <tr>
+            <th class="px-4 py-3">Nombre completo</th>
+            <th class="px-4 py-3">Cargo</th>
+            <th class="px-4 py-3">Unidad de referencia</th>
+            <th class="px-4 py-3">Estado</th>
+            <th class="px-4 py-3">Cuenta vinculada</th>
+            <th class="px-4 py-3">Identificadores (enmascarados)</th>
+            <th class="px-4 py-3 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 bg-white">
+          @for (p of items(); track p.persona_id) {
+            <tr [attr.data-persona-id]="p.persona_id" class="hover:bg-slate-50/70">
+              <td class="px-4 py-3">
+                <p class="font-semibold text-slate-900">{{ p.nombre_completo }}</p>
+                @if (p.correo_principal) {
+                  <p class="text-xs text-slate-500">{{ p.correo_principal }}</p>
+                }
+              </td>
+
+              <td class="px-4 py-3 text-slate-700">
+                {{ p.cargo || 'No especificado' }}
+              </td>
+
+              <td class="px-4 py-3">
+                @if (p.unidad_medica_id && p.unidad_medica_nombre) {
+                  <p class="font-medium text-slate-800">{{ p.unidad_medica_nombre }}</p>
+                  @if (isCluesConvencional(p.unidad_medica_cluesimb)) {
+                    <p class="font-mono text-xs text-slate-500">CLUES: {{ p.unidad_medica_cluesimb }}</p>
+                  } @else {
+                    <p class="text-xs text-slate-500">Unidad administrativa (sin CLUES convencional)</p>
+                  }
+                } @else {
+                  <span class="text-xs text-slate-500">Sin unidad de referencia</span>
+                }
+              </td>
+
+              <td class="px-4 py-3">
+                @if (p.activo) {
+                  <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+                    Activa
+                  </span>
+                } @else {
+                  <span class="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                    Inactiva
+                  </span>
+                  @if (p.fecha_baja) {
+                    <p class="mt-0.5 text-[11px] text-slate-500">Baja: {{ p.fecha_baja }}</p>
+                  }
+                }
+              </td>
+
+              <td class="px-4 py-3">
+                @if (p.tiene_cuenta_activa) {
+                  <span class="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
+                    Cuenta activa
+                  </span>
+                } @else {
+                  <span class="text-xs text-slate-500">Sin cuenta activa</span>
+                }
+              </td>
+
+              <td class="px-4 py-3 font-mono text-xs text-slate-700">
+                <div>RFC: {{ p.tiene_rfc && p.rfc_masked ? p.rfc_masked : 'No registrado' }}</div>
+                <div>CURP: {{ p.tiene_curp && p.curp_masked ? p.curp_masked : 'No registrada' }}</div>
+              </td>
+
+              <td class="px-4 py-3 text-right">
+                <div class="inline-flex flex-wrap items-center justify-end gap-1.5">
+                  <button
+                    [id]="'rh-padron-edit-general-btn-' + p.persona_id"
+                    type="button"
+                    (click)="openEditGeneralDialog(p)"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    <lucide-icon [img]="icons.pencil" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                    <span>Editar datos generales</span>
+                  </button>
+
+                  @if (p.activo) {
+                    <button
+                      [id]="'rh-padron-deactivate-btn-' + p.persona_id"
+                      type="button"
+                      (click)="openEstadoDialog(p, false)"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+                    >
+                      <lucide-icon [img]="icons.userX" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                      <span>Desactivar</span>
+                    </button>
+                  } @else {
+                    <button
+                      [id]="'rh-padron-reactivate-btn-' + p.persona_id"
+                      type="button"
+                      (click)="openEstadoDialog(p, true)"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
+                    >
+                      <lucide-icon [img]="icons.userCheck" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                      <span>Reactivar</span>
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="mt-4 flex items-center justify-between gap-3 text-xs text-slate-600">
+      <span id="rh-padron-page-info">
+        Página {{ page() }} de {{ totalPages() }}
+      </span>
+      <div class="flex items-center gap-2">
+        <button
+          id="rh-padron-prev-btn"
+          type="button"
+          (click)="goToPrevPage()"
+          [disabled]="!canGoPrev()"
+          class="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <lucide-icon [img]="icons.prev" class="h-3.5 w-3.5"></lucide-icon>
+          <span>Anterior</span>
+        </button>
+        <button
+          id="rh-padron-next-btn"
+          type="button"
+          (click)="goToNextPage()"
+          [disabled]="!canGoNext()"
+          class="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <span>Siguiente</span>
+          <lucide-icon [img]="icons.next" class="h-3.5 w-3.5"></lucide-icon>
+        </button>
+      </div>
+    </div>
+  }
+</section>
+
+<!-- Diálogo: Registrar persona nueva -->
+@if (createDialogOpen()) {
+  <div
+    id="rh-padron-create-dialog-backdrop"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+  >
+    <div
+      id="rh-padron-create-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rh-padron-create-title"
+      class="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-5 shadow-xl sm:p-6"
+    >
+      <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+        <h3 id="rh-padron-create-title" class="text-base font-bold text-slate-900 sm:text-lg">
+          Registrar persona en el padrón institucional
+        </h3>
+        <button
+          id="rh-padron-create-close-btn"
+          type="button"
+          (click)="closeCreateDialog()"
+          class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
+          aria-label="Cerrar diálogo"
+        >
+          <lucide-icon [img]="icons.clear" class="h-4 w-4"></lucide-icon>
+        </button>
+      </div>
+
+      <p class="mt-2 text-xs text-slate-600">
+        El alta registra a la persona en el directorio institucional sin crear cuenta de acceso ni adscripción laboral automática.
+      </p>
+
+      <div class="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+        <div>
+          <label for="rh-padron-create-nombres" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Nombres <span class="text-red-600">*</span>
+          </label>
+          <input
+            id="rh-padron-create-nombres"
+            type="text"
+            [value]="draftNombres()"
+            (input)="draftNombres.set($any($event.target).value)"
+            class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label for="rh-padron-create-apellidos" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Apellidos <span class="text-red-600">*</span>
+          </label>
+          <input
+            id="rh-padron-create-apellidos"
+            type="text"
+            [value]="draftApellidos()"
+            (input)="draftApellidos.set($any($event.target).value)"
+            class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label for="rh-padron-create-rfc" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+            RFC (opcional, 10 o 13 caracteres)
+          </label>
+          <input
+            id="rh-padron-create-rfc"
+            type="text"
+            maxlength="13"
+            [value]="draftRfc()"
+            (input)="draftRfc.set($any($event.target).value)"
+            class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 font-mono text-sm uppercase text-slate-900 focus:border-[#006341] focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label for="rh-padron-create-curp" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+            CURP (opcional, 18 caracteres)
+          </label>
+          <input
+            id="rh-padron-create-curp"
+            type="text"
+            maxlength="18"
+            [value]="draftCurp()"
+            (input)="draftCurp.set($any($event.target).value)"
+            class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 font-mono text-sm uppercase text-slate-900 focus:border-[#006341] focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label for="rh-padron-create-cargo" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Cargo (opcional)
+          </label>
+          <input
+            id="rh-padron-create-cargo"
+            type="text"
+            maxlength="100"
+            [value]="draftCargo()"
+            (input)="draftCargo.set($any($event.target).value)"
+            class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label for="rh-padron-create-correo" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Correo principal (opcional)
+          </label>
+          <input
+            id="rh-padron-create-correo"
+            type="email"
+            [value]="draftCorreo()"
+            (input)="draftCorreo.set($any($event.target).value)"
+            class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
+          />
+        </div>
+
+        <div class="sm:col-span-2">
+          <label for="rh-padron-create-unidad" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Unidad de referencia del directorio (opcional)
+          </label>
+          <select
+            id="rh-padron-create-unidad"
+            [value]="draftUnidadId()"
+            (change)="draftUnidadId.set($any($event.target).value)"
+            class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
+          >
+            <option value="">Sin unidad de referencia</option>
+            @for (u of unidades; track u.id) {
+              <option [value]="u.id">
+                {{ u.nombre }} {{ isCluesConvencional(u.cluesimb) ? '(' + u.cluesimb + ')' : '(Sin CLUES convencional)' }}
+              </option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (createError(); as cErr) {
+        <div
+          id="rh-padron-create-error"
+          role="alert"
+          class="mt-4 rounded-xl border p-3 text-xs"
+          [ngClass]="createIsConflict() ? 'border-amber-300 bg-amber-50 text-amber-950' : 'border-red-200 bg-red-50 text-red-900'"
+        >
+          {{ cErr }}
+        </div>
+      }
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button
+          id="rh-padron-create-cancel-btn"
+          type="button"
+          (click)="closeCreateDialog()"
+          [disabled]="createSubmitting()"
+          class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          Cancelar
+        </button>
+        <button
+          id="rh-padron-create-submit-btn"
+          type="button"
+          (click)="onSubmitCreatePersona()"
+          [disabled]="createSubmitting()"
+          class="inline-flex items-center gap-2 rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004f34] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <span>{{ createSubmitting() ? 'Registrando…' : 'Registrar persona' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Diálogo: Confirmación de Desactivación / Reactivación -->
+@if (estadoDialogOpen() && estadoTargetPersona(); as target) {
+  <div
+    id="rh-padron-estado-dialog-backdrop"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+  >
+    <div
+      id="rh-padron-estado-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rh-padron-estado-title"
+      class="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-5 shadow-xl sm:p-6"
+    >
+      <h3 id="rh-padron-estado-title" class="text-base font-bold text-slate-900 sm:text-lg">
+        @if (estadoTargetNuevoActivo()) {
+          Confirmar reactivación administrativa
+        } @else {
+          Confirmar desactivación administrativa
+        }
+      </h3>
+
+      <p class="mt-2 text-sm font-semibold text-slate-800">
+        {{ target.nombre_completo }}
+      </p>
+
+      @if (!estadoTargetNuevoActivo()) {
+        <ul id="rh-padron-deactivate-notes" class="mt-3 list-disc space-y-1 pl-5 text-xs text-slate-600">
+          <li>La persona pasará a estado inactivo en el padrón institucional.</li>
+          <li>Su historial administrativo y laboral se conserva íntegro; no se elimina físicamente.</li>
+          <li>Esta acción no da de baja automáticamente su cuenta de acceso ni sus adscripciones laborales.</li>
+        </ul>
+      } @else {
+        <p id="rh-padron-reactivate-note" class="mt-3 text-xs text-slate-600">
+          La reactivación administrativa del registro de persona no reactiva automáticamente cuentas de acceso ni adscripciones laborales previas.
+        </p>
+      }
+
+      @if (estadoError(); as eErr) {
+        <div
+          id="rh-padron-estado-error"
+          role="alert"
+          class="mt-4 rounded-xl border p-3 text-xs"
+          [ngClass]="estadoIsConflict() ? 'border-amber-300 bg-amber-50 text-amber-950' : 'border-red-200 bg-red-50 text-red-900'"
+        >
+          {{ eErr }}
+        </div>
+      }
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button
+          id="rh-padron-estado-cancel-btn"
+          type="button"
+          (click)="closeEstadoDialog()"
+          [disabled]="estadoSubmitting()"
+          class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          Cancelar
+        </button>
+        <button
+          id="rh-padron-estado-confirm-btn"
+          type="button"
+          (click)="onConfirmEstadoChange()"
+          [disabled]="estadoSubmitting()"
+          class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          [ngClass]="estadoTargetNuevoActivo() ? 'bg-[#006341] hover:bg-[#004f34]' : 'bg-amber-700 hover:bg-amber-800'"
+        >
+          @if (estadoSubmitting()) {
+            <span>Procesando…</span>
+          } @else if (estadoTargetNuevoActivo()) {
+            <span>Confirmar reactivación</span>
+          } @else {
+            <span>Confirmar desactivación</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Diálogo: Editar datos generales (RH-4A.2B) -->
+@if (editGeneralDialogOpen() && editGeneralTargetPersona(); as editTarget) {
+  <div
+    id="rh-padron-edit-general-backdrop"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+  >
+    <div
+      id="rh-padron-edit-general-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rh-padron-edit-general-title"
+      class="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-5 shadow-xl sm:p-6"
+    >
+      <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+        <h3 id="rh-padron-edit-general-title" class="text-base font-bold text-slate-900 sm:text-lg">
+          Editar datos generales
+        </h3>
+        <button
+          id="rh-padron-edit-general-close-btn"
+          type="button"
+          (click)="closeEditGeneralDialog()"
+          class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
+          aria-label="Cerrar diálogo"
+        >
+          <lucide-icon [img]="icons.clear" class="h-4 w-4"></lucide-icon>
+        </button>
+      </div>
+
+      <!-- Datos de referencia no editables -->
+      <div class="mt-3 rounded-xl border border-gray-200 bg-slate-50 p-3 text-xs">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p id="rh-padron-edit-general-nombre" class="text-sm font-bold text-slate-900">
+            {{ editTarget.nombre_completo }}
+          </p>
+          <span
+            id="rh-padron-edit-general-estado"
+            class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
+            [ngClass]="
+              editTarget.activo
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-slate-300 bg-slate-200 text-slate-700'
+            "
+          >
+            {{ editTarget.activo ? 'Activa' : 'Inactiva' }}
+          </span>
+        </div>
+        <p id="rh-padron-edit-general-notice" class="mt-1.5 text-slate-600">
+          Estos datos pertenecen al directorio institucional. Su modificación no cambia la adscripción laboral del trabajador.
+        </p>
+      </div>
+
+      <div class="mt-4 space-y-3.5">
+        <div>
+          <label for="rh-padron-edit-cargo" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Cargo
+          </label>
+          <input
+            id="rh-padron-edit-cargo"
+            type="text"
+            maxlength="100"
+            [value]="editDraftCargo()"
+            (input)="editDraftCargo.set($any($event.target).value)"
+            placeholder="Sin cargo registrado"
+            class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label for="rh-padron-edit-correo" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Correo principal
+          </label>
+          <input
+            id="rh-padron-edit-correo"
+            type="email"
+            maxlength="254"
+            [value]="editDraftCorreo()"
+            (input)="editDraftCorreo.set($any($event.target).value)"
+            placeholder="Sin correo registrado"
+            class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label for="rh-padron-edit-unidad" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Unidad de referencia del directorio
+          </label>
+          <select
+            id="rh-padron-edit-unidad"
+            [value]="editDraftUnidadId()"
+            (change)="editDraftUnidadId.set($any($event.target).value)"
+            class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
+          >
+            <option value="">Sin unidad de referencia</option>
+            @for (u of unidades; track u.id) {
+              <option [value]="u.id" [selected]="'' + u.id === editDraftUnidadId()">
+                {{ u.nombre }} {{ isCluesConvencional(u.cluesimb) ? '(' + u.cluesimb + ')' : '(Sin CLUES convencional)' }}
+              </option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (editGeneralError(); as egErr) {
+        <div
+          id="rh-padron-edit-general-error"
+          role="alert"
+          class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-900"
+        >
+          {{ egErr }}
+        </div>
+      }
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button
+          id="rh-padron-edit-general-cancel-btn"
+          type="button"
+          (click)="closeEditGeneralDialog()"
+          [disabled]="editGeneralSubmitting()"
+          class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          Cancelar
+        </button>
+        <button
+          id="rh-padron-edit-general-submit-btn"
+          type="button"
+          (click)="onSubmitEditGeneral()"
+          [disabled]="editGeneralSubmitting()"
+          class="inline-flex items-center gap-2 rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004f34] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <span>{{ editGeneralSubmitting() ? 'Guardando…' : 'Guardar cambios' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}

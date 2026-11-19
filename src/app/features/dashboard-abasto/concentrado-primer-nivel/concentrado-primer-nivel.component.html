@@ -9,6 +9,7 @@
       (click)="exportarExcel()" [disabled]="loading() || exporting()">
       {{ exporting() ? 'Preparando Excel…' : 'Exportar Excel' }}
     </button>
+    <a routerLink="../solicitado-vs-surtido" class="rounded-xl border border-emerald-700 px-4 py-2 font-semibold text-emerald-800">Analizar surtimiento</a>
   </header>
 
   <p class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"><strong>Lectura responsable:</strong> una solicitud registrada corresponde a una captura asociada a un archivo generado; no acredita recepción, autorización, procesamiento ni surtimiento.</p>

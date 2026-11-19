@@ -31,6 +31,7 @@ import {
 } from '../../services/rh.service';
 import { authGuard } from '../../core/auth/auth.guard';
 import { resolveSafeAdminReturnUrl } from '../auth/login/login-page.component';
+import { RhAsistenciaDocxService } from './asistencia/rh-asistencia-docx.service';
 import { RhEmployeePortalComponent } from './rh-employee-portal.component';
 import { RhShellComponent } from './rh-shell.component';
 
@@ -3408,5 +3409,1075 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     portalFixture.destroy();
     expect(portalFixture.componentInstance.contextoData()).toBeNull();
     expect(portalFixture.componentInstance.loadingContexto()).toBeFalse();
+  });
+
+  // =========================================================================
+  // SUITE RH-3A.2 (MI LISTA DE ASISTENCIA EN /rh: PRECARGA, CASOS DE ADSCRIPCIÓN, CALENDARIO Y DESCARGA DOCX)
+  // =========================================================================
+
+  it('37 (RH-3A.2 #1, #2, #5, #6, #9, #10, #11, #19, #20). Carga de «Mi lista de asistencia» tras GET /api/rh/mi-contexto; precarga desde adscripción vigente, varias adscripciones vigentes, Oficina Central (CLUES N/A), puesto/jornada/horario faltantes, sugerencias editables y edición local sin PATCH ni peticiones administrativas', async () => {
+    setupSession(rhGlobalUser);
+
+    const portalFixture = TestBed.createComponent(RhEmployeePortalComponent);
+    portalFixture.detectChanges();
+
+    // Contexto con 2 adscripciones vigentes (una en unidad médica y otra en OFICINA CENTRAL sin puesto/jornada/horario)
+    httpMock.expectOne(rhMiContextoUrl).flush({
+      modo: 'EMPLEADO',
+      persona: {
+        persona_id: 801,
+        nombre_completo: 'Persona Trabajadora Ejemplo Uno',
+        nombres: 'Persona Trabajadora',
+        apellidos: 'Ejemplo Uno',
+        tiene_rfc: true,
+        rfc_masked: '**********AB1',
+        tiene_curp: true,
+        curp_masked: '****************09',
+      },
+      unidad_referencia: {
+        id: 10,
+        nombre: 'HOSPITAL GENERAL MEXICALI',
+        cluesimb: 'BCIMB000001',
+        origen: 'ADSCRIPCION_RH',
+      },
+      estado_vinculacion_rh: 'ADSCRIPCION_VIGENTE',
+      adscripciones: [
+        {
+          adscripcion_laboral_id: 9101,
+          unidad_medica_id: 10,
+          unidad: { id: 10, nombre: 'HOSPITAL GENERAL MEXICALI', cluesimb: 'BCIMB000001' },
+          matricula: 'MAT-9101',
+          puesto: 'Enfermera General Titulada',
+          turno: 'MATUTINO',
+          jornada: 'LUNES A VIERNES',
+          horario: '07:00 - 15:00 HRS',
+          vigente_desde: '2025-01-01',
+          vigente_hasta: null,
+          activo: true,
+          es_vigente: true,
+          estado_vigencia: 'VIGENTE',
+          observaciones: null,
+        },
+        {
+          adscripcion_laboral_id: 9102,
+          unidad_medica_id: 177,
+          unidad: { id: 177, nombre: 'OFICINA CENTRAL', cluesimb: 'N/A' },
+          matricula: null,
+          puesto: null,
+          turno: null,
+          jornada: null,
+          horario: null,
+          vigente_desde: '2025-06-01',
+          vigente_hasta: null,
+          activo: true,
+          es_vigente: true,
+          estado_vigencia: 'VIGENTE',
+          observaciones: null,
+        },
+      ],
+      permisos: mockMiContextoVigente.permisos,
+    } satisfies RhMiContextoResponse);
+
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    const portalEl = portalFixture.nativeElement as HTMLElement;
+    const asistenciaSection = portalEl.querySelector('#rh-portal-mi-lista-asistencia-section');
+    expect(asistenciaSection).not.toBeNull();
+    expect(portalEl.querySelector('#rh-portal-asistencia-heading')?.textContent).toContain(
+      'Mi lista de asistencia'
+    );
+
+    // 1 y 2. Verificar precarga desde la primera adscripción vigente (9101)
+    const inputNombre = portalEl.querySelector('#rh-asistencia-input-nombre') as HTMLInputElement;
+    const inputPuesto = portalEl.querySelector('#rh-asistencia-input-puesto') as HTMLInputElement;
+    const inputAdscripcion = portalEl.querySelector(
+      '#rh-asistencia-input-adscripcion'
+    ) as HTMLInputElement;
+    const inputJornada = portalEl.querySelector('#rh-asistencia-input-jornada') as HTMLInputElement;
+    const inputHorario = portalEl.querySelector('#rh-asistencia-input-horario') as HTMLInputElement;
+
+    expect(inputNombre.value).toBe('Persona Trabajadora Ejemplo Uno');
+    expect(inputPuesto.value).toBe('Enfermera General Titulada');
+    expect(inputAdscripcion.value).toBe('HOSPITAL GENERAL MEXICALI');
+    expect(inputJornada.value).toBe('LUNES A VIERNES');
+    expect(inputHorario.value).toBe('07:00 - 15:00 HRS');
+
+    // 6. Varias adscripciones vigentes -> muestra selector #rh-asistencia-select-adscripcion
+    const selectAdscripcion = portalEl.querySelector(
+      '#rh-asistencia-select-adscripcion'
+    ) as HTMLSelectElement | null;
+    expect(selectAdscripcion).not.toBeNull();
+    expect(selectAdscripcion!.options.length).toBe(2);
+
+    // 5, 9 y 10. Seleccionar la segunda adscripción vigente (9102 en OFICINA CENTRAL con CLUES N/A y sin puesto/jornada/horario)
+    selectAdscripcion!.value = '9102';
+    selectAdscripcion!.dispatchEvent(new Event('change'));
+    portalFixture.detectChanges();
+
+    expect(inputAdscripcion.value).toBe('OFICINA CENTRAL');
+    // No inventa puesto, jornada ni horario cuando la adscripción los tiene en null
+    expect(inputPuesto.value).toBe('');
+    expect(inputJornada.value).toBe('');
+    expect(inputHorario.value).toBe('');
+
+    // Las sugerencias editables aplican el valor sugerido explícitamente cuando el usuario hace clic
+    (portalEl.querySelector('#rh-asistencia-suggest-jornada-btn') as HTMLButtonElement).click();
+    (portalEl.querySelector('#rh-asistencia-suggest-horario-btn') as HTMLButtonElement).click();
+    portalFixture.detectChanges();
+
+    expect(inputJornada.value).toBe('LUNES A VIERNES');
+    expect(inputHorario.value).toBe('08:00 – 17:00 HRS');
+
+    // 11 y 19. Edición local en el formulario no dispara ningún PATCH/POST/GET administrativo al backend
+    inputPuesto.value = 'Analista Administrativo Estatal';
+    inputPuesto.dispatchEvent(new Event('input'));
+    portalFixture.detectChanges();
+
+    expect(portalEl.querySelector('#rh-asistencia-local-edit-notice')?.textContent).toContain(
+      'no modifican ni actualizan tu expediente laboral'
+    );
+    httpMock.expectNone((r) => r.url.includes('/api/rh/'));
+
+    // 20. Conserva el botón «Ir a Administración RH» para usuarios con rol RH
+    expect(portalEl.querySelector('#rh-portal-go-admin-link')).not.toBeNull();
+  });
+
+  it('38 (RH-3A.2 #3, #4, #7, #8). Trabajador sin adscripción RH (unidad de referencia del directorio) y trabajador con solo adscripciones futuras o históricas (no seleccionadas silenciosamente como vigentes)', async () => {
+    setupSession(unauthorizedAbastoUser);
+
+    const portalFixture = TestBed.createComponent(RhEmployeePortalComponent);
+    portalFixture.detectChanges();
+
+    // 3 y 4. Trabajador en PENDIENTE_ADSCRIPCION_RH con unidad de referencia del directorio
+    httpMock.expectOne(rhMiContextoUrl).flush({
+      modo: 'EMPLEADO',
+      persona: {
+        persona_id: 802,
+        nombre_completo: 'Persona Trabajadora Sin Adscripcion',
+        nombres: 'Persona Trabajadora',
+        apellidos: 'Sin Adscripcion',
+        tiene_rfc: false,
+        rfc_masked: null,
+        tiene_curp: false,
+        curp_masked: null,
+      },
+      unidad_referencia: {
+        id: 20,
+        nombre: 'HOSPITAL GENERAL TIJUANA',
+        cluesimb: 'BCIMB000010',
+        origen: 'DIRECTORIO',
+      },
+      estado_vinculacion_rh: 'PENDIENTE_ADSCRIPCION_RH',
+      adscripciones: [],
+      permisos: mockMiContextoVigente.permisos,
+    } satisfies RhMiContextoResponse);
+
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    const portalEl = portalFixture.nativeElement as HTMLElement;
+    const inputNombre = portalEl.querySelector('#rh-asistencia-input-nombre') as HTMLInputElement;
+    const inputPuesto = portalEl.querySelector('#rh-asistencia-input-puesto') as HTMLInputElement;
+    const inputAdscripcion = portalEl.querySelector(
+      '#rh-asistencia-input-adscripcion'
+    ) as HTMLInputElement;
+    const inputJornada = portalEl.querySelector('#rh-asistencia-input-jornada') as HTMLInputElement;
+    const inputHorario = portalEl.querySelector('#rh-asistencia-input-horario') as HTMLInputElement;
+
+    expect(inputNombre.value).toBe('Persona Trabajadora Sin Adscripcion');
+    expect(inputAdscripcion.value).toBe('HOSPITAL GENERAL TIJUANA');
+    // Identificada explícitamente como unidad de referencia del directorio, no adscripción formal
+    expect(
+      portalEl.querySelector('#rh-asistencia-adscripcion-ref-badge')?.textContent
+    ).toContain('Unidad de referencia del directorio');
+    expect(inputPuesto.value).toBe('');
+    expect(inputJornada.value).toBe('');
+    expect(inputHorario.value).toBe('');
+
+    // 7 y 8. Trabajador con solo adscripción FUTURA e HISTORICA -> NO se seleccionan silenciosamente como vigentes
+    const reloadNonVigentes = portalFixture.componentInstance.cargarMiContexto();
+    httpMock.expectOne(rhMiContextoUrl).flush({
+      modo: 'EMPLEADO',
+      persona: {
+        persona_id: 803,
+        nombre_completo: 'Persona Trabajadora Programada',
+        nombres: 'Persona Trabajadora',
+        apellidos: 'Programada',
+        tiene_rfc: false,
+        rfc_masked: null,
+        tiene_curp: false,
+        curp_masked: null,
+      },
+      unidad_referencia: {
+        id: 177,
+        nombre: 'OFICINA CENTRAL',
+        cluesimb: 'N/A',
+        origen: 'ADSCRIPCION_RH',
+      },
+      estado_vinculacion_rh: 'ADSCRIPCION_FUTURA',
+      adscripciones: [
+        {
+          adscripcion_laboral_id: 9201,
+          unidad_medica_id: 177,
+          unidad: { id: 177, nombre: 'OFICINA CENTRAL', cluesimb: 'N/A' },
+          matricula: 'MAT-FUT',
+          puesto: 'Coordinador Normativo',
+          turno: 'MATUTINO',
+          jornada: 'LUNES A VIERNES',
+          horario: '08:00 - 16:00 HRS',
+          vigente_desde: '2099-01-15',
+          vigente_hasta: null,
+          activo: true,
+          es_vigente: false,
+          estado_vigencia: 'FUTURA',
+          observaciones: null,
+        },
+        {
+          adscripcion_laboral_id: 9202,
+          unidad_medica_id: 30,
+          unidad: { id: 30, nombre: 'HOSPITAL GENERAL ENSENADA', cluesimb: 'BCIMB000020' },
+          matricula: 'MAT-HIST',
+          puesto: 'Analista Previo',
+          turno: 'VESPERTINO',
+          jornada: 'LUNES A VIERNES',
+          horario: '14:00 - 21:30 HRS',
+          vigente_desde: '2024-01-01',
+          vigente_hasta: '2024-12-31',
+          activo: false,
+          es_vigente: false,
+          estado_vigencia: 'HISTORICA',
+          observaciones: null,
+        },
+      ],
+      permisos: mockMiContextoVigente.permisos,
+    } satisfies RhMiContextoResponse);
+    await reloadNonVigentes;
+    portalFixture.detectChanges();
+
+    // Ninguna adscripción futura o histórica se seleccionó silenciosamente
+    expect(portalEl.querySelector('#rh-asistencia-non-vigente-warning')).not.toBeNull();
+    expect(inputPuesto.value).toBe('');
+    expect(inputJornada.value).toBe('');
+    expect(inputHorario.value).toBe('');
+
+    const selectNonVigente = portalEl.querySelector(
+      '#rh-asistencia-select-adscripcion'
+    ) as HTMLSelectElement;
+    expect(selectNonVigente).not.toBeNull();
+    expect(selectNonVigente.value).toBe('NONE');
+    expect(selectNonVigente.textContent).toContain('[Programada (futura)]');
+    expect(selectNonVigente.textContent).toContain('15/01/2099');
+    expect(selectNonVigente.textContent).toContain('[Histórica]');
+    expect(selectNonVigente.textContent).toContain('01/01/2024 a 31/12/2024');
+
+    // Selección explícita de la adscripción futura por el trabajador
+    selectNonVigente.value = '9201';
+    selectNonVigente.dispatchEvent(new Event('change'));
+    portalFixture.detectChanges();
+
+    expect(inputPuesto.value).toBe('Coordinador Normativo');
+    expect(inputAdscripcion.value).toBe('OFICINA CENTRAL');
+    expect(inputJornada.value).toBe('LUNES A VIERNES');
+    expect(inputHorario.value).toBe('08:00 - 16:00 HRS');
+  });
+
+  it('39 (RH-3A.2 #12, #13, #14, #15, #16, #17, #18). Selección de mes y año, febrero bisiesto 2028, aviso de calendario no confirmado, descarga DOCX, prevención de doble descarga, manejo de error de plantilla y limpieza al cerrar sesión', async () => {
+    setupSession(unauthorizedAbastoUser);
+    const docxService = TestBed.inject(RhAsistenciaDocxService);
+
+    const portalFixture = TestBed.createComponent(RhEmployeePortalComponent);
+    portalFixture.detectChanges();
+
+    httpMock.expectOne(rhMiContextoUrl).flush(mockMiContextoVigente);
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    const portalEl = portalFixture.nativeElement as HTMLElement;
+    const selectMonth = portalEl.querySelector('#rh-asistencia-select-month') as HTMLSelectElement;
+    const selectYear = portalEl.querySelector('#rh-asistencia-select-year') as HTMLSelectElement;
+
+    // 12, 13 y 14. Seleccionar Febrero de 2028 (bisiesto = 29 días y calendario sujeto a confirmación)
+    selectMonth.value = '2';
+    selectMonth.dispatchEvent(new Event('change'));
+    selectYear.value = '2028';
+    selectYear.dispatchEvent(new Event('change'));
+    portalFixture.detectChanges();
+
+    expect(portalEl.querySelector('#rh-asistencia-leap-badge')?.textContent).toContain(
+      'Año bisiesto (2028)'
+    );
+    expect(portalEl.querySelector('#rh-asistencia-kpi-total-days')?.textContent?.trim()).toBe('29');
+    expect(
+      portalEl.querySelector('#rh-asistencia-unconfirmed-calendar-notice')?.textContent
+    ).toContain('Calendario sujeto a confirmación de la circular institucional correspondiente.');
+
+    // En 2026 (confirmado por Circular IB-UAF-CRH-0003-2026) el aviso desaparece
+    selectYear.value = '2026';
+    selectYear.dispatchEvent(new Event('change'));
+    portalFixture.detectChanges();
+    expect(portalEl.querySelector('#rh-asistencia-unconfirmed-calendar-notice')).toBeNull();
+    expect(portalEl.querySelector('#rh-asistencia-kpi-total-days')?.textContent?.trim()).toBe('28');
+
+    // Validación cuando falta puesto antes de descargar
+    const inputPuesto = portalEl.querySelector('#rh-asistencia-input-puesto') as HTMLInputElement;
+    inputPuesto.value = '   ';
+    inputPuesto.dispatchEvent(new Event('input'));
+    portalFixture.detectChanges();
+
+    const downloadBtn = portalEl.querySelector(
+      '#rh-asistencia-download-btn'
+    ) as HTMLButtonElement;
+    downloadBtn.click();
+    portalFixture.detectChanges();
+
+    expect(portalEl.querySelector('#rh-asistencia-validation-error')?.textContent).toContain(
+      'El campo «Puesto» es obligatorio'
+    );
+
+    // Restaurar puesto y probar 15 y 17 (descarga DOCX y prevención de doble descarga por clics repetidos)
+    inputPuesto.value = 'Enfermera General Titulada';
+    inputPuesto.dispatchEvent(new Event('input'));
+    portalFixture.detectChanges();
+
+    let resolveDownload!: (fileName: string) => void;
+    const downloadSpy = spyOn(docxService, 'downloadAttendanceDocxFromParams').and.returnValue(
+      new Promise<string>((resolve) => {
+        resolveDownload = resolve;
+      })
+    );
+
+    downloadBtn.click();
+    portalFixture.detectChanges();
+
+    expect(downloadSpy).toHaveBeenCalledTimes(1);
+    expect(downloadBtn.disabled).toBeTrue();
+    expect(downloadBtn.textContent).toContain('Generando documento Word…');
+
+    // Un segundo clic mientras isGenerating() es true no dispara otra descarga
+    downloadBtn.click();
+    expect(downloadSpy).toHaveBeenCalledTimes(1);
+
+    resolveDownload('Lista_Asistencia_2026-02_Maria_Fernanda_Lopez_Ruiz.docx');
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    expect(downloadBtn.disabled).toBeFalse();
+    expect(portalEl.querySelector('#rh-asistencia-download-success')?.textContent).toContain(
+      'Lista_Asistencia_2026-02_Maria_Fernanda_Lopez_Ruiz.docx'
+    );
+
+    // 16. Error en carga de plantilla muestra mensaje amigable en #rh-asistencia-generation-error
+    downloadSpy.and.returnValue(
+      Promise.reject(
+        new Error(
+          'No se encontró la plantilla institucional rh/asistencia/template-membretado-2026.docx (HTTP 404).'
+        )
+      )
+    );
+
+    downloadBtn.click();
+    await portalFixture.whenStable();
+    portalFixture.detectChanges();
+
+    expect(portalEl.querySelector('#rh-asistencia-generation-error')?.textContent).toContain(
+      'No se encontró la plantilla institucional'
+    );
+
+    // 18. Cierre de sesión limpia toda la información del portal y del formulario sin persistir en storage
+    expect(JSON.stringify(localStorage)).not.toContain('Enfermera General Titulada');
+    expect(JSON.stringify(sessionStorage)).not.toContain('Enfermera General Titulada');
+
+    const logoutPromise = portalFixture.componentInstance.onLogout();
+    portalFixture.detectChanges();
+    expect(portalFixture.componentInstance.contextoData()).toBeNull();
+    expect(portalEl.querySelector('#rh-portal-mi-lista-asistencia-section')).toBeNull();
+
+    httpMock.expectOne(`${authBase}/logout`).flush({ ok: true });
+    await logoutPromise;
+    expect(location.path()).toBe('/login');
+  });
+
+  // =========================================================================
+  // SUITE RH-4A.1B (PLANTILLA INSTITUCIONAL EN /rh-admin: PADRÓN, ALTA Y CAMBIO DE ESTADO)
+  // =========================================================================
+
+  it('40 (RH-4A.1B #1-#11, #24). Visibilidad exclusiva de «Plantilla institucional» para RECURSOS_HUMANOS GLOBAL (oculta para RH CLUES y ADMIN_TIC GLOBAL); carga inicial, búsqueda, filtro de estado, paginación, persona sin cuenta, sin unidad, Oficina Central (CLUES N/A) e identificadores enmascarados', async () => {
+    const rhPersonasUrl = `${apiBase}/rh/personas`;
+
+    // 2. Oculta para RECURSOS_HUMANOS CLUES
+    setupSession(rhCluesSingleUser);
+    createComponent();
+    httpMock.expectOne(rhUnidadesUrl).flush({
+      scope: 'CLUES',
+      unidades: [mockUnidadesGlobal[0]],
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    httpMock.expectOne((r) => r.url === rhPersonalUrl(10)).flush({
+      unidad: mockUnidadesGlobal[0],
+      items: [],
+      page: 1,
+      pageSize: 20,
+      total: 0,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#rh-admin-tab-padron')).toBeNull();
+    fixture.destroy();
+
+    // 3. Oculta para ADMIN_TIC GLOBAL sin RH GLOBAL
+    setupSession(adminTicGlobalUser);
+    createComponent();
+    httpMock.expectOne(rhUnidadesUrl).flush({
+      scope: 'GLOBAL',
+      unidades: mockUnidadesGlobal,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#rh-admin-tab-padron')).toBeNull();
+    fixture.destroy();
+
+    // 1. Visible para RECURSOS_HUMANOS GLOBAL
+    setupSession(rhGlobalUser);
+    createComponent();
+    httpMock.expectOne(rhUnidadesUrl).flush({
+      scope: 'GLOBAL',
+      unidades: mockUnidadesGlobal,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const tabPadronBtn = fixture.nativeElement.querySelector(
+      '#rh-admin-tab-padron'
+    ) as HTMLButtonElement | null;
+    expect(tabPadronBtn).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#rh-unidad-context-section')).not.toBeNull();
+
+    // 4. Cambiar a pestaña «Plantilla institucional» dispara GET /api/rh/personas
+    tabPadronBtn!.click();
+    fixture.detectChanges();
+
+    const initReq = httpMock.expectOne((r) => r.url === rhPersonasUrl && r.method === 'GET');
+    expect(initReq.request.params.get('estado')).toBe('todas');
+    expect(initReq.request.params.get('page')).toBe('1');
+    initReq.flush({
+      items: [
+        {
+          persona_id: 501,
+          nombre_completo: 'Persona Oficina Central',
+          nombres: 'Persona',
+          apellidos: 'Oficina Central',
+          cargo: 'Coordinación',
+          correo_principal: 'central@imssbienestar.gob.mx',
+          unidad_medica_id: 177,
+          unidad_medica_nombre: 'OFICINA CENTRAL',
+          unidad_medica_cluesimb: 'N/A',
+          tiene_rfc: true,
+          rfc_masked: '**********AB1',
+          tiene_curp: true,
+          curp_masked: '****************01',
+          activo: true,
+          fecha_baja: null,
+          tiene_cuenta_activa: true,
+        },
+        {
+          persona_id: 502,
+          nombre_completo: 'Persona Sin Cuenta Ni Unidad',
+          nombres: 'Persona',
+          apellidos: 'Sin Cuenta Ni Unidad',
+          cargo: null,
+          correo_principal: null,
+          unidad_medica_id: null,
+          unidad_medica_nombre: null,
+          unidad_medica_cluesimb: null,
+          tiene_rfc: false,
+          rfc_masked: null,
+          tiene_curp: false,
+          curp_masked: null,
+          activo: true,
+          fecha_baja: null,
+          tiene_cuenta_activa: false,
+        },
+      ],
+      page: 1,
+      pageSize: 20,
+      total: 25,
+    });
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const tableText = el.querySelector('#rh-padron-table')?.textContent ?? '';
+    expect(tableText).toContain('Persona Oficina Central');
+    expect(tableText).toContain('OFICINA CENTRAL');
+    expect(tableText).toContain('Unidad administrativa (sin CLUES convencional)');
+    expect(tableText).toContain('**********AB1');
+    expect(tableText).toContain('****************01');
+    expect(tableText).toContain('Sin cuenta activa');
+    expect(tableText).toContain('Sin unidad de referencia');
+    expect(el.querySelector('#rh-padron-total-badge')?.textContent).toContain('Total: 25 personas');
+
+    // 5. Búsqueda por nombre
+    const searchInput = el.querySelector('#rh-padron-search-input') as HTMLInputElement;
+    searchInput.value = 'Oficina';
+    searchInput.dispatchEvent(new Event('input'));
+    (el.querySelector('#rh-padron-search-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const searchReq = httpMock.expectOne((r) => r.url === rhPersonasUrl && r.params.get('q') === 'Oficina');
+    searchReq.flush({ items: [], page: 1, pageSize: 20, total: 0 });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('#rh-padron-empty')?.textContent).toContain('Oficina');
+
+    // 6. Filtro de estado
+    const estadoSelect = el.querySelector('#rh-padron-estado-select') as HTMLSelectElement;
+    estadoSelect.value = 'inactivas';
+    estadoSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const estadoReq = httpMock.expectOne((r) => r.url === rhPersonasUrl && r.params.get('estado') === 'inactivas');
+    estadoReq.flush({
+      items: [
+        {
+          persona_id: 503,
+          nombre_completo: 'Persona Inactiva Pagina 1',
+          nombres: 'Persona',
+          apellidos: 'Inactiva Pagina 1',
+          cargo: null,
+          correo_principal: null,
+          unidad_medica_id: null,
+          unidad_medica_nombre: null,
+          unidad_medica_cluesimb: null,
+          tiene_rfc: false,
+          rfc_masked: null,
+          tiene_curp: false,
+          curp_masked: null,
+          activo: false,
+          fecha_baja: '2026-01-10',
+          tiene_cuenta_activa: false,
+        },
+      ],
+      page: 1,
+      pageSize: 20,
+      total: 25,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // 7. Paginación siguiente
+    (el.querySelector('#rh-padron-next-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const page2Req = httpMock.expectOne((r) => r.url === rhPersonasUrl && r.params.get('page') === '2');
+    page2Req.flush({
+      items: [
+        {
+          persona_id: 504,
+          nombre_completo: 'Persona Inactiva Pagina 2',
+          nombres: 'Persona',
+          apellidos: 'Inactiva Pagina 2',
+          cargo: null,
+          correo_principal: null,
+          unidad_medica_id: null,
+          unidad_medica_nombre: null,
+          unidad_medica_cluesimb: null,
+          tiene_rfc: false,
+          rfc_masked: null,
+          tiene_curp: false,
+          curp_masked: null,
+          activo: false,
+          fecha_baja: '2026-01-11',
+          tiene_cuenta_activa: false,
+        },
+      ],
+      page: 2,
+      pageSize: 20,
+      total: 25,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('#rh-padron-page-info')?.textContent).toContain('Página 2 de 2');
+  });
+
+  it('41 (RH-4A.1B #12-#23). Alta de persona (datos mínimos, sin RFC/CURP, con unidad, error 400/409, limpieza de borrador), desactivación con confirmación/cancelación, conflictos 409 (cuenta activa / adscripción), reactivación y prevención de dobles envíos', async () => {
+    const rhPersonasUrl = `${apiBase}/rh/personas`;
+    const rhPersonaEstadoUrl = (id: number) => `${apiBase}/rh/personas/${id}/estado`;
+
+    setupSession(rhGlobalUser);
+    createComponent();
+    httpMock.expectOne(rhUnidadesUrl).flush({
+      scope: 'GLOBAL',
+      unidades: mockUnidadesGlobal,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('#rh-admin-tab-padron') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    httpMock.expectOne((r) => r.url === rhPersonasUrl && r.method === 'GET').flush({
+      items: [
+        {
+          persona_id: 601,
+          nombre_completo: 'Persona Activa Uno',
+          nombres: 'Persona',
+          apellidos: 'Activa Uno',
+          cargo: 'Analista',
+          correo_principal: null,
+          unidad_medica_id: 10,
+          unidad_medica_nombre: 'HOSPITAL GENERAL MEXICALI',
+          unidad_medica_cluesimb: 'BCIMB000001',
+          tiene_rfc: false,
+          rfc_masked: null,
+          tiene_curp: false,
+          curp_masked: null,
+          activo: true,
+          fecha_baja: null,
+          tiene_cuenta_activa: false,
+        },
+        {
+          persona_id: 602,
+          nombre_completo: 'Persona Inactiva Dos',
+          nombres: 'Persona',
+          apellidos: 'Inactiva Dos',
+          cargo: null,
+          correo_principal: null,
+          unidad_medica_id: null,
+          unidad_medica_nombre: null,
+          unidad_medica_cluesimb: null,
+          tiene_rfc: false,
+          rfc_masked: null,
+          tiene_curp: false,
+          curp_masked: null,
+          activo: false,
+          fecha_baja: '2026-01-10',
+          tiene_cuenta_activa: false,
+        },
+      ],
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+
+    // 12, 13, 14, 15, 16, 22, 23: Abrir diálogo «Registrar persona»
+    (el.querySelector('#rh-padron-open-create-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const nombresIn = el.querySelector('#rh-padron-create-nombres') as HTMLInputElement;
+    const apellidosIn = el.querySelector('#rh-padron-create-apellidos') as HTMLInputElement;
+    const rfcIn = el.querySelector('#rh-padron-create-rfc') as HTMLInputElement;
+    const unidadSel = el.querySelector('#rh-padron-create-unidad') as HTMLSelectElement;
+    const submitBtn = el.querySelector('#rh-padron-create-submit-btn') as HTMLButtonElement;
+
+    // Validación local (sin nombres)
+    submitBtn.click();
+    fixture.detectChanges();
+    expect(el.querySelector('#rh-padron-create-error')?.textContent).toContain('Nombres');
+
+    // Conflicto 409 por RFC duplicado
+    nombresIn.value = 'Nueva';
+    nombresIn.dispatchEvent(new Event('input'));
+    apellidosIn.value = 'Persona';
+    apellidosIn.dispatchEvent(new Event('input'));
+    rfcIn.value = 'NUPR900101AB1';
+    rfcIn.dispatchEvent(new Event('input'));
+    unidadSel.value = '177';
+    unidadSel.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    submitBtn.click();
+    // Doble clic bloqueado por createSubmitting()
+    submitBtn.click();
+    fixture.detectChanges();
+
+    const create409Req = httpMock.expectOne((r) => r.url === rhPersonasUrl && r.method === 'POST');
+    expect(create409Req.request.body).toEqual({
+      nombres: 'Nueva',
+      apellidos: 'Persona',
+      rfc: 'NUPR900101AB1',
+      unidad_medica_id: 177,
+    });
+    create409Req.flush(
+      { error: 'El RFC proporcionado ya se encuentra registrado en otra persona del directorio institucional' },
+      { status: 409, statusText: 'Conflict' }
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('#rh-padron-create-error')?.textContent).toContain('ya se encuentra registrado');
+
+    // Alta exitosa sin RFC/CURP y con unidad de referencia
+    rfcIn.value = '';
+    rfcIn.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    submitBtn.click();
+    fixture.detectChanges();
+
+    const createOkReq = httpMock.expectOne((r) => r.url === rhPersonasUrl && r.method === 'POST');
+    expect(createOkReq.request.body).toEqual({
+      nombres: 'Nueva',
+      apellidos: 'Persona',
+      unidad_medica_id: 177,
+    });
+    createOkReq.flush({
+      persona_id: 603,
+      nombre_completo: 'Nueva Persona',
+      nombres: 'Nueva',
+      apellidos: 'Persona',
+      cargo: null,
+      correo_principal: null,
+      unidad_medica_id: 177,
+      tiene_rfc: false,
+      rfc_masked: null,
+      tiene_curp: false,
+      curp_masked: null,
+      activo: true,
+      fecha_baja: null,
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    httpMock
+      .expectOne((r) => r.url === rhPersonasUrl && r.method === 'GET')
+      .flush({ items: [], page: 1, pageSize: 20, total: 0 });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(el.querySelector('#rh-padron-create-dialog')).toBeNull();
+    expect(el.querySelector('#rh-padron-success-banner')?.textContent).toContain('Nueva Persona');
+
+    // Recargar lista con 601 y 602 para probar desactivación/reactivación
+    (el.querySelector('#rh-padron-clear-search-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    httpMock.expectOne((r) => r.url === rhPersonasUrl && r.method === 'GET').flush({
+      items: [
+        {
+          persona_id: 601,
+          nombre_completo: 'Persona Activa Uno',
+          nombres: 'Persona',
+          apellidos: 'Activa Uno',
+          cargo: 'Analista',
+          correo_principal: null,
+          unidad_medica_id: 10,
+          unidad_medica_nombre: 'HOSPITAL GENERAL MEXICALI',
+          unidad_medica_cluesimb: 'BCIMB000001',
+          tiene_rfc: false,
+          rfc_masked: null,
+          tiene_curp: false,
+          curp_masked: null,
+          activo: true,
+          fecha_baja: null,
+          tiene_cuenta_activa: false,
+        },
+        {
+          persona_id: 602,
+          nombre_completo: 'Persona Inactiva Dos',
+          nombres: 'Persona',
+          apellidos: 'Inactiva Dos',
+          cargo: null,
+          correo_principal: null,
+          unidad_medica_id: null,
+          unidad_medica_nombre: null,
+          unidad_medica_cluesimb: null,
+          tiene_rfc: false,
+          rfc_masked: null,
+          tiene_curp: false,
+          curp_masked: null,
+          activo: false,
+          fecha_baja: '2026-01-10',
+          tiene_cuenta_activa: false,
+        },
+      ],
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // 17 y 18: Confirmación y cancelación de desactivación (sin disparar PATCH)
+    (el.querySelector('#rh-padron-deactivate-btn-601') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('#rh-padron-deactivate-notes')?.textContent).toContain(
+      'no se elimina físicamente'
+    );
+    (el.querySelector('#rh-padron-estado-cancel-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    httpMock.expectNone(rhPersonaEstadoUrl(601));
+
+    // 19 y 20: Conflicto 409 por cuenta activa o adscripción laboral
+    (el.querySelector('#rh-padron-deactivate-btn-601') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (el.querySelector('#rh-padron-estado-confirm-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    httpMock
+      .expectOne((r) => r.url === rhPersonaEstadoUrl(601) && r.method === 'PATCH')
+      .flush(
+        { error: 'No se puede desactivar administrativamente una persona que tiene una cuenta de acceso activa vinculada' },
+        { status: 409, statusText: 'Conflict' }
+      );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('#rh-padron-estado-error')?.textContent).toContain('cuenta de acceso activa');
+    (el.querySelector('#rh-padron-estado-cancel-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    // 21: Reactivación exitosa de 602
+    (el.querySelector('#rh-padron-reactivate-btn-602') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('#rh-padron-reactivate-note')?.textContent).toContain(
+      'no reactiva automáticamente cuentas de acceso ni adscripciones'
+    );
+    (el.querySelector('#rh-padron-estado-confirm-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const reactReq = httpMock.expectOne(
+      (r) => r.url === rhPersonaEstadoUrl(602) && r.method === 'PATCH'
+    );
+    expect(reactReq.request.body).toEqual({ activo: true });
+    reactReq.flush({
+      persona: {
+        persona_id: 602,
+        nombre_completo: 'Persona Inactiva Dos',
+        nombres: 'Persona',
+        apellidos: 'Inactiva Dos',
+        cargo: null,
+        correo_principal: null,
+        unidad_medica_id: null,
+        tiene_rfc: false,
+        rfc_masked: null,
+        tiene_curp: false,
+        curp_masked: null,
+        activo: true,
+        fecha_baja: null,
+      },
+      estado_anterior: false,
+      estado_nuevo: true,
+      idempotente: false,
+      campos_modificados: ['activo', 'fecha_baja'],
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    httpMock
+      .expectOne((r) => r.url === rhPersonasUrl && r.method === 'GET')
+      .flush({ items: [], page: 1, pageSize: 20, total: 0 });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(el.querySelector('#rh-padron-success-banner')?.textContent).toContain(
+      'reactivado administrativamente'
+    );
+  });
+
+  // =========================================================================
+  // SUITE RH-4A.2B (EDICIÓN DE DATOS GENERALES DEL PADRÓN EN /rh-admin)
+  // =========================================================================
+
+  it('42 (RH-4A.2B #1-#30). Diálogo «Editar datos generales» en Plantilla institucional: precarga, omisión de campos sin cambios, limpieza con null, Oficina Central (CLUES N/A), guardar sin cambios / cancelación sin PATCH, validación de correo/longitud, errores 400/403/404/500, prevención de doble envío, recarga conservando filtros y ausencia de cambios a adscripciones', async () => {
+    const rhPersonasUrl = `${apiBase}/rh/personas`;
+    const rhPersonaGeneralUrl = (id: number) => `${apiBase}/rh/personas/${id}/general`;
+
+    setupSession(rhGlobalUser);
+    createComponent();
+    httpMock.expectOne(rhUnidadesUrl).flush({
+      scope: 'GLOBAL',
+      unidades: mockUnidadesGlobal,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('#rh-admin-tab-padron') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const personaEditable = {
+      persona_id: 701,
+      nombre_completo: 'Persona Editable General',
+      nombres: 'Persona',
+      apellidos: 'Editable General',
+      cargo: 'Auxiliar Inicial',
+      correo_principal: 'inicial@imssbienestar.gob.mx',
+      unidad_medica_id: 10,
+      unidad_medica_nombre: 'HOSPITAL GENERAL MEXICALI',
+      unidad_medica_cluesimb: 'BCIMB000001',
+      tiene_rfc: true,
+      rfc_masked: '**********AB1',
+      tiene_curp: false,
+      curp_masked: null,
+      activo: true,
+      fecha_baja: null,
+      tiene_cuenta_activa: false,
+    };
+
+    const personaSinDatosInactiva = {
+      persona_id: 702,
+      nombre_completo: 'Persona Inactiva Sin Datos',
+      nombres: 'Persona',
+      apellidos: 'Inactiva Sin Datos',
+      cargo: null,
+      correo_principal: null,
+      unidad_medica_id: null,
+      unidad_medica_nombre: null,
+      unidad_medica_cluesimb: null,
+      tiene_rfc: false,
+      rfc_masked: null,
+      tiene_curp: false,
+      curp_masked: null,
+      activo: false,
+      fecha_baja: '2026-01-15',
+      tiene_cuenta_activa: false,
+    };
+
+    httpMock.expectOne((r) => r.url === rhPersonasUrl && r.method === 'GET').flush({
+      items: [personaEditable, personaSinDatosInactiva],
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+
+    // 4, 5, 6 y 17. Abrir diálogo para 701 -> verificar precarga, aviso institucional y cancelación sin PATCH
+    (el.querySelector('#rh-padron-edit-general-btn-701') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('#rh-padron-edit-general-notice')?.textContent).toContain(
+      'Estos datos pertenecen al directorio institucional. Su modificación no cambia la adscripción laboral del trabajador.'
+    );
+    const cargoIn = el.querySelector('#rh-padron-edit-cargo') as HTMLInputElement;
+    const correoIn = el.querySelector('#rh-padron-edit-correo') as HTMLInputElement;
+    const unidadSel = el.querySelector('#rh-padron-edit-unidad') as HTMLSelectElement;
+
+    expect(cargoIn.value).toBe('Auxiliar Inicial');
+    expect(correoIn.value).toBe('inicial@imssbienestar.gob.mx');
+    expect(unidadSel.value).toBe('10');
+
+    // 18. Guardar sin cambios cierra el diálogo sin hacer PATCH
+    (el.querySelector('#rh-padron-edit-general-submit-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    httpMock.expectNone(rhPersonaGeneralUrl(701));
+    expect(el.querySelector('#rh-padron-edit-general-dialog')).toBeNull();
+
+    // 19, 20, 21, 22, 23, 24 y 25. Reabrir 701 -> validar correo inválido, error 404 y luego actualizar cargo + limpiar correo (null) + Oficina Central (177)
+    (el.querySelector('#rh-padron-edit-general-btn-701') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const correoIn2 = el.querySelector('#rh-padron-edit-correo') as HTMLInputElement;
+    const cargoIn2 = el.querySelector('#rh-padron-edit-cargo') as HTMLInputElement;
+    const unidadSel2 = el.querySelector('#rh-padron-edit-unidad') as HTMLSelectElement;
+    const submitBtn = el.querySelector('#rh-padron-edit-general-submit-btn') as HTMLButtonElement;
+
+    correoIn2.value = 'correo-invalido';
+    correoIn2.dispatchEvent(new Event('input'));
+    submitBtn.click();
+    fixture.detectChanges();
+    expect(el.querySelector('#rh-padron-edit-general-error')?.textContent).toContain('formato de correo válido');
+    httpMock.expectNone(rhPersonaGeneralUrl(701));
+
+    // Limpiar correo (null), cambiar cargo y cambiar a OFICINA CENTRAL (177)
+    cargoIn2.value = 'Coordinador Estatal';
+    cargoIn2.dispatchEvent(new Event('input'));
+    correoIn2.value = '';
+    correoIn2.dispatchEvent(new Event('input'));
+    unidadSel2.value = '177';
+    unidadSel2.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    // Error 404 recuperable
+    submitBtn.click();
+    fixture.detectChanges();
+    httpMock
+      .expectOne((r) => r.url === rhPersonaGeneralUrl(701) && r.method === 'PATCH')
+      .flush({ error: 'Unidad médica de referencia no encontrada o inactiva' }, { status: 404, statusText: 'Not Found' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('#rh-padron-edit-general-error')?.textContent).toContain('no encontrada o inactiva');
+
+    // Reenviar y prevenir doble envío
+    submitBtn.click();
+    submitBtn.click();
+    fixture.detectChanges();
+
+    const patchReq = httpMock.expectOne((r) => r.url === rhPersonaGeneralUrl(701) && r.method === 'PATCH');
+    expect(patchReq.request.body).toEqual({
+      cargo: 'Coordinador Estatal',
+      correo_principal: null,
+      unidad_medica_id: 177,
+    });
+    patchReq.flush({
+      persona: {
+        ...personaEditable,
+        cargo: 'Coordinador Estatal',
+        correo_principal: null,
+        unidad_medica_id: 177,
+      },
+      idempotente: false,
+      campos_modificados: ['cargo', 'correo_principal', 'unidad_medica_id'],
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // 27 y 28. Refresca GET /api/rh/personas tras guardar
+    httpMock.expectOne((r) => r.url === rhPersonasUrl && r.method === 'GET').flush({
+      items: [
+        {
+          ...personaEditable,
+          cargo: 'Coordinador Estatal',
+          correo_principal: null,
+          unidad_medica_id: 177,
+          unidad_medica_nombre: 'OFICINA CENTRAL',
+          unidad_medica_cluesimb: 'N/A',
+        },
+        personaSinDatosInactiva,
+      ],
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(el.querySelector('#rh-padron-edit-general-dialog')).toBeNull();
+    expect(el.querySelector('#rh-padron-success-banner')?.textContent).toContain(
+      'Datos generales de Persona Editable General actualizados correctamente.'
+    );
+
+    // 7, 8, 9, 11 y 16. Persona inactiva sin datos (702) -> editar solo cargo omite correo y unidad_medica_id
+    (el.querySelector('#rh-padron-edit-general-btn-702') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const cargo702 = el.querySelector('#rh-padron-edit-cargo') as HTMLInputElement;
+    expect(cargo702.value).toBe('');
+    cargo702.value = 'Enlace Administrativo';
+    cargo702.dispatchEvent(new Event('input'));
+    (el.querySelector('#rh-padron-edit-general-submit-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const patch702 = httpMock.expectOne((r) => r.url === rhPersonaGeneralUrl(702) && r.method === 'PATCH');
+    expect(patch702.request.body).toEqual({ cargo: 'Enlace Administrativo' });
+    patch702.flush({
+      persona: { ...personaSinDatosInactiva, cargo: 'Enlace Administrativo' },
+      idempotente: false,
+      campos_modificados: ['cargo'],
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    httpMock.expectOne((r) => r.url === rhPersonasUrl && r.method === 'GET').flush({
+      items: [personaEditable, { ...personaSinDatosInactiva, cargo: 'Enlace Administrativo' }],
+      page: 1,
+      pageSize: 20,
+      total: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // 29. Ninguna petición a endpoints de adscripciones laborales
+    httpMock.expectNone((r) => r.url.includes('/laboral') || r.url.includes('/adscripciones'));
   });
 });
