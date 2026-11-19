@@ -1,0 +1,444 @@
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 sm:p-5"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="rh-expediente-title"
+>
+  <div
+    class="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+  >
+    <!-- Encabezado -->
+    <div class="flex items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <lucide-icon [img]="icons.folder" class="h-5 w-5 shrink-0 text-emerald-700" />
+          <h2 id="rh-expediente-title" class="truncate text-base font-semibold text-slate-900 sm:text-lg">
+            Expediente administrativo — {{ persona.nombre_completo }}
+          </h2>
+        </div>
+        <p class="mt-0.5 text-xs text-slate-600">
+          Ficha consolidada de consulta para Recursos Humanos estatal. Los identificadores sensibles permanecen enmascarados.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-200 hover:text-slate-800"
+        (click)="onClose()"
+        aria-label="Cerrar expediente administrativo"
+      >
+        <lucide-icon [img]="icons.close" class="h-5 w-5" />
+      </button>
+    </div>
+
+    <!-- Navegación interna por pestañas -->
+    <div class="border-b border-slate-200 bg-white px-4 pt-2 sm:px-5">
+      <div class="flex flex-wrap gap-1.5" role="tablist" aria-label="Secciones del expediente">
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'generales'"
+          class="inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-semibold transition-colors"
+          [ngClass]="
+            activeTab() === 'generales'
+              ? 'border-emerald-700 text-emerald-800'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+          "
+          (click)="onSelectTab('generales')"
+        >
+          <lucide-icon [img]="icons.user" class="h-3.5 w-3.5" />
+          Datos generales
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'laboral'"
+          class="inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-semibold transition-colors"
+          [ngClass]="
+            activeTab() === 'laboral'
+              ? 'border-emerald-700 text-emerald-800'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+          "
+          (click)="onSelectTab('laboral')"
+        >
+          <lucide-icon [img]="icons.briefcase" class="h-3.5 w-3.5" />
+          Situación laboral
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'vacaciones'"
+          class="inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-semibold transition-colors"
+          [ngClass]="
+            activeTab() === 'vacaciones'
+              ? 'border-emerald-700 text-emerald-800'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+          "
+          (click)="onSelectTab('vacaciones')"
+        >
+          <lucide-icon [img]="icons.calendar" class="h-3.5 w-3.5" />
+          Vacaciones
+        </button>
+      </div>
+    </div>
+
+    <!-- Contenido -->
+    <div class="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+      @if (forbiddenError()) {
+        <div class="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800">
+          <lucide-icon [img]="icons.shieldAlert" class="mt-0.5 h-5 w-5 shrink-0" />
+          <span>{{ forbiddenError() }}</span>
+        </div>
+      } @else if (activeTab() === 'generales') {
+        <!-- A. Datos generales -->
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div class="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Nombre completo</div>
+            <div class="mt-0.5 text-sm font-semibold text-slate-900">{{ persona.nombre_completo }}</div>
+          </div>
+
+          <div class="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Cargo del directorio</div>
+            <div class="mt-0.5 text-sm text-slate-800">{{ persona.cargo || 'No registrado' }}</div>
+          </div>
+
+          <div class="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Unidad de referencia (directorio)</div>
+            <div class="mt-0.5 text-sm text-slate-800">
+              @if (persona.unidad_medica_nombre) {
+                {{ persona.unidad_medica_nombre }} ({{ persona.unidad_medica_cluesimb || 'N/A' }})
+              } @else {
+                Sin unidad de referencia registrada
+              }
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Estado administrativo y cuenta</div>
+            <div class="mt-1 flex flex-wrap items-center gap-2 text-xs">
+              <span
+                class="inline-flex rounded-full px-2 py-0.5 font-semibold"
+                [ngClass]="persona.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'"
+              >
+                {{ persona.activo ? 'Activa' : 'Inactiva' }}
+              </span>
+              <span
+                class="inline-flex rounded-full px-2 py-0.5 font-medium"
+                [ngClass]="persona.tiene_cuenta_activa ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-600'"
+              >
+                {{ persona.tiene_cuenta_activa ? 'Con cuenta activa' : 'Sin cuenta activa' }}
+              </span>
+              @if (!persona.activo && persona.fecha_baja) {
+                <span class="text-slate-600">Baja: {{ persona.fecha_baja }}</span>
+              }
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-slate-200 bg-slate-50/70 p-3 sm:col-span-2">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Identificadores (enmascarados)</div>
+            <div class="mt-1 flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs text-slate-700">
+              <span><strong>RFC:</strong> {{ persona.tiene_rfc && persona.rfc_masked ? persona.rfc_masked : 'No registrado' }}</span>
+              <span><strong>CURP:</strong> {{ persona.tiene_curp && persona.curp_masked ? persona.curp_masked : 'No registrada' }}</span>
+            </div>
+          </div>
+        </div>
+      } @else if (activeTab() === 'laboral') {
+        <!-- B. Situación laboral -->
+        <div class="space-y-4">
+          <!-- 1. Unidad de referencia del directorio -->
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
+            <div class="font-semibold text-slate-800">Unidad de referencia del directorio</div>
+            <p class="mt-1 text-slate-700">
+              {{ persona.unidad_medica_nombre ? persona.unidad_medica_nombre + ' (' + (persona.unidad_medica_cluesimb || 'N/A') + ')' : 'Sin unidad de referencia' }}
+            </p>
+            <p class="mt-1 text-[11px] text-slate-500">
+              Dato administrativo del directorio; no representa necesariamente la adscripción laboral oficial.
+            </p>
+          </div>
+
+          <!-- 2. Adscripciones laborales oficiales -->
+          <div class="space-y-2.5 rounded-lg border border-slate-200 bg-white p-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="text-sm font-semibold text-slate-900">Adscripciones laborales oficiales</h3>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                [disabled]="adscripcionesLoading()"
+                (click)="loadAdscripciones()"
+              >
+                <lucide-icon [img]="icons.refresh" class="h-3.5 w-3.5" [ngClass]="adscripcionesLoading() ? 'animate-spin' : ''" />
+                Actualizar
+              </button>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5" role="tablist" aria-label="Filtro de vigencia de adscripciones">
+              @for (opt of [
+                { id: 'todas', label: 'Todas' },
+                { id: 'vigentes', label: 'Vigentes' },
+                { id: 'futuras', label: 'Futuras' },
+                { id: 'historicas', label: 'Históricas' }
+              ]; track opt.id) {
+                <button
+                  type="button"
+                  role="tab"
+                  [attr.aria-selected]="adscripcionesEstadoFilter() === opt.id"
+                  class="rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
+                  [ngClass]="
+                    adscripcionesEstadoFilter() === opt.id
+                      ? 'border-emerald-700 bg-emerald-700 text-white'
+                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                  "
+                  (click)="onSelectAdscripcionesFilter($any(opt.id))"
+                >
+                  {{ opt.label }}
+                </button>
+              }
+            </div>
+
+            @if (adscripcionesLoading()) {
+              <div class="flex items-center justify-center gap-2 py-5 text-xs text-slate-600">
+                <lucide-icon [img]="icons.loader" class="h-4 w-4 animate-spin text-emerald-700" />
+                <span>Cargando adscripciones laborales oficiales...</span>
+              </div>
+            } @else if (adscripcionesError()) {
+              <div class="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+                <lucide-icon [img]="icons.alert" class="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{{ adscripcionesError() }}</span>
+              </div>
+            } @else if (adscripciones().length === 0) {
+              <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-xs text-slate-600">
+                Sin adscripciones laborales registradas.
+              </div>
+            } @else {
+              <div class="space-y-2">
+                @for (a of adscripciones(); track a.adscripcion_laboral_id) {
+                  <div class="rounded-lg border border-slate-200 bg-slate-50/50 p-3 text-xs">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span
+                        class="inline-flex rounded-full px-2 py-0.5 font-semibold"
+                        [ngClass]="{
+                          'bg-emerald-100 text-emerald-800': a.estado_vigencia === 'VIGENTE',
+                          'bg-sky-100 text-sky-800': a.estado_vigencia === 'FUTURA',
+                          'bg-slate-200 text-slate-700': a.estado_vigencia === 'HISTORICA'
+                        }"
+                      >
+                        {{ a.estado_vigencia }}
+                      </span>
+                      <span class="text-slate-600">{{ a.vigente_desde }} — {{ a.vigente_hasta || 'Vigencia abierta' }}</span>
+                      @if (!a.activo) {
+                        <span class="rounded bg-slate-200 px-1.5 py-0.5 text-[11px] text-slate-700">Inactiva administrativamente</span>
+                      }
+                    </div>
+                    <div class="mt-1 font-medium text-slate-900">
+                      {{ a.unidad_nombre || 'Unidad #' + a.unidad_medica_id }} ({{ a.unidad_cluesimb || 'N/A' }})
+                    </div>
+                    <div class="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-slate-600">
+                      @if (a.puesto) { <span><strong>Puesto:</strong> {{ a.puesto }}</span> }
+                      @if (a.matricula) { <span><strong>Matrícula:</strong> {{ a.matricula }}</span> }
+                      @if (a.turno) { <span><strong>Turno:</strong> {{ a.turno }}</span> }
+                      @if (a.jornada) { <span><strong>Jornada:</strong> {{ a.jornada }}</span> }
+                      @if (a.horario) { <span><strong>Horario:</strong> {{ a.horario }}</span> }
+                    </div>
+                    @if (a.observaciones) {
+                      <p class="mt-0.5 text-slate-600"><strong>Observaciones:</strong> {{ a.observaciones }}</p>
+                    }
+                  </div>
+                }
+              </div>
+
+              <div class="flex items-center justify-between border-t border-slate-200 pt-2 text-xs text-slate-600">
+                <span>Total: {{ adscripcionesTotal() }} · Página {{ adscripcionesPage() }} de {{ adscripcionesTotalPages() }}</span>
+                <div class="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 hover:bg-slate-50 disabled:opacity-40"
+                    [disabled]="!canGoAdsPrev()"
+                    (click)="onAdsPrevPage()"
+                  >
+                    <lucide-icon [img]="icons.prev" class="h-3.5 w-3.5" />
+                    Anterior
+                  </button>
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 hover:bg-slate-50 disabled:opacity-40"
+                    [disabled]="!canGoAdsNext()"
+                    (click)="onAdsNextPage()"
+                  >
+                    Siguiente
+                    <lucide-icon [img]="icons.next" class="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- 3. Comisiones laborales -->
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-900">Comisiones laborales</h3>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                [disabled]="comisionesLoading()"
+                (click)="loadComisiones()"
+              >
+                <lucide-icon [img]="icons.refresh" class="h-3.5 w-3.5" [ngClass]="comisionesLoading() ? 'animate-spin' : ''" />
+                Actualizar
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-800"
+                (click)="onOpenComisionesGestion()"
+              >
+                <lucide-icon [img]="icons.comision" class="h-3.5 w-3.5" />
+                Administrar comisiones
+              </button>
+            </div>
+          </div>
+
+          @if (comisionesLoading()) {
+            <div class="flex items-center justify-center gap-2 py-6 text-xs text-slate-600">
+              <lucide-icon [img]="icons.loader" class="h-4 w-4 animate-spin text-emerald-700" />
+              <span>Cargando comisiones laborales...</span>
+            </div>
+          } @else if (comisionesError()) {
+            <div class="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+              <lucide-icon [img]="icons.alert" class="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{{ comisionesError() }}</span>
+            </div>
+          } @else if (comisiones().length === 0) {
+            <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-xs text-slate-600">
+              Sin comisiones laborales registradas.
+            </div>
+          } @else {
+            <div class="flex flex-wrap gap-2 text-xs">
+              <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 font-medium text-emerald-800">
+                Vigentes: {{ comisionesVigentes().length }}
+              </span>
+              <span class="rounded-full bg-sky-100 px-2.5 py-0.5 font-medium text-sky-800">
+                Futuras: {{ comisionesFuturas().length }}
+              </span>
+              <span class="rounded-full bg-slate-200 px-2.5 py-0.5 font-medium text-slate-700">
+                Concluidas: {{ comisionesConcluidas().length }}
+              </span>
+            </div>
+
+            <div class="space-y-2">
+              @for (c of comisiones(); track c.id) {
+                <div class="rounded-lg border border-slate-200 bg-white p-3 text-xs">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span
+                      class="inline-flex rounded-full px-2 py-0.5 font-semibold"
+                      [ngClass]="{
+                        'bg-emerald-100 text-emerald-800': c.estado_vigencia === 'VIGENTE',
+                        'bg-sky-100 text-sky-800': c.estado_vigencia === 'FUTURA',
+                        'bg-slate-200 text-slate-700': c.estado_vigencia === 'CONCLUIDA'
+                      }"
+                    >
+                      {{ c.estado_vigencia }}
+                    </span>
+                    <span class="text-slate-600">{{ c.fecha_inicio }} — {{ c.fecha_fin || 'Duración abierta' }}</span>
+                  </div>
+                  <div class="mt-1 font-medium text-slate-900">
+                    @if (c.unidad_destino_nombre) {
+                      {{ c.unidad_destino_nombre }} ({{ c.unidad_destino_cluesimb || 'N/A' }})
+                    }
+                    @if (c.unidad_destino_nombre && c.area_destino_texto) {
+                      ·
+                    }
+                    @if (c.area_destino_texto) {
+                      {{ c.area_destino_texto }}
+                    }
+                  </div>
+                  @if (c.oficio_referencia || c.motivo) {
+                    <div class="mt-0.5 text-slate-600">
+                      @if (c.oficio_referencia) { <span>Oficio: {{ c.oficio_referencia }}</span> }
+                      @if (c.oficio_referencia && c.motivo) { · }
+                      @if (c.motivo) { <span>{{ c.motivo }}</span> }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      } @else if (activeTab() === 'vacaciones') {
+        <!-- C. Vacaciones -->
+        <div class="space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-semibold text-slate-900">Historial vacacional</h3>
+              <p class="text-xs text-slate-600">
+                Días registrados (registros vigentes en esta vista): <strong>{{ diasVacacionesRegistrados() }}</strong> — no representa saldo disponible ni cálculo automático de derechos.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                [disabled]="vacacionesLoading()"
+                (click)="loadVacaciones()"
+              >
+                <lucide-icon [img]="icons.refresh" class="h-3.5 w-3.5" [ngClass]="vacacionesLoading() ? 'animate-spin' : ''" />
+                Actualizar
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-800"
+                (click)="onOpenVacacionesGestion()"
+              >
+                <lucide-icon [img]="icons.calendar" class="h-3.5 w-3.5" />
+                Administrar vacaciones
+              </button>
+            </div>
+          </div>
+
+          @if (vacacionesLoading()) {
+            <div class="flex items-center justify-center gap-2 py-6 text-xs text-slate-600">
+              <lucide-icon [img]="icons.loader" class="h-4 w-4 animate-spin text-emerald-700" />
+              <span>Cargando historial vacacional...</span>
+            </div>
+          } @else if (vacacionesError()) {
+            <div class="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+              <lucide-icon [img]="icons.alert" class="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{{ vacacionesError() }}</span>
+            </div>
+          } @else if (vacaciones().length === 0) {
+            <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-xs text-slate-600">
+              Sin registros vacacionales capturados.
+            </div>
+          } @else {
+            <div class="space-y-2">
+              @for (v of vacaciones(); track v.id) {
+                <div class="rounded-lg border border-slate-200 bg-white p-3 text-xs">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="rounded bg-slate-100 px-2 py-0.5 font-semibold text-slate-800">Ciclo {{ v.anio_ciclo }}</span>
+                    <span
+                      class="inline-flex rounded-full px-2 py-0.5 font-semibold"
+                      [ngClass]="v.estado === 'REGISTRADO' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'"
+                    >
+                      {{ v.estado === 'REGISTRADO' ? 'Registrado' : 'Anulado' }}
+                    </span>
+                    <span class="font-medium text-slate-700">{{ v.dias_registrados }} día(s) registrados</span>
+                  </div>
+                  <div class="mt-1 font-medium text-slate-900">
+                    {{ v.periodo_referencia }} · {{ v.fecha_inicio }} al {{ v.fecha_fin }}
+                  </div>
+                  @if (v.documento_referencia) {
+                    <div class="mt-0.5 text-slate-600">Documento: {{ v.documento_referencia }}</div>
+                  }
+                  @if (v.estado === 'ANULADO' && v.motivo_anulacion) {
+                    <div class="mt-1 rounded bg-slate-100 px-2 py-1 text-slate-700">
+                      <strong>Motivo de anulación:</strong> {{ v.motivo_anulacion }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

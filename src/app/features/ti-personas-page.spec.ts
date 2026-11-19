@@ -401,5 +401,62 @@ describe('TiPersonasPageComponent y TiPersonasService (Microintervención TI-2C.
       expect(component.filterUnidadSearch()).toBe('');
       expect(component.page()).toBe(1);
     });
+
+    it('19. TI-PERSONAS-01: Etiqueta «Unidad de adscripción», autocompletado dinámico (nombre/cluesimb/OFICINA CENTRAL) y prevención de ID obsoleto', async () => {
+      svcSpy.buscarUnidades.and.resolveTo({
+        items: [
+          { id: 177, nombre: 'OFICINA CENTRAL', cluesimb: 'N/A' },
+          { id: 12, nombre: 'HOSPITAL GENERAL MEXICALI', cluesimb: 'BCIMB000012' },
+        ],
+        page: 1,
+        pageSize: 30,
+        total: 2,
+      });
+
+      component.openCreateModal();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const modalText = (fixture.nativeElement as HTMLElement).textContent ?? '';
+      expect(modalText).toContain('Unidad de adscripción (opcional)');
+      expect(modalText).not.toContain('Unidad médica de adscripción');
+
+      // Búsqueda parcial por nombre (insensible a mayúsculas) -> OFICINA CENTRAL
+      component.onFormUnidadInput('  oficina  ');
+      expect(component.formUnidadesFiltered().length).toBe(1);
+      expect(component.formUnidadesFiltered()[0].id).toBe(177);
+      expect(component.formUnidadesFiltered()[0].cluesimb).toBe('N/A');
+
+      // Búsqueda por cluesimb
+      component.onFormUnidadInput('bcimb000012');
+      expect(component.formUnidadesFiltered().length).toBe(1);
+      expect(component.formUnidadesFiltered()[0].id).toBe(12);
+
+      // Sin coincidencias
+      component.onFormUnidadInput('unidad-inexistente-xyz');
+      expect(component.formUnidadesFiltered().length).toBe(0);
+
+      // Selección explícita y luego edición del texto -> invalida ID obsoleto
+      component.selectFormUnidad({ id: 177, nombre: 'OFICINA CENTRAL', cluesimb: 'N/A' });
+      expect(component.formUnidadId()).toBe(177);
+      expect(component.formUnidadQuery()).toBe('OFICINA CENTRAL');
+
+      component.onFormUnidadInput('OFICINA');
+      expect(component.formUnidadId()).toBeNull();
+
+      // Bloquea guardado si hay texto libre sin selección válida
+      component.formNombre.set('Persona Prueba');
+      svcSpy.crearPersona.calls.reset();
+      await component.submitForm();
+      expect(svcSpy.crearPersona).not.toHaveBeenCalled();
+      expect(component.formError()).toContain('Selecciona una unidad de adscripción');
+
+      // Seleccionar OFICINA CENTRAL y guardar alta -> envía unidad_medica_id = 177
+      component.selectFormUnidad({ id: 177, nombre: 'OFICINA CENTRAL', cluesimb: 'N/A' });
+      await component.submitForm();
+      expect(svcSpy.crearPersona).toHaveBeenCalledWith(
+        jasmine.objectContaining({ nombre_completo: 'Persona Prueba', unidad_medica_id: 177 })
+      );
+    });
   });
 });

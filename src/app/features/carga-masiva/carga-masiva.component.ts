@@ -129,23 +129,34 @@ export class CargaMasivaComponent {
         }
 
         if (tipo === 'salidas') {
-            return dataRows.map(r => ({
-                unidad_origen_texto: r[0] ?? null,     // A
-                unidad_destino_texto: r[1] ?? null,    // B
-                folio: r[2] ?? null,                   // C
-                clave_cnis: this.inventarioService.normalizarClave( r[3] ?? ''),                // D
-                cantidad: Number(r[4]) || 0,           // E
-                total: Number(r[5]) || null,           // F
-                programa: r[6] ?? null,                // G
-                fecha_entregado: this.formatFecha(r[7]), // H
-                tipo: r[8] ?? null,                    // I
-                folio_extra: r[11] ?? null,            // L
-                movto: r[12] ?? null,                  // M
-                descripcion: r[13] ?? '',              // N
-                programa_extra: r[14] ?? null,         // O
-                lote: r[15] ?? null,                   // P
-                fecha_caducidad: this.formatFecha(r[16]) // Q
-            }));
+            const headers = (rows[0] ?? []).map(h => String(h ?? '').trim().toLowerCase());
+            const cluesIdx = headers.indexOf('clues') >= 0 ? headers.indexOf('clues') : 17;
+
+            return dataRows.map(r => {
+                const rawClues = r[cluesIdx];
+                const clues = rawClues != null && String(rawClues).trim() !== ''
+                    ? String(rawClues).trim().toUpperCase()
+                    : null;
+
+                return {
+                    unidad_origen_texto: r[0] ?? null,     // A
+                    unidad_destino_texto: r[1] ?? null,    // B
+                    folio: r[2] ?? null,                   // C
+                    clave_cnis: this.inventarioService.normalizarClave( r[3] ?? ''),                // D
+                    cantidad: Number(r[4]) || 0,           // E
+                    total: Number(r[5]) || null,           // F
+                    programa: r[6] ?? null,                // G
+                    fecha_entregado: this.formatFecha(r[7]), // H
+                    tipo: r[8] ?? null,                    // I
+                    folio_extra: r[11] ?? null,            // L
+                    movto: r[12] ?? null,                  // M
+                    descripcion: r[13] ?? '',              // N
+                    programa_extra: r[14] ?? null,         // O
+                    lote: r[15] ?? null,                   // P
+                    fecha_caducidad: this.formatFecha(r[16]), // Q
+                    clues                                  // R (cluesimb)
+                };
+            });
         }
 
         if (tipo === 'inventario') { // inventario inicial

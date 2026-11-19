@@ -1,0 +1,56 @@
+.vertiente-card {
+  border-color: rgb(226 232 240);
+  background: white;
+  cursor: pointer;
+}
+
+.vertiente-card:hover {
+  border-color: rgb(52 211 153);
+  background: rgb(236 253 245);
+}
+
+.vertiente-card--activa {
+  border-color: rgb(5 150 105);
+  background: rgb(236 253 245);
+  box-shadow: 0 0 0 1px rgb(5 150 105 / 0.12);
+}
+
+.vertiente-card:focus-visible {
+  outline: 3px solid rgb(16 185 129 / 0.35);
+  outline-offset: 2px;
+}
+
+label span, label small { display: block; }
+label span { margin-bottom: .25rem; font-size: .75rem; font-weight: 700; color: rgb(71 85 105); }
+label small { margin-top: .25rem; font-size: .7rem; color: rgb(100 116 139); }
+input, select { min-height: 2.75rem; width: 100%; border: 1px solid rgb(203 213 225); border-radius: .75rem; background: white; padding: .5rem .75rem; color: rgb(15 23 42); }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px solid rgb(16 185 129 / .35); outline-offset: 2px; }
+button:not(:disabled), select:not(:disabled) { cursor: pointer; }
+.accion-secundaria:hover:not(:disabled) { border-color: rgb(16 185 129); background: rgb(236 253 245); color: rgb(6 95 70); }
+.unidad-limpiar { position: absolute; right: .5rem; top: 50%; min-height: 2rem; min-width: 2rem; transform: translateY(-50%); border-radius: .5rem; font-size: 1.35rem; color: rgb(71 85 105); }
+.unidad-listbox { position: absolute; z-index: 30; top: calc(100% + .25rem); max-height: 22rem; width: 100%; overflow-y: auto; border: 1px solid rgb(203 213 225); border-radius: .75rem; background: white; box-shadow: 0 14px 30px rgb(15 23 42 / .15); }
+.unidad-opcion { display: block; width: 100%; padding: .7rem .8rem; text-align: left; border-bottom: 1px solid rgb(241 245 249); }
+.unidad-opcion:hover, .unidad-opcion--activa { background: rgb(236 253 245); }
+.unidad-opcion--seleccionada { box-shadow: inset 3px 0 rgb(5 150 105); background: rgb(209 250 229); }
+.filtro-chip { border: 1px solid rgb(203 213 225); border-radius: 9999px; background: white; padding: .45rem .8rem; font-size: .8rem; font-weight: 700; color: rgb(51 65 85); }
+.filtro-chip:hover:not(:disabled) { border-color: rgb(16 185 129); background: rgb(236 253 245); }
+.filtro-chip--activo { border-color: rgb(5 150 105); background: rgb(209 250 229); color: rgb(6 95 70); box-shadow: 0 0 0 1px rgb(5 150 105 / .15); }
+.spinner { width: 1.35rem; height: 1.35rem; flex: 0 0 auto; border: 3px solid rgb(167 243 208); border-top-color: rgb(5 150 105); border-radius: 9999px; animation: girar .8s linear infinite; }
+.barra-indeterminada { height: .35rem; overflow: hidden; border-radius: 9999px; background: rgb(209 250 229); }
+.barra-indeterminada span { display: block; width: 38%; height: 100%; border-radius: inherit; background: rgb(5 150 105); animation: desplazar 1.25s ease-in-out infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+@keyframes desplazar { from { transform: translateX(-110%); } to { transform: translateX(290%); } }
+@media (prefers-reduced-motion: reduce) { .spinner, .barra-indeterminada span { animation-duration: 2.5s; } }
+nav[aria-label] button { min-width: 2.75rem; min-height: 2.75rem; border: 1px solid rgb(203 213 225); border-radius: .75rem; background: white; }
+nav[aria-label] button:hover:not(:disabled) { border-color: rgb(16 185 129); background: rgb(236 253 245); }
+nav[aria-label] button:disabled { cursor: not-allowed; opacity: .4; }
+nav[aria-label] select { width: auto; max-width: 10rem; }
+:is(section[aria-label='Indicadores de necesidades'],.indicadores-operativos) article { min-width: 0; border: 1px solid rgb(226 232 240); border-radius: 1rem; padding: 1rem; background: white; }
+:is(section[aria-label='Indicadores de necesidades'],.indicadores-operativos) :is(span,small) { display: block; font-size: .75rem; line-height: 1.25rem; color: rgb(100 116 139); }
+:is(section[aria-label='Indicadores de necesidades'],.indicadores-operativos) strong { display: block; margin-top: .35rem; font-size: 1.5rem; line-height: 2rem; color: rgb(6 95 70); }
+th, td { padding: .75rem; vertical-align: top; border-bottom: 1px solid rgb(226 232 240); }
+th { background: rgb(248 250 252); font-size: .75rem; color: rgb(71 85 105); }
+td small { display: block; margin-top: .2rem; max-width: 28rem; color: rgb(100 116 139); }
+nav[aria-label='Paginación de necesidades'] button { min-width: 2.75rem; min-height: 2.75rem; border: 1px solid rgb(203 213 225); border-radius: .75rem; background: white; }
+nav[aria-label='Paginación de necesidades'] button:disabled { cursor: not-allowed; opacity: .4; }
+nav[aria-label='Paginación de necesidades'] select { width: auto; max-width: 10rem; }

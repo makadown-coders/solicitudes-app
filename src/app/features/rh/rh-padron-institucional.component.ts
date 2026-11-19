@@ -14,9 +14,12 @@ import {
 } from '@angular/core';
 import {
   AlertCircle,
+  ArrowRightLeft,
+  Calendar,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  FolderOpen,
   Loader2,
   LucideAngularModule,
   Pencil,
@@ -38,6 +41,10 @@ import {
   RhUpdatePersonaGeneralPayload,
 } from '../../services/rh.service';
 
+import { RhComisionesLaboralesComponent } from './comisiones/rh-comisiones-laborales.component';
+import { RhExpedienteConsolidadoComponent } from './expediente/rh-expediente-consolidado.component';
+import { RhVacacionesComponent } from './vacaciones/rh-vacaciones.component';
+
 const RFC_PERSONA_FISICA_REGEX =
   /^[A-ZÑ&]{4}(\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])([A-Z\d]{3})?$/;
 const CURP_REGEX =
@@ -46,7 +53,7 @@ const CURP_REGEX =
 @Component({
   selector: 'app-rh-padron-institucional',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule, RhComisionesLaboralesComponent, RhExpedienteConsolidadoComponent, RhVacacionesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rh-padron-institucional.component.html',
 })
@@ -64,6 +71,9 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     search: Search,
     clear: X,
     pencil: Pencil,
+    comision: ArrowRightLeft,
+    vacaciones: Calendar,
+    expediente: FolderOpen,
     refresh: RefreshCw,
     loader: Loader2,
     alert: AlertCircle,
@@ -117,6 +127,15 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   readonly editDraftUnidadId = signal('');
   readonly editGeneralSubmitting = signal(false);
   readonly editGeneralError = signal<string | null>(null);
+
+  /** Estado del panel «Comisiones laborales» (RH-4A.3B) */
+  readonly comisionesTargetPersona = signal<RhPersonasPadronItem | null>(null);
+
+  /** Estado del panel «Vacaciones y kardex» (RH-4A.4B) */
+  readonly vacacionesTargetPersona = signal<RhPersonasPadronItem | null>(null);
+
+  /** Estado del panel «Expediente administrativo consolidado» (RH-4A.5A) */
+  readonly expedienteTargetPersona = signal<RhPersonasPadronItem | null>(null);
 
   private listSeq = 0;
 
@@ -591,6 +610,30 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     } finally {
       this.editGeneralSubmitting.set(false);
     }
+  }
+
+  openComisionesDialog(persona: RhPersonasPadronItem): void {
+    this.comisionesTargetPersona.set(persona);
+  }
+
+  closeComisionesDialog(): void {
+    this.comisionesTargetPersona.set(null);
+  }
+
+  openVacacionesDialog(persona: RhPersonasPadronItem): void {
+    this.vacacionesTargetPersona.set(persona);
+  }
+
+  closeVacacionesDialog(): void {
+    this.vacacionesTargetPersona.set(null);
+  }
+
+  openExpedienteDialog(persona: RhPersonasPadronItem): void {
+    this.expedienteTargetPersona.set(persona);
+  }
+
+  closeExpedienteDialog(): void {
+    this.expedienteTargetPersona.set(null);
   }
 
   isCluesConvencional(cluesimb: string | null | undefined): boolean {
