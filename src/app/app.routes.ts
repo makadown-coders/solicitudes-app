@@ -295,6 +295,12 @@ export const routes: Routes = [
         title: 'Solicitado vs. surtido SAS'
       },
       {
+        path: 'abasto-por-programas',
+        loadComponent: () => import('./features/dashboard-abasto/abasto-por-programas/abasto-por-programas.component')
+          .then(m => m.AbastoPorProgramasComponent),
+        title: 'Dashboard Abasto - Abasto por Programas'
+      },
+      {
         path: 'concentrado-primer-nivel',
         loadComponent: () => import('./features/dashboard-abasto/concentrado-primer-nivel/concentrado-primer-nivel.component')
           .then(m => m.ConcentradoPrimerNivelComponent),
