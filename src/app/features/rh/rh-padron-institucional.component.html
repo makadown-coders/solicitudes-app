@@ -73,47 +73,114 @@
     </div>
   }
 
-  <!-- Barra de búsqueda, filtro de estado y total -->
-  <div class="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-    <div class="flex flex-1 flex-col gap-3 sm:flex-row sm:items-end">
-      <div class="flex-1">
+  <!-- Barra de búsqueda dinámica, filtros responsivos y total -->
+  <div class="mt-4 space-y-2.5">
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-12">
+      <div class="md:col-span-5">
         <label for="rh-padron-search-input" class="block text-xs font-semibold uppercase tracking-wide text-slate-600">
           Buscar por nombre o apellidos
         </label>
-        <div class="mt-1 flex gap-2">
+        <div class="relative mt-1 flex items-center">
           <input
             id="rh-padron-search-input"
             type="text"
             [value]="searchDraft()"
             (input)="onSearchInput($any($event.target).value)"
             (keydown.enter)="onSubmitSearch()"
-            placeholder="Ej. Nombre o apellido"
-            class="block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+            placeholder="Escribe nombre o apellido…"
+            class="block w-full rounded-xl border border-gray-300 bg-white py-2 pl-3.5 pr-9 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
           />
-          <button
-            id="rh-padron-search-btn"
-            type="button"
-            (click)="onSubmitSearch()"
-            [disabled]="loading()"
-            class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-slate-800 px-3.5 py-2 text-sm font-semibold text-white hover:bg-slate-900 disabled:opacity-60"
-          >
-            <lucide-icon [img]="icons.search" class="h-4 w-4" aria-hidden="true"></lucide-icon>
-            <span>Buscar</span>
-          </button>
-          @if (appliedSearch()) {
+          @if (searchDraft() || appliedSearch()) {
             <button
               id="rh-padron-clear-search-btn"
               type="button"
               (click)="onClearSearch()"
-              class="inline-flex min-h-10 items-center justify-center rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              aria-label="Limpiar búsqueda"
+              class="absolute right-2 inline-flex cursor-pointer items-center justify-center rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
             >
-              Limpiar
+              <lucide-icon [img]="icons.clear" class="h-4 w-4"></lucide-icon>
             </button>
           }
         </div>
       </div>
 
-      <div class="w-full sm:w-48">
+      <div class="relative md:col-span-4">
+        <div class="flex items-center justify-between">
+          <label for="rh-padron-unidad-filter-input" class="block text-xs font-semibold uppercase tracking-wide text-slate-600">
+            Unidad de referencia
+          </label>
+          @if (unidadFilter() !== null || unidadFilterQuery().trim().length > 0) {
+            <button
+              id="rh-padron-clear-unidad-filter-btn"
+              type="button"
+              (click)="clearUnidadFilter()"
+              class="text-[11px] font-semibold text-emerald-800 hover:underline"
+            >
+              Limpiar
+            </button>
+          }
+        </div>
+        <input
+          id="rh-padron-unidad-filter-input"
+          type="text"
+          role="combobox"
+          autocomplete="off"
+          [attr.aria-expanded]="unidadSuggestOpen()"
+          [attr.aria-controls]="unidadSuggestOpen() ? 'rh-padron-unidad-filter-listbox' : null"
+          [value]="unidadFilterQuery()"
+          (input)="onUnidadFilterInput($any($event.target).value)"
+          (focus)="onUnidadFilterFocus()"
+          (blur)="onUnidadFilterBlur()"
+          (keydown)="onUnidadFilterKeyDown($event)"
+          placeholder="Todas las unidades (nombre o CLUESIMB)…"
+          class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+        />
+
+        @if (unidadSuggestOpen()) {
+          <ul
+            id="rh-padron-unidad-filter-listbox"
+            role="listbox"
+            class="absolute left-0 right-0 z-30 mt-1 max-h-60 overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+          >
+            <li
+              role="option"
+              [attr.aria-selected]="unidadFilter() === null"
+              (mousedown)="$event.preventDefault(); selectUnidadFilter(null, '')"
+              class="cursor-pointer px-3 py-2 text-xs font-medium"
+              [ngClass]="unidadSuggestIndex() === 0 || unidadFilter() === null ? 'bg-emerald-50 text-emerald-900' : 'text-slate-700 hover:bg-slate-50'"
+            >
+              Todas las unidades
+            </li>
+            <li
+              role="option"
+              [attr.aria-selected]="unidadFilter() === 'sin_unidad'"
+              (mousedown)="$event.preventDefault(); selectUnidadFilter('sin_unidad', 'Sin unidad de referencia')"
+              class="cursor-pointer border-b border-slate-100 px-3 py-2 text-xs font-medium"
+              [ngClass]="unidadSuggestIndex() === 1 || unidadFilter() === 'sin_unidad' ? 'bg-emerald-50 text-emerald-900' : 'text-slate-700 hover:bg-slate-50'"
+            >
+              Sin unidad de referencia
+            </li>
+            @if (unidadesFilterFiltered().length === 0) {
+              <li class="px-3 py-2 text-xs text-slate-500">Sin unidades coincidentes.</li>
+            } @else {
+              @for (u of unidadesFilterFiltered(); track u.id; let idx = $index) {
+                <li
+                  role="option"
+                  [attr.aria-selected]="unidadFilter() === u.id"
+                  (mousedown)="$event.preventDefault(); selectUnidadFilter(u.id, u.nombre + ' (' + (u.cluesimb || 'N/A') + ')')"
+                  class="cursor-pointer px-3 py-2 text-xs"
+                  [ngClass]="unidadSuggestIndex() === idx + 2 || unidadFilter() === u.id ? 'bg-emerald-50 text-emerald-900' : 'text-slate-800 hover:bg-slate-50'"
+                >
+                  <div class="font-medium">{{ u.nombre }}</div>
+                  <div class="text-[11px] text-slate-500">CLUESIMB: {{ u.cluesimb || 'N/A' }}</div>
+                </li>
+              }
+            }
+          </ul>
+        }
+      </div>
+
+      <div class="md:col-span-3">
         <label for="rh-padron-estado-select" class="block text-xs font-semibold uppercase tracking-wide text-slate-600">
           Estado
         </label>
@@ -121,7 +188,7 @@
           id="rh-padron-estado-select"
           [value]="estadoFilter()"
           (change)="onEstadoFilterChange($any($event.target).value)"
-          class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+          class="mt-1 block w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
         >
           <option value="todas">Todas</option>
           <option value="activas">Activas</option>
@@ -130,11 +197,13 @@
       </div>
     </div>
 
-    <div
-      id="rh-padron-total-badge"
-      class="inline-flex items-center self-start rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 lg:self-end"
-    >
-      Total: {{ total() }} {{ total() === 1 ? 'persona' : 'personas' }}
+    <div class="flex items-center justify-between">
+      <div
+        id="rh-padron-total-badge"
+        class="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-xs font-semibold text-slate-700"
+      >
+        Total: {{ total() }} {{ total() === 1 ? 'persona' : 'personas' }}
+      </div>
     </div>
   </div>
 
@@ -183,8 +252,63 @@
       }
     </div>
   } @else {
-    <!-- Tabla institucional del padrón -->
-    <div class="mt-4 overflow-x-auto rounded-xl border border-gray-200">
+    <!-- Vista adaptativa en tarjetas (móvil / tablet) -->
+    <div id="rh-padron-mobile-cards" class="mt-4 space-y-2.5 lg:hidden">
+      @for (p of items(); track p.persona_id) {
+        <div class="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p class="font-semibold text-slate-900">{{ p.nombre_completo }}</p>
+              <p class="text-xs text-slate-600">{{ p.cargo || 'Sin cargo registrado' }}</p>
+            </div>
+            <span
+              class="inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+              [ngClass]="
+                p.activo
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : 'border-slate-300 bg-slate-100 text-slate-700'
+              "
+            >
+              {{ p.activo ? 'Activa' : 'Inactiva' }}
+            </span>
+          </div>
+
+          <div class="mt-2 space-y-1 text-xs text-slate-600">
+            <div>
+              <strong>Unidad:</strong>
+              {{ p.unidad_medica_nombre ? p.unidad_medica_nombre + ' (' + (p.unidad_medica_cluesimb || 'N/A') + ')' : 'Sin unidad de referencia' }}
+            </div>
+            <div>
+              <strong>Cuenta:</strong> {{ p.tiene_cuenta_activa ? 'Activa' : 'Sin cuenta' }}
+            </div>
+          </div>
+
+          <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2.5">
+            <button
+              type="button"
+              (click)="closeActionsMenu(); openExpedienteDialog(p)"
+              class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]"
+            >
+              <lucide-icon [img]="icons.expediente" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+              <span>Ver expediente</span>
+            </button>
+            <button
+              type="button"
+              aria-haspopup="menu"
+              [attr.aria-expanded]="openActionsPersonaId() === p.persona_id"
+              (click)="toggleActionsMenu(p, $event)"
+              class="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]"
+            >
+              <span>Acciones</span>
+              <lucide-icon [img]="icons.more" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Tabla institucional del padrón (escritorio) -->
+    <div class="mt-4 hidden overflow-x-auto rounded-xl border border-gray-200 lg:block">
       <table id="rh-padron-table" class="min-w-full divide-y divide-gray-200 text-left text-sm">
         <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
           <tr>
@@ -255,68 +379,28 @@
               </td>
 
               <td class="px-4 py-3 text-right">
-                <div class="inline-flex flex-wrap items-center justify-end gap-1.5">
+                <div class="relative inline-flex items-center justify-end gap-1.5">
                   <button
                     [id]="'rh-padron-expediente-btn-' + p.persona_id"
                     type="button"
-                    (click)="openExpedienteDialog(p)"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-slate-200"
+                    (click)="closeActionsMenu(); openExpedienteDialog(p)"
+                    class="inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-300 bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-900 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]"
                   >
                     <lucide-icon [img]="icons.expediente" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
                     <span>Ver expediente</span>
                   </button>
 
                   <button
-                    [id]="'rh-padron-vacaciones-btn-' + p.persona_id"
+                    [id]="'rh-padron-actions-menu-btn-' + p.persona_id"
                     type="button"
-                    (click)="openVacacionesDialog(p)"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-sky-300 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-900 hover:bg-sky-100"
+                    aria-haspopup="menu"
+                    [attr.aria-expanded]="openActionsPersonaId() === p.persona_id"
+                    (click)="toggleActionsMenu(p, $event)"
+                    class="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]"
                   >
-                    <lucide-icon [img]="icons.vacaciones" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
-                    <span>Vacaciones</span>
+                    <span>Acciones</span>
+                    <lucide-icon [img]="icons.more" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
                   </button>
-
-                  <button
-                    [id]="'rh-padron-comisiones-btn-' + p.persona_id"
-                    type="button"
-                    (click)="openComisionesDialog(p)"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
-                  >
-                    <lucide-icon [img]="icons.comision" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
-                    <span>Comisiones</span>
-                  </button>
-
-                  <button
-                    [id]="'rh-padron-edit-general-btn-' + p.persona_id"
-                    type="button"
-                    (click)="openEditGeneralDialog(p)"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    <lucide-icon [img]="icons.pencil" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
-                    <span>Editar datos generales</span>
-                  </button>
-
-                  @if (p.activo) {
-                    <button
-                      [id]="'rh-padron-deactivate-btn-' + p.persona_id"
-                      type="button"
-                      (click)="openEstadoDialog(p, false)"
-                      class="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
-                    >
-                      <lucide-icon [img]="icons.userX" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
-                      <span>Desactivar</span>
-                    </button>
-                  } @else {
-                    <button
-                      [id]="'rh-padron-reactivate-btn-' + p.persona_id"
-                      type="button"
-                      (click)="openEstadoDialog(p, true)"
-                      class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
-                    >
-                      <lucide-icon [img]="icons.userCheck" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
-                      <span>Reactivar</span>
-                    </button>
-                  }
                 </div>
               </td>
             </tr>
@@ -326,33 +410,71 @@
     </div>
 
     <!-- Paginación -->
-    <div class="mt-4 flex items-center justify-between gap-3 text-xs text-slate-600">
-      <span id="rh-padron-page-info">
-        Página {{ page() }} de {{ totalPages() }}
+    <nav
+      aria-label="Paginación de Plantilla institucional"
+      class="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600"
+    >
+      <span id="rh-padron-pagination-total" class="font-medium text-slate-700">
+        Total: {{ total() }} registro(s)
       </span>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-1.5">
+        <button
+          id="rh-padron-first-btn"
+          type="button"
+          (click)="goToFirstPage()"
+          [disabled]="!canGoPrev()"
+          class="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <span>Primero</span>
+        </button>
         <button
           id="rh-padron-prev-btn"
           type="button"
           (click)="goToPrevPage()"
           [disabled]="!canGoPrev()"
-          class="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          class="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <lucide-icon [img]="icons.prev" class="h-3.5 w-3.5"></lucide-icon>
           <span>Anterior</span>
         </button>
+
+        <span id="rh-padron-page-info" class="sr-only">
+          Página {{ page() }} de {{ totalPages() }}
+        </span>
+        <select
+          id="rh-padron-page-select"
+          aria-label="Seleccionar página"
+          [value]="page()"
+          [disabled]="loading() || totalPages() <= 1"
+          (change)="goToPage($any($event.target).value)"
+          class="cursor-pointer rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          @for (num of pageNumbers(); track num) {
+            <option [value]="num" [selected]="num === page()">Página {{ num }} de {{ totalPages() }}</option>
+          }
+        </select>
+
         <button
           id="rh-padron-next-btn"
           type="button"
           (click)="goToNextPage()"
           [disabled]="!canGoNext()"
-          class="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          class="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <span>Siguiente</span>
           <lucide-icon [img]="icons.next" class="h-3.5 w-3.5"></lucide-icon>
         </button>
+        <button
+          id="rh-padron-last-btn"
+          type="button"
+          (click)="goToLastPage()"
+          [disabled]="!canGoNext()"
+          class="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <span>Último</span>
+        </button>
       </div>
-    </div>
+    </nav>
   }
 </section>
 
@@ -849,6 +971,83 @@
     (closed)="closeVacacionesDialog()"
     (unauthorized)="unauthorized.emit()"
   />
+}
+
+<!-- Menú flotante único de Acciones (fuera de overflow-x-auto, position: fixed) -->
+@if (openActionsPersona(); as menuPersona) {
+  <div
+    class="fixed inset-0 z-40"
+    aria-hidden="true"
+    (click)="closeActionsMenu()"
+  ></div>
+  <div
+    id="rh-padron-actions-floating-menu"
+    role="menu"
+    [attr.aria-label]="'Acciones para ' + menuPersona.nombre_completo"
+    (keydown)="onActionsMenuKeyDown($event)"
+    [style.top.px]="actionsMenuPos().top"
+    [style.left.px]="actionsMenuPos().left"
+    class="fixed z-50 w-54 rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl"
+  >
+    <button
+      [id]="'rh-padron-edit-general-btn-' + menuPersona.persona_id"
+      type="button"
+      role="menuitem"
+      (click)="closeActionsMenu(); openEditGeneralDialog(menuPersona)"
+      class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:bg-slate-100 focus-visible:outline-none"
+    >
+      <lucide-icon [img]="icons.pencil" class="h-3.5 w-3.5 text-slate-500" aria-hidden="true"></lucide-icon>
+      <span>Editar datos generales</span>
+    </button>
+
+    <button
+      [id]="'rh-padron-comisiones-btn-' + menuPersona.persona_id"
+      type="button"
+      role="menuitem"
+      (click)="closeActionsMenu(); openComisionesDialog(menuPersona)"
+      class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-emerald-900 hover:bg-emerald-50 focus-visible:bg-emerald-50 focus-visible:outline-none"
+    >
+      <lucide-icon [img]="icons.comision" class="h-3.5 w-3.5 text-emerald-700" aria-hidden="true"></lucide-icon>
+      <span>Comisiones</span>
+    </button>
+
+    <button
+      [id]="'rh-padron-vacaciones-btn-' + menuPersona.persona_id"
+      type="button"
+      role="menuitem"
+      (click)="closeActionsMenu(); openVacacionesDialog(menuPersona)"
+      class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-sky-900 hover:bg-sky-50 focus-visible:bg-sky-50 focus-visible:outline-none"
+    >
+      <lucide-icon [img]="icons.vacaciones" class="h-3.5 w-3.5 text-sky-700" aria-hidden="true"></lucide-icon>
+      <span>Vacaciones</span>
+    </button>
+
+    <div class="my-1 border-t border-slate-100"></div>
+
+    @if (menuPersona.activo) {
+      <button
+        [id]="'rh-padron-deactivate-btn-' + menuPersona.persona_id"
+        type="button"
+        role="menuitem"
+        (click)="closeActionsMenu(); openEstadoDialog(menuPersona, false)"
+        class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-amber-900 hover:bg-amber-50 focus-visible:bg-amber-50 focus-visible:outline-none"
+      >
+        <lucide-icon [img]="icons.userX" class="h-3.5 w-3.5 text-amber-700" aria-hidden="true"></lucide-icon>
+        <span>Desactivar</span>
+      </button>
+    } @else {
+      <button
+        [id]="'rh-padron-reactivate-btn-' + menuPersona.persona_id"
+        type="button"
+        role="menuitem"
+        (click)="closeActionsMenu(); openEstadoDialog(menuPersona, true)"
+        class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium text-emerald-900 hover:bg-emerald-50 focus-visible:bg-emerald-50 focus-visible:outline-none"
+      >
+        <lucide-icon [img]="icons.userCheck" class="h-3.5 w-3.5 text-emerald-700" aria-hidden="true"></lucide-icon>
+        <span>Reactivar</span>
+      </button>
+    }
+  </div>
 }
 
 <!-- Panel: Expediente administrativo consolidado (RH-4A.5A) -->

@@ -5,6 +5,7 @@ import {
   Component,
   computed,
   EventEmitter,
+  HostListener,
   inject,
   Input,
   OnDestroy,
@@ -22,6 +23,7 @@ import {
   FolderOpen,
   Loader2,
   LucideAngularModule,
+  MoreVertical,
   Pencil,
   RefreshCw,
   Search,
@@ -81,6 +83,7 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     checkCircle: CheckCircle2,
     prev: ChevronLeft,
     next: ChevronRight,
+    more: MoreVertical,
   };
 
   /** Estado del listado paginado del padrón */
@@ -94,9 +97,14 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   readonly searchDraft = signal('');
   readonly appliedSearch = signal('');
   readonly estadoFilter = signal<RhPersonasEstadoFilter>('todas');
+  readonly unidadFilter = signal<number | 'sin_unidad' | null>(null);
+  readonly unidadFilterQuery = signal('');
+  readonly unidadSuggestOpen = signal(false);
+  readonly unidadSuggestIndex = signal(-1);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly total = signal(0);
+  private unidadBlurTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Estado del diálogo «Registrar persona» */
   readonly createDialogOpen = signal(false);
@@ -143,6 +151,13 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   /** Estado del panel «Expediente administrativo consolidado» (RH-4A.5A) */
   readonly expedienteTargetPersona = signal<RhPersonasPadronItem | null>(null);
 
+  /** Menú contextual flotante de acciones por fila (UX-ESTANDAR-03) */
+  readonly openActionsPersonaId = signal<number | null>(null);
+  readonly openActionsPersona = signal<RhPersonasPadronItem | null>(null);
+  readonly actionsMenuPos = signal<{ top: number; left: number }>({ top: 0, left: 0 });
+  private actionsTriggerEl: HTMLElement | null = null;
+  private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
   private listSeq = 0;
 
   readonly totalPages = computed(() => {
@@ -151,8 +166,27 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     return t > 0 && s > 0 ? Math.ceil(t / s) : 1;
   });
 
+  readonly pageNumbers = computed(() =>
+    Array.from({ length: this.totalPages() }, (_, idx) => idx + 1)
+  );
+
   readonly canGoPrev = computed(() => this.page() > 1 && !this.loading());
   readonly canGoNext = computed(() => this.page() < this.totalPages() && !this.loading());
+
+  readonly unidadesFilterFiltered = computed<RhUnidadAutorizada[]>(() => {
+    const raw = this.unidadFilterQuery().trim().replace(/\s+/g, ' ').toLowerCase();
+    const list = Array.isArray(this.unidades) ? this.unidades : [];
+    if (!raw) {
+      return list.slice(0, 20);
+    }
+    return list
+      .filter((u) => {
+        const nombre = (u.nombre ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+        const clues = (u.cluesimb ?? 'N/A').trim().toLowerCase();
+        return nombre.includes(raw) || clues.includes(raw);
+      })
+      .slice(0, 20);
+  });
 
   readonly createValidationError = computed<string | null>(() => {
     const nombres = this.draftNombres().trim();
@@ -211,6 +245,7 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
       const res = await this.rhService.listarPersonasPadron({
         q: this.appliedSearch().trim() || undefined,
         estado: this.estadoFilter(),
+        unidadId: this.unidadFilter(),
         page: this.page(),
         pageSize: this.pageSize(),
       });
@@ -259,16 +294,33 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   }
 
   onSearchInput(value: string): void {
-    this.searchDraft.set(value);
+    const text = value ?? '';
+    this.searchDraft.set(text);
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+    this.searchDebounceTimer = setTimeout(() => {
+      this.appliedSearch.set(text.trim());
+      this.page.set(1);
+      void this.cargarPadron();
+    }, 300);
   }
 
   onSubmitSearch(): void {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
     this.appliedSearch.set(this.searchDraft().trim());
     this.page.set(1);
     void this.cargarPadron();
   }
 
   onClearSearch(): void {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
     this.searchDraft.set('');
     this.appliedSearch.set('');
     this.page.set(1);
@@ -283,6 +335,83 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     }
   }
 
+  onUnidadFilterInput(value: string): void {
+    this.unidadFilterQuery.set(value ?? '');
+    this.unidadSuggestOpen.set(true);
+    this.unidadSuggestIndex.set(-1);
+  }
+
+  onUnidadFilterFocus(): void {
+    if (this.unidadBlurTimer) {
+      clearTimeout(this.unidadBlurTimer);
+      this.unidadBlurTimer = null;
+    }
+    this.unidadSuggestOpen.set(true);
+  }
+
+  onUnidadFilterBlur(): void {
+    this.unidadBlurTimer = setTimeout(() => {
+      this.unidadSuggestOpen.set(false);
+      this.unidadSuggestIndex.set(-1);
+    }, 150);
+  }
+
+  onUnidadFilterKeyDown(event: KeyboardEvent): void {
+    const list = this.unidadesFilterFiltered();
+    const totalOpts = 2 + list.length;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.unidadSuggestOpen.set(true);
+      this.unidadSuggestIndex.update((i) => (i + 1) % totalOpts);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.unidadSuggestIndex.update((i) => (i <= 0 ? totalOpts - 1 : i - 1));
+      return;
+    }
+    if (event.key === 'Enter' && this.unidadSuggestOpen()) {
+      const idx = this.unidadSuggestIndex();
+      if (idx === 0) {
+        event.preventDefault();
+        this.selectUnidadFilter(null, '');
+      } else if (idx === 1) {
+        event.preventDefault();
+        this.selectUnidadFilter('sin_unidad', 'Sin unidad de referencia');
+      } else if (idx >= 2 && idx - 2 < list.length) {
+        event.preventDefault();
+        const u = list[idx - 2];
+        this.selectUnidadFilter(u.id, `${u.nombre} (${u.cluesimb || 'N/A'})`);
+      }
+      return;
+    }
+    if (event.key === 'Escape') {
+      this.unidadSuggestOpen.set(false);
+      this.unidadSuggestIndex.set(-1);
+    }
+  }
+
+  selectUnidadFilter(value: number | 'sin_unidad' | null, label: string): void {
+    this.unidadFilter.set(value);
+    this.unidadFilterQuery.set(label);
+    this.unidadSuggestOpen.set(false);
+    this.unidadSuggestIndex.set(-1);
+    this.page.set(1);
+    void this.cargarPadron();
+  }
+
+  clearUnidadFilter(): void {
+    this.selectUnidadFilter(null, '');
+  }
+
+  goToFirstPage(): void {
+    if (!this.canGoPrev()) {
+      return;
+    }
+    this.page.set(1);
+    void this.cargarPadron();
+  }
+
   goToPrevPage(): void {
     if (!this.canGoPrev()) {
       return;
@@ -295,8 +424,88 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     if (!this.canGoNext()) {
       return;
     }
-    this.page.update((p) => p + 1);
+    this.page.update((p) => Math.min(this.totalPages(), p + 1));
     void this.cargarPadron();
+  }
+
+  goToLastPage(): void {
+    if (!this.canGoNext()) {
+      return;
+    }
+    this.page.set(this.totalPages());
+    void this.cargarPadron();
+  }
+
+  goToPage(raw: string | number): void {
+    const parsed = Number(raw);
+    const maxPage = this.totalPages();
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > maxPage) {
+      return;
+    }
+    if (parsed === this.page() || this.loading()) {
+      return;
+    }
+    this.page.set(parsed);
+    void this.cargarPadron();
+  }
+
+  toggleActionsMenu(personaOrId: RhPersonasPadronItem | number, event?: Event): void {
+    const persona =
+      typeof personaOrId === 'number'
+        ? this.items().find((i) => i.persona_id === personaOrId) ?? null
+        : personaOrId;
+    const personaId = typeof personaOrId === 'number' ? personaOrId : personaOrId.persona_id;
+
+    if (this.openActionsPersonaId() === personaId) {
+      this.closeActionsMenu();
+      return;
+    }
+
+    const trigger = (event?.currentTarget as HTMLElement | null) ?? null;
+    this.actionsTriggerEl = trigger;
+    if (trigger && typeof window !== 'undefined') {
+      const rect = trigger.getBoundingClientRect();
+      const menuWidth = 216;
+      const menuHeight = 196;
+      const margin = 12;
+      const fitsBelow = rect.bottom + menuHeight + 6 <= window.innerHeight - margin;
+      const top = fitsBelow
+        ? Math.max(margin, rect.bottom + 4)
+        : Math.max(margin, rect.top - menuHeight - 4);
+      const rawLeft = rect.right - menuWidth;
+      const left = Math.min(
+        Math.max(margin, rawLeft),
+        Math.max(margin, window.innerWidth - menuWidth - margin)
+      );
+      this.actionsMenuPos.set({ top, left });
+    }
+
+    this.openActionsPersonaId.set(personaId);
+    this.openActionsPersona.set(persona);
+  }
+
+  closeActionsMenu(restoreFocus = false): void {
+    this.openActionsPersonaId.set(null);
+    this.openActionsPersona.set(null);
+    if (restoreFocus && this.actionsTriggerEl) {
+      this.actionsTriggerEl.focus();
+    }
+    this.actionsTriggerEl = null;
+  }
+
+  @HostListener('window:resize')
+  @HostListener('window:scroll')
+  onViewportChange(): void {
+    if (this.openActionsPersonaId() !== null) {
+      this.closeActionsMenu();
+    }
+  }
+
+  onActionsMenuKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeActionsMenu(true);
+    }
   }
 
   // =========================================================================

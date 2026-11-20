@@ -364,7 +364,7 @@ export interface RhPersonasPadronPagedResponse {
 export interface RhPersonasPadronListParams {
   q?: string | null;
   estado?: RhPersonasEstadoFilter;
-  unidadId?: number | null;
+  unidadId?: number | 'sin_unidad' | null;
   page?: number;
   pageSize?: number;
 }

@@ -3923,7 +3923,7 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     const searchInput = el.querySelector('#rh-padron-search-input') as HTMLInputElement;
     searchInput.value = 'Oficina';
     searchInput.dispatchEvent(new Event('input'));
-    (el.querySelector('#rh-padron-search-btn') as HTMLButtonElement).click();
+    searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     fixture.detectChanges();
 
     const searchReq = httpMock.expectOne((r) => r.url === rhPersonasUrl && r.params.get('q') === 'Oficina');
@@ -4202,6 +4202,8 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     fixture.detectChanges();
 
     // 17 y 18: Confirmación y cancelación de desactivación (sin disparar PATCH)
+    (el.querySelector('#rh-padron-actions-menu-btn-601') as HTMLButtonElement).click();
+    fixture.detectChanges();
     (el.querySelector('#rh-padron-deactivate-btn-601') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(el.querySelector('#rh-padron-deactivate-notes')?.textContent).toContain(
@@ -4212,6 +4214,8 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     httpMock.expectNone(rhPersonaEstadoUrl(601));
 
     // 19 y 20: Conflicto 409 por cuenta activa o adscripción laboral
+    (el.querySelector('#rh-padron-actions-menu-btn-601') as HTMLButtonElement).click();
+    fixture.detectChanges();
     (el.querySelector('#rh-padron-deactivate-btn-601') as HTMLButtonElement).click();
     fixture.detectChanges();
     (el.querySelector('#rh-padron-estado-confirm-btn') as HTMLButtonElement).click();
@@ -4229,6 +4233,8 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     fixture.detectChanges();
 
     // 21: Reactivación exitosa de 602
+    (el.querySelector('#rh-padron-actions-menu-btn-602') as HTMLButtonElement).click();
+    fixture.detectChanges();
     (el.querySelector('#rh-padron-reactivate-btn-602') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(el.querySelector('#rh-padron-reactivate-note')?.textContent).toContain(
@@ -4345,6 +4351,8 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     const el = fixture.nativeElement as HTMLElement;
 
     // 4, 5, 6 y 17. Abrir diálogo para 701 -> verificar precarga, aviso institucional y cancelación sin PATCH
+    (el.querySelector('#rh-padron-actions-menu-btn-701') as HTMLButtonElement).click();
+    fixture.detectChanges();
     (el.querySelector('#rh-padron-edit-general-btn-701') as HTMLButtonElement).click();
     fixture.detectChanges();
 
@@ -4366,6 +4374,8 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     expect(el.querySelector('#rh-padron-edit-general-dialog')).toBeNull();
 
     // 19, 20, 21, 22, 23, 24 y 25. Reabrir 701 -> validar correo inválido, error 404 y luego actualizar cargo + limpiar correo (null) + Oficina Central (177)
+    (el.querySelector('#rh-padron-actions-menu-btn-701') as HTMLButtonElement).click();
+    fixture.detectChanges();
     (el.querySelector('#rh-padron-edit-general-btn-701') as HTMLButtonElement).click();
     fixture.detectChanges();
 
@@ -4450,6 +4460,8 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     );
 
     // 7, 8, 9, 11 y 16. Persona inactiva sin datos (702) -> editar solo cargo omite correo y unidad_medica_id
+    (el.querySelector('#rh-padron-actions-menu-btn-702') as HTMLButtonElement).click();
+    fixture.detectChanges();
     (el.querySelector('#rh-padron-edit-general-btn-702') as HTMLButtonElement).click();
     fixture.detectChanges();
     const cargo702 = el.querySelector('#rh-padron-edit-cargo') as HTMLInputElement;

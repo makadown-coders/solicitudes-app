@@ -105,4 +105,125 @@ describe('RhPadronInstitucionalComponent — alta con fecha_ingreso (RH-4A.7D)',
     reloadReq.flush({ items: [], page: 1, pageSize: 20, total: 0 });
     await submitPromise;
   });
+
+  it('filtra por Unidad de referencia (OFICINA CENTRAL, CLUESIMB, Sin unidad, Todas) reiniciando paginación (RH-UX-01)', async () => {
+    component.unidades = [
+      { id: 177, nombre: 'OFICINA CENTRAL', cluesimb: 'N/A' },
+      { id: 12, nombre: 'HOSPITAL GENERAL MEXICALI', cluesimb: 'BCIMB000012' },
+    ];
+
+    // Búsqueda parcial por nombre (insensible a mayúsculas) -> OFICINA CENTRAL
+    component.onUnidadFilterInput('  oficina ');
+    expect(component.unidadesFilterFiltered().length).toBe(1);
+    expect(component.unidadesFilterFiltered()[0].id).toBe(177);
+
+    // Búsqueda por CLUESIMB -> Hospital General Mexicali
+    component.onUnidadFilterInput('bcimb000012');
+    expect(component.unidadesFilterFiltered().length).toBe(1);
+    expect(component.unidadesFilterFiltered()[0].id).toBe(12);
+
+    // Seleccionar OFICINA CENTRAL -> reinicia page a 1 y consulta con unidadId=177
+    component.page.set(3);
+    component.selectUnidadFilter(177, 'OFICINA CENTRAL (N/A)');
+    const reqOficina = httpMock.expectOne(
+      (r) =>
+        r.url.endsWith('/api/rh/personas') &&
+        r.params.get('unidadId') === '177' &&
+        r.params.get('page') === '1'
+    );
+    reqOficina.flush({ items: [], page: 1, pageSize: 20, total: 5 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(component.total()).toBe(5);
+
+    // Seleccionar Sin unidad de referencia -> unidadId=sin_unidad
+    component.selectUnidadFilter('sin_unidad', 'Sin unidad de referencia');
+    const reqSin = httpMock.expectOne(
+      (r) => r.url.endsWith('/api/rh/personas') && r.params.get('unidadId') === 'sin_unidad'
+    );
+    reqSin.flush({ items: [], page: 1, pageSize: 20, total: 2 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(component.total()).toBe(2);
+
+    // Limpiar filtro -> omite unidadId
+    component.clearUnidadFilter();
+    const reqTodas = httpMock.expectOne(
+      (r) => r.url.endsWith('/api/rh/personas') && !r.params.has('unidadId')
+    );
+    reqTodas.flush({ items: [], page: 1, pageSize: 20, total: 114 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(component.total()).toBe(114);
+  });
+
+  it('implementa paginación institucional Primero | Anterior | Página / Total | Siguiente | Último (UX-ESTANDAR-01)', async () => {
+    // Total = 100, pageSize = 20 -> 5 páginas
+    component.total.set(100);
+    component.pageSize.set(20);
+    component.page.set(1);
+    expect(component.totalPages()).toBe(5);
+    expect(component.canGoPrev()).toBeFalse();
+    expect(component.canGoNext()).toBeTrue();
+
+    // Ir a Último -> página 5
+    component.goToLastPage();
+    const reqLast = httpMock.expectOne(
+      (r) => r.url.endsWith('/api/rh/personas') && r.params.get('page') === '5'
+    );
+    reqLast.flush({ items: [], page: 5, pageSize: 20, total: 100 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(component.page()).toBe(5);
+    expect(component.canGoPrev()).toBeTrue();
+    expect(component.canGoNext()).toBeFalse();
+
+    // Ir a Anterior -> página 4
+    component.goToPrevPage();
+    const reqPrev = httpMock.expectOne(
+      (r) => r.url.endsWith('/api/rh/personas') && r.params.get('page') === '4'
+    );
+    reqPrev.flush({ items: [], page: 4, pageSize: 20, total: 100 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(component.page()).toBe(4);
+
+    // Ir a Primero -> página 1
+    component.goToFirstPage();
+    const reqFirst = httpMock.expectOne(
+      (r) => r.url.endsWith('/api/rh/personas') && r.params.get('page') === '1'
+    );
+    reqFirst.flush({ items: [], page: 1, pageSize: 20, total: 100 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(component.page()).toBe(1);
+
+    // Total 0 o menor que pageSize -> totalPages = 1 y ambos extremos deshabilitados
+    component.total.set(0);
+    expect(component.totalPages()).toBe(1);
+    expect(component.canGoPrev()).toBeFalse();
+    expect(component.canGoNext()).toBeFalse();
+  });
+
+  it('permite selección directa de página válida, ignora páginas inválidas y opera el menú de acciones con Escape (UX-ESTANDAR-02)', async () => {
+    component.total.set(100);
+    component.pageSize.set(20);
+    component.page.set(1);
+    expect(component.pageNumbers()).toEqual([1, 2, 3, 4, 5]);
+
+    // Página inválida (0, 6, NaN) -> no dispara petición HTTP
+    component.goToPage(0);
+    component.goToPage(6);
+    component.goToPage('abc');
+    expect(component.page()).toBe(1);
+
+    // Navegación directa a página intermedia 3
+    component.goToPage(3);
+    const reqP3 = httpMock.expectOne(
+      (r) => r.url.endsWith('/api/rh/personas') && r.params.get('page') === '3'
+    );
+    reqP3.flush({ items: [], page: 3, pageSize: 20, total: 100 });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(component.page()).toBe(3);
+
+    // Menú de acciones: abrir, cerrar con Escape
+    component.toggleActionsMenu(501);
+    expect(component.openActionsPersonaId()).toBe(501);
+    component.onActionsMenuKeyDown(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(component.openActionsPersonaId()).toBeNull();
+  });
 });
