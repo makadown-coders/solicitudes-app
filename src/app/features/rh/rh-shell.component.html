@@ -471,10 +471,22 @@
                         id="rh-open-vincular-btn"
                         type="button"
                         (click)="openVincularDialog()"
-                        class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#006341] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#004f34] focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+                        class="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-[#006341] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#004f34] focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
                       >
                         <lucide-icon [img]="icons.userPlus" class="h-4 w-4" aria-hidden="true"></lucide-icon>
                         <span>Vincular trabajador</span>
+                      </button>
+                    }
+
+                    @if (canVincularVariosTrabajadores()) {
+                      <button
+                        id="rh-open-vincular-lote-btn"
+                        type="button"
+                        (click)="openVincularLoteDialog()"
+                        class="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-[#006341] bg-white px-4 py-2 text-xs font-semibold text-[#006341] shadow-xs transition hover:bg-[#006341]/5 focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+                      >
+                        <lucide-icon [img]="icons.users" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+                        <span>Vincular varios trabajadores</span>
                       </button>
                     }
                   </div>
@@ -1204,6 +1216,25 @@
                         placeholder="Ej. Analista Administrativo"
                         class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
                       />
+                      @if (vincularPuestoSugerido(); as puestoSug) {
+                        <div
+                          id="rh-vincular-puesto-sugerido-box"
+                          class="mt-1.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 px-2.5 py-1.5 text-[11px] text-emerald-900"
+                        >
+                          <span class="min-w-0 truncate">
+                            <strong class="font-semibold">Puesto sugerido (Plantilla):</strong> {{ puestoSug }}
+                          </span>
+                          <button
+                            id="rh-vincular-usar-puesto-sugerido-btn"
+                            type="button"
+                            (click)="aplicarVincularPuestoSugerido()"
+                            [disabled]="vincularSubmitting()"
+                            class="shrink-0 cursor-pointer rounded-md border border-[#006341]/30 bg-white px-2 py-0.5 text-[11px] font-semibold text-[#006341] transition hover:bg-[#006341]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Usar sugerencia
+                          </button>
+                        </div>
+                      }
                     </div>
 
                     <div>
@@ -1222,9 +1253,21 @@
                         [disabled]="vincularSubmitting()"
                         [ngModel]="vincularTurno()"
                         (ngModelChange)="vincularTurno.set($event)"
-                        placeholder="Ej. MATUTINO"
+                        placeholder="Ej. Matutino"
                         class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
                       />
+                      <div class="mt-1.5 flex flex-wrap gap-1" aria-label="Sugerencias de turno">
+                        @for (sug of turnoSugerencias; track sug) {
+                          <button
+                            type="button"
+                            (click)="vincularTurno.set(sug)"
+                            [disabled]="vincularSubmitting()"
+                            class="cursor-pointer rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-700 transition hover:border-[#006341]/40 hover:bg-[#006341]/5 hover:text-[#006341] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {{ sug }}
+                          </button>
+                        }
+                      </div>
                     </div>
 
                     <div>
@@ -1243,9 +1286,21 @@
                         [disabled]="vincularSubmitting()"
                         [ngModel]="vincularJornada()"
                         (ngModelChange)="vincularJornada.set($event)"
-                        placeholder="Ej. 8 HORAS"
+                        placeholder="Ej. LUNES A VIERNES"
                         class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
                       />
+                      <div class="mt-1.5 flex flex-wrap gap-1" aria-label="Sugerencias de jornada">
+                        @for (sug of jornadaSugerencias; track sug) {
+                          <button
+                            type="button"
+                            (click)="vincularJornada.set(sug)"
+                            [disabled]="vincularSubmitting()"
+                            class="cursor-pointer rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-700 transition hover:border-[#006341]/40 hover:bg-[#006341]/5 hover:text-[#006341] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {{ sug }}
+                          </button>
+                        }
+                      </div>
                     </div>
 
                     <div class="sm:col-span-2">
@@ -1264,9 +1319,53 @@
                         [disabled]="vincularSubmitting()"
                         [ngModel]="vincularHorario()"
                         (ngModelChange)="vincularHorario.set($event)"
-                        placeholder="Ej. 08:00 - 16:00"
+                        placeholder="Ej. 08:00 – 17:00 HRS"
                         class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
                       />
+                      <div class="mt-1.5 flex flex-wrap items-center gap-1.5" aria-label="Sugerencias de horario">
+                        @for (sug of horarioSugerencias; track sug) {
+                          <button
+                            type="button"
+                            (click)="vincularHorario.set(sug)"
+                            [disabled]="vincularSubmitting()"
+                            class="cursor-pointer rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-700 transition hover:border-[#006341]/40 hover:bg-[#006341]/5 hover:text-[#006341] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {{ sug }}
+                          </button>
+                        }
+                        <div class="flex flex-wrap items-center gap-1.5 border-l border-slate-200 pl-2 text-[11px] text-slate-600">
+                          <input
+                            id="rh-vincular-hora-entrada"
+                            type="time"
+                            aria-label="Hora de entrada"
+                            [disabled]="vincularSubmitting()"
+                            [ngModel]="vincularHoraEntrada()"
+                            (ngModelChange)="vincularHoraEntrada.set($event)"
+                            name="vincularHoraEntrada"
+                            class="rounded-md border border-gray-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-800"
+                          />
+                          <span>a</span>
+                          <input
+                            id="rh-vincular-hora-salida"
+                            type="time"
+                            aria-label="Hora de salida"
+                            [disabled]="vincularSubmitting()"
+                            [ngModel]="vincularHoraSalida()"
+                            (ngModelChange)="vincularHoraSalida.set($event)"
+                            name="vincularHoraSalida"
+                            class="rounded-md border border-gray-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-800"
+                          />
+                          <button
+                            id="rh-vincular-aplicar-horario-btn"
+                            type="button"
+                            (click)="aplicarVincularHorarioRango()"
+                            [disabled]="vincularSubmitting() || !vincularHoraEntrada() || !vincularHoraSalida()"
+                            class="cursor-pointer rounded-md border border-[#006341]/30 bg-white px-2 py-0.5 text-[11px] font-semibold text-[#006341] transition hover:bg-[#006341]/10 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Aplicar horario
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                     <div>
@@ -1385,6 +1484,17 @@
           (reloadFichaOnConflict)="cargarFichaTrabajador()"
           (clearSaveFeedback)="clearFichaSaveFeedback()"
           (revealAuthLoss)="onFichaRevealAuthLoss($event)"
+        />
+
+        <!-- Asistente de vinculación múltiple de trabajadores (RH-UX-04C, exclusivo RH GLOBAL) -->
+        <app-rh-vincular-lote-dialog
+          [open]="vincularLoteOpen()"
+          [unidadId]="selectedUnidad()?.id ?? null"
+          [unidadNombre]="selectedUnidad()?.nombre ?? ''"
+          [unidadClues]="selectedUnidad()?.cluesimb ?? null"
+          (closed)="closeVincularLoteDialog()"
+          (completed)="onVincularLoteCompleted($event)"
+          (unauthorized)="onPadronUnauthorized()"
         />
         }
 

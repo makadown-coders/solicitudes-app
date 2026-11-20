@@ -1192,4 +1192,356 @@ export class RhService {
       )
     );
   }
+
+  /**
+   * Prevalidación sin escrituras de vinculación múltiple de trabajadores a una unidad
+   * (`POST /api/rh/unidades/:unidadId/adscripciones/lote/validar`).
+   * Exclusivo para `RECURSOS_HUMANOS GLOBAL`.
+   */
+  async validarLoteAdscripcionesPorUnidad(
+    unidadId: number,
+    payload: RhLoteAdscripcionesPayload
+  ): Promise<RhLoteAdscripcionValidarResponse> {
+    const cleanBody = this.sanitizeLoteAdscripcionesPayload(payload);
+    return await firstValueFrom(
+      this.http.post<RhLoteAdscripcionValidarResponse>(
+        `${this.baseUrl}/unidades/${unidadId}/adscripciones/lote/validar`,
+        cleanBody
+      )
+    );
+  }
+
+  /**
+   * Ejecución de vinculación múltiple de trabajadores a una unidad
+   * (`POST /api/rh/unidades/:unidadId/adscripciones/lote`).
+   * Exclusivo para `RECURSOS_HUMANOS GLOBAL`.
+   */
+  async crearLoteAdscripcionesPorUnidad(
+    unidadId: number,
+    payload: RhLoteAdscripcionesPayload
+  ): Promise<RhLoteAdscripcionEjecucionResponse> {
+    const cleanBody = this.sanitizeLoteAdscripcionesPayload(payload);
+    return await firstValueFrom(
+      this.http.post<RhLoteAdscripcionEjecucionResponse>(
+        `${this.baseUrl}/unidades/${unidadId}/adscripciones/lote`,
+        cleanBody
+      )
+    );
+  }
+
+  // ===========================================================================
+  // RH-VAC-03: Kardex vacacional institucional (periodos, bolsas, fechas discontinuas)
+  // ===========================================================================
+
+  async listVacacionPeriodos(
+    anio?: number | null
+  ): Promise<{ items: RhVacacionPeriodoDto[] }> {
+    let httpParams = new HttpParams();
+    if (anio != null && Number.isInteger(anio)) {
+      httpParams = httpParams.set('anio', String(anio));
+    }
+    return await firstValueFrom(
+      this.http.get<{ items: RhVacacionPeriodoDto[] }>(`${this.baseUrl}/vacaciones/periodos`, {
+        params: httpParams,
+      })
+    );
+  }
+
+  async listVacacionBolsasPorPersona(
+    personaId: number,
+    params: { anio?: number | null; periodoId?: number | null } = {}
+  ): Promise<{ persona_id: number; items: RhVacacionBolsaItemDto[] }> {
+    let httpParams = new HttpParams();
+    if (params.anio != null && Number.isInteger(params.anio)) {
+      httpParams = httpParams.set('anio', String(params.anio));
+    }
+    if (params.periodoId != null && Number.isInteger(params.periodoId)) {
+      httpParams = httpParams.set('periodoId', String(params.periodoId));
+    }
+    return await firstValueFrom(
+      this.http.get<{ persona_id: number; items: RhVacacionBolsaItemDto[] }>(
+        `${this.baseUrl}/personas/${personaId}/vacaciones/bolsas`,
+        { params: httpParams }
+      )
+    );
+  }
+
+  async upsertVacacionBolsaPorPersona(
+    personaId: number,
+    periodoId: number,
+    payload: RhUpsertVacacionBolsaPayload
+  ): Promise<{ bolsa: RhVacacionBolsaItemDto }> {
+    const cleanBody: Record<string, unknown> = {
+      dias_asignados: payload.dias_asignados,
+      estado_asignacion: payload.estado_asignacion,
+    };
+    if (payload.justificacion_ajuste !== undefined) {
+      cleanBody['justificacion_ajuste'] = payload.justificacion_ajuste;
+    }
+    if (payload.calendario_laboral_codigo !== undefined) {
+      cleanBody['calendario_laboral_codigo'] = payload.calendario_laboral_codigo;
+    }
+    return await firstValueFrom(
+      this.http.patch<{ bolsa: RhVacacionBolsaItemDto }>(
+        `${this.baseUrl}/personas/${personaId}/vacaciones/bolsas/${periodoId}`,
+        cleanBody
+      )
+    );
+  }
+
+  async getVacacionKardexPorPersona(
+    personaId: number,
+    periodoId: number
+  ): Promise<RhVacacionKardexResponse> {
+    const httpParams = new HttpParams().set('periodoId', String(periodoId));
+    return await firstValueFrom(
+      this.http.get<RhVacacionKardexResponse>(
+        `${this.baseUrl}/personas/${personaId}/vacaciones/kardex`,
+        { params: httpParams }
+      )
+    );
+  }
+
+  async crearVacacionFechasDetalladasPersona(
+    personaId: number,
+    payload: RhCreateVacacionFechasPayload
+  ): Promise<RhCreateVacacionResponse> {
+    const cleanBody: Record<string, unknown> = {
+      periodo_id: payload.periodo_id,
+      fechas: payload.fechas.map((f) => ({
+        fecha: f.fecha,
+        computable: f.computable,
+        ...(f.computable ? {} : { motivo_exclusion: f.motivo_exclusion ?? null }),
+      })),
+    };
+    if (payload.adscripcion_id !== undefined) {
+      cleanBody['adscripcion_id'] = payload.adscripcion_id;
+    }
+    if (payload.documento_referencia !== undefined) {
+      cleanBody['documento_referencia'] = payload.documento_referencia;
+    }
+    if (payload.observaciones !== undefined) {
+      cleanBody['observaciones'] = payload.observaciones;
+    }
+    return await firstValueFrom(
+      this.http.post<RhCreateVacacionResponse>(
+        `${this.baseUrl}/personas/${personaId}/vacaciones`,
+        cleanBody
+      )
+    );
+  }
+
+  private sanitizeLoteAdscripcionesPayload(
+    payload: RhLoteAdscripcionesPayload
+  ): RhLoteAdscripcionesPayload {
+    const clean: RhLoteAdscripcionesPayload = {
+      items: (payload.items ?? []).map((item) => {
+        const cleanItem: RhLoteAdscripcionItemPayload = {
+          persona_id: item.persona_id,
+        };
+        for (const key of ALLOWED_LOTE_ADSCRIPCION_FIELDS) {
+          if (Object.prototype.hasOwnProperty.call(item, key) && item[key] !== undefined) {
+            (cleanItem as unknown as Record<string, unknown>)[key] = item[key];
+          }
+        }
+        return cleanItem;
+      }),
+    };
+
+    if (payload.defaults) {
+      const cleanDefaults: RhLoteAdscripcionCamposLaborales = {};
+      let hasDefaults = false;
+      for (const key of ALLOWED_LOTE_ADSCRIPCION_FIELDS) {
+        if (
+          Object.prototype.hasOwnProperty.call(payload.defaults, key) &&
+          payload.defaults[key] !== undefined
+        ) {
+          (cleanDefaults as unknown as Record<string, unknown>)[key] = payload.defaults[key];
+          hasDefaults = true;
+        }
+      }
+      if (hasDefaults) {
+        clean.defaults = cleanDefaults;
+      }
+    }
+
+    return clean;
+  }
+}
+
+/**
+ * Campos laborales permitidos en `defaults` y en cada elemento de `items`
+ * para la vinculación múltiple de trabajadores (RH-UX-04B / RH-UX-04C).
+ */
+export interface RhLoteAdscripcionCamposLaborales {
+  vigente_desde?: string | null;
+  vigente_hasta?: string | null;
+  matricula?: string | null;
+  puesto?: string | null;
+  turno?: string | null;
+  jornada?: string | null;
+  horario?: string | null;
+  observaciones?: string | null;
+}
+
+export interface RhLoteAdscripcionItemPayload extends RhLoteAdscripcionCamposLaborales {
+  persona_id: number;
+}
+
+export interface RhLoteAdscripcionesPayload {
+  defaults?: RhLoteAdscripcionCamposLaborales;
+  items: RhLoteAdscripcionItemPayload[];
+}
+
+export type RhLoteAdscripcionValidacionEstado =
+  | 'ELEGIBLE'
+  | 'YA_VINCULADA'
+  | 'PERSONA_INACTIVA'
+  | 'CONFLICTO_ADSCRIPCION'
+  | 'DATOS_INVALIDOS';
+
+export interface RhLoteAdscripcionValidacionItem {
+  persona_id: number;
+  estado: RhLoteAdscripcionValidacionEstado;
+  detalle: string | null;
+}
+
+export interface RhLoteAdscripcionValidarResponse {
+  unidad_id: number;
+  total_solicitados: number;
+  elegibles: number;
+  ya_vinculadas: number;
+  personas_inactivas: number;
+  conflictos_adscripcion: number;
+  datos_invalidos: number;
+  resultados: RhLoteAdscripcionValidacionItem[];
+}
+
+export type RhLoteAdscripcionResultadoEstado =
+  | 'CREADA'
+  | 'OMITIDA_DUPLICADO'
+  | 'PERSONA_INACTIVA'
+  | 'ERROR_VALIDACION'
+  | 'ERROR_INTERNO';
+
+export interface RhLoteAdscripcionResultadoItem {
+  persona_id: number;
+  resultado: RhLoteAdscripcionResultadoEstado;
+  adscripcion_laboral_id: number | null;
+  detalle: string | null;
+}
+
+export interface RhLoteAdscripcionEjecucionResponse {
+  lote_id: string;
+  unidad_id: number;
+  total_solicitados: number;
+  creadas: number;
+  omitidas: number;
+  errores: number;
+  resultados: RhLoteAdscripcionResultadoItem[];
+}
+
+const ALLOWED_LOTE_ADSCRIPCION_FIELDS: ReadonlyArray<keyof RhLoteAdscripcionCamposLaborales> = [
+  'vigente_desde',
+  'vigente_hasta',
+  'matricula',
+  'puesto',
+  'turno',
+  'jornada',
+  'horario',
+  'observaciones',
+];
+
+export type RhVacacionBolsaEstado = 'INEXISTENTE' | 'PROVISIONAL' | 'CONFIRMADA' | 'AJUSTADA';
+
+export interface RhVacacionPeriodoDto {
+  id: number;
+  anio: number;
+  numero_periodo: 1 | 2;
+  clave: string;
+  nombre: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  dias_base_provisionales: number;
+  activo: boolean;
+  observaciones: string | null;
+}
+
+export interface RhVacacionBolsaItemDto {
+  periodo_id: number;
+  anio: number;
+  numero_periodo: 1 | 2;
+  periodo_clave: string;
+  periodo_nombre: string;
+  periodo_fecha_inicio: string;
+  periodo_fecha_fin: string;
+  dias_base_provisionales: number;
+  bolsa_id: number | null;
+  dias_asignados: number | null;
+  estado_asignacion: RhVacacionBolsaEstado;
+  justificacion_ajuste: string | null;
+  calendario_laboral_codigo: string | null;
+  actualizado_en: string | null;
+}
+
+export interface RhUpsertVacacionBolsaPayload {
+  dias_asignados: number;
+  estado_asignacion: 'PROVISIONAL' | 'CONFIRMADA' | 'AJUSTADA';
+  justificacion_ajuste?: string | null;
+  calendario_laboral_codigo?: string | null;
+}
+
+export interface RhVacacionFechaInput {
+  fecha: string;
+  computable: boolean;
+  motivo_exclusion?: string | null;
+}
+
+export interface RhCreateVacacionFechasPayload {
+  periodo_id: number;
+  fechas: RhVacacionFechaInput[];
+  adscripcion_id?: number | null;
+  documento_referencia?: string | null;
+  observaciones?: string | null;
+}
+
+export interface RhVacacionFechaDto {
+  id: number;
+  fecha: string;
+  computable: boolean;
+  motivo_exclusion: string | null;
+  activo: boolean;
+}
+
+export interface RhVacacionKardexMovimientoDto {
+  id: number;
+  persona_id: number;
+  adscripcion_id: number | null;
+  periodo_id: number | null;
+  modo_registro: 'RANGO_HISTORICO' | 'FECHAS_DETALLADAS';
+  fecha_inicio: string;
+  fecha_fin: string;
+  dias_registrados: number;
+  documento_referencia: string | null;
+  observaciones: string | null;
+  estado: RhVacacionEstado;
+  motivo_anulacion: string | null;
+  anulado_en: string | null;
+  creado_en: string;
+  actualizado_en: string;
+  fechas: RhVacacionFechaDto[];
+}
+
+export interface RhVacacionKardexResponse {
+  persona_id: number;
+  periodo: RhVacacionPeriodoDto;
+  resumen: {
+    estado_bolsa: RhVacacionBolsaEstado;
+    es_provisional: boolean;
+    dias_asignados: number | null;
+    dias_computables_registrados: number;
+    saldo_administrativo: number | null;
+    justificacion_ajuste: string | null;
+  };
+  movimientos: RhVacacionKardexMovimientoDto[];
 }
