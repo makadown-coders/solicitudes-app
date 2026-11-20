@@ -1,0 +1,556 @@
+<div id="rh-vacaciones-kardex-panel" class="space-y-4">
+  @if (successBanner(); as msg) {
+    <div
+      id="rh-kardex-success-banner"
+      role="status"
+      class="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs text-emerald-900"
+    >
+      <div class="flex items-center gap-2">
+        <lucide-icon [img]="icons.checkCircle" class="h-4 w-4 shrink-0 text-[#006341]" aria-hidden="true" />
+        <span class="font-semibold">{{ msg }}</span>
+      </div>
+      <button
+        type="button"
+        (click)="successBanner.set(null)"
+        class="cursor-pointer text-emerald-800 underline"
+      >
+        Ocultar
+      </button>
+    </div>
+  }
+
+  @if (loadingPeriodos()) {
+    <div class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-8 text-xs text-slate-600">
+      <lucide-icon [img]="icons.loader" class="h-4 w-4 animate-spin text-[#006341]" aria-hidden="true" />
+      <span>Consultando periodos vacacionales institucionales…</span>
+    </div>
+  } @else if (errorPeriodos(); as pErr) {
+    <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-800">
+      {{ pErr }}
+    </div>
+  } @else if (periodos().length === 0) {
+    <div
+      id="rh-kardex-no-periodos"
+      class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900"
+    >
+      <p class="font-semibold">No existen periodos vacacionales institucionales configurados.</p>
+      <p class="mt-1">
+        Solicita al administrador inicializar el catálogo de periodos en PostgreSQL antes de administrar bolsas o movimientos.
+      </p>
+    </div>
+  } @else {
+    <!-- Selector de Año y Periodo Institucional -->
+    <div class="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+      <div class="flex flex-wrap items-end gap-3">
+        <div>
+          <label for="rh-kardex-anio-select" class="mb-1 block text-[11px] font-semibold text-slate-700">
+            Año
+          </label>
+          <select
+            id="rh-kardex-anio-select"
+            [ngModel]="selectedAnio()"
+            (ngModelChange)="onAnioChange($event)"
+            class="min-h-9 cursor-pointer rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:border-[#006341] focus:outline-none"
+          >
+            @for (y of availableYears(); track y) {
+              <option [ngValue]="y">{{ y }}</option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label for="rh-kardex-periodo-select" class="mb-1 block text-[11px] font-semibold text-slate-700">
+            Periodo institucional
+          </label>
+          <select
+            id="rh-kardex-periodo-select"
+            [ngModel]="selectedPeriodoId()"
+            (ngModelChange)="selectPeriodo($event)"
+            class="min-h-9 cursor-pointer rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:border-[#006341] focus:outline-none"
+          >
+            @for (per of periodosForSelectedYear(); track per.id) {
+              <option [ngValue]="per.id">
+                {{ per.clave }} — {{ per.nombre }} ({{ per.fecha_inicio }} a {{ per.fecha_fin }})
+              </option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        @if (canManage()) {
+          <button
+            id="rh-kardex-config-bolsa-btn"
+            type="button"
+            (click)="openBolsaForm()"
+            class="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]"
+          >
+            <lucide-icon [img]="icons.sliders" class="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Configurar bolsa</span>
+          </button>
+
+          <button
+            id="rh-kardex-nuevo-mov-btn"
+            type="button"
+            (click)="openRegistroForm()"
+            [disabled]="!persona().activo || !kardex() || kardex()?.resumen?.estado_bolsa === 'INEXISTENTE'"
+            class="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-[#006341] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#004f34] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <lucide-icon [img]="icons.plus" class="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Registrar fechas discontinuas</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Tarjetas de resumen de Bolsa y Saldo -->
+    @if (loadingKardex()) {
+      <div class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-6 text-xs text-slate-600">
+        <lucide-icon [img]="icons.loader" class="h-4 w-4 animate-spin text-[#006341]" aria-hidden="true" />
+        <span>Cargando kardex del periodo…</span>
+      </div>
+    } @else if (errorKardex(); as kErr) {
+      <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-800">
+        {{ kErr }}
+      </div>
+    } @else if (kardex(); as kData) {
+      <div id="rh-kardex-resumen-cards" class="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        <div class="rounded-xl border border-slate-200 bg-white p-3">
+          <p class="text-[11px] font-semibold text-slate-500">Estado de bolsa</p>
+          <p id="rh-kardex-bolsa-estado" class="mt-1 text-sm font-bold text-slate-900">
+            {{ getBolsaBadgeLabel(kData.resumen.estado_bolsa) }}
+          </p>
+          @if (kData.resumen.es_provisional) {
+            <p class="mt-0.5 text-[10px] text-amber-700">Asignación provisional (no definitiva)</p>
+          }
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white p-3">
+          <p class="text-[11px] font-semibold text-slate-500">Días asignados</p>
+          <p id="rh-kardex-dias-asignados" class="mt-1 text-lg font-bold text-slate-900">
+            {{ kData.resumen.dias_asignados !== null ? kData.resumen.dias_asignados : '—' }}
+          </p>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white p-3">
+          <p class="text-[11px] font-semibold text-slate-500">Días computables</p>
+          <p id="rh-kardex-dias-computables" class="mt-1 text-lg font-bold text-slate-900">
+            {{ kData.resumen.dias_computables_registrados }}
+          </p>
+        </div>
+
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3">
+          <p class="text-[11px] font-semibold text-emerald-800">Saldo administrativo</p>
+          <p id="rh-kardex-saldo-admin" class="mt-1 text-lg font-bold text-emerald-950">
+            {{ kData.resumen.saldo_administrativo !== null ? kData.resumen.saldo_administrativo : '—' }}
+          </p>
+        </div>
+      </div>
+
+      @if (kData.resumen.estado_bolsa === 'INEXISTENTE') {
+        <div
+          id="rh-kardex-bolsa-inexistente-notice"
+          class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
+        >
+          <strong>Bolsa no configurada:</strong> configura los días asignados para este trabajador y periodo antes de registrar movimientos.
+        </div>
+      }
+
+      <!-- Formulario Configurar / Ajustar Bolsa -->
+      @if (bolsaFormOpen() && canManage()) {
+        <div id="rh-kardex-bolsa-form" class="space-y-3 rounded-xl border border-slate-300 bg-slate-50 p-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-slate-900">Configurar bolsa del periodo {{ kData.periodo.clave }}</h3>
+            <button type="button" (click)="closeBolsaForm()" class="cursor-pointer text-xs text-slate-600 hover:text-slate-900">
+              Cancelar
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label for="rh-bolsa-dias-input" class="mb-1 block text-xs font-semibold text-slate-700">
+                Días asignados (0–60)
+              </label>
+              <input
+                id="rh-bolsa-dias-input"
+                type="number"
+                min="0"
+                max="60"
+                [ngModel]="draftBolsaDias()"
+                (ngModelChange)="draftBolsaDias.set($event)"
+                class="min-h-9 w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label for="rh-bolsa-estado-select" class="mb-1 block text-xs font-semibold text-slate-700">
+                Estado de asignación
+              </label>
+              <select
+                id="rh-bolsa-estado-select"
+                [ngModel]="draftBolsaEstado()"
+                (ngModelChange)="draftBolsaEstado.set($event)"
+                class="min-h-9 w-full cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-slate-900"
+              >
+                <option value="PROVISIONAL">PROVISIONAL</option>
+                <option value="CONFIRMADA">CONFIRMADA</option>
+                <option value="AJUSTADA">AJUSTADA (requiere justificación)</option>
+              </select>
+            </div>
+
+            <div class="sm:col-span-2">
+              <label for="rh-bolsa-justif-input" class="mb-1 block text-xs font-semibold text-slate-700">
+                Justificación {{ draftBolsaEstado() === 'AJUSTADA' ? '(obligatoria)' : '(opcional)' }}
+              </label>
+              <input
+                id="rh-bolsa-justif-input"
+                type="text"
+                maxlength="1000"
+                [ngModel]="draftBolsaJustificacion()"
+                (ngModelChange)="draftBolsaJustificacion.set($event)"
+                placeholder="Motivo administrativo de la asignación o ajuste…"
+                class="min-h-9 w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-slate-900"
+              />
+            </div>
+          </div>
+
+          @if (bolsaError(); as bErr) {
+            <p id="rh-bolsa-error" role="alert" class="text-xs font-semibold text-red-700">{{ bErr }}</p>
+          }
+
+          <div class="flex justify-end gap-2">
+            <button
+              type="button"
+              (click)="closeBolsaForm()"
+              class="cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              Cancelar
+            </button>
+            <button
+              id="rh-bolsa-save-btn"
+              type="button"
+              (click)="guardarBolsa()"
+              [disabled]="bolsaSubmitting()"
+              class="cursor-pointer rounded-lg bg-[#006341] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#004f34] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {{ bolsaSubmitting() ? 'Guardando…' : 'Guardar bolsa' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Formulario Calendario de Fechas Discontinuas -->
+      @if (registroFormOpen() && canManage()) {
+        <div id="rh-kardex-registro-form" class="space-y-4 rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-slate-900">
+              Registrar movimiento con fechas discontinuas — {{ kData.periodo.clave }}
+            </h3>
+            <button type="button" (click)="closeRegistroForm()" class="cursor-pointer text-xs text-slate-600 hover:text-slate-900">
+              Cancelar
+            </button>
+          </div>
+
+          <!-- Calendario mensual -->
+          <div class="rounded-xl border border-gray-200 bg-white p-3">
+            <div class="mb-2 flex items-center justify-between">
+              <button
+                type="button"
+                (click)="shiftCalendarMonth(-1)"
+                class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-white text-slate-700 hover:bg-slate-50"
+                aria-label="Mes anterior"
+              >
+                <lucide-icon [img]="icons.prev" class="h-4 w-4" aria-hidden="true" />
+              </button>
+              <span class="text-xs font-bold text-slate-900">{{ calendarMonthLabel() }}</span>
+              <button
+                type="button"
+                (click)="shiftCalendarMonth(1)"
+                class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-white text-slate-700 hover:bg-slate-50"
+                aria-label="Mes siguiente"
+              >
+                <lucide-icon [img]="icons.next" class="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-slate-500">
+              <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+            </div>
+
+            <div class="mt-1 grid grid-cols-7 gap-1">
+              @for (cell of calendarCells(); track $index) {
+                @if (cell.iso) {
+                  <button
+                    type="button"
+                    (click)="toggleFecha(cell)"
+                    [disabled]="!cell.inPeriod || registroSubmitting()"
+                    class="min-h-8 rounded-lg border text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-35"
+                    [ngClass]="
+                      selectedFechasMap()[cell.iso]
+                        ? selectedFechasMap()[cell.iso].computable
+                          ? 'cursor-pointer border-[#006341] bg-[#006341] text-white'
+                          : 'cursor-pointer border-amber-400 bg-amber-100 text-amber-900'
+                        : 'cursor-pointer border-gray-200 bg-white text-slate-800 hover:bg-slate-50'
+                    "
+                  >
+                    {{ cell.dayNumber }}
+                  </button>
+                } @else {
+                  <div></div>
+                }
+              }
+            </div>
+          </div>
+
+          <!-- Fechas seleccionadas (Computable vs Excluida) -->
+          @if (selectedFechas().length > 0) {
+            <div class="space-y-1.5 rounded-xl border border-gray-200 bg-white p-3">
+              <p class="text-xs font-semibold text-slate-800">
+                Fechas seleccionadas ({{ selectedFechas().length }}):
+              </p>
+              @for (f of selectedFechas(); track f.fecha) {
+                <div class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5 text-xs">
+                  <span class="font-mono font-semibold text-slate-900">{{ f.fecha }}</span>
+                  <button
+                    type="button"
+                    (click)="toggleFechaComputable(f.fecha)"
+                    class="cursor-pointer rounded-md border px-2 py-0.5 text-[11px] font-semibold"
+                    [ngClass]="
+                      f.computable
+                        ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
+                        : 'border-amber-300 bg-amber-100 text-amber-900'
+                    "
+                  >
+                    {{ f.computable ? 'Computable' : 'Excluida' }}
+                  </button>
+
+                  @if (!f.computable) {
+                    <input
+                      type="text"
+                      maxlength="200"
+                      [ngModel]="f.motivo_exclusion || ''"
+                      (ngModelChange)="updateFechaMotivoExclusion(f.fecha, $event)"
+                      placeholder="Motivo de exclusión (obligatorio)"
+                      class="min-w-[180px] flex-1 rounded-md border border-amber-300 bg-white px-2 py-0.5 text-xs text-slate-900"
+                    />
+                  }
+
+                  <button
+                    type="button"
+                    (click)="removeFecha(f.fecha)"
+                    class="ml-auto cursor-pointer text-slate-400 hover:text-red-700"
+                    aria-label="Quitar fecha"
+                  >
+                    <lucide-icon [img]="icons.trash" class="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Documento y observaciones -->
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label for="rh-kardex-doc-input" class="mb-1 block text-xs font-semibold text-slate-700">
+                Documento de referencia (opcional)
+              </label>
+              <input
+                id="rh-kardex-doc-input"
+                type="text"
+                maxlength="120"
+                [ngModel]="draftDocumento()"
+                (ngModelChange)="draftDocumento.set($event)"
+                class="min-h-9 w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label for="rh-kardex-obs-input" class="mb-1 block text-xs font-semibold text-slate-700">
+                Observaciones (opcional)
+              </label>
+              <input
+                id="rh-kardex-obs-input"
+                type="text"
+                maxlength="500"
+                [ngModel]="draftObservaciones()"
+                (ngModelChange)="draftObservaciones.set($event)"
+                class="min-h-9 w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-slate-900"
+              />
+            </div>
+          </div>
+
+          <!-- Resumen previo a confirmación -->
+          <div id="rh-kardex-preview-box" class="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-700">
+            <p class="font-bold text-slate-900">Resumen previo a confirmar:</p>
+            <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+              <span>Periodo: <strong>{{ kData.periodo.clave }}</strong></span>
+              <span>Computables: <strong>{{ computablesCount() }}</strong></span>
+              <span>Excluidas: <strong>{{ excluidasCount() }}</strong></span>
+              @if (kData.resumen.saldo_administrativo !== null) {
+                <span>
+                  Saldo antes / después:
+                  <strong>{{ kData.resumen.saldo_administrativo }}</strong> →
+                  <strong [class.text-red-700]="(saldoDespuesPreview() ?? 0) < 0">
+                    {{ saldoDespuesPreview() }}
+                  </strong>
+                </span>
+              }
+            </div>
+          </div>
+
+          @if (registroValidationError(); as valErr) {
+            <p class="text-xs text-amber-800">{{ valErr }}</p>
+          }
+
+          @if (registroError(); as rErr) {
+            <div id="rh-kardex-registro-error" role="alert" class="rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-800">
+              {{ rErr }}
+            </div>
+          }
+
+          <div class="flex justify-end gap-2">
+            <button
+              type="button"
+              (click)="closeRegistroForm()"
+              [disabled]="registroSubmitting()"
+              class="cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              id="rh-kardex-confirm-registro-btn"
+              type="button"
+              (click)="confirmarRegistroFechas()"
+              [disabled]="!canSubmitRegistro()"
+              class="cursor-pointer rounded-lg bg-[#006341] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#004f34] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {{ registroSubmitting() ? 'Registrando…' : 'Confirmar registro vacacional' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Movimientos del periodo -->
+      <div class="space-y-2">
+        <h3 class="text-xs font-bold uppercase tracking-wide text-slate-600">
+          Movimientos del periodo {{ kData.periodo.clave }} ({{ kData.movimientos.length }})
+        </h3>
+
+        @if (kData.movimientos.length === 0) {
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-5 text-center text-xs text-slate-600">
+            No hay movimientos registrados en este periodo institucional.
+          </div>
+        } @else {
+          @for (mov of kData.movimientos; track mov.id) {
+            <div class="rounded-xl border border-slate-200 bg-white p-3.5 text-xs">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <div class="space-y-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span
+                      class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                      [ngClass]="
+                        mov.estado === 'REGISTRADO'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-slate-200 text-slate-700 line-through'
+                      "
+                    >
+                      {{ mov.estado }}
+                    </span>
+                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                      {{ mov.modo_registro === 'FECHAS_DETALLADAS' ? 'Fechas detalladas' : 'Rango histórico' }}
+                    </span>
+                    <span class="font-semibold text-slate-900">
+                      {{ mov.dias_registrados }} día(s) computable(s)
+                    </span>
+                    <span class="text-slate-500">({{ mov.fecha_inicio }} a {{ mov.fecha_fin }})</span>
+                  </div>
+
+                  @if (mov.fechas.length > 0) {
+                    <div class="flex flex-wrap gap-1 pt-1">
+                      @for (f of mov.fechas; track f.id) {
+                        <span
+                          class="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]"
+                          [ngClass]="
+                            f.computable
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                              : 'border-amber-200 bg-amber-50 text-amber-900'
+                          "
+                        >
+                          <span class="font-mono">{{ f.fecha }}</span>
+                          @if (!f.computable) {
+                            <span>(Excluida: {{ f.motivo_exclusion }})</span>
+                          }
+                        </span>
+                      }
+                    </div>
+                  }
+
+                  @if (mov.documento_referencia) {
+                    <p class="text-slate-600"><strong>Documento:</strong> {{ mov.documento_referencia }}</p>
+                  }
+                  @if (mov.observaciones) {
+                    <p class="text-slate-600"><strong>Observaciones:</strong> {{ mov.observaciones }}</p>
+                  }
+                  @if (mov.estado === 'ANULADO' && mov.motivo_anulacion) {
+                    <p class="text-red-700"><strong>Motivo de anulación:</strong> {{ mov.motivo_anulacion }}</p>
+                  }
+                </div>
+
+                @if (canManage() && mov.estado === 'REGISTRADO') {
+                  <button
+                    [id]="'rh-kardex-anular-btn-' + mov.id"
+                    type="button"
+                    (click)="openAnularDialog(mov)"
+                    class="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+                  >
+                    <lucide-icon [img]="icons.anular" class="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>Anular</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Modal inline de confirmación de anulación -->
+      @if (anularTarget(); as target) {
+        <div id="rh-kardex-anular-box" class="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 text-xs">
+          <p class="font-bold text-red-900">
+            Anular movimiento #{{ target.id }} ({{ target.dias_registrados }} día(s) computables)
+          </p>
+          <input
+            id="rh-kardex-anular-motivo-input"
+            type="text"
+            maxlength="300"
+            [ngModel]="anularMotivo()"
+            (ngModelChange)="anularMotivo.set($event)"
+            placeholder="Motivo obligatorio de anulación…"
+            class="min-h-9 w-full rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs text-slate-900"
+          />
+          @if (anularError(); as aErr) {
+            <p class="font-semibold text-red-700">{{ aErr }}</p>
+          }
+          <div class="flex justify-end gap-2">
+            <button
+              type="button"
+              (click)="closeAnularDialog()"
+              class="cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-semibold text-slate-700"
+            >
+              Cancelar
+            </button>
+            <button
+              id="rh-kardex-confirm-anular-btn"
+              type="button"
+              (click)="confirmarAnulacion()"
+              [disabled]="anularSubmitting()"
+              class="cursor-pointer rounded-lg bg-red-700 px-3 py-1.5 font-semibold text-white hover:bg-red-800 disabled:opacity-50"
+            >
+              {{ anularSubmitting() ? 'Anulando…' : 'Confirmar anulación' }}
+            </button>
+          </div>
+        </div>
+      }
+    }
+  }
+</div>

@@ -37,6 +37,7 @@ import { RhAccessScope, resolveRhRoleContext } from '../../core/auth/rh-access.g
 import { SessionStore } from '../../core/auth/session-store.service';
 import {
   RhCreateAdscripcionPayload,
+  RhLoteAdscripcionEjecucionResponse,
   RhPersonaCandidataItem,
   RhPersonalUnidadItem,
   RhService,
@@ -45,7 +46,14 @@ import {
   RhUpdateAdscripcionLaboralPayload,
   RhUpdatePersonaIdentificacionPayload,
 } from '../../services/rh.service';
+import { RhVincularLoteDialogComponent } from './adscripciones/rh-vincular-lote-dialog.component';
 import { RhFichaTrabajadorDialogComponent } from './rh-ficha-trabajador-dialog.component';
+import {
+  formatRhHorarioRango,
+  RH_HORARIO_SUGERENCIAS,
+  RH_JORNADA_SUGERENCIAS,
+  RH_TURNO_SUGERENCIAS,
+} from './rh-laboral-sugerencias.constants';
 import { RhPadronInstitucionalComponent } from './rh-padron-institucional.component';
 
 @Component({
@@ -59,6 +67,7 @@ import { RhPadronInstitucionalComponent } from './rh-padron-institucional.compon
     LucideAngularModule,
     RhFichaTrabajadorDialogComponent,
     RhPadronInstitucionalComponent,
+    RhVincularLoteDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rh-shell.component.html',
@@ -160,10 +169,40 @@ export class RhShellComponent implements OnInit, OnDestroy {
   readonly vincularTurno = signal('');
   readonly vincularJornada = signal('');
   readonly vincularHorario = signal('');
+  readonly vincularHoraEntrada = signal('');
+  readonly vincularHoraSalida = signal('');
   readonly vincularVigenteDesde = signal('');
   readonly vincularVigenteHasta = signal('');
   readonly vincularSubmitting = signal(false);
   readonly vincularError = signal<string | null>(null);
+
+  /** Sugerencias editables de captura laboral asistida (RH-UX-05B) */
+  readonly turnoSugerencias = RH_TURNO_SUGERENCIAS;
+  readonly jornadaSugerencias = RH_JORNADA_SUGERENCIAS;
+  readonly horarioSugerencias = RH_HORARIO_SUGERENCIAS;
+
+  readonly vincularPuestoSugerido = computed<string | null>(() => {
+    const cargo = this.selectedCandidata()?.cargo_directorio?.trim() ?? '';
+    return cargo.length > 0 ? cargo : null;
+  });
+
+  aplicarVincularPuestoSugerido(): void {
+    const sugerido = this.vincularPuestoSugerido();
+    if (!sugerido || this.vincularSubmitting()) {
+      return;
+    }
+    this.vincularPuesto.set(sugerido);
+  }
+
+  aplicarVincularHorarioRango(): void {
+    if (this.vincularSubmitting()) {
+      return;
+    }
+    const formatted = formatRhHorarioRango(this.vincularHoraEntrada(), this.vincularHoraSalida());
+    if (formatted) {
+      this.vincularHorario.set(formatted);
+    }
+  }
 
   /** Estado del diálogo de consulta y edición laboral de Ficha del trabajador (RH-2B.4D y RH-2B.4F) */
   readonly fichaOpen = signal(false);
@@ -255,6 +294,39 @@ export class RhShellComponent implements OnInit, OnDestroy {
     const unidad = this.selectedUnidad();
     return Boolean(ctx && ctx.grantedBy === 'RECURSOS_HUMANOS' && unidad !== null);
   });
+
+  /** Estado del diálogo «Vincular varios trabajadores» (RH-UX-04C, exclusivo RH GLOBAL) */
+  readonly vincularLoteOpen = signal(false);
+
+  /**
+   * Habilita la acción «Vincular varios trabajadores» exclusivamente para
+   * `RECURSOS_HUMANOS GLOBAL` cuando existe una unidad seleccionada.
+   */
+  readonly canVincularVariosTrabajadores = computed<boolean>(() => {
+    return this.canManagePadronInstitucional() && this.selectedUnidad() !== null;
+  });
+
+  openVincularLoteDialog(): void {
+    if (!this.canVincularVariosTrabajadores()) {
+      return;
+    }
+    this.vincularLoteOpen.set(true);
+  }
+
+  closeVincularLoteDialog(): void {
+    this.vincularLoteOpen.set(false);
+  }
+
+  onVincularLoteCompleted(result: RhLoteAdscripcionEjecucionResponse): void {
+    if (result.creadas > 0) {
+      this.vincularSuccessBanner.set(
+        result.creadas === 1
+          ? 'Se vinculó 1 trabajador a la unidad mediante vinculación múltiple.'
+          : `Se vincularon ${result.creadas} trabajadores a la unidad mediante vinculación múltiple.`
+      );
+    }
+    void this.cargarPersonalUnidad();
+  }
 
   /**
    * Habilita la pestaña «Plantilla institucional» exclusivamente cuando el operador

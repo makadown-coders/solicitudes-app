@@ -5,6 +5,7 @@ import {
   Component,
   computed,
   EventEmitter,
+  HostListener,
   inject,
   Input,
   OnDestroy,
@@ -22,6 +23,7 @@ import {
   FolderOpen,
   Loader2,
   LucideAngularModule,
+  MoreVertical,
   Pencil,
   RefreshCw,
   Search,
@@ -81,6 +83,7 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     checkCircle: CheckCircle2,
     prev: ChevronLeft,
     next: ChevronRight,
+    more: MoreVertical,
   };
 
   /** Estado del listado paginado del padrón */
@@ -94,9 +97,14 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   readonly searchDraft = signal('');
   readonly appliedSearch = signal('');
   readonly estadoFilter = signal<RhPersonasEstadoFilter>('todas');
+  readonly unidadFilter = signal<number | 'sin_unidad' | null>(null);
+  readonly unidadFilterQuery = signal('');
+  readonly unidadSuggestOpen = signal(false);
+  readonly unidadSuggestIndex = signal(-1);
   readonly page = signal(1);
   readonly pageSize = signal(20);
   readonly total = signal(0);
+  private unidadBlurTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Estado del diálogo «Registrar persona» */
   readonly createDialogOpen = signal(false);
@@ -107,6 +115,7 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   readonly draftCargo = signal('');
   readonly draftCorreo = signal('');
   readonly draftUnidadId = signal<string>('');
+  readonly draftFechaIngreso = signal('');
   readonly createSubmitting = signal(false);
   readonly createError = signal<string | null>(null);
   readonly createIsConflict = signal(false);
@@ -119,12 +128,17 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   readonly estadoError = signal<string | null>(null);
   readonly estadoIsConflict = signal(false);
 
-  /** Estado del diálogo «Editar datos generales» (RH-4A.2B) */
+  /** Estado del diálogo «Editar datos generales» (RH-4A.2B / RH-4A.7A) */
   readonly editGeneralDialogOpen = signal(false);
   readonly editGeneralTargetPersona = signal<RhPersonasPadronItem | null>(null);
+  readonly editDraftNombres = signal('');
+  readonly editDraftApellidos = signal('');
   readonly editDraftCargo = signal('');
   readonly editDraftCorreo = signal('');
   readonly editDraftUnidadId = signal('');
+  readonly editDraftCurp = signal('');
+  readonly editDraftRfc = signal('');
+  readonly editDraftFechaIngreso = signal('');
   readonly editGeneralSubmitting = signal(false);
   readonly editGeneralError = signal<string | null>(null);
 
@@ -137,6 +151,13 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   /** Estado del panel «Expediente administrativo consolidado» (RH-4A.5A) */
   readonly expedienteTargetPersona = signal<RhPersonasPadronItem | null>(null);
 
+  /** Menú contextual flotante de acciones por fila (UX-ESTANDAR-03) */
+  readonly openActionsPersonaId = signal<number | null>(null);
+  readonly openActionsPersona = signal<RhPersonasPadronItem | null>(null);
+  readonly actionsMenuPos = signal<{ top: number; left: number }>({ top: 0, left: 0 });
+  private actionsTriggerEl: HTMLElement | null = null;
+  private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
   private listSeq = 0;
 
   readonly totalPages = computed(() => {
@@ -145,8 +166,27 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     return t > 0 && s > 0 ? Math.ceil(t / s) : 1;
   });
 
+  readonly pageNumbers = computed(() =>
+    Array.from({ length: this.totalPages() }, (_, idx) => idx + 1)
+  );
+
   readonly canGoPrev = computed(() => this.page() > 1 && !this.loading());
   readonly canGoNext = computed(() => this.page() < this.totalPages() && !this.loading());
+
+  readonly unidadesFilterFiltered = computed<RhUnidadAutorizada[]>(() => {
+    const raw = this.unidadFilterQuery().trim().replace(/\s+/g, ' ').toLowerCase();
+    const list = Array.isArray(this.unidades) ? this.unidades : [];
+    if (!raw) {
+      return list.slice(0, 20);
+    }
+    return list
+      .filter((u) => {
+        const nombre = (u.nombre ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+        const clues = (u.cluesimb ?? 'N/A').trim().toLowerCase();
+        return nombre.includes(raw) || clues.includes(raw);
+      })
+      .slice(0, 20);
+  });
 
   readonly createValidationError = computed<string | null>(() => {
     const nombres = this.draftNombres().trim();
@@ -205,6 +245,7 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
       const res = await this.rhService.listarPersonasPadron({
         q: this.appliedSearch().trim() || undefined,
         estado: this.estadoFilter(),
+        unidadId: this.unidadFilter(),
         page: this.page(),
         pageSize: this.pageSize(),
       });
@@ -253,16 +294,33 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   }
 
   onSearchInput(value: string): void {
-    this.searchDraft.set(value);
+    const text = value ?? '';
+    this.searchDraft.set(text);
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+    this.searchDebounceTimer = setTimeout(() => {
+      this.appliedSearch.set(text.trim());
+      this.page.set(1);
+      void this.cargarPadron();
+    }, 300);
   }
 
   onSubmitSearch(): void {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
     this.appliedSearch.set(this.searchDraft().trim());
     this.page.set(1);
     void this.cargarPadron();
   }
 
   onClearSearch(): void {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
     this.searchDraft.set('');
     this.appliedSearch.set('');
     this.page.set(1);
@@ -277,6 +335,83 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     }
   }
 
+  onUnidadFilterInput(value: string): void {
+    this.unidadFilterQuery.set(value ?? '');
+    this.unidadSuggestOpen.set(true);
+    this.unidadSuggestIndex.set(-1);
+  }
+
+  onUnidadFilterFocus(): void {
+    if (this.unidadBlurTimer) {
+      clearTimeout(this.unidadBlurTimer);
+      this.unidadBlurTimer = null;
+    }
+    this.unidadSuggestOpen.set(true);
+  }
+
+  onUnidadFilterBlur(): void {
+    this.unidadBlurTimer = setTimeout(() => {
+      this.unidadSuggestOpen.set(false);
+      this.unidadSuggestIndex.set(-1);
+    }, 150);
+  }
+
+  onUnidadFilterKeyDown(event: KeyboardEvent): void {
+    const list = this.unidadesFilterFiltered();
+    const totalOpts = 2 + list.length;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.unidadSuggestOpen.set(true);
+      this.unidadSuggestIndex.update((i) => (i + 1) % totalOpts);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.unidadSuggestIndex.update((i) => (i <= 0 ? totalOpts - 1 : i - 1));
+      return;
+    }
+    if (event.key === 'Enter' && this.unidadSuggestOpen()) {
+      const idx = this.unidadSuggestIndex();
+      if (idx === 0) {
+        event.preventDefault();
+        this.selectUnidadFilter(null, '');
+      } else if (idx === 1) {
+        event.preventDefault();
+        this.selectUnidadFilter('sin_unidad', 'Sin unidad de referencia');
+      } else if (idx >= 2 && idx - 2 < list.length) {
+        event.preventDefault();
+        const u = list[idx - 2];
+        this.selectUnidadFilter(u.id, `${u.nombre} (${u.cluesimb || 'N/A'})`);
+      }
+      return;
+    }
+    if (event.key === 'Escape') {
+      this.unidadSuggestOpen.set(false);
+      this.unidadSuggestIndex.set(-1);
+    }
+  }
+
+  selectUnidadFilter(value: number | 'sin_unidad' | null, label: string): void {
+    this.unidadFilter.set(value);
+    this.unidadFilterQuery.set(label);
+    this.unidadSuggestOpen.set(false);
+    this.unidadSuggestIndex.set(-1);
+    this.page.set(1);
+    void this.cargarPadron();
+  }
+
+  clearUnidadFilter(): void {
+    this.selectUnidadFilter(null, '');
+  }
+
+  goToFirstPage(): void {
+    if (!this.canGoPrev()) {
+      return;
+    }
+    this.page.set(1);
+    void this.cargarPadron();
+  }
+
   goToPrevPage(): void {
     if (!this.canGoPrev()) {
       return;
@@ -289,8 +424,88 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     if (!this.canGoNext()) {
       return;
     }
-    this.page.update((p) => p + 1);
+    this.page.update((p) => Math.min(this.totalPages(), p + 1));
     void this.cargarPadron();
+  }
+
+  goToLastPage(): void {
+    if (!this.canGoNext()) {
+      return;
+    }
+    this.page.set(this.totalPages());
+    void this.cargarPadron();
+  }
+
+  goToPage(raw: string | number): void {
+    const parsed = Number(raw);
+    const maxPage = this.totalPages();
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > maxPage) {
+      return;
+    }
+    if (parsed === this.page() || this.loading()) {
+      return;
+    }
+    this.page.set(parsed);
+    void this.cargarPadron();
+  }
+
+  toggleActionsMenu(personaOrId: RhPersonasPadronItem | number, event?: Event): void {
+    const persona =
+      typeof personaOrId === 'number'
+        ? this.items().find((i) => i.persona_id === personaOrId) ?? null
+        : personaOrId;
+    const personaId = typeof personaOrId === 'number' ? personaOrId : personaOrId.persona_id;
+
+    if (this.openActionsPersonaId() === personaId) {
+      this.closeActionsMenu();
+      return;
+    }
+
+    const trigger = (event?.currentTarget as HTMLElement | null) ?? null;
+    this.actionsTriggerEl = trigger;
+    if (trigger && typeof window !== 'undefined') {
+      const rect = trigger.getBoundingClientRect();
+      const menuWidth = 216;
+      const menuHeight = 196;
+      const margin = 12;
+      const fitsBelow = rect.bottom + menuHeight + 6 <= window.innerHeight - margin;
+      const top = fitsBelow
+        ? Math.max(margin, rect.bottom + 4)
+        : Math.max(margin, rect.top - menuHeight - 4);
+      const rawLeft = rect.right - menuWidth;
+      const left = Math.min(
+        Math.max(margin, rawLeft),
+        Math.max(margin, window.innerWidth - menuWidth - margin)
+      );
+      this.actionsMenuPos.set({ top, left });
+    }
+
+    this.openActionsPersonaId.set(personaId);
+    this.openActionsPersona.set(persona);
+  }
+
+  closeActionsMenu(restoreFocus = false): void {
+    this.openActionsPersonaId.set(null);
+    this.openActionsPersona.set(null);
+    if (restoreFocus && this.actionsTriggerEl) {
+      this.actionsTriggerEl.focus();
+    }
+    this.actionsTriggerEl = null;
+  }
+
+  @HostListener('window:resize')
+  @HostListener('window:scroll')
+  onViewportChange(): void {
+    if (this.openActionsPersonaId() !== null) {
+      this.closeActionsMenu();
+    }
+  }
+
+  onActionsMenuKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeActionsMenu(true);
+    }
   }
 
   // =========================================================================
@@ -315,6 +530,7 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     this.draftCargo.set('');
     this.draftCorreo.set('');
     this.draftUnidadId.set('');
+    this.draftFechaIngreso.set('');
     this.createSubmitting.set(false);
     this.createError.set(null);
     this.createIsConflict.set(false);
@@ -367,6 +583,16 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
       if (Number.isInteger(parsedUnidad) && parsedUnidad > 0) {
         payload.unidad_medica_id = parsedUnidad;
       }
+    }
+
+    const fechaIngreso = this.draftFechaIngreso().trim();
+    if (fechaIngreso.length > 0) {
+      if (fechaIngreso < '1940-01-01' || fechaIngreso > '2100-12-31') {
+        this.createSubmitting.set(false);
+        this.createError.set('La fecha de ingreso institucional debe estar entre 1940-01-01 y 2100-12-31.');
+        return;
+      }
+      payload.fecha_ingreso = fechaIngreso;
     }
 
     try {
@@ -489,6 +715,11 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     this.editDraftUnidadId.set(
       persona.unidad_medica_id != null ? String(persona.unidad_medica_id) : ''
     );
+    this.editDraftNombres.set(persona.nombres ?? '');
+    this.editDraftApellidos.set(persona.apellidos ?? '');
+    this.editDraftCurp.set('');
+    this.editDraftRfc.set('');
+    this.editDraftFechaIngreso.set(persona.fecha_ingreso ?? '');
     this.editGeneralSubmitting.set(false);
     this.editGeneralError.set(null);
     this.editGeneralDialogOpen.set(true);
@@ -497,9 +728,14 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   closeEditGeneralDialog(): void {
     this.editGeneralDialogOpen.set(false);
     this.editGeneralTargetPersona.set(null);
+    this.editDraftNombres.set('');
+    this.editDraftApellidos.set('');
     this.editDraftCargo.set('');
     this.editDraftCorreo.set('');
     this.editDraftUnidadId.set('');
+    this.editDraftCurp.set('');
+    this.editDraftRfc.set('');
+    this.editDraftFechaIngreso.set('');
     this.editGeneralSubmitting.set(false);
     this.editGeneralError.set(null);
   }
@@ -543,6 +779,33 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
       nextUnidadId = parsed;
     }
 
+    const nextNombres = this.editDraftNombres().trim();
+    const nextApellidos = this.editDraftApellidos().trim();
+    if (nextNombres.length > 150 || nextApellidos.length > 150) {
+      this.editGeneralError.set('Los campos «Nombres» y «Apellidos» no pueden exceder 150 caracteres.');
+      return;
+    }
+
+    const nextCurpRaw = this.editDraftCurp().trim().toUpperCase();
+    if (nextCurpRaw.length > 0 && !CURP_REGEX.test(nextCurpRaw)) {
+      this.editGeneralError.set('La CURP debe tener exactamente 18 caracteres con estructura oficial válida.');
+      return;
+    }
+
+    const nextRfcRaw = this.editDraftRfc().trim().toUpperCase();
+    if (nextRfcRaw.length > 0) {
+      if (nextRfcRaw.length === 12) {
+        this.editGeneralError.set('No se admite RFC de persona moral (12 caracteres).');
+        return;
+      }
+      if (!RFC_PERSONA_FISICA_REGEX.test(nextRfcRaw)) {
+        this.editGeneralError.set('El RFC debe corresponder a una persona física válida (10 o 13 caracteres).');
+        return;
+      }
+    }
+
+    const currentNombres = (target.nombres ?? '').trim();
+    const currentApellidos = (target.apellidos ?? '').trim();
     const currentCargo =
       target.cargo != null && target.cargo.trim().length > 0 ? target.cargo.trim() : null;
     const currentCorreo =
@@ -553,6 +816,12 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
       target.unidad_medica_id != null ? Number(target.unidad_medica_id) : null;
 
     const patch: RhUpdatePersonaGeneralPayload = {};
+    if (nextNombres && nextNombres !== currentNombres) {
+      patch.nombres = nextNombres;
+    }
+    if (nextApellidos && nextApellidos !== currentApellidos) {
+      patch.apellidos = nextApellidos;
+    }
     if (nextCargo !== currentCargo) {
       patch.cargo = nextCargo;
     }
@@ -561,6 +830,17 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     }
     if (nextUnidadId !== currentUnidadId) {
       patch.unidad_medica_id = nextUnidadId;
+    }
+    if (nextCurpRaw.length > 0) {
+      patch.curp = nextCurpRaw;
+    }
+    if (nextRfcRaw.length > 0) {
+      patch.rfc = nextRfcRaw;
+    }
+    const nextFechaIngreso = this.editDraftFechaIngreso().trim() || null;
+    const currentFechaIngreso = target.fecha_ingreso ? target.fecha_ingreso.trim() : null;
+    if (nextFechaIngreso !== currentFechaIngreso) {
+      patch.fecha_ingreso = nextFechaIngreso;
     }
 
     // Si no existen cambios efectivos, cerrar sin realizar PATCH

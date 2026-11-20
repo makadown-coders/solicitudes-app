@@ -83,6 +83,9 @@ describe('RhVacacionesComponent (RH-4A.4B)', () => {
   });
 
   afterEach(() => {
+    for (const req of httpMock.match((r) => r.url.endsWith('/api/rh/vacaciones/periodos'))) {
+      req.flush({ items: [] });
+    }
     httpMock.verify();
   });
 

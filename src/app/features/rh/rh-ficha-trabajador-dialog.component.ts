@@ -39,6 +39,12 @@ import {
   RhUpdateAdscripcionLaboralPayload,
   RhUpdatePersonaIdentificacionPayload,
 } from '../../services/rh.service';
+import {
+  formatRhHorarioRango,
+  RH_HORARIO_SUGERENCIAS,
+  RH_JORNADA_SUGERENCIAS,
+  RH_TURNO_SUGERENCIAS,
+} from './rh-laboral-sugerencias.constants';
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const RFC_PERSONA_FISICA_REGEX =
@@ -103,6 +109,33 @@ export class RhFichaTrabajadorDialogComponent implements OnChanges, OnDestroy {
   @Input() ficha: RhTrabajadorFichaResponse | null = null;
   @Input() fallbackNombre = '';
   @Input() fallbackUnidadNombre = '';
+  /** Cargo de Plantilla institucional si el contrato padre lo provee (opcional, nunca modifica persona.cargo) */
+  @Input() cargoDirectorio: string | null = null;
+
+  /** Sugerencias editables de captura laboral asistida (RH-UX-05B) */
+  readonly turnoSugerencias = RH_TURNO_SUGERENCIAS;
+  readonly jornadaSugerencias = RH_JORNADA_SUGERENCIAS;
+  readonly horarioSugerencias = RH_HORARIO_SUGERENCIAS;
+  readonly draftHoraEntrada = signal('');
+  readonly draftHoraSalida = signal('');
+
+  aplicarCargoPlantillaSugerido(): void {
+    const cargo = this.cargoDirectorio?.trim() ?? '';
+    if (!cargo || this.savingLaboral) {
+      return;
+    }
+    this.draftPuesto.set(cargo);
+  }
+
+  aplicarDraftHorarioRango(): void {
+    if (this.savingLaboral) {
+      return;
+    }
+    const formatted = formatRhHorarioRango(this.draftHoraEntrada(), this.draftHoraSalida());
+    if (formatted) {
+      this.draftHorario.set(formatted);
+    }
+  }
 
   /** Estado del guardado laboral (RH-2B.4F) gestionado desde RhShellComponent */
   @Input() savingLaboral = false;

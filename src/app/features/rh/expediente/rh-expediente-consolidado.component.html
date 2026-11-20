@@ -104,6 +104,11 @@
           </div>
 
           <div class="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Fecha de ingreso institucional</div>
+            <div class="mt-0.5 text-sm text-slate-800">{{ persona.fecha_ingreso || 'No registrada' }}</div>
+          </div>
+
+          <div class="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
             <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Unidad de referencia (directorio)</div>
             <div class="mt-0.5 text-sm text-slate-800">
               @if (persona.unidad_medica_nombre) {

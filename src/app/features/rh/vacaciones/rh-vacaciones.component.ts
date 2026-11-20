@@ -35,11 +35,12 @@ import {
   RhVacacionesEstadoFilter,
   RhVacacionRegistroDto,
 } from '../../../services/rh.service';
+import { RhVacacionesKardexPanelComponent } from './rh-vacaciones-kardex-panel.component';
 
 @Component({
   selector: 'app-rh-vacaciones',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule, RhVacacionesKardexPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rh-vacaciones.component.html',
 })
@@ -66,6 +67,9 @@ export class RhVacacionesComponent implements OnChanges, OnDestroy {
     prev: ChevronLeft,
     next: ChevronRight,
   };
+
+  /** Vista activa: kardex institucional por periodo (RH-VAC-03) o historial por rango anterior */
+  readonly activeVacacionesView = signal<'kardex' | 'historico'>('kardex');
 
   /** Listado paginado / kardex */
   readonly items = signal<RhVacacionRegistroDto[]>([]);
