@@ -107,6 +107,7 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   readonly draftCargo = signal('');
   readonly draftCorreo = signal('');
   readonly draftUnidadId = signal<string>('');
+  readonly draftFechaIngreso = signal('');
   readonly createSubmitting = signal(false);
   readonly createError = signal<string | null>(null);
   readonly createIsConflict = signal(false);
@@ -119,12 +120,17 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   readonly estadoError = signal<string | null>(null);
   readonly estadoIsConflict = signal(false);
 
-  /** Estado del diálogo «Editar datos generales» (RH-4A.2B) */
+  /** Estado del diálogo «Editar datos generales» (RH-4A.2B / RH-4A.7A) */
   readonly editGeneralDialogOpen = signal(false);
   readonly editGeneralTargetPersona = signal<RhPersonasPadronItem | null>(null);
+  readonly editDraftNombres = signal('');
+  readonly editDraftApellidos = signal('');
   readonly editDraftCargo = signal('');
   readonly editDraftCorreo = signal('');
   readonly editDraftUnidadId = signal('');
+  readonly editDraftCurp = signal('');
+  readonly editDraftRfc = signal('');
+  readonly editDraftFechaIngreso = signal('');
   readonly editGeneralSubmitting = signal(false);
   readonly editGeneralError = signal<string | null>(null);
 
@@ -315,6 +321,7 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     this.draftCargo.set('');
     this.draftCorreo.set('');
     this.draftUnidadId.set('');
+    this.draftFechaIngreso.set('');
     this.createSubmitting.set(false);
     this.createError.set(null);
     this.createIsConflict.set(false);
@@ -367,6 +374,16 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
       if (Number.isInteger(parsedUnidad) && parsedUnidad > 0) {
         payload.unidad_medica_id = parsedUnidad;
       }
+    }
+
+    const fechaIngreso = this.draftFechaIngreso().trim();
+    if (fechaIngreso.length > 0) {
+      if (fechaIngreso < '1940-01-01' || fechaIngreso > '2100-12-31') {
+        this.createSubmitting.set(false);
+        this.createError.set('La fecha de ingreso institucional debe estar entre 1940-01-01 y 2100-12-31.');
+        return;
+      }
+      payload.fecha_ingreso = fechaIngreso;
     }
 
     try {
@@ -489,6 +506,11 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     this.editDraftUnidadId.set(
       persona.unidad_medica_id != null ? String(persona.unidad_medica_id) : ''
     );
+    this.editDraftNombres.set(persona.nombres ?? '');
+    this.editDraftApellidos.set(persona.apellidos ?? '');
+    this.editDraftCurp.set('');
+    this.editDraftRfc.set('');
+    this.editDraftFechaIngreso.set(persona.fecha_ingreso ?? '');
     this.editGeneralSubmitting.set(false);
     this.editGeneralError.set(null);
     this.editGeneralDialogOpen.set(true);
@@ -497,9 +519,14 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
   closeEditGeneralDialog(): void {
     this.editGeneralDialogOpen.set(false);
     this.editGeneralTargetPersona.set(null);
+    this.editDraftNombres.set('');
+    this.editDraftApellidos.set('');
     this.editDraftCargo.set('');
     this.editDraftCorreo.set('');
     this.editDraftUnidadId.set('');
+    this.editDraftCurp.set('');
+    this.editDraftRfc.set('');
+    this.editDraftFechaIngreso.set('');
     this.editGeneralSubmitting.set(false);
     this.editGeneralError.set(null);
   }
@@ -543,6 +570,33 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
       nextUnidadId = parsed;
     }
 
+    const nextNombres = this.editDraftNombres().trim();
+    const nextApellidos = this.editDraftApellidos().trim();
+    if (nextNombres.length > 150 || nextApellidos.length > 150) {
+      this.editGeneralError.set('Los campos «Nombres» y «Apellidos» no pueden exceder 150 caracteres.');
+      return;
+    }
+
+    const nextCurpRaw = this.editDraftCurp().trim().toUpperCase();
+    if (nextCurpRaw.length > 0 && !CURP_REGEX.test(nextCurpRaw)) {
+      this.editGeneralError.set('La CURP debe tener exactamente 18 caracteres con estructura oficial válida.');
+      return;
+    }
+
+    const nextRfcRaw = this.editDraftRfc().trim().toUpperCase();
+    if (nextRfcRaw.length > 0) {
+      if (nextRfcRaw.length === 12) {
+        this.editGeneralError.set('No se admite RFC de persona moral (12 caracteres).');
+        return;
+      }
+      if (!RFC_PERSONA_FISICA_REGEX.test(nextRfcRaw)) {
+        this.editGeneralError.set('El RFC debe corresponder a una persona física válida (10 o 13 caracteres).');
+        return;
+      }
+    }
+
+    const currentNombres = (target.nombres ?? '').trim();
+    const currentApellidos = (target.apellidos ?? '').trim();
     const currentCargo =
       target.cargo != null && target.cargo.trim().length > 0 ? target.cargo.trim() : null;
     const currentCorreo =
@@ -553,6 +607,12 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
       target.unidad_medica_id != null ? Number(target.unidad_medica_id) : null;
 
     const patch: RhUpdatePersonaGeneralPayload = {};
+    if (nextNombres && nextNombres !== currentNombres) {
+      patch.nombres = nextNombres;
+    }
+    if (nextApellidos && nextApellidos !== currentApellidos) {
+      patch.apellidos = nextApellidos;
+    }
     if (nextCargo !== currentCargo) {
       patch.cargo = nextCargo;
     }
@@ -561,6 +621,17 @@ export class RhPadronInstitucionalComponent implements OnInit, OnDestroy {
     }
     if (nextUnidadId !== currentUnidadId) {
       patch.unidad_medica_id = nextUnidadId;
+    }
+    if (nextCurpRaw.length > 0) {
+      patch.curp = nextCurpRaw;
+    }
+    if (nextRfcRaw.length > 0) {
+      patch.rfc = nextRfcRaw;
+    }
+    const nextFechaIngreso = this.editDraftFechaIngreso().trim() || null;
+    const currentFechaIngreso = target.fecha_ingreso ? target.fecha_ingreso.trim() : null;
+    if (nextFechaIngreso !== currentFechaIngreso) {
+      patch.fecha_ingreso = nextFechaIngreso;
     }
 
     // Si no existen cambios efectivos, cerrar sin realizar PATCH

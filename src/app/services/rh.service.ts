@@ -336,6 +336,7 @@ export interface RhPersonaAdminDto {
   curp_masked: string | null;
   activo: boolean;
   fecha_baja: string | null;
+  fecha_ingreso?: string | null;
 }
 
 /**
@@ -379,6 +380,7 @@ export interface RhCreatePersonaPayload {
   cargo?: string | null;
   correo_principal?: string | null;
   unidad_medica_id?: number | null;
+  fecha_ingreso?: string | null;
 }
 
 /**
@@ -396,9 +398,14 @@ export interface RhUpdatePersonaEstadoResponse {
  * Payload parcial permitido por `PATCH /api/rh/personas/:personaId/general`.
  */
 export interface RhUpdatePersonaGeneralPayload {
+  nombres?: string;
+  apellidos?: string;
   cargo?: string | null;
   correo_principal?: string | null;
   unidad_medica_id?: number | null;
+  curp?: string | null;
+  rfc?: string | null;
+  fecha_ingreso?: string | null;
 }
 
 /**
@@ -691,12 +698,18 @@ const ALLOWED_CREATE_PERSONA_KEYS: ReadonlyArray<keyof RhCreatePersonaPayload> =
   'cargo',
   'correo_principal',
   'unidad_medica_id',
+  'fecha_ingreso',
 ];
 
 const ALLOWED_UPDATE_PERSONA_GENERAL_KEYS: ReadonlyArray<keyof RhUpdatePersonaGeneralPayload> = [
+  'nombres',
+  'apellidos',
   'cargo',
   'correo_principal',
   'unidad_medica_id',
+  'curp',
+  'rfc',
+  'fecha_ingreso',
 ];
 
 @Injectable({ providedIn: 'root' })

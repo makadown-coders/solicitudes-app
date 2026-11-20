@@ -471,6 +471,21 @@
         </div>
 
         <div class="sm:col-span-2">
+          <label for="rh-padron-create-fecha-ingreso" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+            Fecha de ingreso institucional (opcional)
+          </label>
+          <input
+            id="rh-padron-create-fecha-ingreso"
+            type="date"
+            min="1940-01-01"
+            max="2100-12-31"
+            [value]="draftFechaIngreso()"
+            (input)="draftFechaIngreso.set($any($event.target).value)"
+            class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
+          />
+        </div>
+
+        <div class="sm:col-span-2">
           <label for="rh-padron-create-unidad" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
             Unidad de referencia del directorio (opcional)
           </label>
@@ -656,6 +671,81 @@
       </div>
 
       <div class="mt-4 space-y-3.5">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label for="rh-padron-edit-nombres" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+              Nombres
+            </label>
+            <input
+              id="rh-padron-edit-nombres"
+              type="text"
+              maxlength="150"
+              [value]="editDraftNombres()"
+              (input)="editDraftNombres.set($any($event.target).value)"
+              class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
+            />
+          </div>
+          <div>
+            <label for="rh-padron-edit-apellidos" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+              Apellidos
+            </label>
+            <input
+              id="rh-padron-edit-apellidos"
+              type="text"
+              maxlength="150"
+              [value]="editDraftApellidos()"
+              (input)="editDraftApellidos.set($any($event.target).value)"
+              class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label for="rh-padron-edit-curp" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+              CURP (capturar solo para actualizar)
+            </label>
+            <input
+              id="rh-padron-edit-curp"
+              type="text"
+              maxlength="18"
+              placeholder="18 caracteres (vacío conserva actual)"
+              [value]="editDraftCurp()"
+              (input)="editDraftCurp.set($any($event.target).value)"
+              class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 font-mono text-sm uppercase text-slate-900 focus:border-[#006341] focus:outline-none"
+            />
+          </div>
+          <div>
+            <label for="rh-padron-edit-rfc" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+              RFC (capturar solo para actualizar)
+            </label>
+            <input
+              id="rh-padron-edit-rfc"
+              type="text"
+              maxlength="13"
+              placeholder="10 o 13 caracteres (vacío conserva actual)"
+              [value]="editDraftRfc()"
+              (input)="editDraftRfc.set($any($event.target).value)"
+              class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 font-mono text-sm uppercase text-slate-900 focus:border-[#006341] focus:outline-none"
+            />
+          </div>
+        </div>
+
+          <div>
+            <label for="rh-padron-edit-fecha-ingreso" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+              Fecha de ingreso institucional (opcional)
+            </label>
+            <input
+              id="rh-padron-edit-fecha-ingreso"
+              type="date"
+              min="1940-01-01"
+              max="2100-12-31"
+              [value]="editDraftFechaIngreso()"
+              (input)="editDraftFechaIngreso.set($any($event.target).value)"
+              class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none"
+            />
+          </div>
+
         <div>
           <label for="rh-padron-edit-cargo" class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
             Cargo
