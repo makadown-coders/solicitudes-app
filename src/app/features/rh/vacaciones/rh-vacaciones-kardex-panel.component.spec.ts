@@ -240,4 +240,35 @@ describe('RhVacacionesKardexPanelComponent (RH-VAC-03)', () => {
 
     expect(component.kardex()?.resumen.saldo_administrativo).toBe(10);
   });
+
+  it('permite habilitar excepción fuera del periodo de origen con justificación obligatoria (RH-VAC-06)', async () => {
+    fixture.componentRef.setInput('persona', makePersona(42));
+    fixture.detectChanges();
+
+    httpMock.expectOne((r) => r.url.endsWith('/api/rh/vacaciones/periodos')).flush({ items: PERIODOS_MOCK });
+    await flushMicrotasks();
+    httpMock.expectOne((r) => r.url.endsWith('/api/rh/personas/42/vacaciones/kardex')).flush(makeKardex());
+    await flushMicrotasks();
+    fixture.detectChanges();
+
+    component.openRegistroForm();
+    component.onToggleExcepcionFueraPeriodo(true);
+    component.toggleFecha({ iso: '2027-02-10', dayNumber: 10, inPeriod: true });
+
+    // Sin justificación no puede confirmar
+    expect(component.canSubmitRegistro()).toBeFalse();
+
+    component.justificacionExcepcion.set('Vacaciones pendientes disfrutadas en 2027');
+    expect(component.canSubmitRegistro()).toBeTrue();
+
+    const submitPromise = component.confirmarRegistroFechas();
+    const postReq = httpMock.expectOne((r) => r.url.endsWith('/api/rh/personas/42/vacaciones'));
+    expect(postReq.request.body.es_excepcion_fuera_periodo).toBeTrue();
+    expect(postReq.request.body.justificacion_excepcion).toBe('Vacaciones pendientes disfrutadas en 2027');
+    postReq.flush({ registro: { id: 902 }, tiene_superposicion: false, registros_superpuestos_ids: [] });
+    await flushMicrotasks();
+
+    httpMock.expectOne((r) => r.url.endsWith('/api/rh/personas/42/vacaciones/kardex')).flush(makeKardex());
+    await submitPromise;
+  });
 });

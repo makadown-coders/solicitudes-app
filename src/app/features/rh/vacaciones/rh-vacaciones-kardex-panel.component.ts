@@ -31,11 +31,18 @@ import {
 import {
   RhPersonasPadronItem,
   RhService,
+  RhVacacionFechaDto,
   RhVacacionFechaInput,
   RhVacacionKardexMovimientoDto,
   RhVacacionKardexResponse,
   RhVacacionPeriodoDto,
 } from '../../../services/rh.service';
+import {
+  formatFechaVacacionCortaEs,
+  formatFechaVacacionLargaEs,
+  selectPeriodoVigentePorFecha,
+  sortFechasVacacionCronologico,
+} from './rh-vacaciones-fecha.utils';
 
 export interface RhCalendarCell {
   iso: string | null;
@@ -114,6 +121,8 @@ export class RhVacacionesKardexPanelComponent implements OnDestroy {
   readonly calendarYear = signal<number>(2026);
   readonly calendarMonth = signal<number>(1); // 1..12
   readonly selectedFechas = signal<RhVacacionFechaInput[]>([]);
+  readonly excepcionFueraPeriodo = signal(false);
+  readonly justificacionExcepcion = signal('');
   readonly draftDocumento = signal('');
   readonly draftObservaciones = signal('');
   readonly registroSubmitting = signal(false);
@@ -174,7 +183,11 @@ export class RhVacacionesKardexPanelComponent implements OnDestroy {
     }
     for (let day = 1; day <= daysInMonth; day += 1) {
       const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const inPeriod = periodo ? iso >= periodo.fecha_inicio && iso <= periodo.fecha_fin : false;
+      const inPeriod = periodo
+        ? this.excepcionFueraPeriodo()
+          ? iso >= periodo.fecha_inicio
+          : iso >= periodo.fecha_inicio && iso <= periodo.fecha_fin
+        : false;
       cells.push({ iso, dayNumber: day, inPeriod });
     }
     return cells;
@@ -217,8 +230,30 @@ export class RhVacacionesKardexPanelComponent implements OnDestroy {
         return `La fecha excluida ${f.fecha} requiere un motivo administrativo de exclusión.`;
       }
     }
+    if (this.excepcionFueraPeriodo() && !this.justificacionExcepcion().trim()) {
+      return 'La justificación administrativa es obligatoria cuando se registran vacaciones fuera del periodo de origen.';
+    }
     return null;
   });
+
+  readonly hasFutureSelectedDates = computed<boolean>(() => {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    return this.selectedFechas().some((f) => f.fecha > todayIso);
+  });
+
+  onToggleExcepcionFueraPeriodo(enabled: boolean): void {
+    this.excepcionFueraPeriodo.set(enabled);
+    if (!enabled) {
+      this.justificacionExcepcion.set('');
+      const per = this.selectedPeriodo();
+      if (per) {
+        this.selectedFechas.set(
+          this.selectedFechas().filter((f) => f.fecha >= per.fecha_inicio && f.fecha <= per.fecha_fin)
+        );
+      }
+    }
+    this.registroError.set(null);
+  }
 
   readonly canSubmitRegistro = computed<boolean>(() => {
     return Boolean(
@@ -272,7 +307,9 @@ export class RhVacacionesKardexPanelComponent implements OnDestroy {
 
       const currentSelected = this.selectedPeriodoId();
       const stillValid = currentSelected !== null && list.some((p) => p.id === currentSelected);
-      const target = stillValid ? list.find((p) => p.id === currentSelected)! : list[0];
+      const target = stillValid
+        ? list.find((p) => p.id === currentSelected)!
+        : selectPeriodoVigentePorFecha(list).periodo ?? list[0];
       this.selectedAnio.set(target.anio);
       this.selectedPeriodoId.set(target.id);
       this.syncCalendarToPeriodo(target);
@@ -428,6 +465,8 @@ export class RhVacacionesKardexPanelComponent implements OnDestroy {
       this.syncCalendarToPeriodo(per);
     }
     this.selectedFechas.set([]);
+    this.excepcionFueraPeriodo.set(false);
+    this.justificacionExcepcion.set('');
     this.draftDocumento.set('');
     this.draftObservaciones.set('');
     this.registroError.set(null);
@@ -513,6 +552,12 @@ export class RhVacacionesKardexPanelComponent implements OnDestroy {
         })),
         documento_referencia: this.draftDocumento().trim() || null,
         observaciones: this.draftObservaciones().trim() || null,
+        ...(this.excepcionFueraPeriodo()
+          ? {
+              es_excepcion_fuera_periodo: true,
+              justificacion_excepcion: this.justificacionExcepcion().trim(),
+            }
+          : {}),
       });
 
       this.registroFormOpen.set(false);
@@ -598,6 +643,18 @@ export class RhVacacionesKardexPanelComponent implements OnDestroy {
     }
   }
 
+  formatFechaLarga(iso: string): string {
+    return formatFechaVacacionLargaEs(iso);
+  }
+
+  formatFechaCorta(iso: string): string {
+    return formatFechaVacacionCortaEs(iso);
+  }
+
+  getFechasOrdenadas(fechas: readonly RhVacacionFechaDto[]): RhVacacionFechaDto[] {
+    return sortFechasVacacionCronologico(fechas);
+  }
+
   private syncCalendarToPeriodo(periodo: RhVacacionPeriodoDto): void {
     const parts = periodo.fecha_inicio.split('-');
     if (parts.length === 3) {
@@ -611,6 +668,8 @@ export class RhVacacionesKardexPanelComponent implements OnDestroy {
     this.bolsaError.set(null);
     this.registroFormOpen.set(false);
     this.selectedFechas.set([]);
+    this.excepcionFueraPeriodo.set(false);
+    this.justificacionExcepcion.set('');
     this.registroError.set(null);
     this.anularTarget.set(null);
     this.anularError.set(null);

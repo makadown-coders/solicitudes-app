@@ -35,6 +35,7 @@ import {
   RhService,
 } from '../../services/rh.service';
 import { RhMiListaAsistenciaComponent } from './asistencia/rh-mi-lista-asistencia.component';
+import { RhMisVacacionesComponent } from './vacaciones/rh-mis-vacaciones.component';
 
 const ESTADO_VIGENCIA_PRIORITY: Record<RhAdscripcionEstadoVigencia, number> = {
   VIGENTE: 0,
@@ -45,7 +46,7 @@ const ESTADO_VIGENCIA_PRIORITY: Record<RhAdscripcionEstadoVigencia, number> = {
 @Component({
   selector: 'app-rh-employee-portal',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule, RhMiListaAsistenciaComponent],
+  imports: [CommonModule, RouterLink, LucideAngularModule, RhMiListaAsistenciaComponent, RhMisVacacionesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rh-employee-portal.component.html',
 })

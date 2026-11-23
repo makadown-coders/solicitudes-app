@@ -10,505 +10,56 @@
     <!-- Encabezado -->
     <div class="flex items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
       <div class="min-w-0">
-        <div class="flex items-center gap-2">
-          <lucide-icon [img]="icons.calendar" class="h-5 w-5 shrink-0 text-emerald-700" />
+        <div class="flex flex-wrap items-center gap-2">
+          <lucide-icon [img]="icons.calendar" class="h-5 w-5 shrink-0 text-[#006341]" aria-hidden="true" />
           <h2 id="rh-vacaciones-title" class="truncate text-base font-semibold text-slate-900 sm:text-lg">
             Vacaciones y kardex — {{ persona.nombre_completo }}
           </h2>
+          <span
+            class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold"
+            [ngClass]="persona.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'"
+          >
+            {{ persona.activo ? 'Activa' : 'Inactiva' }}
+          </span>
         </div>
         <p class="mt-0.5 text-xs text-slate-600">
-          Registro administrativo de periodos vacacionales por trabajador. Los días mostrados corresponden a captura de RH y no representan saldo disponible ni cálculo automático de derechos.
+          Kardex vacacional institucional por periodo. Selecciona un periodo para consultar días disponibles, registrar vacaciones o revisar el historial.
         </p>
       </div>
       <button
         type="button"
-        class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-200 hover:text-slate-800"
+        class="cursor-pointer rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]"
         (click)="onClose()"
         aria-label="Cerrar panel de vacaciones"
       >
-        <lucide-icon [img]="icons.close" class="h-5 w-5" />
+        <lucide-icon [img]="icons.close" class="h-5 w-5" aria-hidden="true" />
       </button>
     </div>
 
-    <!-- Cuerpo desplazable -->
+    <!-- Cuerpo desplazable: interfaz única simplificada (RH-UX-VAC-05) -->
     <div class="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
-      <!-- Selector de vista: Kardex institucional (RH-VAC-03) vs Historial por rango anterior -->
-      <div class="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2.5">
-        <button
-          id="rh-vac-tab-kardex"
-          type="button"
-          (click)="activeVacacionesView.set('kardex')"
-          class="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]"
-          [ngClass]="
-            activeVacacionesView() === 'kardex'
-              ? 'bg-[#006341] text-white'
-              : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-          "
-        >
-          Kardex por periodo institucional
-        </button>
-
-        <button
-          id="rh-vac-tab-historico"
-          type="button"
-          (click)="activeVacacionesView.set('historico')"
-          class="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]"
-          [ngClass]="
-            activeVacacionesView() === 'historico'
-              ? 'bg-[#006341] text-white'
-              : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-          "
-        >
-          Historial por rango (anterior)
-        </button>
-      </div>
-
-      @if (activeVacacionesView() === 'kardex') {
-        <app-rh-vacaciones-kardex-panel
-          [persona]="persona"
-          [canManage]="canManage"
-          (unauthorized)="unauthorized.emit()"
-        />
-      }
-
-      <!-- Resumen de persona y acción principal -->
-      <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <span><strong>Trabajador:</strong> {{ persona.nombre_completo }}</span>
-          <span>
-            <strong>Días registrados (página actual):</strong>
-            {{ diasRegistradosEnVista() }}
-          </span>
-          <span>
-            <strong>Estado:</strong>
-            <span
-              class="ml-1 inline-flex rounded-full px-2 py-0.5 font-medium"
-              [ngClass]="persona.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'"
-            >
-              {{ persona.activo ? 'Activa' : 'Inactiva' }}
-            </span>
-          </span>
-        </div>
-
-        @if (canManage && !forbiddenError()) {
-          <button
-            type="button"
-            class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
-            [disabled]="!persona.activo || createOpen()"
-            (click)="openCreateForm()"
-          >
-            <lucide-icon [img]="icons.plus" class="h-4 w-4" />
-            Registrar periodo vacacional
-          </button>
-        }
-      </div>
-
       @if (!persona.activo && canManage) {
         <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          La persona se encuentra inactiva en el padrón; puedes consultar su historial pero no registrar nuevos periodos vacacionales.
+          La persona se encuentra inactiva en el padrón; puedes consultar su historial pero no registrar nuevas vacaciones.
         </div>
       }
 
-      @if (successBanner()) {
-        <div class="flex items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-          <div class="flex items-center gap-2">
-            <lucide-icon [img]="icons.checkCircle" class="h-4 w-4 shrink-0" />
-            <span>{{ successBanner() }}</span>
-          </div>
-          <button type="button" class="text-emerald-700 hover:underline" (click)="successBanner.set(null)">
-            Ocultar
-          </button>
-        </div>
-      }
+      <app-rh-vacaciones-kardex-panel
+        [persona]="persona"
+        [canManage]="canManage"
+        (unauthorized)="unauthorized.emit()"
+      />
+    </div>
 
-      @if (overlapWarningBanner()) {
-        <div class="flex items-start justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          <div class="flex items-start gap-2">
-            <lucide-icon [img]="icons.warning" class="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{{ overlapWarningBanner() }}</span>
-          </div>
-          <button type="button" class="shrink-0 text-amber-800 hover:underline" (click)="overlapWarningBanner.set(null)">
-            Ocultar
-          </button>
-        </div>
-      }
-
-      @if (forbiddenError()) {
-        <div class="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800">
-          <lucide-icon [img]="icons.shieldAlert" class="mt-0.5 h-5 w-5 shrink-0" />
-          <span>{{ forbiddenError() }}</span>
-        </div>
-      }
-
-      <!-- Formulario Registrar periodo vacacional -->
-      @if (createOpen() && canManage) {
-        <div class="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/40 p-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-slate-900">Registrar periodo vacacional</h3>
-            <button type="button" class="text-xs text-slate-600 hover:text-slate-900" (click)="closeCreateForm()">
-              Cancelar
-            </button>
-          </div>
-
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label class="mb-1 block text-xs font-medium text-slate-700">Año / ciclo vacacional *</label>
-              <input
-                type="number"
-                min="1990"
-                max="2100"
-                class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900"
-                [value]="draftAnioCiclo()"
-                (input)="draftAnioCiclo.set($any($event.target).value)"
-              />
-            </div>
-
-            <div>
-              <label class="mb-1 block text-xs font-medium text-slate-700">Periodo de referencia * (máx. 80)</label>
-              <input
-                type="text"
-                maxlength="80"
-                placeholder="Ej. 1er Periodo, 2do Periodo, Extraordinario"
-                class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900"
-                [value]="draftPeriodoReferencia()"
-                (input)="draftPeriodoReferencia.set($any($event.target).value)"
-              />
-            </div>
-
-            <div>
-              <label class="mb-1 block text-xs font-medium text-slate-700">Fecha de inicio *</label>
-              <input
-                type="date"
-                class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900"
-                [value]="draftFechaInicio()"
-                (input)="draftFechaInicio.set($any($event.target).value)"
-              />
-            </div>
-
-            <div>
-              <label class="mb-1 block text-xs font-medium text-slate-700">Fecha de término *</label>
-              <input
-                type="date"
-                class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900"
-                [value]="draftFechaFin()"
-                (input)="draftFechaFin.set($any($event.target).value)"
-              />
-            </div>
-
-            <div>
-              <label class="mb-1 block text-xs font-medium text-slate-700">Días registrados por RH * (1 a 366)</label>
-              <input
-                type="number"
-                min="1"
-                max="366"
-                class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900"
-                [value]="draftDiasRegistrados()"
-                (input)="draftDiasRegistrados.set($any($event.target).value)"
-              />
-            </div>
-
-            <div>
-              <label class="mb-1 block text-xs font-medium text-slate-700">ID adscripción laboral (opcional)</label>
-              <input
-                type="text"
-                inputmode="numeric"
-                placeholder="Dejar vacío si no aplica"
-                class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900"
-                [value]="draftAdscripcionId()"
-                (input)="draftAdscripcionId.set($any($event.target).value)"
-              />
-            </div>
-
-            <div class="sm:col-span-2">
-              <label class="mb-1 block text-xs font-medium text-slate-700">Documento u oficio de referencia (opcional, máx. 120)</label>
-              <input
-                type="text"
-                maxlength="120"
-                placeholder="Ej. OF-VAC-2026-014"
-                class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900"
-                [value]="draftDocumentoReferencia()"
-                (input)="draftDocumentoReferencia.set($any($event.target).value)"
-              />
-            </div>
-
-            <div class="sm:col-span-2">
-              <label class="mb-1 block text-xs font-medium text-slate-700">Observaciones (opcional, máx. 2000)</label>
-              <textarea
-                rows="2"
-                maxlength="2000"
-                class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900"
-                [value]="draftObservaciones()"
-                (input)="draftObservaciones.set($any($event.target).value)"
-              ></textarea>
-            </div>
-          </div>
-
-          @if (createValidationError()) {
-            <p class="text-xs text-amber-800">{{ createValidationError() }}</p>
-          }
-
-          @if (createError()) {
-            <div
-              class="flex items-start gap-2 rounded-lg border px-3 py-2 text-xs"
-              [ngClass]="createIsConflict() ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-800'"
-            >
-              <lucide-icon [img]="icons.alert" class="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{{ createError() }}</span>
-            </div>
-          }
-
-          <div class="flex justify-end gap-2">
-            <button
-              type="button"
-              class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-              (click)="closeCreateForm()"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
-              [disabled]="!canSubmitCreate()"
-              (click)="submitCreate()"
-            >
-              @if (createSubmitting()) {
-                <lucide-icon [img]="icons.loader" class="h-3.5 w-3.5 animate-spin" />
-              }
-              Guardar registro
-            </button>
-          </div>
-        </div>
-      }
-
-      <!-- Filtros y recarga -->
-      @if (!forbiddenError()) {
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class="flex flex-wrap items-center gap-2">
-            <div class="flex flex-wrap gap-1.5" role="tablist" aria-label="Filtro de estado de vacaciones">
-              @for (opt of [
-                { id: 'todos', label: 'Todos' },
-                { id: 'registrados', label: 'Registrados' },
-                { id: 'anulados', label: 'Anulados' }
-              ]; track opt.id) {
-                <button
-                  type="button"
-                  role="tab"
-                  [attr.aria-selected]="estadoFilter() === opt.id"
-                  class="rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
-                  [ngClass]="
-                    estadoFilter() === opt.id
-                      ? 'border-emerald-700 bg-emerald-700 text-white'
-                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                  "
-                  (click)="onSelectEstadoFilter($any(opt.id))"
-                >
-                  {{ opt.label }}
-                </button>
-              }
-            </div>
-
-            <div class="flex items-center gap-1">
-              <input
-                type="text"
-                inputmode="numeric"
-                maxlength="4"
-                placeholder="Ciclo (ej. 2026)"
-                class="w-28 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900"
-                [value]="anioFilter()"
-                (input)="anioFilter.set($any($event.target).value)"
-                (keydown.enter)="onApplyAnioFilter()"
-              />
-              <button
-                type="button"
-                class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                (click)="onApplyAnioFilter()"
-              >
-                Filtrar
-              </button>
-              @if (anioFilter()) {
-                <button
-                  type="button"
-                  class="text-xs text-slate-600 hover:underline"
-                  (click)="onClearAnioFilter()"
-                >
-                  Limpiar
-                </button>
-              }
-            </div>
-          </div>
-
-          <button
-            type="button"
-            class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-            [disabled]="loading()"
-            (click)="loadVacaciones()"
-          >
-            <lucide-icon [img]="icons.refresh" class="h-3.5 w-3.5" [ngClass]="loading() ? 'animate-spin' : ''" />
-            Actualizar
-          </button>
-        </div>
-
-        <!-- Estados -->
-        @if (loading()) {
-          <div class="flex items-center justify-center gap-2 py-8 text-sm text-slate-600">
-            <lucide-icon [img]="icons.loader" class="h-5 w-5 animate-spin text-emerald-700" />
-            <span>Cargando kardex vacacional...</span>
-          </div>
-        } @else if (error()) {
-          <div class="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-xs text-red-800">
-            <lucide-icon [img]="icons.alert" class="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{{ error() }}</span>
-          </div>
-        } @else if (items().length === 0) {
-          <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600">
-            No se encontraron registros vacacionales para los criterios seleccionados.
-          </div>
-        } @else {
-          <!-- Kardex responsivo -->
-          <div class="space-y-2.5">
-            @for (item of items(); track item.id) {
-              <div class="rounded-lg border border-slate-200 bg-white p-3 shadow-xs">
-                <div class="flex flex-wrap items-start justify-between gap-2">
-                  <div class="space-y-1">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <span class="rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-800">
-                        Ciclo {{ item.anio_ciclo }}
-                      </span>
-                      <span
-                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold"
-                        [ngClass]="
-                          item.estado === 'REGISTRADO'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-slate-200 text-slate-700'
-                        "
-                      >
-                        {{ item.estado === 'REGISTRADO' ? 'Registrado' : 'Anulado' }}
-                      </span>
-                      <span class="text-xs font-medium text-slate-700">
-                        {{ item.dias_registrados }} día(s) registrados
-                      </span>
-                    </div>
-
-                    <div class="text-sm font-medium text-slate-900">
-                      {{ item.periodo_referencia }} · {{ item.fecha_inicio }} al {{ item.fecha_fin }}
-                    </div>
-
-                    <div class="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-600">
-                      <span>
-                        <strong>Adscripción:</strong>
-                        {{ item.adscripcion_id ? 'Adscripción #' + item.adscripcion_id : 'Sin adscripción asociada' }}
-                      </span>
-                      @if (item.documento_referencia) {
-                        <span><strong>Documento:</strong> {{ item.documento_referencia }}</span>
-                      }
-                    </div>
-
-                    @if (item.observaciones) {
-                      <p class="text-xs text-slate-600"><strong>Observaciones:</strong> {{ item.observaciones }}</p>
-                    }
-
-                    @if (item.estado === 'ANULADO' && item.motivo_anulacion) {
-                      <p class="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">
-                        <strong>Motivo de anulación:</strong> {{ item.motivo_anulacion }}
-                      </p>
-                    }
-                  </div>
-
-                  @if (canAnularItem(item)) {
-                    <button
-                      type="button"
-                      class="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
-                      (click)="openAnularDialog(item)"
-                    >
-                      <lucide-icon [img]="icons.anular" class="h-3.5 w-3.5" />
-                      Anular registro
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-
-          <!-- Paginación -->
-          <div class="flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-600">
-            <span>Total: {{ total() }} · Página {{ page() }} de {{ totalPages() }}</span>
-            <div class="flex items-center gap-1.5">
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 hover:bg-slate-50 disabled:opacity-40"
-                [disabled]="!canGoPrev()"
-                (click)="onPrevPage()"
-              >
-                <lucide-icon [img]="icons.prev" class="h-3.5 w-3.5" />
-                Anterior
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 hover:bg-slate-50 disabled:opacity-40"
-                [disabled]="!canGoNext()"
-                (click)="onNextPage()"
-              >
-                Siguiente
-                <lucide-icon [img]="icons.next" class="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        }
-      }
-
-      <!-- Confirmación «Anular registro» -->
-      @if (anularTarget(); as target) {
-        <div class="space-y-3 rounded-lg border border-amber-300 bg-amber-50 p-4">
-          <div>
-            <h3 class="text-sm font-semibold text-amber-950">Confirmar anulación de registro vacacional</h3>
-            <p class="mt-0.5 text-xs text-amber-900">
-              El registro permanecerá en el historial como anulado, no se eliminará físicamente, no modificará la adscripción ni recalculará automáticamente derechos o saldos vacacionales.
-            </p>
-          </div>
-
-          <div>
-            <label class="mb-1 block text-xs font-medium text-slate-800">Motivo de anulación * (máx. 300)</label>
-            <textarea
-              rows="2"
-              maxlength="300"
-              class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900"
-              [value]="anularMotivo()"
-              (input)="anularMotivo.set($any($event.target).value)"
-            ></textarea>
-          </div>
-
-          @if (anularValidationError()) {
-            <p class="text-xs text-red-700">{{ anularValidationError() }}</p>
-          }
-
-          @if (anularError()) {
-            <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
-              {{ anularError() }}
-            </div>
-          }
-
-          <div class="flex justify-end gap-2">
-            <button
-              type="button"
-              class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-              (click)="closeAnularDialog()"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-1.5 rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800 disabled:opacity-50"
-              [disabled]="!canSubmitAnular()"
-              (click)="submitAnular()"
-            >
-              @if (anularSubmitting()) {
-                <lucide-icon [img]="icons.loader" class="h-3.5 w-3.5 animate-spin" />
-              }
-              Confirmar anulación
-            </button>
-          </div>
-        </div>
-      }
+    <!-- Pie de diálogo -->
+    <div class="flex items-center justify-end border-t border-slate-200 bg-slate-50 px-4 py-2.5 sm:px-5">
+      <button
+        type="button"
+        class="cursor-pointer rounded-lg border border-slate-300 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]"
+        (click)="onClose()"
+      >
+        Cerrar
+      </button>
     </div>
   </div>
 </div>

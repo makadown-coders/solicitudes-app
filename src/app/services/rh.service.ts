@@ -918,6 +918,22 @@ export class RhService {
   }
 
   /**
+   * Consulta personal de solo lectura de vacaciones del empleado autenticado (`GET /api/rh/mi-vacaciones`).
+   * Nunca envía `persona_id` ni `user_id`; la identidad se resuelve exclusivamente en el backend.
+   */
+  async obtenerMisVacacionesRh(periodoId?: number | null): Promise<RhMiVacacionesResponse> {
+    let httpParams = new HttpParams();
+    if (periodoId != null && Number.isInteger(periodoId) && periodoId > 0) {
+      httpParams = httpParams.set('periodoId', String(periodoId));
+    }
+    return await firstValueFrom(
+      this.http.get<RhMiVacacionesResponse>(`${this.baseUrl}/mi-vacaciones`, {
+        params: httpParams,
+      })
+    );
+  }
+
+  /**
    * Consulta paginada del padrón institucional de personas (`GET /api/rh/personas`).
    * Exclusivo para `RECURSOS_HUMANOS GLOBAL`.
    */
@@ -1323,10 +1339,79 @@ export class RhService {
     if (payload.observaciones !== undefined) {
       cleanBody['observaciones'] = payload.observaciones;
     }
+    if (payload.es_excepcion_fuera_periodo === true) {
+      cleanBody['es_excepcion_fuera_periodo'] = true;
+      cleanBody['justificacion_excepcion'] = payload.justificacion_excepcion ?? null;
+    }
     return await firstValueFrom(
       this.http.post<RhCreateVacacionResponse>(
         `${this.baseUrl}/personas/${personaId}/vacaciones`,
         cleanBody
+      )
+    );
+  }
+
+  // ===========================================================================
+  // RH-ORG-04: Administración visual del organigrama institucional (RH GLOBAL)
+  // ===========================================================================
+
+  async listOrganigramaPuestos(): Promise<RhOrgPuestosResponse> {
+    return await firstValueFrom(
+      this.http.get<RhOrgPuestosResponse>(`${this.baseUrl}/organigrama/puestos`)
+    );
+  }
+
+  async crearOrganigramaPuesto(payload: {
+    puesto_padre_id: number;
+    denominacion: string;
+    codigo_nivel?: string | null;
+    siglas_area?: string | null;
+    orden_visual?: number;
+    observaciones?: string | null;
+  }): Promise<{ puesto: RhOrgPuestoDto }> {
+    return await firstValueFrom(
+      this.http.post<{ puesto: RhOrgPuestoDto }>(`${this.baseUrl}/organigrama/puestos`, payload)
+    );
+  }
+
+  async actualizarOrganigramaPuesto(
+    puestoId: number,
+    payload: {
+      denominacion?: string;
+      codigo_nivel?: string | null;
+      siglas_area?: string | null;
+      orden_visual?: number;
+      observaciones?: string | null;
+    }
+  ): Promise<{ puesto: RhOrgPuestoDto }> {
+    return await firstValueFrom(
+      this.http.patch<{ puesto: RhOrgPuestoDto }>(
+        `${this.baseUrl}/organigrama/puestos/${puestoId}`,
+        payload
+      )
+    );
+  }
+
+  async cambiarDependenciaOrganigramaPuesto(
+    puestoId: number,
+    puestoPadreId: number
+  ): Promise<{ puesto: RhOrgPuestoDto }> {
+    return await firstValueFrom(
+      this.http.patch<{ puesto: RhOrgPuestoDto }>(
+        `${this.baseUrl}/organigrama/puestos/${puestoId}/dependencia`,
+        { puesto_padre_id: puestoPadreId }
+      )
+    );
+  }
+
+  async cambiarEstadoOrganigramaPuesto(
+    puestoId: number,
+    activo: boolean
+  ): Promise<{ puesto: RhOrgPuestoDto }> {
+    return await firstValueFrom(
+      this.http.patch<{ puesto: RhOrgPuestoDto }>(
+        `${this.baseUrl}/organigrama/puestos/${puestoId}/estado`,
+        { activo }
       )
     );
   }
@@ -1503,6 +1588,8 @@ export interface RhCreateVacacionFechasPayload {
   adscripcion_id?: number | null;
   documento_referencia?: string | null;
   observaciones?: string | null;
+  es_excepcion_fuera_periodo?: boolean;
+  justificacion_excepcion?: string | null;
 }
 
 export interface RhVacacionFechaDto {
@@ -1544,4 +1631,32 @@ export interface RhVacacionKardexResponse {
     justificacion_ajuste: string | null;
   };
   movimientos: RhVacacionKardexMovimientoDto[];
+}
+
+export interface RhMiVacacionesResponse {
+  periodos: RhVacacionPeriodoDto[];
+  kardex: RhVacacionKardexResponse | null;
+}
+
+export interface RhOrgPuestoDto {
+  id: number;
+  version_id: number;
+  puesto_padre_id: number | null;
+  denominacion: string;
+  codigo_nivel: string | null;
+  nivel_jerarquico: number;
+  siglas_area: string | null;
+  orden_visual: number;
+  observaciones: string | null;
+  activo: boolean;
+}
+
+export interface RhOrgPuestosResponse {
+  version: {
+    id: number;
+    clave: string;
+    nombre: string;
+    estado: string;
+  };
+  items: RhOrgPuestoDto[];
 }

@@ -86,7 +86,7 @@
             class="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]"
           >
             <lucide-icon [img]="icons.sliders" class="h-3.5 w-3.5" aria-hidden="true" />
-            <span>Configurar bolsa</span>
+            <span>Ajustar días asignados</span>
           </button>
 
           <button
@@ -97,7 +97,7 @@
             class="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-[#006341] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#004f34] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <lucide-icon [img]="icons.plus" class="h-3.5 w-3.5" aria-hidden="true" />
-            <span>Registrar fechas discontinuas</span>
+            <span>Registrar vacaciones</span>
           </button>
         }
       </div>
@@ -133,14 +133,14 @@
         </div>
 
         <div class="rounded-xl border border-slate-200 bg-white p-3">
-          <p class="text-[11px] font-semibold text-slate-500">Días computables</p>
+          <p class="text-[11px] font-semibold text-slate-500">Días utilizados</p>
           <p id="rh-kardex-dias-computables" class="mt-1 text-lg font-bold text-slate-900">
             {{ kData.resumen.dias_computables_registrados }}
           </p>
         </div>
 
         <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3">
-          <p class="text-[11px] font-semibold text-emerald-800">Saldo administrativo</p>
+          <p class="text-[11px] font-semibold text-emerald-800">Días disponibles</p>
           <p id="rh-kardex-saldo-admin" class="mt-1 text-lg font-bold text-emerald-950">
             {{ kData.resumen.saldo_administrativo !== null ? kData.resumen.saldo_administrativo : '—' }}
           </p>
@@ -244,12 +244,57 @@
         <div id="rh-kardex-registro-form" class="space-y-4 rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
           <div class="flex items-center justify-between">
             <h3 class="text-xs font-bold text-slate-900">
-              Registrar movimiento con fechas discontinuas — {{ kData.periodo.clave }}
+              Registrar vacaciones — Periodo de origen {{ kData.periodo.clave }}
             </h3>
             <button type="button" (click)="closeRegistroForm()" class="cursor-pointer text-xs text-slate-600 hover:text-slate-900">
               Cancelar
             </button>
           </div>
+
+          <!-- Excepción administrativa: disfrute fuera del periodo de origen (RH-VAC-06) -->
+          <div class="space-y-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs">
+            <label class="flex cursor-pointer items-center gap-2 font-semibold text-amber-950">
+              <input
+                id="rh-kardex-excepcion-checkbox"
+                type="checkbox"
+                [ngModel]="excepcionFueraPeriodo()"
+                (ngModelChange)="onToggleExcepcionFueraPeriodo($event)"
+                [disabled]="registroSubmitting()"
+                class="h-4 w-4 cursor-pointer rounded border-amber-400 text-[#006341] focus:ring-[#006341]"
+              />
+              <span>Registrar vacaciones disfrutadas fuera del periodo de origen</span>
+            </label>
+
+            @if (excepcionFueraPeriodo()) {
+              <p class="text-[11px] text-amber-900">
+                <strong>Atención:</strong> podrás seleccionar fechas posteriores al cierre de
+                <strong>{{ kData.periodo.clave }}</strong> ({{ kData.periodo.fecha_fin }}), pero los días
+                se descontarán <strong>exclusivamente de la bolsa de {{ kData.periodo.clave }}</strong>.
+                No se permiten fechas anteriores al {{ kData.periodo.fecha_inicio }}.
+              </p>
+              <div>
+                <label for="rh-kardex-excepcion-justif-input" class="mb-1 block text-[11px] font-semibold text-amber-950">
+                  Justificación administrativa (obligatoria) *
+                </label>
+                <input
+                  id="rh-kardex-excepcion-justif-input"
+                  type="text"
+                  maxlength="500"
+                  [ngModel]="justificacionExcepcion()"
+                  (ngModelChange)="justificacionExcepcion.set($event)"
+                  [disabled]="registroSubmitting()"
+                  placeholder="Ej. Vacaciones pendientes del periodo anterior autorizadas para disfrute posterior…"
+                  class="min-h-9 w-full rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs text-slate-900"
+                />
+              </div>
+            }
+          </div>
+
+          @if (hasFutureSelectedDates()) {
+            <div class="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] text-sky-900">
+              <strong>Nota:</strong> algunas fechas seleccionadas son posteriores a hoy; corresponden a días programados o solicitados y no necesariamente ya disfrutados.
+            </div>
+          }
 
           <!-- Calendario mensual -->
           <div class="rounded-xl border border-gray-200 bg-white p-3">
@@ -310,7 +355,7 @@
               </p>
               @for (f of selectedFechas(); track f.fecha) {
                 <div class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5 text-xs">
-                  <span class="font-mono font-semibold text-slate-900">{{ f.fecha }}</span>
+                  <span class="font-semibold text-slate-900">{{ formatFechaLarga(f.fecha) }}</span>
                   <button
                     type="button"
                     (click)="toggleFechaComputable(f.fecha)"
@@ -457,17 +502,19 @@
                       {{ mov.estado }}
                     </span>
                     <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
-                      {{ mov.modo_registro === 'FECHAS_DETALLADAS' ? 'Fechas detalladas' : 'Rango histórico' }}
+                      {{ mov.modo_registro === 'FECHAS_DETALLADAS' ? 'Fechas detalladas' : 'Histórico por rango (solo lectura)' }}
                     </span>
                     <span class="font-semibold text-slate-900">
-                      {{ mov.dias_registrados }} día(s) computable(s)
+                      {{ mov.dias_registrados }} día(s) utilizado(s)
                     </span>
-                    <span class="text-slate-500">({{ mov.fecha_inicio }} a {{ mov.fecha_fin }})</span>
+                    <span class="text-slate-500">
+                      ({{ formatFechaCorta(mov.fecha_inicio) }} a {{ formatFechaCorta(mov.fecha_fin) }})
+                    </span>
                   </div>
 
                   @if (mov.fechas.length > 0) {
                     <div class="flex flex-wrap gap-1 pt-1">
-                      @for (f of mov.fechas; track f.id) {
+                      @for (f of getFechasOrdenadas(mov.fechas); track f.id) {
                         <span
                           class="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]"
                           [ngClass]="
@@ -476,7 +523,8 @@
                               : 'border-amber-200 bg-amber-50 text-amber-900'
                           "
                         >
-                          <span class="font-mono">{{ f.fecha }}</span>
+                          <span class="hidden sm:inline">{{ formatFechaLarga(f.fecha) }}</span>
+                          <span class="sm:hidden">{{ formatFechaCorta(f.fecha) }}</span>
                           @if (!f.computable) {
                             <span>(Excluida: {{ f.motivo_exclusion }})</span>
                           }

@@ -414,7 +414,7 @@
               Sin registros vacacionales capturados.
             </div>
           } @else {
-            <div class="space-y-2">
+            <div class="space-y-2.5">
               @for (v of vacaciones(); track v.id) {
                 <div class="rounded-lg border border-slate-200 bg-white p-3 text-xs">
                   <div class="flex flex-wrap items-center gap-2">
@@ -425,13 +425,67 @@
                     >
                       {{ v.estado === 'REGISTRADO' ? 'Registrado' : 'Anulado' }}
                     </span>
+                    <span
+                      class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                      [ngClass]="
+                        getModoRegistroVacacion(v) === 'FECHAS_DETALLADAS'
+                          ? 'bg-sky-100 text-sky-800'
+                          : 'bg-slate-100 text-slate-700'
+                      "
+                    >
+                      {{ getModoRegistroVacacion(v) === 'FECHAS_DETALLADAS' ? 'Fechas detalladas' : 'Rango histórico' }}
+                    </span>
                     <span class="font-medium text-slate-700">{{ v.dias_registrados }} día(s) registrados</span>
                   </div>
-                  <div class="mt-1 font-medium text-slate-900">
-                    {{ v.periodo_referencia }} · {{ v.fecha_inicio }} al {{ v.fecha_fin }}
-                  </div>
+
+                  @if (getModoRegistroVacacion(v) === 'FECHAS_DETALLADAS') {
+                    <div class="mt-1.5 font-medium text-slate-900">{{ v.periodo_referencia }}</div>
+
+                    @if (getFechasComputables(v); as computables) {
+                      @if (computables.length > 0) {
+                        <div class="mt-2">
+                          <p class="text-[11px] font-semibold text-emerald-800">
+                            Fechas computables (descuentan días):
+                          </p>
+                          <div class="mt-1 flex flex-wrap gap-1">
+                            @for (f of computables; track f.id) {
+                              <span class="inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-medium text-emerald-900">
+                                {{ formatFechaDetalle(f.fecha) }}
+                              </span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    }
+
+                    @if (getFechasExcluidas(v); as excluidas) {
+                      @if (excluidas.length > 0) {
+                        <div class="mt-2">
+                          <p class="text-[11px] font-semibold text-amber-800">
+                            Fechas excluidas (no descuentan días):
+                          </p>
+                          <div class="mt-1 flex flex-wrap gap-1">
+                            @for (f of excluidas; track f.id) {
+                              <span class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-900">
+                                <span>{{ formatFechaDetalle(f.fecha) }}</span>
+                                @if (f.motivo_exclusion) {
+                                  <span class="text-amber-700">· {{ f.motivo_exclusion }}</span>
+                                }
+                              </span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    }
+                  } @else {
+                    <div class="mt-1 font-medium text-slate-900">
+                      {{ v.periodo_referencia }} · {{ formatFechaDetalle(v.fecha_inicio) }} a {{ formatFechaDetalle(v.fecha_fin) }}
+                      <span class="text-slate-500">({{ v.fecha_inicio }} a {{ v.fecha_fin }})</span>
+                    </div>
+                  }
+
                   @if (v.documento_referencia) {
-                    <div class="mt-0.5 text-slate-600">Documento: {{ v.documento_referencia }}</div>
+                    <div class="mt-1 text-slate-600">Documento: {{ v.documento_referencia }}</div>
                   }
                   @if (v.estado === 'ANULADO' && v.motivo_anulacion) {
                     <div class="mt-1 rounded bg-slate-100 px-2 py-1 text-slate-700">

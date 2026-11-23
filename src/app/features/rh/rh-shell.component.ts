@@ -47,6 +47,7 @@ import {
   RhUpdatePersonaIdentificacionPayload,
 } from '../../services/rh.service';
 import { RhVincularLoteDialogComponent } from './adscripciones/rh-vincular-lote-dialog.component';
+import { RhOrganigramaAdminComponent } from './organigrama/rh-organigrama-admin.component';
 import { RhFichaTrabajadorDialogComponent } from './rh-ficha-trabajador-dialog.component';
 import {
   formatRhHorarioRango,
@@ -68,6 +69,7 @@ import { RhPadronInstitucionalComponent } from './rh-padron-institucional.compon
     RhFichaTrabajadorDialogComponent,
     RhPadronInstitucionalComponent,
     RhVincularLoteDialogComponent,
+    RhOrganigramaAdminComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rh-shell.component.html',
@@ -129,8 +131,8 @@ export class RhShellComponent implements OnInit, OnDestroy {
   /** Selección activa de unidad de trabajo (conserva el id real unidad_medica.id) */
   readonly selectedUnidadId = signal<number | null>(null);
 
-  /** Pestaña interna de administración RH: 'unidad' (Personal por unidad) o 'padron' (Plantilla institucional, solo RH GLOBAL) */
-  readonly activeAdminTab = signal<'unidad' | 'padron'>('unidad');
+  /** Pestaña interna de administración RH: 'unidad', 'padron' o 'organigrama' (solo RH GLOBAL) */
+  readonly activeAdminTab = signal<'unidad' | 'padron' | 'organigrama'>('unidad');
 
   /** Estado del autocompletado de unidad de trabajo */
   readonly unidadSearchDraft = signal('');
@@ -337,8 +339,8 @@ export class RhShellComponent implements OnInit, OnDestroy {
     return Boolean(ctx && ctx.grantedBy === 'RECURSOS_HUMANOS' && ctx.scope === 'GLOBAL');
   });
 
-  setAdminTab(tab: 'unidad' | 'padron'): void {
-    if (tab === 'padron' && !this.canManagePadronInstitucional()) {
+  setAdminTab(tab: 'unidad' | 'padron' | 'organigrama'): void {
+    if ((tab === 'padron' || tab === 'organigrama') && !this.canManagePadronInstitucional()) {
       this.activeAdminTab.set('unidad');
       return;
     }

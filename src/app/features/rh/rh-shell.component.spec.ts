@@ -182,6 +182,9 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
         r.url.includes('/api/rh/') &&
         (r.method === 'PUT' || r.method === 'DELETE')
     );
+    for (const req of httpMock.match((r) => r.url.endsWith('/api/rh/mi-vacaciones'))) {
+      req.flush({ periodos: [], kardex: null });
+    }
     httpMock.verify();
     localStorage.clear();
   });
@@ -3537,7 +3540,7 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     expect(portalEl.querySelector('#rh-asistencia-local-edit-notice')?.textContent).toContain(
       'no modifican ni actualizan tu expediente laboral'
     );
-    httpMock.expectNone((r) => r.url.includes('/api/rh/'));
+    httpMock.expectNone((r) => r.url.includes('/api/rh/') && !r.url.endsWith('/mi-vacaciones'));
 
     // 20. Conserva el botón «Ir a Administración RH» para usuarios con rol RH
     expect(portalEl.querySelector('#rh-portal-go-admin-link')).not.toBeNull();
