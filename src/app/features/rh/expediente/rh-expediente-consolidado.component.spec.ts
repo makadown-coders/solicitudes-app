@@ -43,6 +43,9 @@ describe('RhExpedienteConsolidadoComponent (RH-4A.5A)', () => {
   });
 
   afterEach(() => {
+    for (const req of httpMock.match((r) => r.url.endsWith('/api/rh/vacaciones/periodos'))) {
+      req.flush({ items: [] });
+    }
     httpMock.verify();
   });
 
@@ -306,6 +309,138 @@ describe('RhExpedienteConsolidadoComponent (RH-4A.5A)', () => {
     expect(closedCalled).toBeTrue();
     expect(component.vacaciones().length).toBe(0);
     expect(component.comisiones().length).toBe(0);
+  });
+
+  it('muestra fechas detalladas (computables y excluidas) en español y conserva RANGO_HISTORICO (RH-UX-VAC-06)', async () => {
+    component.ngOnChanges({
+      persona: new SimpleChange(undefined, component.persona, true),
+    });
+    component.onSelectTab('vacaciones');
+    fixture.detectChanges();
+
+    const vacReq = httpMock.expectOne((r) => r.url.endsWith('/api/rh/personas/701/vacaciones'));
+    vacReq.flush({
+      persona_id: 701,
+      items: [
+        {
+          id: 50,
+          persona_id: 701,
+          adscripcion_id: null,
+          anio_ciclo: 2026,
+          periodo_referencia: 'Segundo periodo 2026',
+          fecha_inicio: '2026-12-23',
+          fecha_fin: '2026-12-28',
+          dias_registrados: 2,
+          documento_referencia: 'OF-2026-10',
+          observaciones: null,
+          estado: 'REGISTRADO',
+          motivo_anulacion: null,
+          anulado_en: null,
+          creado_en: '2026-11-20T00:00:00Z',
+          actualizado_en: '2026-11-20T00:00:00Z',
+        },
+        {
+          id: 51,
+          persona_id: 701,
+          adscripcion_id: null,
+          anio_ciclo: 2025,
+          periodo_referencia: '1er Periodo 2025',
+          fecha_inicio: '2025-07-01',
+          fecha_fin: '2025-07-05',
+          dias_registrados: 5,
+          documento_referencia: null,
+          observaciones: null,
+          estado: 'REGISTRADO',
+          motivo_anulacion: null,
+          anulado_en: null,
+          creado_en: '2025-06-01T00:00:00Z',
+          actualizado_en: '2025-06-01T00:00:00Z',
+        },
+      ],
+      page: 1,
+      pageSize: 50,
+      total: 2,
+    });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const perReq = httpMock.expectOne((r) => r.url.endsWith('/api/rh/vacaciones/periodos'));
+    perReq.flush({
+      items: [
+        {
+          id: 2,
+          anio: 2026,
+          numero_periodo: 2,
+          clave: '2026-P2',
+          nombre: 'Segundo periodo 2026',
+          fecha_inicio: '2026-07-01',
+          fecha_fin: '2026-12-31',
+          dias_base_provisionales: 10,
+          activo: true,
+          observaciones: null,
+        },
+      ],
+    });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const kReq = httpMock.expectOne((r) => r.url.endsWith('/api/rh/personas/701/vacaciones/kardex'));
+    kReq.flush({
+      persona_id: 701,
+      periodo: {
+        id: 2,
+        anio: 2026,
+        numero_periodo: 2,
+        clave: '2026-P2',
+        nombre: 'Segundo periodo 2026',
+        fecha_inicio: '2026-07-01',
+        fecha_fin: '2026-12-31',
+        dias_base_provisionales: 10,
+        activo: true,
+        observaciones: null,
+      },
+      resumen: {
+        estado_bolsa: 'PROVISIONAL',
+        es_provisional: true,
+        dias_asignados: 10,
+        dias_computables_registrados: 2,
+        saldo_administrativo: 8,
+        justificacion_ajuste: null,
+      },
+      movimientos: [
+        {
+          id: 50,
+          persona_id: 701,
+          adscripcion_id: null,
+          periodo_id: 2,
+          modo_registro: 'FECHAS_DETALLADAS',
+          fecha_inicio: '2026-12-23',
+          fecha_fin: '2026-12-28',
+          dias_registrados: 2,
+          documento_referencia: 'OF-2026-10',
+          observaciones: null,
+          estado: 'REGISTRADO',
+          motivo_anulacion: null,
+          anulado_en: null,
+          creado_en: '2026-11-20T00:00:00Z',
+          actualizado_en: '2026-11-20T00:00:00Z',
+          fechas: [
+            { id: 1, fecha: '2026-12-23', computable: true, motivo_exclusion: null, activo: true },
+            { id: 2, fecha: '2026-12-25', computable: false, motivo_exclusion: 'Festivo oficial', activo: true },
+            { id: 3, fecha: '2026-12-28', computable: true, motivo_exclusion: null, activo: true },
+          ],
+        },
+      ],
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Fechas detalladas');
+    expect(text).toContain('Rango histórico');
+    expect(text).toContain('Mié 23-dic-2026');
+    expect(text).toContain('Lun 28-dic-2026');
+    expect(text).toContain('Vie 25-dic-2026');
+    expect(text).toContain('Festivo oficial');
+    expect(text).toContain('2025-07-01 a 2025-07-05');
   });
 
   it('deniega acceso si canManage=false o si backend responde 403', async () => {

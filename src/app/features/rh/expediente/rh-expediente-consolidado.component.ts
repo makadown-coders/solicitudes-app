@@ -34,8 +34,17 @@ import {
   RhComisionLaboralDto,
   RhPersonasPadronItem,
   RhService,
+  RhVacacionFechaDto,
+  RhVacacionKardexMovimientoDto,
   RhVacacionRegistroDto,
 } from '../../../services/rh.service';
+import {
+  formatFechaVacacionCortaEs,
+  formatFechaVacacionLargaEs,
+  sortFechasVacacionCronologico,
+} from '../vacaciones/rh-vacaciones-fecha.utils';
+
+export const formatFechaVacacionEs = formatFechaVacacionCortaEs;
 
 export type RhExpedienteTab = 'generales' | 'laboral' | 'vacaciones';
 
@@ -93,6 +102,7 @@ export class RhExpedienteConsolidadoComponent implements OnChanges, OnDestroy {
 
   /** Vacaciones: historial cargado bajo demanda */
   readonly vacaciones = signal<RhVacacionRegistroDto[]>([]);
+  readonly vacacionDetalleById = signal<Record<number, RhVacacionKardexMovimientoDto>>({});
   readonly vacacionesLoaded = signal(false);
   readonly vacacionesLoading = signal(false);
   readonly vacacionesError = signal<string | null>(null);
@@ -281,8 +291,15 @@ export class RhExpedienteConsolidadoComponent implements OnChanges, OnDestroy {
         pageSize: 50,
       });
       if (seq !== this.vacacionesSeq) return;
-      this.vacaciones.set(Array.isArray(res.items) ? res.items : []);
+      const items = Array.isArray(res.items) ? res.items : [];
+      this.vacaciones.set(items);
       this.vacacionesLoaded.set(true);
+
+      if (items.length > 0) {
+        void this.enrichVacacionesConFechasDetalladas(this.persona.persona_id, seq);
+      } else {
+        this.vacacionDetalleById.set({});
+      }
     } catch (err) {
       if (seq !== this.vacacionesSeq) return;
       if (err instanceof HttpErrorResponse) {
@@ -313,6 +330,59 @@ export class RhExpedienteConsolidadoComponent implements OnChanges, OnDestroy {
   onOpenVacacionesGestion(): void {
     if (!this.canManage || !this.persona) return;
     this.openVacaciones.emit(this.persona);
+  }
+
+  formatFechaDetalle(iso: string): string {
+    return formatFechaVacacionCortaEs(iso);
+  }
+
+  formatFechaDetalleLarga(iso: string): string {
+    return formatFechaVacacionLargaEs(iso);
+  }
+
+  getModoRegistroVacacion(v: RhVacacionRegistroDto): 'FECHAS_DETALLADAS' | 'RANGO_HISTORICO' {
+    const det = this.vacacionDetalleById()[v.id];
+    if (det && det.modo_registro === 'FECHAS_DETALLADAS' && det.fechas.length > 0) {
+      return 'FECHAS_DETALLADAS';
+    }
+    return 'RANGO_HISTORICO';
+  }
+
+  getFechasComputables(v: RhVacacionRegistroDto): RhVacacionFechaDto[] {
+    const det = this.vacacionDetalleById()[v.id];
+    return det ? sortFechasVacacionCronologico(det.fechas.filter((f) => f.computable)) : [];
+  }
+
+  getFechasExcluidas(v: RhVacacionRegistroDto): RhVacacionFechaDto[] {
+    const det = this.vacacionDetalleById()[v.id];
+    return det ? sortFechasVacacionCronologico(det.fechas.filter((f) => !f.computable)) : [];
+  }
+
+  private async enrichVacacionesConFechasDetalladas(personaId: number, seq: number): Promise<void> {
+    try {
+      const perRes = await this.rhService.listVacacionPeriodos();
+      if (seq !== this.vacacionesSeq) return;
+      const periodos = Array.isArray(perRes?.items) ? perRes.items : [];
+      if (periodos.length === 0) return;
+
+      const detalleMap: Record<number, RhVacacionKardexMovimientoDto> = {};
+      for (const per of periodos) {
+        try {
+          const kRes = await this.rhService.getVacacionKardexPorPersona(personaId, per.id);
+          if (seq !== this.vacacionesSeq) return;
+          for (const mov of kRes?.movimientos ?? []) {
+            detalleMap[mov.id] = mov;
+          }
+        } catch {
+          // Ignorar fallo individual por periodo para preservar la vista base
+        }
+      }
+      if (seq === this.vacacionesSeq) {
+        this.vacacionDetalleById.set(detalleMap);
+      }
+    } catch {
+      // Silencioso: conserva la visualización base por rango si no hay catálogo de periodos
+    }
   }
 
   onClose(): void {

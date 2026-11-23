@@ -1,0 +1,198 @@
+<section
+  id="rh-portal-mis-vacaciones-section"
+  aria-labelledby="rh-portal-mis-vacaciones-heading"
+  class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+>
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
+    <div class="flex items-center gap-2.5">
+      <span
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#006341]/10 text-[#006341]"
+        aria-hidden="true"
+      >
+        <lucide-icon [img]="icons.calendar" class="h-5 w-5" />
+      </span>
+      <div>
+        <h2 id="rh-portal-mis-vacaciones-heading" class="text-base font-bold text-slate-900 sm:text-lg">
+          Mis vacaciones
+        </h2>
+        <p class="text-xs text-slate-500">
+          Consulta personal de solo lectura de tus periodos, días disponibles e historial vacacional.
+        </p>
+      </div>
+    </div>
+
+    <button
+      id="rh-mis-vacaciones-refresh-btn"
+      type="button"
+      (click)="cargar()"
+      [disabled]="loading()"
+      class="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <lucide-icon
+        [img]="loading() ? icons.loader : icons.refresh"
+        class="h-3.5 w-3.5"
+        [class.animate-spin]="loading()"
+        aria-hidden="true"
+      />
+      <span>Actualizar</span>
+    </button>
+  </div>
+
+  <div class="mt-4 space-y-4">
+    @if (loading() && !kardex()) {
+      <div class="flex items-center justify-center gap-2 py-8 text-xs text-slate-600">
+        <lucide-icon [img]="icons.loader" class="h-4 w-4 animate-spin text-[#006341]" aria-hidden="true" />
+        <span>Consultando tu información vacacional…</span>
+      </div>
+    } @else if (error(); as errMsg) {
+      <div
+        id="rh-mis-vacaciones-error"
+        role="alert"
+        class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-900"
+      >
+        <lucide-icon [img]="icons.alert" class="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
+        <span>{{ errMsg }}</span>
+      </div>
+    } @else if (periodos().length === 0) {
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+        Aún no hay periodos vacacionales institucionales configurados para consulta.
+      </div>
+    } @else {
+      <!-- Selector de año y periodo -->
+      <div class="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div>
+          <label for="rh-mis-vac-anio" class="mb-1 block text-[11px] font-semibold text-slate-700">Año</label>
+          <select
+            id="rh-mis-vac-anio"
+            [ngModel]="selectedAnio()"
+            (ngModelChange)="onAnioChange($event)"
+            class="min-h-9 cursor-pointer rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:border-[#006341] focus:outline-none"
+          >
+            @for (y of availableYears(); track y) {
+              <option [ngValue]="y">{{ y }}</option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label for="rh-mis-vac-periodo" class="mb-1 block text-[11px] font-semibold text-slate-700">
+            Periodo institucional
+          </label>
+          <select
+            id="rh-mis-vac-periodo"
+            [ngModel]="selectedPeriodoId()"
+            (ngModelChange)="onPeriodoChange($event)"
+            class="min-h-9 cursor-pointer rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:border-[#006341] focus:outline-none"
+          >
+            @for (per of periodosForYear(); track per.id) {
+              <option [ngValue]="per.id">{{ per.clave }} — {{ per.nombre }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (kardex(); as kData) {
+        <!-- Indicadores de saldo (sin exponer estado administrativo de bolsa al trabajador) -->
+        <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+          <div class="rounded-xl border border-slate-200 bg-white p-3">
+            <p class="text-[11px] font-semibold text-slate-500">Días asignados</p>
+            <p class="mt-1 text-lg font-bold text-slate-900">
+              {{ kData.resumen.dias_asignados !== null ? kData.resumen.dias_asignados : '—' }}
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 bg-white p-3">
+            <p class="text-[11px] font-semibold text-slate-500">Días utilizados</p>
+            <p class="mt-1 text-lg font-bold text-slate-900">
+              {{ kData.resumen.dias_computables_registrados }}
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3">
+            <p class="text-[11px] font-semibold text-emerald-800">Días disponibles</p>
+            <p class="mt-1 text-lg font-bold text-emerald-950">
+              {{ kData.resumen.saldo_administrativo !== null ? kData.resumen.saldo_administrativo : '—' }}
+            </p>
+          </div>
+        </div>
+
+        <p id="rh-mis-vacaciones-nota-validacion" class="text-[11px] text-slate-500">
+          Información del registro de Recursos Humanos, sujeta a validación administrativa.
+        </p>
+
+        @if (kData.resumen.estado_bolsa === 'INEXISTENTE') {
+          <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            Información de días disponibles no configurada. Consulta a Recursos Humanos.
+          </div>
+        }
+
+        <!-- Historial de movimientos (solo lectura) -->
+        <div class="space-y-2">
+          <h3 class="text-xs font-bold uppercase tracking-wide text-slate-600">
+            Historial de movimientos — Periodo de origen {{ kData.periodo.clave }} ({{ kData.movimientos.length }})
+          </h3>
+
+          @if (kData.movimientos.length === 0) {
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-600">
+              No tienes movimientos vacacionales registrados en este periodo.
+            </div>
+          } @else {
+            @for (mov of kData.movimientos; track mov.id) {
+              <div class="rounded-xl border border-slate-200 bg-white p-3.5 text-xs">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span
+                    class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                    [ngClass]="
+                      mov.estado === 'REGISTRADO'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-slate-200 text-slate-700 line-through'
+                    "
+                  >
+                    {{ mov.estado }}
+                  </span>
+                  <span class="font-semibold text-slate-900">{{ mov.dias_registrados }} día(s) utilizado(s)</span>
+                  <span class="text-slate-500">
+                    ({{ formatFechaCorta(mov.fecha_inicio) }} a {{ formatFechaCorta(mov.fecha_fin) }})
+                  </span>
+                  @if (isExcepcionFueraPeriodo(mov.observaciones)) {
+                    <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
+                      Disfrute fuera de periodo de origen
+                    </span>
+                  }
+                </div>
+
+                @if (mov.fechas.length > 0) {
+                  <div class="mt-2 flex flex-wrap gap-1">
+                    @for (f of getFechasOrdenadas(mov.fechas); track f.id) {
+                      <span
+                        class="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]"
+                        [ngClass]="
+                          f.computable
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                            : 'border-amber-200 bg-amber-50 text-amber-900'
+                        "
+                      >
+                        <span class="hidden sm:inline">{{ formatFechaLarga(f.fecha) }}</span>
+                        <span class="sm:hidden">{{ formatFechaCorta(f.fecha) }}</span>
+                        @if (!f.computable && f.motivo_exclusion) {
+                          <span>(Excluida: {{ f.motivo_exclusion }})</span>
+                        }
+                      </span>
+                    }
+                  </div>
+                }
+
+                @if (mov.observaciones) {
+                  <p class="mt-1.5 text-slate-600">{{ mov.observaciones }}</p>
+                }
+                @if (mov.estado === 'ANULADO' && mov.motivo_anulacion) {
+                  <p class="mt-1 text-red-700"><strong>Motivo de anulación:</strong> {{ mov.motivo_anulacion }}</p>
+                }
+              </div>
+            }
+          }
+        </div>
+      }
+    }
+  </div>
+</section>

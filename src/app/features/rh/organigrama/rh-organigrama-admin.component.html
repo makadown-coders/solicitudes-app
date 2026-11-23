@@ -1,0 +1,352 @@
+<section
+  id="rh-organigrama-admin-section"
+  aria-labelledby="rh-organigrama-heading"
+  class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+>
+  <div class="flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-center gap-2.5">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#006341]/10 text-[#006341]">
+        <lucide-icon [img]="icons.network" class="h-5 w-5" aria-hidden="true" />
+      </span>
+      <div>
+        <h2 id="rh-organigrama-heading" class="text-lg font-bold text-slate-900">
+          Estructura organizacional
+        </h2>
+        <p class="text-xs text-slate-500">
+          {{ versionNombre() }} (<span class="font-mono">{{ versionClave() }}</span>) · {{ items().length }} puesto(s)
+        </p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        (click)="expandAll()"
+        class="cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+      >
+        Expandir todo
+      </button>
+      <button
+        type="button"
+        (click)="collapseAll()"
+        class="cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+      >
+        Contraer
+      </button>
+      <button
+        id="rh-org-refresh-btn"
+        type="button"
+        (click)="cargar()"
+        [disabled]="loading()"
+        class="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+      >
+        <lucide-icon [img]="loading() ? icons.loader : icons.refresh" class="h-3.5 w-3.5" [class.animate-spin]="loading()" aria-hidden="true" />
+        <span>Actualizar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Buscador dinámico -->
+  <div class="mt-4">
+    <div class="relative flex items-center">
+      <lucide-icon [img]="icons.search" class="pointer-events-none absolute left-3 h-4 w-4 text-slate-400" aria-hidden="true" />
+      <input
+        id="rh-org-search-input"
+        type="text"
+        autocomplete="off"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        placeholder="Buscar puesto por denominación, código de nivel o siglas…"
+        class="min-h-10 w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-9 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+      />
+      @if (searchQuery()) {
+        <button
+          type="button"
+          (click)="searchQuery.set('')"
+          aria-label="Limpiar búsqueda"
+          class="absolute right-2.5 cursor-pointer rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+        >
+          <lucide-icon [img]="icons.clear" class="h-4 w-4" aria-hidden="true" />
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (successBanner(); as msg) {
+    <div role="status" class="mt-3 flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs text-emerald-900">
+      <div class="flex items-center gap-2">
+        <lucide-icon [img]="icons.checkCircle" class="h-4 w-4 shrink-0 text-[#006341]" aria-hidden="true" />
+        <span class="font-semibold">{{ msg }}</span>
+      </div>
+      <button type="button" (click)="successBanner.set(null)" class="cursor-pointer underline">Ocultar</button>
+    </div>
+  }
+
+  @if (error(); as errMsg) {
+    <div role="alert" class="mt-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-800">
+      <lucide-icon [img]="icons.alert" class="mt-0.5 h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />
+      <span>{{ errMsg }}</span>
+    </div>
+  }
+
+  @if (loading() && items().length === 0) {
+    <div class="mt-4 flex items-center justify-center gap-2 py-10 text-xs text-slate-600">
+      <lucide-icon [img]="icons.loader" class="h-4 w-4 animate-spin text-[#006341]" aria-hidden="true" />
+      <span>Cargando estructura organizacional…</span>
+    </div>
+  } @else if (visibleNodes().length === 0) {
+    <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-xs text-slate-600">
+      No se encontraron puestos que coincidan con la búsqueda.
+    </div>
+  } @else {
+    <div class="mt-4 divide-y divide-gray-100 rounded-xl border border-gray-200">
+      @for (node of visibleNodes(); track node.puesto.id) {
+        <div
+          class="flex flex-col gap-2 px-3 py-2.5 transition hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
+          [ngClass]="node.matchesSearch ? 'bg-emerald-50/70' : ''"
+          [style.paddingLeft.px]="12 + node.depth * 20"
+        >
+          <div class="flex min-w-0 items-center gap-2">
+            @if (node.hasChildren) {
+              <button
+                type="button"
+                (click)="toggleExpand(node.puesto.id)"
+                [attr.aria-expanded]="node.isExpanded"
+                class="inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-white text-slate-600 hover:bg-slate-100"
+              >
+                <lucide-icon [img]="node.isExpanded ? icons.chevronDown : icons.chevronRight" class="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            } @else {
+              <span class="inline-block h-6 w-6 shrink-0"></span>
+            }
+
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="truncate text-sm font-semibold text-slate-900" [class.line-through]="!node.puesto.activo">
+                  {{ node.puesto.denominacion }}
+                </span>
+                @if (node.puesto.codigo_nivel) {
+                  <span class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-700">
+                    {{ node.puesto.codigo_nivel }}
+                  </span>
+                }
+                <span class="rounded bg-[#006341]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#006341]">
+                  Nivel {{ node.puesto.nivel_jerarquico }}
+                </span>
+                @if (!node.puesto.activo) {
+                  <span class="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
+                    Inactivo
+                  </span>
+                }
+              </div>
+              @if (node.childrenCount > 0) {
+                <p class="text-[11px] text-slate-500">{{ node.childrenCount }} puesto(s) dependiente(s)</p>
+              }
+            </div>
+          </div>
+
+          <!-- Acciones administrativas -->
+          <div class="flex flex-wrap items-center gap-1.5 pl-8 sm:pl-0">
+            <button
+              type="button"
+              (click)="openCreateDialog(node.puesto)"
+              class="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-[#006341] hover:bg-emerald-100"
+            >
+              <lucide-icon [img]="icons.plus" class="h-3 w-3" aria-hidden="true" />
+              <span>Agregar</span>
+            </button>
+
+            <button
+              type="button"
+              (click)="openEditDialog(node.puesto)"
+              class="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              <lucide-icon [img]="icons.pencil" class="h-3 w-3" aria-hidden="true" />
+              <span>Editar</span>
+            </button>
+
+            @if (node.puesto.puesto_padre_id !== null) {
+              <button
+                type="button"
+                (click)="openDepDialog(node.puesto)"
+                class="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                <lucide-icon [img]="icons.branch" class="h-3 w-3" aria-hidden="true" />
+                <span>Dependencia</span>
+              </button>
+
+              <button
+                type="button"
+                (click)="toggleEstadoPuesto(node.puesto)"
+                [disabled]="togglingEstadoId() === node.puesto.id"
+                class="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+              >
+                <lucide-icon [img]="icons.power" class="h-3 w-3" aria-hidden="true" />
+                <span>{{ node.puesto.activo ? 'Deshabilitar' : 'Habilitar' }}</span>
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</section>
+
+<!-- Diálogo Agregar / Editar puesto -->
+@if (formDialogMode(); as mode) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true">
+    <div class="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+        <h3 class="text-sm font-bold text-slate-900">
+          {{ mode === 'create' ? 'Agregar puesto dependiente' : 'Editar puesto estructural' }}
+        </h3>
+        <button type="button" (click)="closeFormDialog()" class="cursor-pointer rounded-lg p-1 text-slate-500 hover:bg-slate-100">
+          <lucide-icon [img]="icons.clear" class="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-3 text-xs">
+        @if (mode === 'create' && formTargetPuesto(); as padre) {
+          <p class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700">
+            Superior jerárquico: <strong>{{ padre.denominacion }}</strong> (Nivel {{ padre.nivel_jerarquico }})
+          </p>
+        }
+
+        <div>
+          <label class="mb-1 block font-semibold text-slate-700">Denominación oficial *</label>
+          <input
+            type="text"
+            maxlength="200"
+            [ngModel]="draftDenominacion()"
+            (ngModelChange)="draftDenominacion.set($event)"
+            class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <label class="mb-1 block font-semibold text-slate-700">Código / nivel</label>
+            <input
+              type="text"
+              maxlength="40"
+              [ngModel]="draftCodigoNivel()"
+              (ngModelChange)="draftCodigoNivel.set($event)"
+              placeholder="Ej. CF80010"
+              class="min-h-9 w-full rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm text-slate-900"
+            />
+          </div>
+          <div>
+            <label class="mb-1 block font-semibold text-slate-700">Siglas de área</label>
+            <input
+              type="text"
+              maxlength="30"
+              [ngModel]="draftSiglasArea()"
+              (ngModelChange)="draftSiglasArea.set($event)"
+              placeholder="Ej. SAF"
+              class="min-h-9 w-full rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm text-slate-900"
+            />
+          </div>
+          <div>
+            <label class="mb-1 block font-semibold text-slate-700">Orden visual</label>
+            <input
+              type="number"
+              min="0"
+              [ngModel]="draftOrdenVisual()"
+              (ngModelChange)="draftOrdenVisual.set($event)"
+              class="min-h-9 w-full rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm text-slate-900"
+            />
+          </div>
+        </div>
+
+        @if (formError(); as fErr) {
+          <p role="alert" class="font-semibold text-red-700">{{ fErr }}</p>
+        }
+      </div>
+
+      <div class="mt-5 flex justify-end gap-2 border-t border-gray-100 pt-3">
+        <button type="button" (click)="closeFormDialog()" class="cursor-pointer rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          (click)="submitFormDialog()"
+          [disabled]="formSubmitting()"
+          class="cursor-pointer rounded-xl bg-[#006341] px-4 py-2 text-xs font-semibold text-white hover:bg-[#004f34] disabled:opacity-50"
+        >
+          {{ formSubmitting() ? 'Guardando…' : 'Guardar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Diálogo Cambiar dependencia con búsqueda dinámica -->
+@if (depTarget(); as target) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true">
+    <div class="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+        <h3 class="text-sm font-bold text-slate-900">Cambiar dependencia jerárquica</h3>
+        <button type="button" (click)="closeDepDialog()" class="cursor-pointer rounded-lg p-1 text-slate-500 hover:bg-slate-100">
+          <lucide-icon [img]="icons.clear" class="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-3 text-xs">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-1">
+          <p><strong>Puesto actual:</strong> {{ target.denominacion }}</p>
+          <p><strong>Superior actual:</strong> {{ getNombrePuesto(target.puesto_padre_id) }}</p>
+          @if (depSelectedPadreId() !== null) {
+            <p class="text-[#006341]"><strong>Nuevo superior:</strong> {{ getNombrePuesto(depSelectedPadreId()) }}</p>
+          }
+        </div>
+
+        <p class="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[11px] text-amber-900">
+          <strong>Advertencia:</strong> cambiar la dependencia modifica la posición del puesto en el árbol. Si el cambio altera el nivel jerárquico y existen puestos dependientes, deberá reubicar primero sus descendientes.
+        </p>
+
+        <div>
+          <label class="mb-1 block font-semibold text-slate-700">Buscar nuevo superior (por denominación o código)</label>
+          <input
+            type="text"
+            [ngModel]="depSearch()"
+            (ngModelChange)="depSearch.set($event)"
+            placeholder="Escribe para filtrar superiores…"
+            class="min-h-9 w-full rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm text-slate-900"
+          />
+        </div>
+
+        <div class="max-h-44 overflow-y-auto rounded-xl border border-gray-200 divide-y divide-gray-100">
+          @for (cand of depCandidates(); track cand.id) {
+            <button
+              type="button"
+              (click)="depSelectedPadreId.set(cand.id)"
+              class="flex w-full cursor-pointer items-center justify-between px-3 py-2 text-left text-xs transition hover:bg-slate-50"
+              [ngClass]="depSelectedPadreId() === cand.id ? 'bg-[#006341]/10 font-bold text-[#006341]' : 'text-slate-800'"
+            >
+              <span class="truncate">{{ cand.denominacion }}</span>
+              <span class="ml-2 shrink-0 font-mono text-[10px] text-slate-500">N{{ cand.nivel_jerarquico }} · {{ cand.codigo_nivel || '—' }}</span>
+            </button>
+          }
+        </div>
+
+        @if (depError(); as dErr) {
+          <p role="alert" class="font-semibold text-red-700">{{ dErr }}</p>
+        }
+      </div>
+
+      <div class="mt-5 flex justify-end gap-2 border-t border-gray-100 pt-3">
+        <button type="button" (click)="closeDepDialog()" class="cursor-pointer rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          (click)="confirmarCambioDependencia()"
+          [disabled]="depSelectedPadreId() === null || depSubmitting()"
+          class="cursor-pointer rounded-xl bg-[#006341] px-4 py-2 text-xs font-semibold text-white hover:bg-[#004f34] disabled:opacity-50"
+        >
+          {{ depSubmitting() ? 'Aplicando…' : 'Confirmar cambio de dependencia' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

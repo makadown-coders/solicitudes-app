@@ -133,7 +133,7 @@
               id="rh-admin-tab-padron"
               type="button"
               (click)="setAdminTab('padron')"
-              class="inline-flex min-h-10 items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition"
+              class="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition"
               [ngClass]="
                 activeAdminTab() === 'padron'
                   ? 'bg-[#006341] text-white shadow-xs'
@@ -143,6 +143,21 @@
               <lucide-icon [img]="icons.users" class="h-4 w-4" aria-hidden="true"></lucide-icon>
               <span>Plantilla institucional</span>
             </button>
+
+            <button
+              id="rh-admin-tab-organigrama"
+              type="button"
+              (click)="setAdminTab('organigrama')"
+              class="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition"
+              [ngClass]="
+                activeAdminTab() === 'organigrama'
+                  ? 'bg-[#006341] text-white shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100'
+              "
+            >
+              <lucide-icon [img]="icons.briefcase" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+              <span>Estructura organizacional</span>
+            </button>
           </nav>
         }
 
@@ -151,6 +166,10 @@
             [unidades]="unidadesAutorizadas()"
             (unauthorized)="onPadronUnauthorized()"
           ></app-rh-padron-institucional>
+        } @else if (activeAdminTab() === 'organigrama' && canManagePadronInstitucional()) {
+          <app-rh-organigrama-admin
+            (unauthorized)="onPadronUnauthorized()"
+          ></app-rh-organigrama-admin>
         } @else {
         <!-- Sección de contexto de alcance y selección de unidad de trabajo -->
         <section
