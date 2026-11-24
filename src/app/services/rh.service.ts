@@ -52,10 +52,13 @@ export interface RhPersonalUnidadPagedResponse {
   total: number;
 }
 
+export type RhSituacionPersonalFiltro = 'ACTIVOS' | 'BAJAS' | 'TODOS';
+
 export interface RhPersonalListParams {
   q?: string | null;
   page?: number;
   pageSize?: number;
+  situacion?: RhSituacionPersonalFiltro | null;
 }
 
 export type RhPersonaCandidataSituacion =
@@ -1416,6 +1419,116 @@ export class RhService {
     );
   }
 
+  async getAsistenciaSeguimiento(
+    params: RhAsistenciaSeguimientoParams
+  ): Promise<RhAsistenciaSeguimientoResponse> {
+    let httpParams = new HttpParams()
+      .set('anio', String(params.anio))
+      .set('mes', String(params.mes));
+
+    if (params.unidadId !== undefined && params.unidadId !== null) {
+      httpParams = httpParams.set('unidadId', String(params.unidadId));
+    }
+    if (params.estado) {
+      httpParams = httpParams.set('estado', params.estado);
+    }
+    if (params.situacion) {
+      httpParams = httpParams.set('situacion', params.situacion);
+    }
+    if (params.q && params.q.trim()) {
+      httpParams = httpParams.set('q', params.q.trim());
+    }
+    if (params.page !== undefined) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+    if (params.pageSize !== undefined) {
+      httpParams = httpParams.set('pageSize', String(params.pageSize));
+    }
+
+    return await firstValueFrom(
+      this.http.get<RhAsistenciaSeguimientoResponse>(
+        `${this.baseUrl}/asistencia/seguimiento`,
+        { params: httpParams }
+      )
+    );
+  }
+
+  async getAsistenciaResumen(
+    anio: number,
+    mes: number,
+    unidadId?: number | null
+  ): Promise<RhAsistenciaResumenMensualDto> {
+    let httpParams = new HttpParams().set('anio', String(anio)).set('mes', String(mes));
+    if (unidadId !== undefined && unidadId !== null) {
+      httpParams = httpParams.set('unidadId', String(unidadId));
+    }
+    return await firstValueFrom(
+      this.http.get<RhAsistenciaResumenMensualDto>(
+        `${this.baseUrl}/asistencia/resumen`,
+        { params: httpParams }
+      )
+    );
+  }
+
+  async confirmarRecepcionAsistencia(
+    personaId: number,
+    anio: number,
+    mes: number,
+    payload: RhAsistenciaConfirmarRecepcionPayload = {}
+  ): Promise<RhAsistenciaControlMutationResponse> {
+    return await firstValueFrom(
+      this.http.patch<RhAsistenciaControlMutationResponse>(
+        `${this.baseUrl}/asistencia/personas/${personaId}/periodos/${anio}/${mes}/recepcion`,
+        payload
+      )
+    );
+  }
+
+  async actualizarEstadoAsistencia(
+    personaId: number,
+    anio: number,
+    mes: number,
+    payload: RhAsistenciaActualizarEstadoPayload
+  ): Promise<RhAsistenciaControlMutationResponse> {
+    return await firstValueFrom(
+      this.http.patch<RhAsistenciaControlMutationResponse>(
+        `${this.baseUrl}/asistencia/personas/${personaId}/periodos/${anio}/${mes}/estado`,
+        payload
+      )
+    );
+  }
+
+  async importarAsistenciaHistorica2026(
+    payload: RhAsistenciaMigracionImportarPayload
+  ): Promise<RhAsistenciaMigracionImportarResponse> {
+    return await firstValueFrom(
+      this.http.post<RhAsistenciaMigracionImportarResponse>(
+        `${this.baseUrl}/asistencia/migracion-2026/importar`,
+        payload
+      )
+    );
+  }
+
+  async exportarReporteAnualAsistenciaXlsx(params: {
+    anio: number;
+    unidadId?: number | null;
+    situacion?: RhSituacionPersonalFiltro | null;
+  }): Promise<Blob> {
+    let httpParams = new HttpParams().set('anio', String(params.anio));
+    if (params.unidadId !== undefined && params.unidadId !== null) {
+      httpParams = httpParams.set('unidadId', String(params.unidadId));
+    }
+    if (params.situacion) {
+      httpParams = httpParams.set('situacion', params.situacion);
+    }
+    return await firstValueFrom(
+      this.http.get(`${this.baseUrl}/asistencia/reporte-anual.xlsx`, {
+        params: httpParams,
+        responseType: 'blob',
+      })
+    );
+  }
+
   private sanitizeLoteAdscripcionesPayload(
     payload: RhLoteAdscripcionesPayload
   ): RhLoteAdscripcionesPayload {
@@ -1659,4 +1772,174 @@ export interface RhOrgPuestosResponse {
     estado: string;
   };
   items: RhOrgPuestoDto[];
+}
+
+export type RhAsistenciaEstadoControl =
+  | 'PENDIENTE'
+  | 'ENTREGADA_DECLARADA'
+  | 'RECIBIDA'
+  | 'OBSERVADA'
+  | 'NO_APLICA';
+
+export type RhAsistenciaMotivoExcepcion =
+  | 'INGRESO_POSTERIOR'
+  | 'BAJA_PREVIA'
+  | 'TRANSFERENCIA'
+  | 'COMISION_EXTERNA'
+  | 'LICENCIA_INCAPACIDAD'
+  | 'EXENCION_ADMINISTRATIVA'
+  | 'OTRO';
+
+export type RhAsistenciaEstadoFiltro =
+  | RhAsistenciaEstadoControl
+  | 'SIN_REGISTRO'
+  | 'ELEGIBILIDAD_INCIERTA';
+
+export type RhAsistenciaSituacionSeguimiento =
+  | 'REGISTRO_EXPLICITO'
+  | 'SIN_REGISTRO_CONTROL'
+  | 'NO_APLICABLE_DOCUMENTADO'
+  | 'ELEGIBILIDAD_INCIERTA';
+
+export type RhAsistenciaUnidadOrigen =
+  | 'CONTROL_MENSUAL'
+  | 'ADSCRIPCION_VIGENTE'
+  | 'DIRECTORIO_REFERENCIA'
+  | 'SIN_UNIDAD';
+
+export interface RhAsistenciaSeguimientoParams {
+  anio: number;
+  mes: number;
+  unidadId?: number | null;
+  estado?: RhAsistenciaEstadoFiltro | null;
+  situacion?: RhSituacionPersonalFiltro | null;
+  q?: string | null;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface RhAsistenciaSeguimientoItemDto {
+  persona_id: number;
+  nombre_completo: string;
+  activo_actual: boolean;
+  fecha_ingreso: string | null;
+  fecha_baja: string | null;
+  unidad_medica_id: number | null;
+  unidad_medica_nombre: string | null;
+  unidad_origen: RhAsistenciaUnidadOrigen;
+  adscripcion_laboral_id: number | null;
+  puesto_referencia: string | null;
+  tiene_registro_control: boolean;
+  control_id: number | null;
+  estado_control: RhAsistenciaEstadoControl | null;
+  situacion_seguimiento: RhAsistenciaSituacionSeguimiento;
+  motivo_incertidumbre: string | null;
+  fecha_recepcion: string | null;
+  recibido_por: string | null;
+  excepcion_administrativa: boolean;
+  motivo_excepcion: RhAsistenciaMotivoExcepcion | null;
+  observaciones: string | null;
+  generado_docx_en: string | null;
+  generaciones_docx_count: number;
+  entrega_declarada_en: string | null;
+  origen_registro?: 'CAPTURA_SISTEMA' | 'MIGRACION_HISTORICA_EXCEL' | null;
+  actualizado_en: string | null;
+}
+
+export interface RhAsistenciaResumenMensualDto {
+  anio: number;
+  mes: number;
+  unidad_medica_id: number | null;
+  total_personas_evaluadas: number;
+  recepciones_confirmadas: number;
+  observadas: number;
+  declaradas_no_confirmadas: number;
+  pendientes_explicitas: number;
+  no_aplicables_documentadas: number;
+  sin_registro_control: number;
+  elegibilidad_incierta: number;
+  universo_evaluable_referencia: number;
+  porcentaje_recepcion_sobre_evaluable: number | null;
+  denominador_nota: string;
+}
+
+export interface RhAsistenciaSeguimientoResponse {
+  anio: number;
+  mes: number;
+  unidad_medica_id: number | null;
+  items: RhAsistenciaSeguimientoItemDto[];
+  resumen: RhAsistenciaResumenMensualDto;
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface RhAsistenciaConfirmarRecepcionPayload {
+  fecha_recepcion?: string | null;
+  unidad_medica_id?: number | null;
+  adscripcion_laboral_id?: number | null;
+  observaciones?: string | null;
+  motivo_administrativo?: string | null;
+}
+
+export interface RhAsistenciaActualizarEstadoPayload {
+  estado: 'OBSERVADA' | 'NO_APLICA' | 'PENDIENTE';
+  motivo_excepcion?: RhAsistenciaMotivoExcepcion | null;
+  observaciones?: string | null;
+  unidad_medica_id?: number | null;
+  adscripcion_laboral_id?: number | null;
+  motivo_administrativo?: string | null;
+}
+
+export interface RhAsistenciaControlMutationResponse {
+  registro: {
+    id: number;
+    persona_id: number;
+    anio: number;
+    mes: number;
+    unidad_medica_id: number | null;
+    adscripcion_laboral_id: number | null;
+    estado: RhAsistenciaEstadoControl;
+    fecha_recepcion: string | null;
+    recibido_por: string | null;
+    observaciones: string | null;
+    excepcion_administrativa: boolean;
+    motivo_excepcion: RhAsistenciaMotivoExcepcion | null;
+    generado_docx_en: string | null;
+    generaciones_docx_count: number;
+    entrega_declarada_en: string | null;
+    actualizado_en: string;
+  };
+  estado_anterior: RhAsistenciaEstadoControl | null;
+  idempotente: boolean;
+  evento_auditoria: string | null;
+}
+
+export interface RhAsistenciaMigracionRegistroPayload {
+  persona_id: number;
+  mes: number;
+  unidad_medica_id?: number | null;
+  hoja: string;
+  fila: number;
+  columna: string;
+  nombre_excel: string;
+  confirmado_por_rh: boolean;
+}
+
+export interface RhAsistenciaMigracionImportarPayload {
+  archivo_nombre: string;
+  archivo_base64: string;
+  archivo_hash_esperado: string;
+  anio: 2026;
+  registros: RhAsistenciaMigracionRegistroPayload[];
+}
+
+export interface RhAsistenciaMigracionImportarResponse {
+  lote_id: string;
+  archivo_hash: string;
+  idempotente: boolean;
+  importados: number;
+  ya_existentes: number;
+  ids_importados: number[];
+  periodos_afectados: number[];
 }

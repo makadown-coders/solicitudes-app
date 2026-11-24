@@ -1,0 +1,597 @@
+<section
+  id="rh-asistencia-control-section"
+  aria-labelledby="rh-asistencia-heading"
+  class="space-y-4"
+>
+  <!-- Encabezado y filtros -->
+  <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-xs sm:p-5">
+    <div class="flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 id="rh-asistencia-heading" class="text-lg font-bold text-slate-900">
+          Control mensual de listas de asistencia
+        </h2>
+        <p class="mt-0.5 text-xs text-slate-600">
+          Seguimiento administrativo de entrega y recepción física por periodo.
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 self-start">
+        <button
+          type="button"
+          (click)="onExportarControlXlsx()"
+          [disabled]="exportingXlsx() || loading()"
+          class="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-[#006341] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#004f34] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <lucide-icon [img]="icons.clipboard" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+          <span>{{ exportingXlsx() ? 'Exportando...' : 'Exportar control de asistencias' }}</span>
+        </button>
+        <button
+          type="button"
+          (click)="loadSeguimiento()"
+          [disabled]="loading()"
+          class="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <lucide-icon [img]="icons.refresh" class="h-3.5 w-3.5" [class.animate-spin]="loading()" aria-hidden="true"></lucide-icon>
+          <span>Actualizar</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filtros responsivos -->
+    <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+      <div class="lg:col-span-2">
+        <label for="rh-asis-anio" class="block text-xs font-semibold text-slate-700">Año</label>
+        <select
+          id="rh-asis-anio"
+          [ngModel]="selectedAnio()"
+          (ngModelChange)="onAnioChange($event)"
+          class="mt-1 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]/30"
+        >
+          @for (anio of anios; track anio) {
+            <option [value]="anio">{{ anio }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="lg:col-span-2">
+        <label for="rh-asis-mes" class="block text-xs font-semibold text-slate-700">Mes</label>
+        <select
+          id="rh-asis-mes"
+          [ngModel]="selectedMes()"
+          (ngModelChange)="onMesChange($event)"
+          class="mt-1 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]/30"
+        >
+          @for (m of meses; track m.value) {
+            <option [value]="m.value">{{ m.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="lg:col-span-3">
+        <label class="block text-xs font-semibold text-slate-700">Unidad</label>
+        <div class="mt-1">
+          <app-rh-unidad-autocomplete
+            [unidades]="unidades"
+            [selectedId]="selectedUnidadId()"
+            [allowAllOption]="true"
+            allOptionLabel="Todas las unidades"
+            placeholder="Todas las unidades (buscar por nombre o CLUES)"
+            ariaLabel="Filtrar por unidad médica o administrativa"
+            (selectedIdChange)="onUnidadChange($event)"
+          ></app-rh-unidad-autocomplete>
+        </div>
+      </div>
+
+      <div class="lg:col-span-2">
+        <label for="rh-asis-estado" class="block text-xs font-semibold text-slate-700">Estado</label>
+        <select
+          id="rh-asis-estado"
+          [ngModel]="selectedEstado()"
+          (ngModelChange)="onEstadoChange($event)"
+          class="mt-1 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]/30"
+        >
+          <option value="">Todos</option>
+          <option value="RECIBIDA">Recibida</option>
+          <option value="PENDIENTE">Pendiente explícito</option>
+          <option value="ENTREGADA_DECLARADA">Declarada (sin confirmar)</option>
+          <option value="OBSERVADA">Observada</option>
+          <option value="NO_APLICA">No aplica</option>
+          <option value="SIN_REGISTRO">Sin registro de control</option>
+          <option value="ELEGIBILIDAD_INCIERTA">Elegibilidad incierta</option>
+        </select>
+      </div>
+
+      <div class="lg:col-span-2">
+        <label for="rh-asis-situacion" class="block text-xs font-semibold text-slate-700">Personal</label>
+        <select
+          id="rh-asis-situacion"
+          [ngModel]="selectedSituacion()"
+          (ngModelChange)="onSituacionChange($event)"
+          class="mt-1 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#006341] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]/30"
+        >
+          <option value="ACTIVOS">Activos</option>
+          <option value="BAJAS">Bajas</option>
+          <option value="TODOS">Todos</option>
+        </select>
+      </div>
+
+      <div class="sm:col-span-2 lg:col-span-3">
+        <label for="rh-asis-search" class="block text-xs font-semibold text-slate-700">Buscar trabajador</label>
+        <div class="relative mt-1">
+          <lucide-icon
+            [img]="icons.search"
+            class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400"
+            aria-hidden="true"
+          ></lucide-icon>
+          <input
+            id="rh-asis-search"
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="onSearchInput($event)"
+            placeholder="Nombre completo..."
+            class="w-full rounded-xl border border-gray-300 bg-white py-2 pr-8 pl-9 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]/30"
+          />
+          @if (searchQuery()) {
+            <button
+              type="button"
+              (click)="clearSearch()"
+              aria-label="Limpiar búsqueda"
+              class="absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            >
+              <lucide-icon [img]="icons.clear" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen mensual compacto -->
+  @if (resumen(); as r) {
+    <div class="space-y-2">
+      <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
+          <p class="text-[11px] font-semibold text-emerald-900">Recepciones confirmadas</p>
+          <p class="mt-1 text-xl font-bold text-emerald-800">{{ r.recepciones_confirmadas }}</p>
+        </div>
+        <div class="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+          <p class="text-[11px] font-semibold text-amber-900">Pendientes explícitos</p>
+          <p class="mt-1 text-xl font-bold text-amber-800">{{ r.pendientes_explicitas }}</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-3">
+          <p class="text-[11px] font-semibold text-slate-700">Sin registro de control</p>
+          <p class="mt-1 text-xl font-bold text-slate-800">{{ r.sin_registro_control }}</p>
+        </div>
+        <div class="rounded-xl border border-rose-200 bg-rose-50/60 p-3">
+          <p class="text-[11px] font-semibold text-rose-900">Observadas</p>
+          <p class="mt-1 text-xl font-bold text-rose-800">{{ r.observadas }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <p class="text-[11px] font-semibold text-slate-700">No aplicables</p>
+          <p class="mt-1 text-xl font-bold text-slate-800">{{ r.no_aplicables_documentadas }}</p>
+        </div>
+        <div class="rounded-xl border border-purple-200 bg-purple-50/60 p-3">
+          <p class="text-[11px] font-semibold text-purple-900">Elegibilidad incierta</p>
+          <p class="mt-1 text-xl font-bold text-purple-800">{{ r.elegibilidad_incierta }}</p>
+        </div>
+      </div>
+
+      @if (r.porcentaje_recepcion_sobre_evaluable !== null) {
+        <div class="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-700">
+          <span class="font-semibold text-slate-900">
+            Recepción sobre universo evaluable de referencia: {{ r.porcentaje_recepcion_sobre_evaluable }}%
+          </span>
+          ({{ r.recepciones_confirmadas }} de {{ r.universo_evaluable_referencia }}).
+          <span class="text-slate-500">{{ r.denominador_nota }}</span>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Mensajes de retroalimentación -->
+  @if (feedbackSuccess()) {
+    <div role="status" class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-900">
+      <lucide-icon [img]="icons.check" class="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true"></lucide-icon>
+      <span>{{ feedbackSuccess() }}</span>
+    </div>
+  }
+  @if (errorMessage()) {
+    <div role="alert" class="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-900">
+      <lucide-icon [img]="icons.alert" class="h-4 w-4 shrink-0 text-rose-700" aria-hidden="true"></lucide-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <!-- Listado principal -->
+  <div class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+    @if (loading() && items().length === 0) {
+      <div class="flex items-center justify-center gap-2 p-8 text-sm text-slate-600">
+        <lucide-icon [img]="icons.loader" class="h-4 w-4 animate-spin" aria-hidden="true"></lucide-icon>
+        <span>Consultando seguimiento mensual...</span>
+      </div>
+    } @else if (items().length === 0) {
+      <div class="p-8 text-center text-sm text-slate-600">
+        No se encontraron trabajadores con los filtros seleccionados.
+      </div>
+    } @else {
+      <!-- Vista escritorio (tabla compacta) -->
+      <div class="hidden overflow-x-auto md:block">
+        <table class="min-w-full divide-y divide-gray-200 text-left text-sm">
+          <thead class="bg-slate-50 text-xs font-semibold text-slate-700">
+            <tr>
+              <th class="px-4 py-3">Trabajador</th>
+              <th class="px-4 py-3">Unidad de referencia</th>
+              <th class="px-4 py-3">Estado</th>
+              <th class="px-4 py-3">Recepción</th>
+              <th class="px-4 py-3">Observación / Excepción</th>
+              @if (canAdminister) {
+                <th class="px-4 py-3 text-right">Acciones</th>
+              }
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            @for (item of items(); track item.persona_id) {
+              @let badge = getBadgeInfo(item);
+              <tr class="hover:bg-slate-50/70">
+                <td class="px-4 py-3">
+                  <div class="font-semibold text-slate-900">{{ item.nombre_completo }}</div>
+                  @if (item.puesto_referencia) {
+                    <div class="text-xs text-slate-500">{{ item.puesto_referencia }}</div>
+                  }
+                </td>
+                <td class="px-4 py-3">
+                  <div class="text-slate-800">{{ item.unidad_medica_nombre ?? 'Sin unidad asignada' }}</div>
+                  <div class="text-[11px] text-slate-500">{{ getUnidadOrigenLabel(item.unidad_origen) }}</div>
+                </td>
+                <td class="px-4 py-3">
+                  <span
+                    class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold"
+                    [ngClass]="badge.classes"
+                  >
+                    {{ badge.label }}
+                  </span>
+                  @if (badge.isCalculated) {
+                    <div class="mt-0.5 text-[10px] text-slate-500">Situación informativa</div>
+                  }
+                </td>
+                <td class="px-4 py-3 text-xs text-slate-700">
+                  @if (item.estado_control === 'RECIBIDA' && item.origen_registro === 'MIGRACION_HISTORICA_EXCEL' && !item.fecha_recepcion) {
+                    <span class="font-medium text-indigo-800">Recepción histórica validada por RH · Fecha original no disponible</span>
+                  } @else {
+                    {{ formatFechaRecepcion(item.fecha_recepcion) }}
+                  }
+                </td>
+                <td class="max-w-xs px-4 py-3 text-xs text-slate-700">
+                  @if (item.motivo_excepcion) {
+                    <div class="font-semibold text-slate-800">{{ getMotivoExcepcionLabel(item.motivo_excepcion) }}</div>
+                  }
+                  @if (item.observaciones) {
+                    <div class="truncate text-slate-600" [title]="item.observaciones">{{ item.observaciones }}</div>
+                  } @else if (!item.motivo_excepcion) {
+                    <span class="text-slate-400">—</span>
+                  }
+                </td>
+                @if (canAdminister) {
+                  <td class="px-4 py-3 text-right">
+                    <div class="inline-flex flex-wrap items-center justify-end gap-1.5">
+                      @if (item.estado_control !== 'RECIBIDA') {
+                        <button
+                          type="button"
+                          (click)="onConfirmarRecepcion(item)"
+                          [disabled]="busyPersonaId() !== null"
+                          class="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-[#006341] px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#004f34] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#006341] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <lucide-icon [img]="icons.check" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                          <span>Confirmar recepción</span>
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        (click)="openModal('OBSERVADA', item)"
+                        [disabled]="busyPersonaId() !== null"
+                        class="cursor-pointer rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Observar
+                      </button>
+                      <button
+                        type="button"
+                        (click)="openModal('NO_APLICA', item)"
+                        [disabled]="busyPersonaId() !== null"
+                        class="cursor-pointer rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        No aplica
+                      </button>
+                      @if (item.tiene_registro_control) {
+                        <button
+                          type="button"
+                          (click)="openModal('CORREGIR', item)"
+                          [disabled]="busyPersonaId() !== null"
+                          class="cursor-pointer rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Corregir
+                        </button>
+                      }
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Vista móvil / tablet (< md) -->
+      <div class="divide-y divide-gray-100 md:hidden">
+        @for (item of items(); track item.persona_id) {
+          @let badge = getBadgeInfo(item);
+          <div class="space-y-2 p-4">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="text-sm font-semibold text-slate-900">{{ item.nombre_completo }}</p>
+                <p class="text-xs text-slate-600">{{ item.unidad_medica_nombre ?? 'Sin unidad asignada' }}</p>
+              </div>
+              <span
+                class="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                [ngClass]="badge.classes"
+              >
+                {{ badge.label }}
+              </span>
+            </div>
+            <div class="text-xs text-slate-600">
+              <span class="font-semibold">Recepción:</span> {{ formatFechaRecepcion(item.fecha_recepcion) }}
+            </div>
+            @if (item.motivo_excepcion || item.observaciones) {
+              <div class="rounded-lg bg-slate-50 p-2 text-xs text-slate-700">
+                @if (item.motivo_excepcion) {
+                  <div class="font-semibold">{{ getMotivoExcepcionLabel(item.motivo_excepcion) }}</div>
+                }
+                @if (item.observaciones) {
+                  <div>{{ item.observaciones }}</div>
+                }
+              </div>
+            }
+            @if (canAdminister) {
+              <div class="flex flex-wrap gap-1.5 pt-1">
+                @if (item.estado_control !== 'RECIBIDA') {
+                  <button
+                    type="button"
+                    (click)="onConfirmarRecepcion(item)"
+                    [disabled]="busyPersonaId() !== null"
+                    class="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-[#006341] px-2.5 py-1.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <lucide-icon [img]="icons.check" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                    <span>Confirmar recepción</span>
+                  </button>
+                }
+                <button
+                  type="button"
+                  (click)="openModal('OBSERVADA', item)"
+                  class="cursor-pointer rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700"
+                >
+                  Observar
+                </button>
+                <button
+                  type="button"
+                  (click)="openModal('NO_APLICA', item)"
+                  class="cursor-pointer rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700"
+                >
+                  No aplica
+                </button>
+                @if (item.tiene_registro_control) {
+                  <button
+                    type="button"
+                    (click)="openModal('CORREGIR', item)"
+                    class="cursor-pointer rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-900"
+                  >
+                    Corregir
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Paginación institucional: Primero | Anterior | Selector | Siguiente | Último -->
+      <div class="flex flex-col items-center justify-between gap-3 border-t border-gray-200 px-4 py-3 text-xs text-slate-600 sm:flex-row">
+        <div>
+          Mostrando página <span class="font-semibold text-slate-900">{{ page() }}</span> de
+          <span class="font-semibold text-slate-900">{{ totalPages() }}</span>
+          ({{ total() }} trabajadores)
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            (click)="goToPage(1)"
+            [disabled]="page() <= 1 || total() === 0"
+            class="cursor-pointer rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Primero
+          </button>
+          <button
+            type="button"
+            (click)="goToPage(page() - 1)"
+            [disabled]="page() <= 1 || total() === 0"
+            class="cursor-pointer rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <select
+            aria-label="Seleccionar página"
+            [ngModel]="page()"
+            (ngModelChange)="goToPage($event)"
+            [disabled]="totalPages() <= 1"
+            class="cursor-pointer rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            @for (p of pageNumbers(); track p) {
+              <option [value]="p">Página {{ p }} de {{ totalPages() }}</option>
+            }
+          </select>
+          <button
+            type="button"
+            (click)="goToPage(page() + 1)"
+            [disabled]="page() >= totalPages() || total() === 0"
+            class="cursor-pointer rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Siguiente
+          </button>
+          <button
+            type="button"
+            (click)="goToPage(totalPages())"
+            [disabled]="page() >= totalPages() || total() === 0"
+            class="cursor-pointer rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Último
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Diálogo modal para Observar / No aplica / Corregir / Confirmar con motivo -->
+  @if (modalOpen() && modalTarget(); as target) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+      (click)="!modalSubmitting() && closeModal()"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rh-asis-modal-title"
+    >
+      <div
+        class="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
+          <div>
+            <h3 id="rh-asis-modal-title" class="text-base font-bold text-slate-900">
+              @if (modalMode() === 'OBSERVADA') {
+                Marcar lista como observada
+              } @else if (modalMode() === 'NO_APLICA') {
+                Registrar excepción (NO APLICA)
+              } @else if (modalMode() === 'CONFIRMAR_CON_MOTIVO') {
+                Confirmar recepción (cambio de estado previo)
+              } @else {
+                Corregir estado administrativo
+              }
+            </h3>
+            <p class="mt-0.5 text-xs text-slate-600">{{ target.nombre_completo }}</p>
+          </div>
+          <button
+            type="button"
+            (click)="closeModal()"
+            [disabled]="modalSubmitting()"
+            aria-label="Cerrar diálogo"
+            class="cursor-pointer rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          >
+            <lucide-icon [img]="icons.clear" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+          </button>
+        </div>
+
+        <div class="mt-4 space-y-3 text-sm">
+          <div class="rounded-xl bg-slate-50 p-3 text-xs text-slate-700">
+            <span class="font-semibold">Estado actual:</span> {{ getEstadoLabel(target.estado_control) }}
+            @if (modalMode() === 'CONFIRMAR_CON_MOTIVO') {
+              <span class="mx-1.5">→</span>
+              <span class="font-semibold text-emerald-800">Recibida</span>
+            }
+          </div>
+
+          @if (modalMode() === 'CORREGIR') {
+            <div>
+              <label for="rh-asis-modal-estado" class="block text-xs font-semibold text-slate-700">Nuevo estado</label>
+              <select
+                id="rh-asis-modal-estado"
+                [ngModel]="modalNuevoEstado()"
+                (ngModelChange)="modalNuevoEstado.set($event)"
+                class="mt-1 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900"
+              >
+                <option value="PENDIENTE">Pendiente</option>
+                <option value="OBSERVADA">Observada</option>
+                <option value="NO_APLICA">No aplica</option>
+              </select>
+            </div>
+          }
+
+          @if (modalMode() === 'NO_APLICA' || (modalMode() === 'CORREGIR' && modalNuevoEstado() === 'NO_APLICA')) {
+            <div>
+              <label for="rh-asis-modal-motivo-exc" class="block text-xs font-semibold text-slate-700">
+                Motivo de excepción <span class="text-rose-600">*</span>
+              </label>
+              <select
+                id="rh-asis-modal-motivo-exc"
+                [ngModel]="modalMotivoExcepcion()"
+                (ngModelChange)="modalMotivoExcepcion.set($event)"
+                class="mt-1 w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900"
+              >
+                <option value="">Selecciona un motivo...</option>
+                @for (m of motivosCatalogo; track m.value) {
+                  <option [value]="m.value">{{ m.label }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <div>
+            <label for="rh-asis-modal-obs" class="block text-xs font-semibold text-slate-700">
+              Observaciones
+              @if (modalMode() === 'OBSERVADA' || (modalMode() === 'CORREGIR' && modalNuevoEstado() === 'OBSERVADA') || modalMotivoExcepcion() === 'OTRO') {
+                <span class="text-rose-600">*</span>
+              }
+            </label>
+            <textarea
+              id="rh-asis-modal-obs"
+              rows="2"
+              [ngModel]="modalObservaciones()"
+              (ngModelChange)="modalObservaciones.set($event)"
+              placeholder="Detalle administrativo..."
+              class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900"
+            ></textarea>
+          </div>
+
+          @if (target.tiene_registro_control) {
+            <div>
+              <label for="rh-asis-modal-motivo-admin" class="block text-xs font-semibold text-slate-700">
+                Motivo administrativo del cambio <span class="text-rose-600">*</span>
+              </label>
+              <input
+                id="rh-asis-modal-motivo-admin"
+                type="text"
+                [ngModel]="modalMotivoAdmin()"
+                (ngModelChange)="modalMotivoAdmin.set($event)"
+                placeholder="Explica el motivo de la corrección o cambio..."
+                class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900"
+              />
+            </div>
+          }
+
+          @if (modalError()) {
+            <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+              {{ modalError() }}
+            </div>
+          }
+        </div>
+
+        <div class="mt-5 flex items-center justify-end gap-2 border-t border-gray-100 pt-3">
+          <button
+            type="button"
+            (click)="closeModal()"
+            [disabled]="modalSubmitting()"
+            class="cursor-pointer rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            (click)="submitModal()"
+            [disabled]="modalSubmitting()"
+            class="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-[#006341] px-4 py-2 text-xs font-semibold text-white hover:bg-[#004f34] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            @if (modalSubmitting()) {
+              <lucide-icon [img]="icons.loader" class="h-3.5 w-3.5 animate-spin" aria-hidden="true"></lucide-icon>
+            }
+            <span>Confirmar y guardar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

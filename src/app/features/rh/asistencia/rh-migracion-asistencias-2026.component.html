@@ -1,0 +1,380 @@
+<div class="min-h-screen bg-slate-50 p-4 sm:p-6">
+  <div class="mx-auto max-w-7xl space-y-4">
+    <!-- Encabezado y aviso temporal -->
+    <header class="rounded-2xl border border-amber-300 bg-amber-50 p-4 shadow-xs">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-start gap-3">
+          <lucide-icon [img]="icons.warning" class="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true"></lucide-icon>
+          <div>
+            <h1 class="text-base font-bold text-amber-950">
+              Herramienta temporal: Conciliación histórica de asistencias 2026 (RH-ASIS-05A)
+            </h1>
+            <p class="mt-0.5 text-xs text-amber-900">
+              Uso provisional exclusivo para <strong>RECURSOS_HUMANOS GLOBAL</strong>. Esta pantalla lee el Excel localmente en tu navegador y <strong>no inserta ni modifica registros en PostgreSQL</strong>.
+            </p>
+          </div>
+        </div>
+        <a
+          routerLink="/rh-admin"
+          class="inline-flex cursor-pointer items-center gap-1.5 self-start rounded-xl border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100"
+        >
+          <lucide-icon [img]="icons.back" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+          <span>Volver a /rh-admin</span>
+        </a>
+      </div>
+    </header>
+
+    @if (!isRhGlobal()) {
+      <div role="alert" class="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-900">
+        <lucide-icon [img]="icons.shieldAlert" class="h-5 w-5 shrink-0 text-rose-700" aria-hidden="true"></lucide-icon>
+        <span>Acceso denegado. Esta herramienta temporal es exclusiva para personal con rol <strong>RECURSOS_HUMANOS GLOBAL</strong>.</span>
+      </div>
+    } @else {
+      <!-- Carga de archivo y resguardo JSON -->
+      <section class="rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <label
+              class="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#006341] px-4 py-2 text-xs font-semibold text-white hover:bg-[#004f34]"
+            >
+              <lucide-icon [img]="icons.upload" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+              <span>Cargar Excel 2026 (.xlsx)</span>
+              <input type="file" accept=".xlsx,.xls" class="hidden" (change)="onExcelFileSelected($event)" />
+            </label>
+
+            @if (filas().length > 0) {
+              <button
+                type="button"
+                (click)="exportarJson()"
+                class="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <lucide-icon [img]="icons.download" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                <span>Exportar conciliación (JSON)</span>
+              </button>
+
+              <label
+                class="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <lucide-icon [img]="icons.upload" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                <span>Reanudar JSON</span>
+                <input type="file" accept=".json" class="hidden" (change)="onImportJsonSelected($event)" />
+              </label>
+
+              <button
+                type="button"
+                (click)="openConfirmImport()"
+                [disabled]="
+                  !catalogsReady() ||
+                  importing() ||
+                  resumen().candidatosRecepcionHistorica <= 0 ||
+                  resumen().conflictosConBd > 0 ||
+                  resumen().duplicadosDetectados > 0
+                "
+                class="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-indigo-700 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <lucide-icon [img]="icons.check" class="h-3.5 w-3.5" aria-hidden="true"></lucide-icon>
+                <span>Importar registros históricos aprobados ({{ resumen().candidatosRecepcionHistorica }})</span>
+              </button>
+            }
+          </div>
+
+          @if (archivoNombre()) {
+            <div class="text-xs text-slate-600">
+              <span class="font-semibold text-slate-900">{{ archivoNombre() }}</span>
+              · Hoja: {{ sheetName() }}
+              · Huella: <code class="text-[11px]">{{ archivoHash().slice(0, 12) }}...</code>
+            </div>
+          }
+        </div>
+
+        @if (infoMessage()) {
+          <div role="status" class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+            {{ infoMessage() }}
+          </div>
+        }
+        @if (errorMessage()) {
+          <div role="alert" class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
+            {{ errorMessage() }}
+          </div>
+        }
+      </section>
+
+      <!-- Vista previa de resumen -->
+      @if (filas().length > 0) {
+        @let r = resumen();
+        <section class="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-8">
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3">
+            <p class="text-[11px] font-semibold text-emerald-900">Conciliadas</p>
+            <p class="mt-1 text-lg font-bold text-emerald-800">{{ r.personasConciliadas }}</p>
+          </div>
+          <div class="rounded-xl border border-sky-200 bg-sky-50/70 p-3">
+            <p class="text-[11px] font-semibold text-sky-900">Sugeridas</p>
+            <p class="mt-1 text-lg font-bold text-sky-800">{{ r.personasSugeridasSinConfirmar }}</p>
+          </div>
+          <div class="rounded-xl border border-amber-200 bg-amber-50/70 p-3">
+            <p class="text-[11px] font-semibold text-amber-900">Ambiguas</p>
+            <p class="mt-1 text-lg font-bold text-amber-800">{{ r.personasAmbiguas }}</p>
+          </div>
+          <div class="rounded-xl border border-rose-200 bg-rose-50/70 p-3">
+            <p class="text-[11px] font-semibold text-rose-900">Sin coincidencia</p>
+            <p class="mt-1 text-lg font-bold text-rose-800">{{ r.personasSinCoincidencia }}</p>
+          </div>
+          <div class="rounded-xl border border-indigo-200 bg-indigo-50/70 p-3">
+            <p class="text-[11px] font-semibold text-indigo-900">Candidatos X</p>
+            <p class="mt-1 text-lg font-bold text-indigo-800">{{ r.candidatosRecepcionHistorica }}</p>
+          </div>
+          <div class="rounded-xl border border-orange-200 bg-orange-50/70 p-3">
+            <p class="text-[11px] font-semibold text-orange-900">Conflictos BD</p>
+            <p class="mt-1 text-lg font-bold text-orange-800">{{ r.conflictosConBd }}</p>
+          </div>
+          <div class="rounded-xl border border-purple-200 bg-purple-50/70 p-3">
+            <p class="text-[11px] font-semibold text-purple-900">Duplicados</p>
+            <p class="mt-1 text-lg font-bold text-purple-800">{{ r.duplicadosDetectados }}</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-slate-100 p-3">
+            <p class="text-[11px] font-semibold text-slate-700">Aclaraciones</p>
+            <p class="mt-1 text-lg font-bold text-slate-800">{{ r.casosAclaracion }}</p>
+          </div>
+        </section>
+
+        <!-- Filtros de revisión -->
+        <section class="flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3.5 shadow-xs">
+          <select
+            aria-label="Filtrar por estado de conciliación"
+            [ngModel]="filtroEstado()"
+            (ngModelChange)="filtroEstado.set($event)"
+            class="cursor-pointer rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-xs text-slate-900"
+          >
+            <option value="">Todas las filas</option>
+            <option value="CONFIRMADA_MANUAL">Confirmadas manualmente</option>
+            <option value="COINCIDENCIA_SUGERIDA">Coincidencia sugerida</option>
+            <option value="COINCIDENCIA_AMBIGUA">Coincidencia ambigua</option>
+            <option value="SIN_COINCIDENCIA">Sin coincidencia</option>
+            <option value="EXCLUIDA_RH">Excluidas por RH</option>
+            <option value="VACANTES">Solo vacantes</option>
+          </select>
+
+          <input
+            type="text"
+            [ngModel]="filtroTexto()"
+            (ngModelChange)="filtroTexto.set($event)"
+            placeholder="Filtrar por nombre o puesto del Excel..."
+            class="min-w-60 flex-1 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-xs text-slate-900"
+          />
+        </section>
+
+        <!-- Tabla de conciliación -->
+        <section class="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-xs">
+          <table class="min-w-full divide-y divide-gray-200 text-left text-xs">
+            <thead class="bg-slate-50 font-semibold text-slate-700">
+              <tr>
+                <th class="px-3 py-2.5">Fila / Excel</th>
+                <th class="px-3 py-2.5">Identidad (`persona_id`)</th>
+                <th class="px-3 py-2.5">Unidad 2026</th>
+                <th class="px-3 py-2.5">Meses 2026 (Ene–Dic)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              @for (fila of filasVisibles(); track fila.rowKey) {
+                <tr class="align-top hover:bg-slate-50/70">
+                  <td class="px-3 py-2.5">
+                    <div class="font-semibold text-slate-900">{{ fila.nombreOriginal }}</div>
+                    <div class="text-[11px] text-slate-500">{{ fila.puesto }}</div>
+                    <div class="mt-0.5 text-[10px] text-slate-400">
+                      {{ fila.rowKey }} · Bloque: {{ fila.bloque }}
+                      @if (fila.observacionBloqueBaja) {
+                        · <span class="font-semibold text-rose-700">{{ fila.observacionBloqueBaja }}</span>
+                      }
+                    </div>
+                  </td>
+
+                  <td class="px-3 py-2.5">
+                    @if (fila.esVacante) {
+                      <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">Vacante omitida</span>
+                    } @else {
+                      <div class="space-y-1.5">
+                        @if (fila.personaConfirmada; as pc) {
+                          <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-900">
+                            <span class="font-semibold">#{{ pc.persona_id }}</span> · {{ pc.nombre_completo }}
+                          </div>
+                        } @else if (fila.estadoIdentidad === 'COINCIDENCIA_SUGERIDA' && fila.candidatosSugeridos[0]; as sug) {
+                          <div class="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-sky-900">
+                            Sugerida: <strong>#{{ sug.persona_id }}</strong> {{ sug.nombre_completo }}
+                            <button
+                              type="button"
+                              (click)="confirmarPersona(fila.rowKey, sug)"
+                              class="ml-2 cursor-pointer rounded bg-sky-700 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-sky-800"
+                            >
+                              Confirmar
+                            </button>
+                          </div>
+                        } @else {
+                          <span class="text-[11px] font-semibold text-amber-800">{{ fila.estadoIdentidad }}</span>
+                        }
+
+                        <div class="flex flex-wrap gap-1">
+                          <button
+                            type="button"
+                            (click)="openSelector(fila.rowKey, fila.nombreOriginal)"
+                            class="cursor-pointer rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
+                          >
+                            Buscar trabajador
+                          </button>
+                          @if (fila.estadoIdentidad !== 'EXCLUIDA_RH') {
+                            <button
+                              type="button"
+                              (click)="excluirFila(fila.rowKey)"
+                              class="cursor-pointer rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-800 hover:bg-rose-100"
+                            >
+                              Excluir
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </td>
+
+                  <td class="w-52 px-3 py-2.5">
+                    @if (!fila.esVacante && fila.estadoIdentidad !== 'EXCLUIDA_RH') {
+                      <app-rh-unidad-autocomplete
+                        [unidades]="unidades()"
+                        [selectedId]="fila.unidadMedicaId"
+                        [allowAllOption]="true"
+                        allOptionLabel="Sin asignar"
+                        placeholder="Buscar unidad 2026..."
+                        [compact]="true"
+                        [ariaLabel]="'Unidad histórica para ' + fila.nombreOriginal"
+                        (selectedIdChange)="onUnidadFilaChange(fila.rowKey, $event)"
+                      ></app-rh-unidad-autocomplete>
+                      @if (fila.unidadMedicaId === 177) {
+                        <div class="mt-0.5 text-[10px] text-slate-500">Inicial editable (Coord. Estatal)</div>
+                      }
+                    }
+                  </td>
+
+                  <td class="px-3 py-2.5">
+                    <div class="flex flex-wrap gap-1">
+                      @for (m of fila.meses; track m.mes) {
+                        @if (m.tipo === 'MARCA_X') {
+                          <button
+                            type="button"
+                            (click)="toggleMesAprobado(fila.rowKey, m.mes)"
+                            [title]="m.mesNombre + ' (' + m.colLetter + fila.rowNumber + ')'"
+                            class="cursor-pointer rounded-md border px-1.5 py-0.5 text-[10px] font-bold"
+                            [ngClass]="
+                              m.tieneConflictoBd
+                                ? 'border-orange-400 bg-orange-100 text-orange-900'
+                                : m.esDuplicadoExcel
+                                ? 'border-purple-400 bg-purple-100 text-purple-900'
+                                : m.aprobado
+                                ? 'border-emerald-300 bg-emerald-100 text-emerald-900'
+                                : 'border-gray-300 bg-gray-100 text-gray-500 line-through'
+                            "
+                          >
+                            {{ m.mesNombre.slice(0, 3) }}:X
+                          </button>
+                        } @else if (m.tipo === 'ANOTACION') {
+                          <span
+                            [title]="m.mesNombre + ': ' + m.rawValue"
+                            class="rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900"
+                          >
+                            {{ m.mesNombre.slice(0, 3) }}:Nota
+                          </span>
+                        }
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+
+      <!-- Modal selector inteligente de trabajador -->
+      @if (selectorRowKey(); as activeRowKey) {
+        <div
+          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          (click)="closeSelector()"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div class="w-full max-w-lg rounded-2xl bg-white p-4 shadow-xl" (click)="$event.stopPropagation()">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+              <h3 class="text-sm font-bold text-slate-900">Seleccionar trabajador en padrón (`public.persona`)</h3>
+              <button type="button" (click)="closeSelector()" class="cursor-pointer rounded p-1 text-slate-500 hover:bg-slate-100">
+                <lucide-icon [img]="icons.clear" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+              </button>
+            </div>
+            <div class="mt-3 space-y-2">
+              <input
+                type="text"
+                [ngModel]="selectorQuery()"
+                (ngModelChange)="selectorQuery.set($event)"
+                placeholder="Buscar por nombre, cargo o persona_id..."
+                class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-slate-900"
+              />
+              <div class="max-h-64 divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200">
+                @for (p of selectorResultados(); track p.persona_id) {
+                  <button
+                    type="button"
+                    (click)="confirmarPersona(activeRowKey, p)"
+                    class="flex w-full cursor-pointer items-center justify-between px-3 py-2 text-left text-xs hover:bg-emerald-50"
+                  >
+                    <div>
+                      <div class="font-semibold text-slate-900">{{ p.nombre_completo }}</div>
+                      <div class="text-[11px] text-slate-500">ID #{{ p.persona_id }} · {{ p.cargo ?? 'Sin cargo' }}</div>
+                    </div>
+                    <span class="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">Elegir</span>
+                  </button>
+                } @empty {
+                  <div class="p-4 text-center text-xs text-slate-500">Sin coincidencias en el padrón cargado.</div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+      <!-- Modal de confirmación final de importación -->
+      @if (confirmModalOpen()) {
+        <div
+          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          (click)="!importing() && confirmModalOpen.set(false)"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div class="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" (click)="$event.stopPropagation()">
+            <h3 class="text-base font-bold text-slate-900">Confirmar importación histórica 2026</h3>
+            <p class="mt-2 text-xs text-slate-700">
+              Se enviarán exactamente <strong>{{ resumen().candidatosRecepcionHistorica }}</strong> recepciones históricas aprobadas (año 2026) junto con el archivo XLSX original para revalidación transaccional en servidor.
+            </p>
+            <p class="mt-2 text-[11px] text-slate-500">
+              Cada registro se insertará con <code>origen_registro = MIGRACION_HISTORICA_EXCEL</code> y <code>fecha_recepcion = NULL</code>. Ante cualquier conflicto se ejecutará ROLLBACK completo.
+            </p>
+            <div class="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                (click)="confirmModalOpen.set(false)"
+                [disabled]="importing()"
+                class="cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                (click)="ejecutarImportacionAprobada()"
+                [disabled]="importing()"
+                class="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-indigo-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-800 disabled:opacity-50"
+              >
+                @if (importing()) {
+                  <lucide-icon [img]="icons.loader" class="h-3.5 w-3.5 animate-spin" aria-hidden="true"></lucide-icon>
+                }
+                <span>Confirmar e importar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>

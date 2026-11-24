@@ -47,6 +47,7 @@ import {
   RhUpdatePersonaIdentificacionPayload,
 } from '../../services/rh.service';
 import { RhVincularLoteDialogComponent } from './adscripciones/rh-vincular-lote-dialog.component';
+import { RhAsistenciaControlComponent } from './asistencia/rh-asistencia-control.component';
 import { RhOrganigramaAdminComponent } from './organigrama/rh-organigrama-admin.component';
 import { RhFichaTrabajadorDialogComponent } from './rh-ficha-trabajador-dialog.component';
 import {
@@ -70,6 +71,7 @@ import { RhPadronInstitucionalComponent } from './rh-padron-institucional.compon
     RhPadronInstitucionalComponent,
     RhVincularLoteDialogComponent,
     RhOrganigramaAdminComponent,
+    RhAsistenciaControlComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rh-shell.component.html',
@@ -131,8 +133,8 @@ export class RhShellComponent implements OnInit, OnDestroy {
   /** Selección activa de unidad de trabajo (conserva el id real unidad_medica.id) */
   readonly selectedUnidadId = signal<number | null>(null);
 
-  /** Pestaña interna de administración RH: 'unidad', 'padron' o 'organigrama' (solo RH GLOBAL) */
-  readonly activeAdminTab = signal<'unidad' | 'padron' | 'organigrama'>('unidad');
+  /** Pestaña interna de administración RH: 'unidad', 'padron', 'organigrama' o 'asistencia' (solo RH GLOBAL) */
+  readonly activeAdminTab = signal<'unidad' | 'padron' | 'organigrama' | 'asistencia'>('unidad');
 
   /** Estado del autocompletado de unidad de trabajo */
   readonly unidadSearchDraft = signal('');
@@ -339,12 +341,15 @@ export class RhShellComponent implements OnInit, OnDestroy {
     return Boolean(ctx && ctx.grantedBy === 'RECURSOS_HUMANOS' && ctx.scope === 'GLOBAL');
   });
 
-  setAdminTab(tab: 'unidad' | 'padron' | 'organigrama'): void {
-    if ((tab === 'padron' || tab === 'organigrama') && !this.canManagePadronInstitucional()) {
+  setAdminTab(tab: 'unidad' | 'padron' | 'organigrama' | 'asistencia'): void {
+    if ((tab === 'padron' || tab === 'organigrama' || tab === 'asistencia') && !this.canManagePadronInstitucional()) {
       this.activeAdminTab.set('unidad');
       return;
     }
     this.activeAdminTab.set(tab);
+    if (tab === 'asistencia' && !this.operatorUnidadResolved) {
+      void this.resolverUnidadReferenciaOperador();
+    }
   }
 
   onPadronUnauthorized(): void {
@@ -515,8 +520,50 @@ export class RhShellComponent implements OnInit, OnDestroy {
     () => this.effectiveScope() === 'CLUES' && this.unidadesAutorizadas().length === 1
   );
 
+  /** Unidad de referencia inequívoca del operador autenticado para precarga de filtro en asistencias */
+  readonly defaultUnidadAsistenciaId = signal<number | null>(null);
+  private operatorUnidadResolved = false;
+
   ngOnInit(): void {
     void this.cargarUnidadesAutorizadas();
+  }
+
+  private async resolverUnidadReferenciaOperador(): Promise<void> {
+    this.operatorUnidadResolved = true;
+    if (typeof this.rhService.obtenerMiContextoRh !== 'function') {
+      return;
+    }
+    try {
+      const ctx = await this.rhService.obtenerMiContextoRh();
+      if (!ctx) {
+        this.defaultUnidadAsistenciaId.set(null);
+        return;
+      }
+      const vigentes = (ctx.adscripciones ?? []).filter(
+        (a) => a.estado_vigencia === 'VIGENTE' && Number.isSafeInteger(a.unidad_medica_id) && a.unidad_medica_id > 0
+      );
+      if (vigentes.length === 1) {
+        this.defaultUnidadAsistenciaId.set(vigentes[0].unidad_medica_id);
+        return;
+      }
+      if (vigentes.length > 1) {
+        // Múltiples adscripciones vigentes -> ambiguo, conservar "Todas las unidades"
+        this.defaultUnidadAsistenciaId.set(null);
+        return;
+      }
+      if (
+        ctx.unidad_referencia &&
+        ctx.unidad_referencia.origen === 'DIRECTORIO' &&
+        Number.isSafeInteger(ctx.unidad_referencia.id) &&
+        ctx.unidad_referencia.id > 0
+      ) {
+        this.defaultUnidadAsistenciaId.set(ctx.unidad_referencia.id);
+        return;
+      }
+      this.defaultUnidadAsistenciaId.set(null);
+    } catch {
+      this.defaultUnidadAsistenciaId.set(null);
+    }
   }
 
   ngOnDestroy(): void {

@@ -363,6 +363,13 @@ export const routes: Routes = [
       .then(m => m.RhShellComponent),
   },
   {
+    path: 'rh-admin/migracion-asistencias-2026',
+    title: 'RH · Conciliación temporal de asistencias 2026',
+    canActivate: [authGuard, rhAccessGuard],
+    loadComponent: () => import('./features/rh/asistencia/rh-migracion-asistencias-2026.component')
+      .then(m => m.RhMigracionAsistencias2026Component),
+  },
+  {
     path: 'ti',
     title: 'Administración TI',
     canActivate: [authGuard, tiAdminGlobalGuard],

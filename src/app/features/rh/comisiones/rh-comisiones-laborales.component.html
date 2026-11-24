@@ -106,16 +106,15 @@
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label class="mb-1 block text-xs font-medium text-slate-700">Unidad médica de destino (opcional)</label>
-              <select
-                class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900"
-                [value]="draftUnidadDestinoId()"
-                (change)="draftUnidadDestinoId.set($any($event.target).value)"
-              >
-                <option value="">Sin unidad médica específica</option>
-                @for (u of unidades; track u.id) {
-                  <option [value]="'' + u.id">{{ formatUnidadOption(u) }}</option>
-                }
-              </select>
+              <app-rh-unidad-autocomplete
+                [unidades]="unidades"
+                [selectedId]="draftUnidadDestinoId() ? +draftUnidadDestinoId() : null"
+                [allowAllOption]="true"
+                allOptionLabel="Sin unidad médica específica"
+                placeholder="Buscar unidad destino por nombre o CLUES..."
+                ariaLabel="Unidad médica de destino"
+                (selectedIdChange)="draftUnidadDestinoId.set($event !== null ? '' + $event : '')"
+              ></app-rh-unidad-autocomplete>
             </div>
 
             <div>
