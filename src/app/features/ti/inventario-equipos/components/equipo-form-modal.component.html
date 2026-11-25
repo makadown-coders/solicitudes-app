@@ -1,0 +1,180 @@
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[1px]"
+  (click)="closed.emit()"
+>
+  <div
+    class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-xl"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Encabezado -->
+    <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#006341]/10 text-[#006341]">
+          <lucide-icon [img]="icons.device" class="h-5 w-5" aria-hidden="true"></lucide-icon>
+        </span>
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Agregar equipo informático</h2>
+          <p class="text-xs text-slate-500">
+            El equipo se registrará inicialmente en estado En Resguardo (sin asignar).
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="closed.emit()"
+        class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+        aria-label="Cerrar"
+      >
+        <lucide-icon [img]="icons.close" class="h-5 w-5"></lucide-icon>
+      </button>
+    </div>
+
+    <!-- Formulario -->
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="p-6">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <!-- Unidad médica -->
+        <div class="sm:col-span-2">
+          <label class="mb-1 block text-xs font-semibold text-slate-700">
+            Unidad médica <span class="text-red-600">*</span>
+          </label>
+          <ng-select
+            formControlName="unidad_medica_id"
+            [items]="unidades()"
+            bindLabel="nombre"
+            bindValue="id"
+            [typeahead]="unidadSearch$"
+            [loading]="loadingUnidades()"
+            placeholder="Buscar unidad médica por nombre o CLUES..."
+            notFoundText="No se encontraron unidades"
+            loadingText="Buscando unidades..."
+            [clearable]="true"
+          >
+            <ng-template ng-option-tmp let-item="item">
+              <div class="py-0.5">
+                <div class="text-sm font-medium text-slate-800">{{ item.nombre }}</div>
+                @if (item.cluesimb || item.municipio) {
+                  <div class="text-xs text-slate-500">
+                    {{ item.cluesimb || item.cluessa || '' }}
+                    @if (item.municipio) { · {{ item.municipio }} }
+                  </div>
+                }
+              </div>
+            </ng-template>
+          </ng-select>
+          @if (form.controls.unidad_medica_id.touched && form.controls.unidad_medica_id.invalid) {
+            <p class="mt-1 text-xs text-red-600">Seleccione una unidad médica.</p>
+          }
+        </div>
+
+        <!-- Tipo de dispositivo -->
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">
+            Tipo de dispositivo <span class="text-red-600">*</span>
+          </label>
+          <select
+            formControlName="tipo_dispositivo_id"
+            class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+          >
+            <option [ngValue]="null">Seleccione un tipo...</option>
+            @for (t of tipos; track t.id) {
+              <option [ngValue]="t.id">{{ t.nombre }}</option>
+            }
+          </select>
+          @if (form.controls.tipo_dispositivo_id.touched && form.controls.tipo_dispositivo_id.invalid) {
+            <p class="mt-1 text-xs text-red-600">Seleccione el tipo de dispositivo.</p>
+          }
+        </div>
+
+        <!-- Número de serie -->
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Número de serie</label>
+          <input
+            type="text"
+            formControlName="serial"
+            placeholder="Ej. SN-12345678"
+            class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+          />
+        </div>
+
+        <!-- Marca -->
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Marca</label>
+          <input
+            type="text"
+            formControlName="marca"
+            placeholder="Ej. HP, Dell, Lenovo"
+            class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+          />
+        </div>
+
+        <!-- Modelo -->
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Modelo</label>
+          <input
+            type="text"
+            formControlName="modelo"
+            placeholder="Ej. ProDesk 400 G7"
+            class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+          />
+        </div>
+
+        <!-- IP -->
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Dirección IP</label>
+          <input
+            type="text"
+            formControlName="ip"
+            placeholder="Ej. 10.20.30.40"
+            class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+          />
+        </div>
+
+        <!-- Conexión -->
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Conexión</label>
+          <input
+            type="text"
+            formControlName="conexion"
+            placeholder="Ej. Ethernet, Wi-Fi"
+            class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+          />
+        </div>
+
+        <!-- Observaciones -->
+        <div class="sm:col-span-2">
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Observaciones</label>
+          <textarea
+            rows="3"
+            formControlName="observaciones"
+            placeholder="Notas adicionales sobre el equipo..."
+            class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="mt-6 flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
+        <button
+          type="button"
+          (click)="closed.emit()"
+          [disabled]="saving"
+          class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          [disabled]="form.invalid || saving"
+          class="inline-flex items-center gap-2 rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-[#004f34] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          @if (saving) {
+            <lucide-icon [img]="icons.loader" class="h-4 w-4 animate-spin"></lucide-icon>
+            <span>Guardando...</span>
+          } @else {
+            <span>Guardar equipo</span>
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

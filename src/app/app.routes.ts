@@ -389,6 +389,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/ti/personas/ti-personas-page.component')
           .then(m => m.TiPersonasPageComponent),
       },
+      {
+        path: 'inventario-equipos',
+        title: 'Administración TI · Inventario de Equipos',
+        loadComponent: () => import('./features/ti/inventario-equipos/ti-inventario-equipos-page.component')
+          .then(m => m.TiInventarioEquiposPageComponent),
+      },
     ],
   },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
