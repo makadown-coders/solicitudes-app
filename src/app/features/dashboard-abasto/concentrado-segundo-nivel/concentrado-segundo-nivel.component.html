@@ -1,0 +1,204 @@
+<section class="space-y-5">
+  <header>
+    <h2 class="text-2xl font-bold text-slate-950">Concentrado de Segundo Nivel</h2>
+    <p class="text-sm text-slate-600">Necesidades registradas y salidas SAS hacia las unidades autorizadas.</p>
+  </header>
+
+  <aside class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+    Estimación operativa referencial basada en la bitácora disponible. Generar un Excel por sí solo no acredita envío, autorización ni recepción.
+    Las correcciones o reexportaciones no identificables pueden afectar los totales. Valide los resultados antes de utilizarlos en comunicaciones oficiales.
+  </aside>
+
+  <form (ngSubmit)="analizar()" class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <fieldset [disabled]="cargando()" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 [&_input]:block [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:p-2 [&_select]:block [&_select]:w-full [&_select]:cursor-pointer [&_select]:rounded-lg [&_select]:border [&_select]:p-2 [&_select:hover]:border-emerald-600 [&_input:focus-visible]:outline-emerald-700 [&_select:focus-visible]:outline-emerald-700">
+      <label>Modalidad
+        <select name="modalidad" [(ngModel)]="modalidad">
+          <option value="MES_CALENDARIO">Mes calendario</option>
+          <option value="ULTIMOS_30_DIAS">Ventana móvil de 30 días o más</option>
+        </select>
+      </label>
+      @if (modalidad === 'MES_CALENDARIO') {
+        <label>Mes de la solicitud <input name="mes" type="month" required [(ngModel)]="mes"></label>
+      } @else {
+        <label>Fecha inicial <input name="desde" type="date" required [max]="inicioMaximo" [(ngModel)]="desde">
+          <small>Puede ampliarse hacia atrás.</small>
+        </label>
+      }
+      <label>Jurisdicción
+        <select name="jurisdiccion" [ngModel]="jurisdiccion()" (ngModelChange)="cambiarJurisdiccion($event)">
+          <option value="">Todas</option>
+          @for (j of jurisdicciones(); track j) { <option [value]="j">{{ j }}</option> }
+        </select>
+      </label>
+      <label>Unidad
+        <select name="unidad" [ngModel]="clues()" (ngModelChange)="seleccionarUnidad($event)">
+          <option value="">Todas</option>
+          @for (u of unidadesDisponibles(); track u.clues) { <option [value]="u.clues">{{ u.nombre }} · {{ u.clues }}</option> }
+        </select>
+      </label>
+      <fieldset class="rounded-lg border p-3 sm:col-span-2 xl:col-span-3">
+        <legend class="px-1 font-semibold">Periodo de surtimiento</legend>
+        <p class="mb-2 text-sm text-slate-600">Aplica a las salidas de AZM, AZT y AZE.</p>
+        <div class="grid max-w-xl gap-3 sm:grid-cols-2">
+          <label>Desde <input required type="date" name="surtimientoDesde" [ngModel]="ventanaSurtimiento.desde" (ngModelChange)="editarVentana('desde', $event)"></label>
+          <label>Hasta <input required type="date" name="surtimientoHasta" [min]="ventanaSurtimiento.desde" [ngModel]="ventanaSurtimiento.hasta" (ngModelChange)="editarVentana('hasta', $event)"></label>
+        </div>
+      </fieldset>
+      <button type="submit" class="self-end rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-800 focus-visible:outline focus-visible:outline-emerald-700 enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50">Analizar</button>
+    </fieldset>
+  </form>
+
+  @if (cargando()) { <p role="status" class="animate-pulse rounded-xl bg-emerald-50 p-4">Cargando información, espere por favor...</p> }
+  @if (error()) { <p role="alert" class="rounded-xl bg-red-50 p-3 text-red-900">{{ error() }}</p> }
+  @if (informe(); as resultado) {
+    <div class="flex justify-end">
+      <button type="button" (click)="exportarExcel()" [disabled]="exportando()" class="rounded-lg border border-emerald-700 px-4 py-2 font-semibold text-emerald-800 hover:bg-emerald-50 focus-visible:outline-emerald-700 enabled:cursor-pointer disabled:opacity-50">
+        {{ exportando() ? 'Exportando…' : 'Exportar Excel' }}
+      </button>
+    </div>
+    <p class="text-sm text-slate-600">Periodo analizado: {{ resultado.desde }} a {{ resultado.hasta }} · Corte {{ resultado.corte }} (America/Tijuana)</p>
+    @if (resultado.ventanas[0]; as v) {
+      <p class="text-sm text-slate-600">Periodo de surtimiento efectivo: {{ v.desde <= v.hasta ? v.desde + ' a ' + v.hasta : 'Sin días en el corte' }}</p>
+    }
+    @if (resultado.almacenesPorValidar.length || resultado.incidencias.origenNoElegible || resultado.incidencias.datosInvalidos) {
+      <p role="status" class="rounded-xl bg-amber-50 p-3 text-sm">
+        @if (resultado.almacenesPorValidar.length) { Almacenes por validar: {{ resultado.almacenesPorValidar.join(', ') }}. }
+        @if (resultado.incidencias.origenNoElegible) { Registros excluidos por origen sin resolver o no elegible: {{ resultado.incidencias.origenNoElegible }}. }
+        @if (resultado.incidencias.datosInvalidos) { Registros con clave o cantidad inválida: {{ resultado.incidencias.datosInvalidos }}. }
+      </p>
+    }
+    @if (resultado.unidadesPorValidar.length) {
+      <p role="status" class="rounded-xl bg-amber-50 p-3 text-sm">CLUES pendientes de resolver en catálogo: {{ resultado.unidadesPorValidar.join(', ') }}</p>
+    }
+    <dl class="grid gap-3 sm:grid-cols-3 [&>div]:rounded-xl [&>div]:border [&>div]:p-4 [&_dd]:text-xl [&_dd]:font-bold">
+      <div><dt>Unidades solicitantes</dt><dd>{{ indicadores().unidades | number }}</dd></div>
+      <div><dt>Claves solicitadas distintas</dt><dd>{{ indicadores().claves | number }}</dd></div>
+      <div><dt>Cantidad solicitada</dt><dd>{{ indicadores().cantidad | number }}</dd></div>
+      <div><dt>Suma de entradas registradas por unidad</dt><dd>{{ indicadores().surtido | number }}</dd></div>
+      <div><dt>Pendiente</dt><dd>{{ indicadores().pendiente | number }}</dd></div>
+      <div><dt>Excedente</dt><dd>{{ indicadores().excedente | number }}</dd></div>
+      <div><dt>Cobertura operativa</dt><dd>{{ indicadores().cobertura === null ? 'N/D' : (indicadores().cobertura | number:'1.0-2') + '%' }}</dd></div>
+      <div><dt>Surtido/solicitado</dt><dd>{{ indicadores().relacion === null ? 'N/D' : (indicadores().relacion | number:'1.0-2') + '%' }}</dd></div>
+    </dl>
+    <section class="space-y-3 rounded-xl border p-4" aria-labelledby="cobertura-segundo-nivel">
+      <h3 id="cobertura-segundo-nivel" class="text-lg font-semibold">Cobertura de claves por unidad</h3>
+      <p class="text-sm text-slate-600">Porcentaje de claves con surtimiento neto igual o mayor a lo solicitado.</p>
+      @if (coberturaGrafica().length) {
+        <div class="relative min-w-0" [style.height.px]="alturaGrafica()">
+          <canvas baseChart type="bar" [data]="datosGrafica()" [options]="opcionesGrafica" [plugins]="complementosGrafica" role="img" aria-label="Gráfica de cobertura por unidad. Los valores están en la tabla siguiente."></canvas>
+        </div>
+      } @else {
+        <p class="text-sm text-slate-600">Sin claves evaluables para los filtros seleccionados.</p>
+      }
+      @if (ejecutivasVisibles().length) {
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm [&_td]:p-2 [&_th]:p-2">
+            <caption class="sr-only">Cobertura ejecutiva por unidad</caption>
+            <thead class="bg-slate-100"><tr>
+              <th scope="col">Jurisdicción</th><th scope="col">Unidad</th><th scope="col">CLUES</th>
+              <th scope="col">Claves solicitadas</th><th scope="col">Completas</th><th scope="col">Parciales</th>
+              <th scope="col">Sin surtimiento positivo</th><th scope="col">Cobertura de claves (%)</th>
+            </tr></thead>
+            <tbody>
+              @for (u of ejecutivasVisibles(); track u.clues) {
+                <tr class="border-t">
+                  <td>{{ u.jurisdiccion }}</td><td><span class="block max-w-56 truncate" [title]="u.nombre">{{ u.nombre }}</span></td><td>{{ u.clues }}</td>
+                  <td>{{ u.evaluables | number }}</td><td>{{ u.completas | number }}</td><td>{{ u.parciales | number }}</td><td>{{ u.sinPositivo | number }}</td>
+                  <td>{{ u.porcentaje === null ? 'N/D' : (u.porcentaje | number:'1.0-2') + '%' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (paginasEjecutivas().length > 1) {
+          <nav aria-label="Paginación de cobertura" class="flex flex-wrap gap-2 [&_button]:rounded [&_button]:border [&_button]:px-2 [&_button:enabled]:cursor-pointer [&_button:enabled:hover]:bg-slate-100 [&_button:disabled]:opacity-50 [&_button:focus-visible]:outline-emerald-700">
+            <button type="button" (click)="irPaginaEjecutiva(1)" [disabled]="paginaEjecutiva() === 1">Primero</button>
+            <button type="button" (click)="irPaginaEjecutiva(paginaEjecutiva() - 1)" [disabled]="paginaEjecutiva() === 1">Anterior</button>
+            <select aria-label="Seleccionar página de cobertura" class="cursor-pointer rounded border p-1 focus-visible:outline-emerald-700" [ngModel]="paginaEjecutiva()" (ngModelChange)="irPaginaEjecutiva($event)">
+              @for (p of paginasEjecutivas(); track p) { <option [ngValue]="p">Página {{ p }} de {{ paginasEjecutivas().length }}</option> }
+            </select>
+            <button type="button" (click)="irPaginaEjecutiva(paginaEjecutiva() + 1)" [disabled]="paginaEjecutiva() === paginasEjecutivas().length">Siguiente</button>
+            <button type="button" (click)="irPaginaEjecutiva(paginasEjecutivas().length)" [disabled]="paginaEjecutiva() === paginasEjecutivas().length">Último</button>
+          </nav>
+        }
+      }
+    </section>
+    @if (!visibles().length) { <p class="rounded-xl bg-slate-50 p-4">Sin solicitudes ni salidas para el periodo y los filtros seleccionados.</p> }
+    @if (visibles().length) {
+      <div class="hidden overflow-x-auto rounded-xl border md:block">
+        <table class="w-full text-left text-sm [&_td]:p-2 [&_th]:p-2">
+          <caption class="sr-only">Necesidades de Segundo Nivel</caption>
+          <thead class="bg-slate-100"><tr>
+            <th scope="col">Jurisdicción</th><th scope="col">Unidad</th>
+            <th scope="col">CLUES</th><th scope="col">Clave CNIS</th><th scope="col">Descripción</th>
+            <th scope="col">Tipo</th><th scope="col">Grupo(s)</th><th scope="col">Solicitado</th>
+            <th scope="col">Surtido</th><th scope="col">Surtido en</th>
+            <th scope="col">Cobertura</th><th scope="col">Surtido/solicitado</th>
+          </tr></thead>
+          <tbody>
+            @for (f of visibles(); track f.clues + '|' + f.clave) {
+              @let etiquetas = etiquetasInsumo()(f.clave);
+              <tr class="border-t"><td>{{ f.jurisdiccion }}</td><td>{{ f.nombre }}</td>
+                <td>{{ f.clues }}</td><td>{{ f.clave }}</td>
+                <td><span class="block max-w-56 truncate" [title]="f.descripcion || 'Sin descripción'">{{ f.descripcion || 'Sin descripción' }}</span></td>
+                <td><span class="block max-w-36 truncate" [title]="etiquetas[0]">{{ etiquetas[0] }}</span></td>
+                <td><span class="block max-w-48 truncate" [title]="etiquetas[1]">{{ etiquetas[1] }}</span></td>
+                <td>{{ f.cantidad | number }}</td><td>{{ f.surtido | number }}</td>
+                <td class="whitespace-nowrap">{{ formatearSalida(f.ultimaSalida) }}</td>
+                <td>{{ f.cobertura === null ? 'N/D' : (f.cobertura | number:'1.0-2') + '%' }}</td>
+                <td>{{ f.relacion === null ? 'N/D' : (f.relacion | number:'1.0-2') + '%' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <ul class="space-y-2 md:hidden">
+        @for (f of visibles(); track f.clues + '|' + f.clave) {
+          @let etiquetas = etiquetasInsumo()(f.clave);
+          <li class="rounded-xl border p-3 text-sm">
+            <strong>{{ f.clave }}</strong>
+            <p class="truncate" [title]="f.descripcion || 'Sin descripción'">{{ f.descripcion || 'Sin descripción' }}</p>
+            <p class="break-words">Tipo: {{ etiquetas[0] }}</p>
+            <p class="break-words">Grupo(s): {{ etiquetas[1] }}</p>
+            <p>{{ f.nombre }} · {{ f.clues }}</p><p>Jurisdicción {{ f.jurisdiccion }}</p>
+            <p>Solicitado: {{ f.cantidad | number }} · Surtido: {{ f.surtido | number }}</p>
+            <p>Surtido en: {{ formatearSalida(f.ultimaSalida) }}</p>
+            <p>Cobertura: {{ f.cobertura === null ? 'N/D' : (f.cobertura | number:'1.0-2') + '%' }} · Surtido/solicitado: {{ f.relacion === null ? 'N/D' : (f.relacion | number:'1.0-2') + '%' }}</p>
+          </li>
+        }
+      </ul>
+      <p class="text-sm text-slate-600">Mostrando {{ inicio() + 1 }}–{{ inicio() + visibles().length }} de {{ filas().length }} registros</p>
+      @if (totalPaginas() > 1) {
+        <nav aria-label="Paginación de necesidades" class="flex flex-wrap gap-2 [&_button]:rounded [&_button]:border [&_button]:px-2 [&_button:enabled]:cursor-pointer [&_button:enabled:hover]:bg-slate-100 [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-50 [&_button:focus-visible]:outline-emerald-700">
+          <button type="button" (click)="irPagina(1)" [disabled]="pagina() === 1">Primero</button>
+          <button type="button" (click)="irPagina(pagina() - 1)" [disabled]="pagina() === 1">Anterior</button>
+          <select aria-label="Seleccionar página" class="cursor-pointer rounded border p-1 hover:border-emerald-600 focus-visible:outline-emerald-700" [ngModel]="pagina()" (ngModelChange)="irPagina($event)">
+            @for (p of paginas(); track p) { <option [ngValue]="p">Página {{ p }} de {{ totalPaginas() }}</option> }
+          </select>
+          <button type="button" (click)="irPagina(pagina() + 1)" [disabled]="pagina() === totalPaginas()">Siguiente</button>
+          <button type="button" (click)="irPagina(totalPaginas())" [disabled]="pagina() === totalPaginas()">Último</button>
+        </nav>
+      }
+    }
+  }
+  <details class="rounded-xl border p-4 text-sm">
+    <summary class="cursor-pointer font-semibold hover:text-emerald-800 focus-visible:outline-emerald-700">Alcance y metodología</summary>
+    <p class="mt-2">«Surtido en» indica la fecha del movimiento más reciente registrado en SAS hacia la unidad dentro del periodo seleccionado. La recepción física requiere confirmación.</p>
+    <p class="mt-2">La necesidad proviene de la bitácora. El surtido de este corte corresponde a las salidas SAS registradas desde AZM, AZT y AZE. La recepción física requiere confirmación. Las entregas directas documentadas en órdenes de suministro están pendientes de validación.</p>
+    <p class="mt-2">La cobertura limita el surtido aplicado a lo solicitado por unidad y clave. El indicador surtido/solicitado conserva el saldo neto completo, incluidos negativos y excedentes.</p>
+    <p class="mt-2">El modo mensual toma el periodo declarado. La ventana móvil toma la fecha de registro en Tijuana. Se acumulan ordinarias y extraordinarias por CLUES y CNIS.</p>
+    <p class="mt-2">Dentro del corte se conserva el primer registro entre cabeceras con mismo hash, unidad, periodo, tipo, insumos y detalle íntegro. Las variantes de captura se acumulan porque la bitácora carece de una relación de reemplazo.</p>
+    <p class="mt-2">La bitácora histórica comparte tablas entre flujos y el tipo de exportación no identifica la pantalla de captura. El universo autorizado de CLUES delimita los registros analizados.</p>
+    @if (informe(); as resultado) {
+      <p class="mt-2">Cabeceras del corte: {{ resultado.incluidas.length }} incluidas, {{ resultado.excluidas.length }} equivalentes excluidas y {{ resultado.sinDetalle.length }} sin detalle.</p>
+      <details class="mt-2">
+        <summary class="cursor-pointer font-semibold hover:text-emerald-800 focus-visible:outline-emerald-700">Trazabilidad de cabeceras del corte</summary>
+        <ul class="max-h-72 space-y-1 overflow-auto break-words pt-2">
+          @for (c of resultado.incluidas; track c.id) { <li>Incluida · {{ c.clues }} · {{ c.fecha }} · {{ c.tipo }} · {{ c.periodo || 'Sin periodo' }} · {{ c.id }}</li> }
+          @for (c of resultado.excluidas; track c.id) { <li>Equivalente excluida · {{ c.clues }} · {{ c.fecha }} · {{ c.tipo }} · {{ c.periodo }} · {{ c.id }} → {{ c.equivalenteA }}</li> }
+          @for (c of resultado.sinDetalle; track c.id) { <li>Sin detalle · {{ c.clues }} · {{ c.fecha }} · {{ c.tipo }} · {{ c.periodo || 'Sin periodo' }} · {{ c.id }}</li> }
+        </ul>
+      </details>
+    }
+  </details>
+</section>
