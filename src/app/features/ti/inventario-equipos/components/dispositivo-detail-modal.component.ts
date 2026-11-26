@@ -29,7 +29,7 @@ import {
   Trash2,
   X,
 } from 'lucide-angular';
-import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, from, switchMap } from 'rxjs';
 import {
   AsignacionBitacoraRow,
   DispositivoDetail,
@@ -38,13 +38,16 @@ import {
   NicItem,
   NicKind,
   Periferico,
-  PersonaLite,
   TipoPeriferico,
-  UnidadMedica,
   normalizeMac,
 } from '../../../../models/ti-inventario.models';
 import { TiCatalogosService } from '../../../../services/ti-catalogos.service';
 import { TiDispositivosService } from '../../../../services/ti-dispositivos.service';
+import {
+  TiPersonaLite,
+  TiPersonasService,
+  TiUnidadMedicaItem,
+} from '../../../../services/ti-personas.service';
 import { ConfirmacionModalComponent } from '../../../../shared/confirmacion-modal/confirmacion-modal.component';
 
 type DetailTab = 'resumen' | 'monitores' | 'perifericos' | 'historial';
@@ -67,6 +70,7 @@ export class DispositivoDetailModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly dispositivosSvc = inject(TiDispositivosService);
   private readonly catalogosSvc = inject(TiCatalogosService);
+  private readonly tiPersonasSvc = inject(TiPersonasService);
 
   @Input({ required: true }) dispositivoId!: number;
   @Input() estados: EstadoDispositivo[] = [];
@@ -137,10 +141,10 @@ export class DispositivoDetailModalComponent implements OnInit {
 
   // Sub-modal: Cambiar asignación
   readonly showAsignacion = signal(false);
-  readonly unidades = signal<UnidadMedica[]>([]);
+  readonly unidades = signal<TiUnidadMedicaItem[]>([]);
   readonly loadingUnidades = signal(false);
   readonly unidadSearch$ = new Subject<string>();
-  readonly personas = signal<PersonaLite[]>([]);
+  readonly personas = signal<TiPersonaLite[]>([]);
   readonly loadingPersonas = signal(false);
   readonly personaSearch$ = new Subject<string>();
 
@@ -194,7 +198,7 @@ export class DispositivoDetailModalComponent implements OnInit {
         distinctUntilChanged(),
         switchMap((term) => {
           this.loadingUnidades.set(true);
-          return this.catalogosSvc.unidades({ q: term, page: 1, pageSize: 25 });
+          return from(this.tiPersonasSvc.buscarUnidades({ q: term, page: 1, pageSize: 25 }));
         })
       )
       .subscribe({
@@ -211,7 +215,7 @@ export class DispositivoDetailModalComponent implements OnInit {
         distinctUntilChanged(),
         switchMap((term) => {
           this.loadingPersonas.set(true);
-          return this.catalogosSvc.personas({ q: term, page: 1, pageSize: 25 });
+          return from(this.tiPersonasSvc.listarPersonas({ q: term, page: 1, pageSize: 25 }));
         })
       )
       .subscribe({
@@ -377,26 +381,26 @@ export class DispositivoDetailModalComponent implements OnInit {
       lugar_especifico: cur?.lugar_especifico ?? '',
     });
 
-    this.catalogosSvc.unidades({ q: d.unidad_medica ?? '', page: 1, pageSize: 25 }).subscribe((r) => {
-      const items = r.items ?? [];
+    from(this.tiPersonasSvc.buscarUnidades({ q: d.unidad_medica ?? '', page: 1, pageSize: 25 })).subscribe((r) => {
+      const items = [...(r.items ?? [])];
       if (d.unidad_medica_id && !items.some((u) => u.id === d.unidad_medica_id)) {
         items.unshift({ id: d.unidad_medica_id, nombre: d.unidad_medica ?? `Unidad #${d.unidad_medica_id}` });
       }
       this.unidades.set(items);
     });
 
-    this.catalogosSvc
-      .personas({ q: cur?.persona_nombre_completo ?? cur?.persona ?? '', page: 1, pageSize: 25 })
-      .subscribe((r) => {
-        const items = r.items ?? [];
-        if (cur?.persona_id && !items.some((p) => p.id === cur.persona_id)) {
-          items.unshift({
-            id: cur.persona_id,
-            nombre_completo: cur.persona_nombre_completo ?? cur.persona ?? `Persona #${cur.persona_id}`,
-          });
-        }
-        this.personas.set(items);
-      });
+    from(
+      this.tiPersonasSvc.listarPersonas({ q: cur?.persona_nombre_completo ?? cur?.persona ?? '', page: 1, pageSize: 25 })
+    ).subscribe((r) => {
+      const items = [...(r.items ?? [])];
+      if (cur?.persona_id && !items.some((p) => p.id === cur.persona_id)) {
+        items.unshift({
+          id: cur.persona_id,
+          nombre_completo: cur.persona_nombre_completo ?? cur.persona ?? `Persona #${cur.persona_id}`,
+        });
+      }
+      this.personas.set(items);
+    });
 
     this.showAsignacion.set(true);
   }

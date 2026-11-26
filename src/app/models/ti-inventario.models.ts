@@ -53,7 +53,8 @@ export interface DispositivoRowEx {
   id: number;
   unidad_medica_id: number;
   unidad_medica?: string | null;
-  tipo_dispositivo_id: number;
+  tipo_dispositivo_id?: number;
+  tipo?: string | null;
   tipo_dispositivo?: string | null;
   ip?: string | null;
   conexion?: string | null;

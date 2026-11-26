@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   EventEmitter,
   inject,
   Input,
@@ -9,16 +10,13 @@ import {
   Output,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
-import { Loader2, LucideAngularModule, MonitorSmartphone, X } from 'lucide-angular';
-import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
-import {
-  DispositivoCreate,
-  TipoDispositivo,
-  UnidadMedica,
-} from '../../../../models/ti-inventario.models';
-import { TiCatalogosService } from '../../../../services/ti-catalogos.service';
+import { AlertCircle, Loader2, LucideAngularModule, MonitorSmartphone, X } from 'lucide-angular';
+import { Subject, catchError, debounceTime, distinctUntilChanged, from, of, switchMap } from 'rxjs';
+import { DispositivoCreate, TipoDispositivo } from '../../../../models/ti-inventario.models';
+import { TiPersonasService, TiUnidadMedicaItem } from '../../../../services/ti-personas.service';
 
 @Component({
   selector: 'app-equipo-form-modal',
@@ -29,10 +27,12 @@ import { TiCatalogosService } from '../../../../services/ti-catalogos.service';
 })
 export class EquipoFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
-  private readonly catalogos = inject(TiCatalogosService);
+  private readonly tiPersonasSvc = inject(TiPersonasService);
+  private readonly destroyRef = inject(DestroyRef);
 
   @Input() tipos: TipoDispositivo[] = [];
   @Input() saving = false;
+  @Input() errorMsg: string | null = null;
 
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<DispositivoCreate>();
@@ -41,9 +41,10 @@ export class EquipoFormModalComponent implements OnInit {
     device: MonitorSmartphone,
     close: X,
     loader: Loader2,
+    alert: AlertCircle,
   };
 
-  readonly unidades = signal<UnidadMedica[]>([]);
+  readonly unidades = signal<TiUnidadMedicaItem[]>([]);
   readonly loadingUnidades = signal(false);
   readonly unidadSearch$ = new Subject<string>();
 
@@ -66,33 +67,29 @@ export class EquipoFormModalComponent implements OnInit {
         distinctUntilChanged(),
         switchMap((term) => {
           this.loadingUnidades.set(true);
-          return this.catalogos.unidades({ q: term, page: 1, pageSize: 25 });
-        })
+          return from(this.tiPersonasSvc.buscarUnidades({ q: term, page: 1, pageSize: 25 })).pipe(
+            catchError(() => of({ items: [], page: 1, pageSize: 25, total: 0 }))
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe({
-        next: (res) => {
-          this.unidades.set(res.items ?? []);
-          this.loadingUnidades.set(false);
-        },
-        error: () => {
-          this.unidades.set([]);
-          this.loadingUnidades.set(false);
-        },
+      .subscribe((res) => {
+        this.unidades.set(res.items ?? []);
+        this.loadingUnidades.set(false);
       });
   }
 
   private loadUnidades(q: string): void {
     this.loadingUnidades.set(true);
-    this.catalogos.unidades({ q, page: 1, pageSize: 25 }).subscribe({
-      next: (res) => {
+    from(this.tiPersonasSvc.buscarUnidades({ q, page: 1, pageSize: 25 }))
+      .pipe(
+        catchError(() => of({ items: [], page: 1, pageSize: 25, total: 0 })),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((res) => {
         this.unidades.set(res.items ?? []);
         this.loadingUnidades.set(false);
-      },
-      error: () => {
-        this.unidades.set([]);
-        this.loadingUnidades.set(false);
-      },
-    });
+      });
   }
 
   onSubmit(): void {

@@ -34,7 +34,10 @@ export class CargaExistenciasComponent {
     fileNameSAS = '';
     fileNameSALUS = '';
     fileNameSALUSI = '';
-    resetTable = true;            // ⇠ “limpiar antes de subir”
+    resetTable = false;
+    farmaciaArchivos: { nombre: string; rows: TempRow[] }[] = [];
+    farmaciaError = '';
+    farmaciaLeyendo = false;
     BATCH_SIZE = 2000;
     unidadesService = inject(UnidadesService);
     private unidadesLoaded = false;
@@ -45,7 +48,79 @@ export class CargaExistenciasComponent {
     ) { }
 
     get canUpload() {
-        return (this.sasRows.length + this.salusRows.length + this.salusIRows.length) > 0;
+        return !this.farmaciaLeyendo && !this.farmaciaError
+            && (this.sasRows.length + this.salusRows.length + this.salusIRows.length + this.farmaciaArchivos.length) > 0;
+    }
+
+    async onFileFarmacias(event: Event) {
+        const input = event.target as HTMLInputElement;
+        const files = Array.from(input.files ?? []);
+        if (!files.length) return;
+        input.value = '';
+        this.limpiarFarmacias();
+        this.farmaciaLeyendo = true;
+        try {
+            await firstValueFrom(this.unidadesService.load());
+            const archivos: typeof this.farmaciaArchivos = [];
+            for (const file of files) {
+                try {
+                    archivos.push({ nombre: file.name, rows: await this.parseFarmacias(file) });
+                } catch (error) {
+                    const detalle = error instanceof Error ? error.message : 'No se pudo leer el archivo.';
+                    throw new Error(`${file.name}: ${detalle}`);
+                }
+            }
+            this.farmaciaArchivos = archivos;
+        } catch (error) {
+            this.farmaciaError = error instanceof Error ? error.message : 'No se pudo leer el archivo.';
+        } finally {
+            this.farmaciaLeyendo = false;
+        }
+    }
+
+    private async parseFarmacias(file: File): Promise<TempRow[]> {
+        const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const [header, ...rows] = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 });
+        const columns = (header ?? []).map(v => String(v ?? '').trim().toLowerCase());
+        const [articulo, lote, caducidad, cantidades, hospitalCol] = ['articulo', 'lote', 'fecha caducidad', 'cantidades', 'hospital']
+            .map(name => columns.indexOf(name));
+        if ([articulo, lote, caducidad, cantidades, hospitalCol].includes(-1)) {
+            throw new Error('Se requieren las columnas articulo, lote, fecha caducidad, cantidades y hospital.');
+        }
+        const parsed: TempRow[] = [];
+        for (const [index, row] of rows.entries()) {
+            if (!row.some(v => String(v ?? '').trim())) continue;
+            const clave = String(row[articulo] ?? '').trim().match(/^\d{3}\.\d{3}\.\d{4}(?:\.\d{2})?(?=\s|$)/)?.[0];
+            const cantidad = String(row[cantidades] ?? '').trim();
+            const existencia = Number(cantidad);
+            const fecha = this.formatFecha(row[caducidad]);
+            if (!clave || !cantidad || !Number.isFinite(existencia) || existencia < 0 || (row[caducidad] && !fecha)) {
+                throw new Error(`Fila ${index + 2}: revisa la clave, la cantidad y la caducidad.`);
+            }
+            const hospital = String(row[hospitalCol] ?? '').trim();
+            const sinSufijo = hospital.replace(/\s+IMSS[\s-]*BIENESTAR$/i, '');
+            const cluesimb = this.normalizeCluesimb(this.unidadesService.getCluesimbFor(hospital))
+                ?? this.normalizeCluesimb(this.unidadesService.getCluesimbFor(sinSufijo));
+            if (!cluesimb || cluesimb === 'N/A') {
+                throw new Error(`Fila ${index + 2}: no se encontró un CLUES IMB para ${hospital || '(hospital vacío)'}.`);
+            }
+            parsed.push({
+                fuente: 'FARMACIAS',
+                cluesimb,
+                clave_cnis: this.inv.normalizarClave(clave),
+                lote: String(row[lote] ?? '').trim() || null,
+                fecha_caducidad: fecha,
+                existencia,
+            });
+        }
+        if (!parsed.length) throw new Error('El archivo no contiene existencias.');
+        return parsed;
+    }
+
+    limpiarFarmacias() {
+        this.farmaciaArchivos = [];
+        this.farmaciaError = '';
     }
 
     private async ensureUnidadesLoaded() {
@@ -230,7 +305,9 @@ export class CargaExistenciasComponent {
 
     // ---------- subir ----------
     async subir() {
-        if (!this.canUpload) return;
+        if (!this.canUpload || this.isUploading) return;
+        if (this.resetTable && !confirm('¿Confirmas borrar todas las existencias actuales antes de subir?')) return;
+        const farmaciaRows = this.farmaciaArchivos.flatMap(archivo => archivo.rows);
 
         this.isUploading = true;
         this.progress = 0;
@@ -278,7 +355,7 @@ export class CargaExistenciasComponent {
             await firstValueFrom(this.svc.init(this.resetTable));
 
             // 2) lotes SAS y SALUS (mezclamos para una sola barra)
-            const total = this.sasRows.length + this.salusRows.length + this.salusIRows.length;
+            const total = this.sasRows.length + this.salusRows.length + this.salusIRows.length + farmaciaRows.length;
             let done = 0;
             const bump = (n: number) => {
                 done += n; this.progress = Math.min(100, Math.round(done * 100 / total));
@@ -295,6 +372,9 @@ export class CargaExistenciasComponent {
             await uploadBatches(this.sasRows);
             await uploadBatches(this.salusRows);
             await uploadBatches(this.salusIRows);
+            await uploadBatches(farmaciaRows);
+            this.limpiarFarmacias();
+            this.resetTable = false;
 
             alert(`✅ Existencias cargadas. Registros: ${total}`);
         } catch (e) {

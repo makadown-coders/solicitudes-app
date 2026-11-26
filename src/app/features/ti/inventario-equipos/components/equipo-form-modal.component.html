@@ -1,6 +1,6 @@
 <div
   class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[1px]"
-  (click)="closed.emit()"
+  (click)="!saving && closed.emit()"
 >
   <div
     class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-xl"
@@ -22,7 +22,8 @@
       <button
         type="button"
         (click)="closed.emit()"
-        class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+        [disabled]="saving"
+        class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
         aria-label="Cerrar"
       >
         <lucide-icon [img]="icons.close" class="h-5 w-5"></lucide-icon>
@@ -31,6 +32,13 @@
 
     <!-- Formulario -->
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="p-6">
+      @if (errorMsg) {
+        <div class="mb-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <lucide-icon [img]="icons.alert" class="h-4 w-4 shrink-0"></lucide-icon>
+          <span>{{ errorMsg }}</span>
+        </div>
+      }
+
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <!-- Unidad médica -->
         <div class="sm:col-span-2">
@@ -52,17 +60,16 @@
             <ng-template ng-option-tmp let-item="item">
               <div class="py-0.5">
                 <div class="text-sm font-medium text-slate-800">{{ item.nombre }}</div>
-                @if (item.cluesimb || item.municipio) {
+                @if (item.cluesimb || item.cluessa) {
                   <div class="text-xs text-slate-500">
-                    {{ item.cluesimb || item.cluessa || '' }}
-                    @if (item.municipio) { · {{ item.municipio }} }
+                    {{ item.cluesimb || item.cluessa }}
                   </div>
                 }
               </div>
             </ng-template>
           </ng-select>
           @if (form.controls.unidad_medica_id.touched && form.controls.unidad_medica_id.invalid) {
-            <p class="mt-1 text-xs text-red-600">Seleccione una unidad médica.</p>
+            <p class="mt-1 text-xs text-red-600">Seleccione una unidad médica válida de la lista.</p>
           }
         </div>
 

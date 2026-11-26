@@ -8,7 +8,7 @@
       <div>
         <h2 class="text-lg font-bold text-slate-900">Inventario de equipos informáticos</h2>
         <p class="text-xs text-slate-500">
-          Registro, consulta, asignaciones, monitores, periféricos y bitácora de dispositivos TI.
+          Consulta, búsqueda, filtrado y registro de dispositivos TI por unidad médica.
         </p>
       </div>
     </div>
@@ -26,7 +26,7 @@
       <button
         id="ti-inventario-add-btn"
         type="button"
-        (click)="showCreateModal.set(true)"
+        (click)="openCreateModal()"
         class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-[#004f34]"
       >
         <lucide-icon [img]="icons.plus" class="h-4 w-4"></lucide-icon>
@@ -51,7 +51,7 @@
 
   <!-- Barra de filtros -->
   <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-12">
-    <div class="relative md:col-span-5">
+    <div class="relative md:col-span-4">
       <lucide-icon
         [img]="icons.search"
         class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
@@ -59,7 +59,7 @@
       <input
         type="text"
         [ngModel]="q()"
-        (ngModelChange)="q.set($event)"
+        (ngModelChange)="onSearchInput($event)"
         (keyup.enter)="loadItems(true)"
         placeholder="Buscar por serie, marca, modelo, unidad, persona, lugar o MAC..."
         class="w-full rounded-xl border border-gray-300 py-2 pl-9 pr-9 text-sm text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
@@ -77,6 +77,22 @@
     </div>
 
     <div class="md:col-span-3">
+      <ng-select
+        [ngModel]="unidadMedicaId()"
+        (ngModelChange)="unidadMedicaId.set($event); loadItems(true)"
+        [items]="unidades()"
+        bindLabel="nombre"
+        bindValue="id"
+        [typeahead]="unidadSearch$"
+        [loading]="loadingUnidades()"
+        placeholder="Todas las unidades médicas"
+        notFoundText="Sin resultados"
+        loadingText="Buscando..."
+        [clearable]="true"
+      ></ng-select>
+    </div>
+
+    <div class="md:col-span-2">
       <select
         [ngModel]="tipoId()"
         (ngModelChange)="tipoId.set($event); loadItems(true)"
@@ -102,22 +118,16 @@
       </select>
     </div>
 
-    <div class="flex items-center gap-2 md:col-span-2">
-      <button
-        type="button"
-        (click)="loadItems(true)"
-        class="flex-1 rounded-xl bg-slate-800 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-      >
-        Buscar
-      </button>
-      @if (q() || tipoId() || estadoId()) {
+    <div class="flex items-center gap-2 md:col-span-1">
+      @if (hasActiveFilters()) {
         <button
           type="button"
           (click)="clearFilters()"
-          class="rounded-xl border border-gray-300 px-2.5 py-2 text-sm text-slate-600 hover:bg-slate-50"
+          class="inline-flex w-full items-center justify-center gap-1 rounded-xl border border-gray-300 px-2.5 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
           title="Limpiar filtros"
         >
           <lucide-icon [img]="icons.clear" class="h-4 w-4"></lucide-icon>
+          <span class="md:hidden">Limpiar</span>
         </button>
       }
     </div>
@@ -152,12 +162,9 @@
           </tr>
         } @else {
           @for (row of items(); track row.id) {
-            <tr
-              (click)="openDetail(row)"
-              class="cursor-pointer transition hover:bg-slate-50"
-            >
+            <tr class="transition hover:bg-slate-50">
               <td class="px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">
-                {{ row.tipo_dispositivo || ('Tipo #' + row.tipo_dispositivo_id) }}
+                {{ row.tipo || row.tipo_dispositivo || '—' }}
               </td>
               <td class="px-4 py-3 text-slate-700">
                 <div class="font-medium">{{ row.marca || '—' }}</div>
@@ -170,9 +177,13 @@
                 {{ row.unidad_medica || ('Unidad #' + row.unidad_medica_id) }}
               </td>
               <td class="px-4 py-3 text-slate-700">
-                <div class="font-medium">{{ row.persona_nombre_completo || 'Sin asignar' }}</div>
-                @if (row.lugar_especifico) {
-                  <div class="text-xs text-slate-500">{{ row.lugar_especifico }}</div>
+                @if (row.asignacion_dispositivo_id == null) {
+                  <span class="text-xs italic text-slate-400">Sin asignación vigente</span>
+                } @else {
+                  <div class="font-medium">{{ row.persona_nombre_completo || 'Sin asignar' }}</div>
+                  @if (row.lugar_especifico) {
+                    <div class="text-xs text-slate-500">{{ row.lugar_especifico }}</div>
+                  }
                 }
               </td>
               <td class="px-4 py-3 whitespace-nowrap">
@@ -180,7 +191,7 @@
                   [class]="estadoBadgeClass(row.estado_dispositivo)"
                   class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
                 >
-                  {{ row.estado_dispositivo || 'Sin estado' }}
+                  {{ row.estado_dispositivo || 'Sin asignación vigente' }}
                 </span>
               </td>
             </tr>
@@ -233,17 +244,8 @@
   <app-equipo-form-modal
     [tipos]="tipos()"
     [saving]="creating()"
-    (closed)="showCreateModal.set(false)"
+    [errorMsg]="createError()"
+    (closed)="closeCreateModal()"
     (saved)="onCreateEquipo($event)"
-  />
-}
-
-<!-- Modal de ficha detallada -->
-@if (selectedDispositivoId(); as devId) {
-  <app-dispositivo-detail-modal
-    [dispositivoId]="devId"
-    [estados]="estados()"
-    (closed)="selectedDispositivoId.set(null)"
-    (updated)="loadItems()"
   />
 }
