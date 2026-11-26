@@ -3,15 +3,29 @@
   aria-labelledby="rh-asistencia-heading"
   class="space-y-4"
 >
+  @if (canAdminister) {
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Vista de asistencias">
+      @for (opcion of ['mensual', 'anual']; track opcion) {
+        <button type="button" [attr.aria-pressed]="vista() === opcion"
+          [disabled]="guardandoCelda() || busyPersonaId() !== null || modalOpen()"
+          class="cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold hover:bg-slate-100 focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-50"
+          [class.bg-emerald-100]="vista() === opcion"
+          (click)="cambiarVista(opcion === 'anual' ? 'anual' : 'mensual')">
+          {{ opcion === 'mensual' ? 'Control mensual' : 'Recepción rápida' }}
+        </button>
+      }
+    </div>
+  }
   <!-- Encabezado y filtros -->
   <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-xs sm:p-5">
     <div class="flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 id="rh-asistencia-heading" class="text-lg font-bold text-slate-900">
-          Control mensual de listas de asistencia
+          {{ vista() === 'mensual' ? 'Control mensual de listas de asistencia' : 'Recepción rápida de listas de asistencia' }}
         </h2>
         <p class="mt-0.5 text-xs text-slate-600">
-          Seguimiento administrativo de entrega y recepción física por periodo.
+          {{ vista() === 'mensual' ? 'Seguimiento administrativo de entrega y recepción física por periodo.' :
+            'Selecciona una celda vacía para registrar la recepción.' }}
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2 self-start">
@@ -52,7 +66,7 @@
         </select>
       </div>
 
-      <div class="lg:col-span-2">
+      <div class="lg:col-span-2" [class.hidden]="vista() === 'anual'">
         <label for="rh-asis-mes" class="block text-xs font-semibold text-slate-700">Mes</label>
         <select
           id="rh-asis-mes"
@@ -81,7 +95,7 @@
         </div>
       </div>
 
-      <div class="lg:col-span-2">
+      <div class="lg:col-span-2" [class.hidden]="vista() === 'anual'">
         <label for="rh-asis-estado" class="block text-xs font-semibold text-slate-700">Estado</label>
         <select
           id="rh-asis-estado"
@@ -201,6 +215,126 @@
     </div>
   }
 
+  @if (vista() === 'anual' && canAdminister) {
+    <section class="min-w-0 rounded-2xl border border-slate-200 bg-white" aria-label="Matriz anual de asistencia"
+      [attr.aria-busy]="loading() || buscando()">
+      <ul class="flex flex-wrap gap-x-4 gap-y-2 border-b border-slate-200 p-3 text-xs" aria-label="Leyenda de estados">
+        @for (estado of leyendaMatriz; track estado.corto) {
+          <li><span class="rounded px-1.5 py-0.5 font-bold" [ngClass]="estado.color">{{ estado.corto }}</span> {{ estado.label }}</li>
+        }
+      </ul>
+      @if (loading() || buscando()) {
+        <p class="px-3 py-2 text-sm text-slate-600" role="status">Consultando matriz anual…</p>
+      } @else if (!errorMessage() && matriz().length === 0) {
+        <p class="px-3 py-2 text-sm text-slate-600">No hay trabajadores en esta página.</p>
+      }
+
+      <ng-template #datosPersona let-persona>
+        <strong class="block break-words text-sm">{{ persona.nombre_completo }}</strong>
+        <span class="block break-words text-xs text-slate-600">{{ persona.puesto_referencia || 'Sin puesto de referencia' }}</span>
+        <span class="block break-words text-xs text-slate-600">{{ persona.unidad_medica_nombre || 'Sin unidad de referencia' }}</span>
+        <span class="block text-xs text-slate-600">{{ persona.situacion_actual === 'ACTIVO' ? 'Activo' :
+          persona.situacion_actual === 'BAJA' ? 'Baja' : 'Situación no determinada' }}</span>
+      </ng-template>
+      <ng-template #botonCelda let-persona="persona" let-celda="celda">
+        @let estado = estadoCelda(persona, celda);
+        @let detalle = detalleCelda(persona, celda);
+        @if (estado.corto === 'N/A') {
+          <span class="flex min-h-10 items-center justify-center text-xs font-semibold"
+            [ngClass]="estado.color" [attr.title]="detalle" [attr.aria-label]="detalle">N/A</span>
+        } @else {
+        <button type="button" [ngClass]="estado.color"
+          [disabled]="loading() || buscando() || guardandoCelda()"
+          [attr.title]="detalle"
+          [attr.aria-label]="persona.nombre_completo + ', ' + meses[celda.mes - 1].label + ': ' + detalle +
+            (puedeRecibir(persona, celda) ? '. Registrar recepción' : '')"
+          class="min-h-10 w-full cursor-pointer rounded-lg px-1 text-sm font-bold hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          (click)="abrirCelda(persona, celda, dialogoRecepcion)">
+          {{ estado.corto }}
+        </button>
+        }
+      </ng-template>
+
+      <div class="hidden max-w-full overflow-x-auto focus-visible:outline-2 md:block" tabindex="0"
+        role="region" aria-label="Tabla anual, desplazamiento horizontal">
+        <table class="w-full min-w-[68rem] table-fixed border-separate border-spacing-0 text-left">
+          <thead class="bg-slate-100 text-xs text-slate-700">
+            <tr>
+              <th scope="col" class="sticky left-0 z-10 w-56 border-r border-slate-200 bg-slate-100 p-3">Trabajador</th>
+              @for (mes of meses; track mes.value) {
+                <th scope="col" class="p-2 text-center" [attr.title]="mes.label">
+                  <span class="sr-only">{{ mes.label }}</span><span aria-hidden="true">{{ mes.label.slice(0, 3) }}</span>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (persona of matriz(); track persona.persona_id) {
+              <tr>
+                <th scope="row" class="sticky left-0 z-10 border-t border-r border-slate-200 bg-white p-3 align-top font-normal">
+                  <ng-container *ngTemplateOutlet="datosPersona; context: { $implicit: persona }"></ng-container>
+                </th>
+                @for (celda of persona.meses; track celda.mes) {
+                  <td class="border-t border-slate-200 p-1">
+                    <ng-container *ngTemplateOutlet="botonCelda; context: { persona, celda }"></ng-container>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="divide-y divide-slate-200 md:hidden">
+        @for (persona of matriz(); track persona.persona_id) {
+          <article class="p-3">
+            <ng-container *ngTemplateOutlet="datosPersona; context: { $implicit: persona }"></ng-container>
+            <div class="mt-3 grid grid-cols-4 gap-2">
+              @for (celda of persona.meses; track celda.mes) {
+                <div class="text-center">
+                  <span class="mb-1 block text-xs text-slate-600">{{ meses[celda.mes - 1].label.slice(0, 3) }}</span>
+                  <ng-container *ngTemplateOutlet="botonCelda; context: { persona, celda }"></ng-container>
+                </div>
+              }
+            </div>
+          </article>
+        }
+      </div>
+      <ng-container *ngTemplateOutlet="paginadorAsistencia"></ng-container>
+    </section>
+
+    <dialog #dialogoRecepcion aria-labelledby="rh-asis-recepcion-titulo"
+      class="m-auto max-h-[92vh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl bg-white p-5 shadow-xl backdrop:bg-slate-900/50"
+      (cancel)="guardandoCelda() && $event.preventDefault()">
+      @if (celdaSeleccionada(); as target) {
+        <h3 id="rh-asis-recepcion-titulo" class="text-lg font-bold text-slate-900">{{ meses[target.celda.mes - 1].label }} de {{ target.anio }}</h3>
+        <p class="mt-2 break-words text-sm font-semibold text-slate-900">{{ target.persona.nombre_completo }}</p>
+        <p class="mt-1 text-sm text-slate-700">{{ detalleCelda(target.persona, target.celda) }}</p>
+        @if (target.celda.estado_control === 'RECIBIDA') {
+          <p class="mt-3 text-sm text-slate-700">Al retirar la marca, el mes quedará pendiente.</p>
+          <label for="rh-asis-motivo-retiro" class="mt-3 block text-sm font-semibold">Motivo administrativo</label>
+          <textarea id="rh-asis-motivo-retiro" rows="2" required
+            [ngModel]="motivoRetiro()" (ngModelChange)="motivoRetiro.set($event)" [disabled]="guardandoCelda()"
+            class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus-visible:outline-2"></textarea>
+        }
+        @if (errorCelda(); as error) {
+          <p role="alert" class="mt-3 text-sm text-rose-800">{{ error }}</p>
+        }
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+          <button type="button" autofocus [disabled]="guardandoCelda()" (click)="dialogoRecepcion.close()"
+            class="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-100 focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-50">Cancelar</button>
+          <button type="button" [disabled]="guardandoCelda()" (click)="abrirEnMensual(dialogoRecepcion)"
+            class="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-100 focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-50">Abrir en control mensual</button>
+          @if (target.celda.estado_control === 'RECIBIDA') {
+            <button type="button" [disabled]="guardandoCelda() || !motivoRetiro().trim()" (click)="retirarMarca(dialogoRecepcion)"
+              class="cursor-pointer rounded-lg bg-emerald-800 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-900 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+              {{ guardandoCelda() ? 'Retirando…' : 'Confirmar retiro' }}
+            </button>
+          }
+        </div>
+      }
+    </dialog>
+  } @else {
   <!-- Listado principal -->
   <div class="rounded-2xl border border-gray-200 bg-white shadow-xs">
     @if (loading() && items().length === 0) {
@@ -391,6 +525,12 @@
         }
       </div>
 
+      <ng-container *ngTemplateOutlet="paginadorAsistencia"></ng-container>
+    }
+  </div>
+  }
+
+  <ng-template #paginadorAsistencia>
       <!-- Paginación institucional: Primero | Anterior | Selector | Siguiente | Último -->
       <div class="flex flex-col items-center justify-between gap-3 border-t border-gray-200 px-4 py-3 text-xs text-slate-600 sm:flex-row">
         <div>
@@ -444,8 +584,7 @@
           </button>
         </div>
       </div>
-    }
-  </div>
+  </ng-template>
 
   <!-- Diálogo modal para Observar / No aplica / Corregir / Confirmar con motivo -->
   @if (modalOpen() && modalTarget(); as target) {

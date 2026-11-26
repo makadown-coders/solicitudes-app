@@ -1419,6 +1419,19 @@ export class RhService {
     );
   }
 
+  async getAsistenciaMatrizAnual(
+    query: Omit<RhAsistenciaSeguimientoParams, 'mes' | 'estado'>
+  ): Promise<RhAsistenciaMatrizAnualResponse> {
+    let params = new HttpParams().set('anio', query.anio);
+    for (const key of ['unidadId', 'situacion', 'q', 'page', 'pageSize'] as const) {
+      const value = query[key];
+      if (value != null && value !== '') params = params.set(key, value);
+    }
+    return firstValueFrom(this.http.get<RhAsistenciaMatrizAnualResponse>(
+      `${this.baseUrl}/asistencia/matriz-anual`, { params }
+    ));
+  }
+
   async getAsistenciaSeguimiento(
     params: RhAsistenciaSeguimientoParams
   ): Promise<RhAsistenciaSeguimientoResponse> {
@@ -1873,6 +1886,19 @@ export interface RhAsistenciaSeguimientoResponse {
   pageSize: number;
   total: number;
 }
+
+export type RhAsistenciaCeldaAnual = Pick<RhAsistenciaSeguimientoItemDto,
+  'unidad_medica_id' | 'estado_control' | 'situacion_seguimiento' | 'control_id' |
+  'fecha_recepcion' | 'excepcion_administrativa' | 'motivo_excepcion'
+> & { mes: number; origen_registro: NonNullable<RhAsistenciaSeguimientoItemDto['origen_registro']> | null };
+
+export type RhAsistenciaPersonaAnual = Pick<RhAsistenciaSeguimientoItemDto,
+  'persona_id' | 'nombre_completo' | 'puesto_referencia' | 'unidad_medica_id' | 'unidad_medica_nombre' | 'fecha_ingreso'
+> & { situacion_actual: 'ACTIVO' | 'BAJA' | null; meses: RhAsistenciaCeldaAnual[] };
+
+export type RhAsistenciaMatrizAnualResponse = Pick<RhAsistenciaSeguimientoResponse,
+  'anio' | 'unidad_medica_id' | 'page' | 'pageSize' | 'total'
+> & { situacion: RhSituacionPersonalFiltro; items: RhAsistenciaPersonaAnual[] };
 
 export interface RhAsistenciaConfirmarRecepcionPayload {
   fecha_recepcion?: string | null;

@@ -1,10 +1,13 @@
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   RhAsistenciaControlComponent,
   resolveBajaCaliforniaYearMonth,
 } from './rh-asistencia-control.component';
 import {
   RhAsistenciaSeguimientoItemDto,
+  RhAsistenciaCeldaAnual,
+  RhAsistenciaMatrizAnualResponse,
   RhAsistenciaSeguimientoResponse,
   RhService,
 } from '../../../services/rh.service';
@@ -77,6 +80,7 @@ describe('RhAsistenciaControlComponent (RH-ASIS-04)', () => {
   beforeEach(async () => {
     rhServiceMock = jasmine.createSpyObj<RhService>('RhService', [
       'getAsistenciaSeguimiento',
+      'getAsistenciaMatrizAnual',
       'confirmarRecepcionAsistencia',
       'actualizarEstadoAsistencia',
     ]);
@@ -86,6 +90,211 @@ describe('RhAsistenciaControlComponent (RH-ASIS-04)', () => {
       providers: [{ provide: RhService, useValue: rhServiceMock }],
     }).compileComponents();
   });
+
+  function prepararMatriz() {
+    const estados: RhAsistenciaCeldaAnual['estado_control'][] = [
+      null, 'RECIBIDA', 'RECIBIDA', 'OBSERVADA', 'NO_APLICA', null, 'PENDIENTE', 'ENTREGADA_DECLARADA',
+    ];
+    const meses: RhAsistenciaCeldaAnual[] = Array.from({ length: 12 }, (_, i) => ({
+      mes: i + 1, unidad_medica_id: i >= 6 ? 20 : 10,
+      estado_control: estados[i] ?? null,
+      situacion_seguimiento: i === 5 ? 'ELEGIBILIDAD_INCIERTA' : i === 4 ? 'NO_APLICABLE_DOCUMENTADO' :
+        estados[i] ? 'REGISTRO_EXPLICITO' : 'SIN_REGISTRO_CONTROL',
+      origen_registro: i === 2 ? 'MIGRACION_HISTORICA_EXCEL' : estados[i] ? 'CAPTURA_SISTEMA' : null,
+      control_id: estados[i] ? i : null,
+      fecha_recepcion: i === 1 ? '2026-02-03T00:00:00Z' : null,
+      excepcion_administrativa: i === 4, motivo_excepcion: i === 4 ? 'TRANSFERENCIA' : null,
+    }));
+    const respuesta: RhAsistenciaMatrizAnualResponse = {
+      anio: 2026, unidad_medica_id: null, situacion: 'ACTIVOS', page: 1, pageSize: 20, total: 45,
+      items: [{
+        persona_id: 1, nombre_completo: 'Persona sintética', puesto_referencia: 'Puesto',
+        unidad_medica_id: 20, unidad_medica_nombre: 'Unidad actual', situacion_actual: 'ACTIVO', fecha_ingreso: null, meses,
+      }],
+    };
+    rhServiceMock.getAsistenciaSeguimiento.and.resolveTo(makeResponse([]));
+    rhServiceMock.getAsistenciaMatrizAnual.and.resolveTo(respuesta);
+    const fixture = TestBed.createComponent(RhAsistenciaControlComponent);
+    fixture.detectChanges();
+    flushMicrotasks();
+    const root: HTMLElement = fixture.nativeElement;
+    const boton = (label: string, scope: ParentNode = root) =>
+      Array.from(scope.querySelectorAll('button')).find((b) => b.textContent?.trim() === label)!;
+    boton('Recepción rápida').click();
+    flushMicrotasks();
+    fixture.detectChanges();
+    const componente = fixture.componentInstance;
+    const dialogo = root.querySelector('dialog')!;
+    const celda = (mes: number) => root.querySelectorAll('table td')[mes - 1].querySelector('button')!;
+    return { fixture, root, boton, componente, dialogo, celda, respuesta };
+  }
+
+  it('cambia de vista y renderiza doce meses en tabla desplazable y tarjeta móvil', fakeAsync(() => {
+    const { root, boton, fixture, componente, celda, dialogo } = prepararMatriz();
+    expect(componente.vista()).toBe('anual');
+    expect(Array.from(root.querySelectorAll('thead th .sr-only')).map((el) => el.textContent)).toEqual([
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre',
+      'Noviembre', 'Diciembre',
+    ]);
+    expect(root.querySelector('table')?.parentElement?.classList).toContain('overflow-x-auto');
+    expect(root.querySelector('table tbody th')?.classList).toContain('sticky');
+    expect(root.querySelectorAll('.md\\:hidden article button').length).toBe(11);
+    expect(Array.from(root.querySelectorAll('table td')).slice(0, 8).map((td) => td.textContent?.trim()))
+      .toEqual(['', '✓', '✓', '!', 'N/A', '', '', '']);
+    celda(4).click();
+    expect(boton('Confirmar retiro', dialogo)).toBeUndefined();
+    boton('Abrir en control mensual', dialogo).click();
+    flushMicrotasks();
+    expect(componente.vista()).toBe('mensual');
+    expect(rhServiceMock.getAsistenciaSeguimiento.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({
+      anio: componente.selectedAnio(), mes: 4, q: 'Persona sintética', unidadId: 10,
+    }));
+    expect(rhServiceMock.confirmarRecepcionAsistencia).not.toHaveBeenCalled();
+  }));
+
+  it('filtra antes de paginar, aplica debounce y descarta respuestas anteriores', fakeAsync(() => {
+    const { componente, respuesta } = prepararMatriz();
+    let responderAnterior!: (data: RhAsistenciaMatrizAnualResponse) => void;
+    rhServiceMock.getAsistenciaMatrizAnual.and.returnValue(new Promise((resolve) => { responderAnterior = resolve; }));
+    componente.goToPage(2);
+    expect(rhServiceMock.getAsistenciaMatrizAnual.calls.mostRecent().args[0].page).toBe(2);
+    componente.onSearchInput('Sintética');
+    responderAnterior({ ...respuesta, items: [], total: 0 });
+    flushMicrotasks();
+    expect(componente.total()).toBe(45);
+    rhServiceMock.getAsistenciaMatrizAnual.and.resolveTo(respuesta);
+    tick(299);
+    expect(rhServiceMock.getAsistenciaMatrizAnual.calls.count()).toBe(2);
+    tick(1);
+    expect(rhServiceMock.getAsistenciaMatrizAnual.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({
+      page: 1, q: 'Sintética', situacion: 'ACTIVOS',
+    }));
+    componente.onUnidadChange(10);
+    componente.onSituacionChange('BAJAS');
+    expect(rhServiceMock.getAsistenciaMatrizAnual.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({
+      page: 1, unidadId: 10, situacion: 'BAJAS',
+    }));
+    componente.onSituacionChange('TODOS');
+    expect(rhServiceMock.getAsistenciaMatrizAnual.calls.mostRecent().args[0].situacion).toBe('TODOS');
+    flushMicrotasks();
+  }));
+
+  it('mantiene el desbordamiento dentro de la tabla a 375, 768, 1024 y 1440 px', fakeAsync(() => {
+    const { root } = prepararMatriz();
+    const iframe = document.createElement('iframe');
+    iframe.title = 'Comprobación de anchos de la matriz';
+    iframe.style.cssText = 'position:fixed;left:-2000px;top:0;height:600px;border:0';
+    document.body.append(iframe);
+    try {
+      const doc = iframe.contentDocument!;
+      const frame = iframe.contentWindow!;
+      const estilos = doc.createElement('style');
+      estilos.textContent = Array.from(document.styleSheets)
+        .flatMap((sheet) => Array.from(sheet.cssRules, (rule) => rule.cssText)).join('\n');
+      doc.head.append(estilos);
+      doc.body.append(doc.importNode(root, true));
+      const tabla = doc.querySelector('table')!;
+      const tarjetas = doc.querySelector('article')!.parentElement!;
+      for (const ancho of [375, 768, 1024, 1440]) {
+        iframe.style.width = `${ancho}px`;
+        expect(frame.getComputedStyle(tabla.parentElement!).display === 'none').toBe(ancho < 768);
+        expect(frame.getComputedStyle(tarjetas).display === 'none').toBe(ancho >= 768);
+        expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(ancho);
+        if (ancho === 768 || ancho === 1024) {
+          const contenedor = tabla.parentElement!;
+          expect(contenedor.scrollWidth).toBeGreaterThan(contenedor.clientWidth);
+        }
+      }
+    } finally {
+      iframe.remove();
+    }
+  }));
+
+  it('calcula N/A por ingreso posterior y deja vacío cuando se desconoce la fecha', fakeAsync(() => {
+    const { componente, celda, root, fixture, respuesta } = prepararMatriz();
+    expect(celda(6).textContent?.trim()).toBe('');
+    componente.onAnioChange(2026);
+    flushMicrotasks();
+    componente.matriz.set([{ ...respuesta.items[0], fecha_ingreso: '2026-07-15' }]);
+    fixture.detectChanges();
+    expect(celda(6)).toBeNull();
+    expect(root.querySelectorAll('table td')[5].textContent?.trim()).toBe('N/A');
+    expect(celda(7).textContent?.trim()).toBe('');
+    expect(rhServiceMock.confirmarRecepcionAsistencia).not.toHaveBeenCalled();
+  }));
+
+  it('retira una marca histórica como PENDIENTE solo después de confirmar con motivo', fakeAsync(() => {
+    const { componente, celda, boton, dialogo, fixture, respuesta } = prepararMatriz();
+    celda(3).click();
+    expect(dialogo.textContent).toContain('Recibida histórica');
+    expect(boton('Confirmar retiro', dialogo).disabled).toBeTrue();
+    boton('Cancelar', dialogo).click();
+    expect(rhServiceMock.actualizarEstadoAsistencia).not.toHaveBeenCalled();
+    celda(3).click();
+    const [persona] = respuesta.items;
+    const historica = persona.meses[2];
+    const pendiente = { ...historica, estado_control: 'PENDIENTE' as const };
+    rhServiceMock.getAsistenciaMatrizAnual.and.resolveTo({
+      ...respuesta, items: [{ ...persona, meses: persona.meses.map((mes) => mes.mes === 3 ? pendiente : mes) }],
+    });
+    rhServiceMock.actualizarEstadoAsistencia.and.resolveTo({
+      registro: { id: historica.control_id, estado: 'PENDIENTE' },
+      estado_anterior: 'RECIBIDA', idempotente: false, evento_auditoria: 'RH_ASISTENCIA_RECEPCION_CORREGIDA',
+    } as Awaited<ReturnType<RhService['actualizarEstadoAsistencia']>>);
+    componente.motivoRetiro.set(' Corrección documentada ');
+    fixture.detectChanges();
+    boton('Confirmar retiro', dialogo).click();
+    componente.retirarMarca(dialogo);
+    expect(rhServiceMock.actualizarEstadoAsistencia).toHaveBeenCalledOnceWith(1, componente.selectedAnio(), 3, {
+      estado: 'PENDIENTE', motivo_administrativo: 'Corrección documentada',
+    });
+    flushMicrotasks();
+    expect(componente.matriz()[0].meses[2].origen_registro).toBe('MIGRACION_HISTORICA_EXCEL');
+    expect(componente.matriz()[0].meses[2].estado_control).toBe('PENDIENTE');
+    expect(dialogo.open).toBeFalse();
+  }));
+
+  it('registra con un clic, bloquea doble envío, muestra error y conserva filtros', fakeAsync(() => {
+    const { componente, celda, root, dialogo, fixture, respuesta } = prepararMatriz();
+    componente.onUnidadChange(10);
+    componente.goToPage(2);
+    flushMicrotasks();
+    fixture.detectChanges();
+    rhServiceMock.confirmarRecepcionAsistencia.and.rejectWith(new HttpErrorResponse({
+      status: 500, error: { error: 'Fallo simulado' },
+    }));
+    celda(1).click();
+    celda(1).click();
+    expect(rhServiceMock.confirmarRecepcionAsistencia).toHaveBeenCalledOnceWith(1, componente.selectedAnio(), 1, {
+      unidad_medica_id: 10,
+    });
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(root.querySelector('[role="alert"]')).not.toBeNull();
+    expect(componente.matriz()[0].meses[0].estado_control).toBeNull();
+
+    const registro = {
+      id: 42, persona_id: 1, anio: componente.selectedAnio(), mes: 1, unidad_medica_id: 10,
+      adscripcion_laboral_id: null, estado: 'RECIBIDA' as const, fecha_recepcion: '2026-01-31T00:00:00Z',
+      recibido_por: null, observaciones: null, excepcion_administrativa: false, motivo_excepcion: null,
+      generado_docx_en: null, generaciones_docx_count: 0, entrega_declarada_en: null, actualizado_en: '',
+    };
+    rhServiceMock.confirmarRecepcionAsistencia.and.resolveTo({
+      registro, estado_anterior: null, idempotente: false, evento_auditoria: null,
+    });
+    const [persona] = respuesta.items;
+    rhServiceMock.getAsistenciaMatrizAnual.and.resolveTo({
+      ...respuesta, page: 2, items: [{ ...persona, meses: persona.meses.map((mes) => mes.mes === 1
+        ? { ...mes, estado_control: 'RECIBIDA', origen_registro: 'CAPTURA_SISTEMA', control_id: 42 } : mes) }],
+    });
+    celda(1).click();
+    flushMicrotasks();
+    expect(dialogo.open).toBeFalse();
+    expect(componente.matriz()[0].meses[0].estado_control).toBe('RECIBIDA');
+    expect(rhServiceMock.getAsistenciaMatrizAnual.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({
+      page: 2, unidadId: 10, situacion: 'ACTIVOS',
+    }));
+  }));
 
   it('carga mes actual (Baja California), resumen, sin registro y elegibilidad incierta', async () => {
     const bc = resolveBajaCaliforniaYearMonth();

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   computed,
   EventEmitter,
@@ -31,6 +32,8 @@ import {
   X,
 } from 'lucide-angular';
 import {
+  RhAsistenciaCeldaAnual,
+  RhAsistenciaPersonaAnual,
   RhAsistenciaEstadoFiltro,
   RhAsistenciaMotivoExcepcion,
   RhAsistenciaResumenMensualDto,
@@ -42,6 +45,13 @@ import {
 import { RhUnidadAutocompleteComponent } from '../shared/rh-unidad-autocomplete.component';
 
 export type RhAsistenciaModalMode = 'OBSERVADA' | 'NO_APLICA' | 'CORREGIR' | 'CONFIRMAR_CON_MOTIVO';
+
+const ESTADOS_MATRIZ = {
+  RECIBIDA: { corto: '✓', label: 'Recibida', color: 'text-emerald-700' },
+  OBSERVADA: { corto: '!', label: 'Revisar', color: 'text-amber-700' },
+  NO_APLICA: { corto: 'N/A', label: 'No aplica', color: 'text-slate-600' },
+  VACIA: { corto: '', label: 'Sin marca', color: '' },
+};
 
 export const RH_ASISTENCIA_MESES: ReadonlyArray<{ value: number; label: string }> = [
   { value: 1, label: 'Enero' },
@@ -100,6 +110,18 @@ export function resolveBajaCaliforniaYearMonth(now: Date = new Date()): { anio: 
 })
 export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestroy {
   private readonly rhService = inject(RhService);
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  readonly vista = signal<'mensual' | 'anual'>('mensual');
+  readonly matriz = signal<RhAsistenciaPersonaAnual[]>([]);
+  readonly leyendaMatriz = Object.values(ESTADOS_MATRIZ);
+  readonly celdaSeleccionada = signal<{
+    persona: RhAsistenciaPersonaAnual; celda: RhAsistenciaCeldaAnual; anio: number;
+  } | null>(null);
+  readonly guardandoCelda = signal(false);
+  readonly errorCelda = signal<string | null>(null);
+  readonly motivoRetiro = signal('');
+  readonly buscando = signal(false);
+  private filtrosMatrizCargados = '';
 
   @Input() unidades: RhUnidadAutorizada[] = [];
   @Input() defaultUnidadId: number | null = null;
@@ -195,6 +217,7 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
   }
 
   ngOnDestroy(): void {
+    ++this.requestSeq;
     if (this.searchTimer) {
       clearTimeout(this.searchTimer);
       this.searchTimer = null;
@@ -286,10 +309,16 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
 
   onSearchInput(value: string): void {
     this.searchQuery.set(value);
+    if (this.vista() === 'anual') {
+      ++this.requestSeq;
+      this.buscando.set(true);
+    }
     if (this.searchTimer) {
       clearTimeout(this.searchTimer);
     }
     this.searchTimer = setTimeout(() => {
+      this.searchTimer = null;
+      this.buscando.set(false);
       this.page.set(1);
       void this.loadSeguimiento();
     }, 300);
@@ -301,6 +330,7 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
       this.searchTimer = null;
     }
     this.searchQuery.set('');
+    this.buscando.set(false);
     this.page.set(1);
     void this.loadSeguimiento();
   }
@@ -315,21 +345,168 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
     void this.loadSeguimiento();
   }
 
+  cambiarVista(vista: 'mensual' | 'anual'): void {
+    if (vista === this.vista() || !this.canAdminister || this.guardandoCelda() ||
+        this.busyPersonaId() !== null || this.modalOpen()) return;
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = null;
+    this.buscando.set(false);
+    this.vista.set(vista);
+    this.page.set(1);
+    this.total.set(0);
+    this.items.set([]);
+    this.matriz.set([]);
+    this.resumen.set(null);
+    this.feedbackSuccess.set(null);
+    void this.loadSeguimiento();
+  }
+
+  ingresoPosterior(persona: RhAsistenciaPersonaAnual, celda: RhAsistenciaCeldaAnual): boolean {
+    const fecha = persona.fecha_ingreso;
+    return Boolean(fecha && fecha.slice(0, 7) >
+      `${this.selectedAnio()}-${String(celda.mes).padStart(2, '0')}`);
+  }
+
+  estadoCelda(persona: RhAsistenciaPersonaAnual, celda: RhAsistenciaCeldaAnual) {
+    if (celda.estado_control === 'RECIBIDA' || celda.estado_control === 'OBSERVADA' ||
+        celda.estado_control === 'NO_APLICA') return ESTADOS_MATRIZ[celda.estado_control];
+    return this.ingresoPosterior(persona, celda) ? ESTADOS_MATRIZ.NO_APLICA : ESTADOS_MATRIZ.VACIA;
+  }
+
+  detalleCelda(persona: RhAsistenciaPersonaAnual, celda: RhAsistenciaCeldaAnual): string {
+    const unidad = this.unidades.find(({ id }) => id === celda.unidad_medica_id);
+    const referencia = unidad?.nombre ?? (celda.unidad_medica_id === null
+      ? 'Unidad mensual sin determinar' : `Unidad mensual #${celda.unidad_medica_id}`);
+    const motivo = this.motivosCatalogo.find(({ value }) => value === celda.motivo_excepcion);
+    const estado = this.estadoCelda(persona, celda);
+    const etiqueta = estado === ESTADOS_MATRIZ.RECIBIDA && celda.origen_registro === 'MIGRACION_HISTORICA_EXCEL'
+      ? 'Recibida histórica' : estado.label;
+    const ingreso = estado === ESTADOS_MATRIZ.NO_APLICA && celda.estado_control !== 'NO_APLICA'
+      ? 'Ingreso posterior al mes' : null;
+    return [etiqueta, referencia, motivo?.label, ingreso].filter(Boolean).join(' · ');
+  }
+
+  puedeRecibir(persona: RhAsistenciaPersonaAnual, celda: RhAsistenciaCeldaAnual): boolean {
+    return this.canAdminister && celda.origen_registro !== 'MIGRACION_HISTORICA_EXCEL' &&
+      this.estadoCelda(persona, celda) === ESTADOS_MATRIZ.VACIA;
+  }
+
+  abrirCelda(persona: RhAsistenciaPersonaAnual, celda: RhAsistenciaCeldaAnual, dialogo: HTMLDialogElement): void {
+    if (!this.canAdminister || this.loading() || this.buscando() || this.guardandoCelda()) return;
+    if (this.estadoCelda(persona, celda) === ESTADOS_MATRIZ.NO_APLICA) return;
+    const target = { persona, celda, anio: this.selectedAnio() };
+    if (this.puedeRecibir(persona, celda)) {
+      void this.guardarMarca(target);
+      return;
+    }
+    this.errorCelda.set(null);
+    this.motivoRetiro.set('');
+    this.celdaSeleccionada.set(target);
+    this.changeDetector.detectChanges();
+    dialogo.showModal();
+  }
+
+  abrirEnMensual(dialogo: HTMLDialogElement): void {
+    const target = this.celdaSeleccionada();
+    if (!target || this.guardandoCelda()) return;
+    dialogo.close();
+    this.selectedMes.set(target.celda.mes);
+    this.selectedAnio.set(target.anio);
+    this.selectedEstado.set('');
+    this.searchQuery.set(target.persona.nombre_completo);
+    this.selectedUnidadId.set(target.celda.unidad_medica_id);
+    this.hasManualUnidadChange = true;
+    this.cambiarVista('mensual');
+  }
+
+  retirarMarca(dialogo: HTMLDialogElement): void {
+    const target = this.celdaSeleccionada();
+    const motivo = this.motivoRetiro().trim();
+    if (!dialogo.open || target?.celda.estado_control !== 'RECIBIDA' || !motivo) return;
+    void this.guardarMarca(target, { dialogo, motivo });
+  }
+
+  private async guardarMarca(
+    target: NonNullable<ReturnType<typeof this.celdaSeleccionada>>,
+    retiro?: { dialogo: HTMLDialogElement; motivo: string }
+  ): Promise<void> {
+    if (!this.canAdminister || this.guardandoCelda()) return;
+    this.guardandoCelda.set(true);
+    this.errorCelda.set(null);
+    this.errorMessage.set(null);
+    this.feedbackSuccess.set(null);
+    const { persona, celda, anio } = target;
+    try {
+      const resultado = retiro
+        ? await this.rhService.actualizarEstadoAsistencia(persona.persona_id, anio, celda.mes, {
+          estado: 'PENDIENTE', motivo_administrativo: retiro.motivo,
+        })
+        : await this.rhService.confirmarRecepcionAsistencia(
+        persona.persona_id, anio, celda.mes,
+        celda.control_id === null ? { unidad_medica_id: celda.unidad_medica_id } : {}
+      );
+      retiro?.dialogo.close();
+      this.feedbackSuccess.set(retiro ? `Marca retirada para ${persona.nombre_completo}.`
+        : resultado.idempotente ? 'La recepción ya estaba registrada.' : `Recepción confirmada para ${persona.nombre_completo}.`);
+      if (resultado.idempotente && !retiro) {
+        // El PATCH no devuelve la procedencia. Consultarla antes de mostrar la celda.
+        this.matriz.set([]);
+      } else {
+        const registro = resultado.registro;
+        this.matriz.update((filas) => filas.map((fila) => fila.persona_id !== persona.persona_id ? fila : {
+          ...fila,
+          meses: fila.meses.map((mes) => mes.mes !== celda.mes ? mes : {
+            ...mes,
+            estado_control: registro.estado,
+            situacion_seguimiento: 'REGISTRO_EXPLICITO',
+            origen_registro: mes.origen_registro ?? 'CAPTURA_SISTEMA',
+            control_id: registro.id,
+            unidad_medica_id: registro.unidad_medica_id,
+            fecha_recepcion: registro.fecha_recepcion,
+            excepcion_administrativa: registro.excepcion_administrativa,
+            motivo_excepcion: registro.motivo_excepcion,
+          }),
+        }));
+      }
+      await this.loadSeguimiento();
+    } catch (err: unknown) {
+      if (err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403)) this.unauthorized.emit();
+      if (retiro) this.errorCelda.set(this.extractErrorMessage(err, 'No fue posible retirar la marca.'));
+      else this.errorMessage.set(this.extractErrorMessage(err, 'No fue posible registrar la recepción.'));
+    } finally {
+      this.guardandoCelda.set(false);
+    }
+  }
+
   async loadSeguimiento(): Promise<void> {
+    const anual = this.vista() === 'anual';
+    if (anual && !this.canAdminister) return;
     const seq = ++this.requestSeq;
     this.loading.set(true);
     this.errorMessage.set(null);
 
     try {
-      const resp = await this.rhService.getAsistenciaSeguimiento({
+      const filtros = {
         anio: this.selectedAnio(),
-        mes: this.selectedMes(),
         unidadId: this.selectedUnidadId(),
-        estado: this.selectedEstado() || null,
         situacion: this.selectedSituacion(),
         q: this.searchQuery().trim() || null,
         page: this.page(),
         pageSize: this.pageSize(),
+      };
+      if (anual) {
+        const clave = JSON.stringify(filtros);
+        if (clave !== this.filtrosMatrizCargados) this.matriz.set([]);
+        const resp = await this.rhService.getAsistenciaMatrizAnual(filtros);
+        if (seq !== this.requestSeq) return;
+        this.filtrosMatrizCargados = clave;
+        this.matriz.set(resp.items);
+        this.total.set(resp.total);
+        this.pageSize.set(resp.pageSize);
+        return;
+      }
+      const resp = await this.rhService.getAsistenciaSeguimiento({
+        ...filtros, mes: this.selectedMes(), estado: this.selectedEstado() || null,
       });
 
       if (seq !== this.requestSeq) {
@@ -347,7 +524,8 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
         this.unauthorized.emit();
       }
       this.errorMessage.set(
-        this.extractErrorMessage(err, 'No fue posible consultar el seguimiento mensual de asistencia.')
+        this.extractErrorMessage(err, anual ? 'No fue posible consultar la matriz anual.' :
+          'No fue posible consultar el seguimiento mensual de asistencia.')
       );
     } finally {
       if (seq === this.requestSeq) {
