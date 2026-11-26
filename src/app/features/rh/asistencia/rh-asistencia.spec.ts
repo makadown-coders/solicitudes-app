@@ -169,6 +169,47 @@ describe('RhAsistenciaCalendarService & RhAsistenciaDocxService (Microintervenci
     );
   });
 
+  for (const [anio, mes, dias, vacaciones] of [
+    [2026, 2, 28, [1, 28]],
+    [2028, 2, 29, [1, 29]],
+    [2026, 4, 30, [1, 30]],
+    [2026, 7, 31, [7, 8, 9, 11, 31]],
+  ] as const) {
+    it(`escribe vacaciones solo en Observaciones de ${anio}-${mes} y preserva el XML restante`, async () => {
+      const params = { nombre: 'PERSONA SINTÉTICA', puesto: 'Puesto sintético', anio, mes };
+      const formato = (dia: number) => `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+      const leerXml = async (blob: Blob) => {
+        const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+        return new DOMParser().parseFromString(await zip.file('word/document.xml')!.async('string'), 'application/xml');
+      };
+      const base = await leerXml(await docxService.generateAttendanceDocxFromParams(params));
+      const conVacaciones = await leerXml(await docxService.generateAttendanceDocxFromParams({
+        ...params,
+        observacionesPorFecha: {
+          ...Object.fromEntries(vacaciones.map((dia) => [formato(dia), 'Vacaciones'])),
+          [formato(dias + 1)]: 'Fuera de rango',
+          '2025-12-01': 'Otro mes',
+        },
+      }));
+      const ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+      const tabla = conVacaciones.getElementsByTagNameNS(ns, 'tbl')[1];
+      const filas = Array.from(tabla.children).filter((el) => el.localName === 'tr');
+      expect(filas.length).toBe(dias + 2);
+      const marcados: number[] = [];
+      for (const fila of filas) {
+        const celdas = Array.from(fila.children).filter((el) => el.localName === 'tc');
+        const texto = celdas[5].getElementsByTagNameNS(ns, 't')[0];
+        if (texto?.textContent === 'Vacaciones') {
+          marcados.push(Number(celdas[0].textContent?.trim()));
+          texto.textContent = '\u00A0';
+        }
+      }
+      expect(marcados).toEqual([...vacaciones]);
+      const serializador = new XMLSerializer();
+      expect(serializador.serializeToString(conVacaciones)).toBe(serializador.serializeToString(base));
+    });
+  }
+
   it('5. Carga la plantilla institucional real (.docx), sustituye nombre, puesto, adscripción, jornada, horario, mes y año, recorta días en febrero, aplica sombreado y conserva los membretes oficiales', async () => {
     expect(RH_ASISTENCIA_TEMPLATE_PATH).toBe('/rh/asistencia/template-membretado-2026.docx');
 

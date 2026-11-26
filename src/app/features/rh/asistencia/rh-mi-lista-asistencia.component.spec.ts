@@ -29,16 +29,21 @@ function datos(anio = 2026): RhMiHistorialAsistenciaResponse {
 
 describe('Historial personal de asistencia', () => {
   const historial = jasmine.createSpy('obtenerMiHistorialAsistencia');
+  const vacaciones = jasmine.createSpy('obtenerMisFechasVacacionales');
   const descargar = jasmine.createSpy('downloadAttendanceDocxFromParams');
   beforeEach(() => {
     historial.calls.reset();
+    vacaciones.calls.reset();
+    vacaciones.and.callFake((anio: number, mes: number) => Promise.resolve({ anio, mes, fechas: [] }));
     historial.and.callFake((anio: number) => Promise.resolve(datos(anio)));
     descargar.calls.reset();
     descargar.and.resolveTo('lista.docx');
     TestBed.configureTestingModule({
       imports: [RhMiListaAsistenciaComponent],
       providers: [
-        { provide: RhService, useValue: { obtenerMiHistorialAsistencia: historial } },
+        { provide: RhService, useValue: {
+          obtenerMiHistorialAsistencia: historial, obtenerMisFechasVacacionales: vacaciones,
+        } },
         { provide: RhAsistenciaDocxService, useValue: { downloadAttendanceDocxFromParams: descargar } },
       ],
     });
@@ -47,6 +52,7 @@ describe('Historial personal de asistencia', () => {
   function crear() {
     const fixture = TestBed.createComponent(RhMiListaAsistenciaComponent);
     fixture.componentInstance.selectedYear.set(2026);
+    fixture.componentInstance.selectedMonth.set(7);
     fixture.componentRef.setInput('contexto', {
       persona: { nombre_completo: 'Persona de prueba' }, adscripciones: [], unidad_referencia: null,
     });
@@ -76,6 +82,7 @@ describe('Historial personal de asistencia', () => {
     expect(root.textContent).toContain('mayo, junio, septiembre y octubre');
     expect(root.textContent).toContain('Hay 3 meses que requieren revisión');
     celdas[2].click();
+    flushMicrotasks();
     fixture.detectChanges();
     expect(celdas[2].getAttribute('aria-pressed')).toBe('true');
     expect(root.textContent).toContain('RH ya registró la recepción de tu lista de marzo de 2026.');
@@ -119,6 +126,57 @@ describe('Historial personal de asistencia', () => {
     expect(root.textContent).toContain('No se pudo consultar tu historial');
     expect(root.querySelector('ul[aria-label="Meses del historial"]')).toBeNull();
     expect(root.querySelector<HTMLButtonElement>('#rh-asistencia-download-btn')?.disabled).toBeFalse();
+  }));
+
+  it('usa las fechas consolidadas del periodo, valida días y descarta respuestas obsoletas', fakeAsync(() => {
+    let resolver!: (value: unknown) => void;
+    vacaciones.and.returnValue(new Promise((resolve) => { resolver = resolve; }));
+    const { componente, fixture, root } = crear();
+    componente.draftPuesto.set('Puesto sintético');
+    void componente.onDownloadDocx();
+    expect(descargar).not.toHaveBeenCalled();
+    vacaciones.and.callFake((anio: number, mes: number) => Promise.resolve({
+      anio, mes, fechas: ['2028-02-01', '2028-02-06', '2028-02-29', '2028-02-29', '2028-02-30', '2028-03-01'],
+    }));
+    componente.onYearChange(2028);
+    componente.onMonthChange(2);
+    flushMicrotasks();
+    resolver({ anio: 2026, mes: 7, fechas: ['2026-07-07'] });
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(vacaciones.calls.allArgs()).toEqual([[2026, 7], [2028, 7], [2028, 2]]);
+    expect(root.textContent).toContain('días sombreados: 2028-02-06');
+    void componente.onDownloadDocx();
+    flushMicrotasks();
+    expect(descargar).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+      anio: 2028, mes: 2, observacionesPorFecha: {
+        '2028-02-01': 'Vacaciones', '2028-02-06': 'Vacaciones', '2028-02-29': 'Vacaciones',
+      },
+    }));
+    expect(vacaciones.calls.count()).toBe(3);
+  }));
+
+  it('permite omitir explícitamente tras un error y reintentar sin recordar la decisión', fakeAsync(() => {
+    vacaciones.and.rejectWith(new Error('Error simulado'));
+    const { componente, fixture, root } = crear();
+    componente.draftPuesto.set('Puesto sintético');
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(root.textContent).toContain('No pudimos consultar tus vacaciones para este mes.');
+    expect(root.textContent).toContain('Revisa las observaciones antes de imprimir.');
+    void componente.onDownloadDocx();
+    expect(descargar).not.toHaveBeenCalled();
+    const botones = Array.from(root.querySelectorAll('button'));
+    botones.find((b) => b.textContent?.trim() === 'Descargar sin autocompletar vacaciones')!.click();
+    flushMicrotasks();
+    expect(descargar.calls.mostRecent().args[0].observacionesPorFecha).toBeUndefined();
+    expect(componente.estadoVacaciones()).toBe('error');
+    vacaciones.and.resolveTo({ anio: 2026, mes: 7, fechas: [] });
+    botones.find((b) => b.textContent?.trim() === 'Reintentar')!.click();
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(componente.estadoVacaciones()).toBe('listo');
+    expect(root.querySelector<HTMLButtonElement>('#rh-asistencia-download-btn')!.disabled).toBeFalse();
   }));
 
   it('ajusta la cuadrícula a 375 px', fakeAsync(() => {

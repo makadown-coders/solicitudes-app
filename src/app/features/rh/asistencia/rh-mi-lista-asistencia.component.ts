@@ -94,6 +94,13 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
   readonly cargandoHistorial = signal(false);
   readonly errorHistorial = signal(false);
   private secuenciaHistorial = 0;
+  private secuenciaVacaciones = 0;
+  readonly fechasVacaciones = signal<string[]>([]);
+  readonly estadoVacaciones = signal<'cargando' | 'listo' | 'error'>('cargando');
+  readonly vacacionesEnDiasSombreados = computed(() => {
+    const sombreados = new Set(this.calendarSummary().days.filter((dia) => dia.isShaded).map((dia) => dia.day));
+    return this.fechasVacaciones().filter((fecha) => sombreados.has(Number(fecha.slice(-2))));
+  });
 
   readonly listaRecibida = computed(() => this.historial()?.meses.find(
     (mes) => mes.mes === this.selectedMonth() && mes.estado_control === 'RECIBIDA'
@@ -196,6 +203,9 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
    * (invocado al cambiar/limpiar contexto, cerrar sesión o destruir el componente).
    */
   clearState(): void {
+    ++this.secuenciaVacaciones;
+    this.fechasVacaciones.set([]);
+    this.estadoVacaciones.set('cargando');
     ++this.secuenciaHistorial;
     this.historial.set(null);
     this.cargandoHistorial.set(false);
@@ -235,6 +245,7 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
     }
 
     this.contextoSig.set(ctx);
+    void this.cargarVacaciones();
     void this.cargarHistorial();
     this.clearFeedbackMessages();
 
@@ -347,9 +358,10 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
 
   onMonthChange(rawValue: string | number): void {
     const month = Number(rawValue);
-    if (Number.isInteger(month) && month >= 1 && month <= 12) {
+    if (Number.isInteger(month) && month >= 1 && month <= 12 && month !== this.selectedMonth()) {
       this.selectedMonth.set(month);
       this.clearFeedbackMessages();
+      void this.cargarVacaciones();
     }
   }
 
@@ -359,6 +371,32 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
       this.selectedYear.set(year);
       this.clearFeedbackMessages();
       void this.cargarHistorial();
+      void this.cargarVacaciones();
+    }
+  }
+
+  async cargarVacaciones(): Promise<void> {
+    if (!this.contextoSig()) return;
+    const secuencia = ++this.secuenciaVacaciones;
+    const { year: anio, month: mes, daysInMonth } = this.calendarSummary();
+    this.fechasVacaciones.set([]);
+    this.estadoVacaciones.set('cargando');
+    try {
+      const respuesta = await this.rhService.obtenerMisFechasVacacionales(anio, mes);
+      if (secuencia !== this.secuenciaVacaciones) return;
+      if (respuesta.anio !== anio || respuesta.mes !== mes || !Array.isArray(respuesta.fechas)) {
+        this.estadoVacaciones.set('error');
+        return;
+      }
+      const prefijo = `${anio}-${String(mes).padStart(2, '0')}-`;
+      this.fechasVacaciones.set([...new Set(respuesta.fechas.filter((fecha) => {
+        if (typeof fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fecha) || !fecha.startsWith(prefijo)) return false;
+        const dia = Number(fecha.slice(-2));
+        return dia >= 1 && dia <= daysInMonth;
+      }))]);
+      this.estadoVacaciones.set('listo');
+    } catch {
+      if (secuencia === this.secuenciaVacaciones) this.estadoVacaciones.set('error');
     }
   }
 
@@ -453,8 +491,8 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
     return `${day}/${month}/${year}`;
   }
 
-  async onDownloadDocx(): Promise<void> {
-    if (this.isGenerating()) {
+  async onDownloadDocx(omitirVacaciones = false): Promise<void> {
+    if (this.isGenerating() || this.estadoVacaciones() !== (omitirVacaciones ? 'error' : 'listo')) {
       return;
     }
 
@@ -488,6 +526,9 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
         horario: this.draftHorario().trim() || null,
         mes: this.selectedMonth(),
         anio: this.selectedYear(),
+        ...(this.fechasVacaciones().length && !omitirVacaciones ? {
+          observacionesPorFecha: Object.fromEntries(this.fechasVacaciones().map((fecha) => [fecha, 'Vacaciones'])),
+        } : {}),
       });
       this.lastDownloadedFile.set(fileName);
     } catch (err: unknown) {

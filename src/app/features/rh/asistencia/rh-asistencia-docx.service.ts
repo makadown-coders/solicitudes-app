@@ -13,6 +13,7 @@ const SHADED_DAY_HEX = 'A6A6A6'; // Gris institucional para sábados, domingos y
 export const RH_ASISTENCIA_TEMPLATE_PATH = '/rh/asistencia/template-membretado-2026.docx';
 
 export interface RhAsistenciaDocxGenerateOptions {
+  observacionesPorFecha?: RhAsistenciaGenerateParams['observacionesPorFecha'];
   calendar: RhAsistenciaMonthCalendarSummary;
   placeholders: RhAsistenciaDocumentPlaceholders;
 }
@@ -80,7 +81,7 @@ export class RhAsistenciaDocxService {
       adscripcion,
     };
 
-    return { calendar, placeholders };
+    return { calendar, placeholders, observacionesPorFecha: params.observacionesPorFecha };
   }
 
   /**
@@ -159,7 +160,7 @@ export class RhAsistenciaDocxService {
     this.updateMetadataTable(metadataTable, options.placeholders);
 
     // 2. Actualizar Tabla 1 (Filas de días 1..31, recortar meses cortos y sombrear inhábiles)
-    this.updateDaysTable(xmlDoc, daysTable, options.calendar);
+    this.updateDaysTable(xmlDoc, daysTable, options.calendar, options.observacionesPorFecha);
 
     const serializer = new XMLSerializer();
     const updatedDocXml = serializer.serializeToString(xmlDoc);
@@ -287,7 +288,8 @@ export class RhAsistenciaDocxService {
   private updateDaysTable(
     xmlDoc: Document,
     tableEl: Element,
-    calendar: RhAsistenciaMonthCalendarSummary
+    calendar: RhAsistenciaMonthCalendarSummary,
+    observacionesPorFecha?: RhAsistenciaGenerateParams['observacionesPorFecha']
   ): void {
     const rows = this.getDirectChildrenByTagName(tableEl, 'tr');
     if (rows.length < 33) {
@@ -329,9 +331,9 @@ export class RhAsistenciaDocxService {
         }
       }
 
-      // Mantener la columna OBSERVACIONES (celda índice 5) con espacio duro para impresión
       if (cells.length >= 6) {
-        this.setCellText(cells[5], '\u00A0');
+        const fecha = `${calendar.year}-${String(calendar.month).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`;
+        this.setCellText(cells[5], observacionesPorFecha?.[fecha] || '\u00A0');
       }
     }
   }

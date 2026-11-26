@@ -177,6 +177,14 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
 
   function responderHistorialPersonal(): void {
     for (const req of httpMock.match((r) =>
+      r.method === 'GET' && r.url.endsWith('/api/rh/mi-vacaciones/fechas')
+    )) {
+      expect(req.request.params.keys().sort()).toEqual(['anio', 'mes']);
+      req.flush({
+        anio: Number(req.request.params.get('anio')), mes: Number(req.request.params.get('mes')), fechas: [],
+      });
+    }
+    for (const req of httpMock.match((r) =>
       r.method === 'GET' && r.url.endsWith('/api/rh/mi-asistencia/historial')
     )) {
       expect(req.request.params.keys()).toEqual(['anio']);
@@ -3737,6 +3745,8 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     // En 2026 (confirmado por Circular IB-UAF-CRH-0003-2026) el aviso desaparece
     selectYear.value = '2026';
     selectYear.dispatchEvent(new Event('change'));
+    responderHistorialPersonal();
+    await portalFixture.whenStable();
     portalFixture.detectChanges();
     expect(portalEl.querySelector('#rh-asistencia-unconfirmed-calendar-notice')).toBeNull();
     expect(portalEl.querySelector('#rh-asistencia-kpi-total-days')?.textContent?.trim()).toBe('28');

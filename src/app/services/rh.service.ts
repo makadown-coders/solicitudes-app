@@ -942,6 +942,12 @@ export class RhService {
     );
   }
 
+  obtenerMisFechasVacacionales(anio: number, mes: number): Promise<RhMisFechasVacacionalesResponse> {
+    return firstValueFrom(this.http.get<RhMisFechasVacacionalesResponse>(
+      `${this.baseUrl}/mi-vacaciones/fechas`, { params: { anio, mes } }
+    ));
+  }
+
   /**
    * Consulta paginada del padrón institucional de personas (`GET /api/rh/personas`).
    * Exclusivo para `RECURSOS_HUMANOS GLOBAL`.
@@ -1763,6 +1769,12 @@ export interface RhVacacionKardexResponse {
     justificacion_ajuste: string | null;
   };
   movimientos: RhVacacionKardexMovimientoDto[];
+}
+
+export interface RhMisFechasVacacionalesResponse {
+  anio: number;
+  mes: number;
+  fechas: string[];
 }
 
 export interface RhMiVacacionesResponse {

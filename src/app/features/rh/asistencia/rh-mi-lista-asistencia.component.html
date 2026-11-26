@@ -424,11 +424,29 @@
         }
         <!-- Botón de descarga DOCX -->
         <div class="mt-5">
+          @if (estadoVacaciones() === 'cargando') {
+            <p role="status" class="mb-2 text-sm text-slate-600">Consultando tus vacaciones…</p>
+          } @else if (estadoVacaciones() === 'error') {
+            <div class="mb-2 space-y-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-950">
+              <p role="alert" class="font-semibold">No pudimos consultar tus vacaciones para este mes.</p>
+              <p>Revisa las observaciones antes de imprimir.</p>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" (click)="cargarVacaciones()" [disabled]="isGenerating()"
+                  class="cursor-pointer rounded-lg border border-amber-400 px-3 py-1.5 hover:bg-amber-100 focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-50">Reintentar</button>
+                <button type="button" (click)="onDownloadDocx(true)" [disabled]="isGenerating()"
+                  class="cursor-pointer rounded-lg border border-amber-400 px-3 py-1.5 hover:bg-amber-100 focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-50">Descargar sin autocompletar vacaciones</button>
+              </div>
+            </div>
+          } @else if (vacacionesEnDiasSombreados().length) {
+            <p role="status" class="mb-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-950">
+              Revisa las vacaciones registradas en días sombreados: {{ vacacionesEnDiasSombreados().join(', ') }}.
+            </p>
+          }
           <button
             id="rh-asistencia-download-btn"
             type="button"
             (click)="onDownloadDocx()"
-            [disabled]="isGenerating()"
+            [disabled]="isGenerating() || estadoVacaciones() !== 'listo'"
             class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#006341] px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#004f34] focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
           >
             @if (isGenerating()) {
