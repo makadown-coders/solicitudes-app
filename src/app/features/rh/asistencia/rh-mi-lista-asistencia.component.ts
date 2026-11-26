@@ -26,6 +26,9 @@ import {
   RhAdscripcionEstadoVigencia,
   RhMiContextoAdscripcionPropia,
   RhMiContextoResponse,
+  RhMiHistorialAsistenciaMes,
+  RhMiHistorialAsistenciaResponse,
+  RhService,
 } from '../../../services/rh.service';
 import { RhAsistenciaCalendarService } from './rh-asistencia-calendar.service';
 import { RhAsistenciaDocxService } from './rh-asistencia-docx.service';
@@ -52,6 +55,7 @@ export const RH_ASISTENCIA_AVAILABLE_YEARS: ReadonlyArray<number> = [
 export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
   private readonly calendarService = inject(RhAsistenciaCalendarService);
   private readonly docxService = inject(RhAsistenciaDocxService);
+  private readonly rhService = inject(RhService);
 
   @Input({ required: true }) contexto: RhMiContextoResponse | null = null;
 
@@ -86,6 +90,18 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
   /** Periodo seleccionado (inicializado dinámicamente al mes y año actuales dentro del rango soportado) */
   readonly selectedYear = signal<number>(this.resolveInitialYear());
   readonly selectedMonth = signal<number>(this.resolveInitialMonth());
+  readonly historial = signal<RhMiHistorialAsistenciaResponse | null>(null);
+  readonly cargandoHistorial = signal(false);
+  readonly errorHistorial = signal(false);
+  private secuenciaHistorial = 0;
+
+  readonly listaRecibida = computed(() => this.historial()?.meses.find(
+    (mes) => mes.mes === this.selectedMonth() && mes.estado_control === 'RECIBIDA'
+  ));
+  readonly mesesPorRegistrar = computed(() => {
+    const resumen = this.historial()?.resumen;
+    return resumen?.sin_recepcion_registrada.filter((mes) => !resumen.requieren_atencion.includes(mes)) ?? [];
+  });
 
   /** Estado de generación y mensajes del documento Word */
   readonly isGenerating = signal(false);
@@ -180,6 +196,10 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
    * (invocado al cambiar/limpiar contexto, cerrar sesión o destruir el componente).
    */
   clearState(): void {
+    ++this.secuenciaHistorial;
+    this.historial.set(null);
+    this.cargandoHistorial.set(false);
+    this.errorHistorial.set(false);
     this.contextoSig.set(null);
     this.selectedAdscripcionId.set(null);
     this.draftNombre.set('');
@@ -215,6 +235,7 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
     }
 
     this.contextoSig.set(ctx);
+    void this.cargarHistorial();
     this.clearFeedbackMessages();
 
     this.draftNombre.set((ctx.persona?.nombre_completo ?? '').trim());
@@ -334,10 +355,58 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
 
   onYearChange(rawValue: string | number): void {
     const year = Number(rawValue);
-    if (Number.isInteger(year) && this.availableYears.includes(year)) {
+    if (Number.isInteger(year) && this.availableYears.includes(year) && year !== this.selectedYear()) {
       this.selectedYear.set(year);
       this.clearFeedbackMessages();
+      void this.cargarHistorial();
     }
+  }
+
+  async cargarHistorial(): Promise<void> {
+    if (!this.contextoSig()) return;
+    const secuencia = ++this.secuenciaHistorial;
+    const anio = this.selectedYear();
+    this.historial.set(null);
+    this.cargandoHistorial.set(true);
+    this.errorHistorial.set(false);
+    try {
+      const historial = await this.rhService.obtenerMiHistorialAsistencia(anio);
+      if (secuencia !== this.secuenciaHistorial) return;
+      this.historial.set(historial);
+    } catch {
+      if (secuencia === this.secuenciaHistorial) this.errorHistorial.set(true);
+    } finally {
+      if (secuencia === this.secuenciaHistorial) this.cargandoHistorial.set(false);
+    }
+  }
+
+  nombreMes(mes: number): string {
+    return this.monthsCatalog[mes - 1]?.label.toLocaleLowerCase('es-MX') ?? '';
+  }
+
+  nombresMeses(meses: number[]): string {
+    return new Intl.ListFormat('es-MX').format(meses.map((mes) => this.nombreMes(mes)));
+  }
+
+  indicadorMes(mes: RhMiHistorialAsistenciaMes): string {
+    if (mes.estado_control === 'RECIBIDA') return '✓';
+    if (mes.estado_control === 'NO_APLICA' || mes.elegibilidad === 'NO_CORRESPONDE') return 'N/A';
+    if (mes.estado_control === 'OBSERVADA' || mes.estado_control === 'ENTREGADA_DECLARADA') return '!';
+    return '';
+  }
+
+  descripcionMes(mes: RhMiHistorialAsistenciaMes): string {
+    switch (mes.estado_control) {
+      case 'RECIBIDA':
+        return 'Recepción registrada' + (mes.requiere_atencion ? '; requiere revisión' : '');
+      case 'NO_APLICA': return 'No corresponde';
+      case 'OBSERVADA': return 'Lista observada; requiere revisión';
+      case 'ENTREGADA_DECLARADA': return 'Entrega declarada; pendiente de confirmación por RH';
+    }
+    if (mes.elegibilidad === 'NO_CORRESPONDE') return 'No corresponde';
+    if (!mes.es_mes_cerrado) return 'Periodo sin cerrar';
+    if (mes.elegibilidad === 'INCIERTA') return 'Información laboral insuficiente para determinar si corresponde';
+    return 'Sin recepción registrada';
   }
 
   formatAdscripcionOptionLabel(item: RhMiContextoAdscripcionPropia): string {

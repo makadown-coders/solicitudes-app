@@ -35,6 +35,67 @@
     }
   </div>
 
+  <section aria-labelledby="rh-asistencia-historial-titulo"
+    [attr.aria-busy]="cargandoHistorial()" class="mt-4 rounded-xl border border-slate-200 p-3 sm:p-4">
+    <h3 id="rh-asistencia-historial-titulo" class="text-sm font-bold text-slate-900">
+      Historial de recepciones · {{ selectedYear() }}
+    </h3>
+    @if (cargandoHistorial()) {
+      <p role="status" class="mt-2 text-sm text-slate-600">Consultando tu historial…</p>
+    } @else if (errorHistorial()) {
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <p role="alert" class="text-sm text-slate-700">
+          No se pudo consultar tu historial. Puedes seguir generando tu lista.
+        </p>
+        <button type="button" (click)="cargarHistorial()"
+          class="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold hover:bg-slate-100 focus-visible:outline-2">
+          Reintentar
+        </button>
+      </div>
+    } @else if (historial(); as datos) {
+      <div class="mt-2 space-y-2 text-sm" aria-live="polite">
+        @if (mesesPorRegistrar().length; as total) {
+          <p class="font-semibold text-slate-900">
+            Tienes {{ total }} {{ total === 1 ? 'lista pendiente' : 'listas pendientes' }} de registro
+          </p>
+          <p class="text-slate-700">{{ nombresMeses(mesesPorRegistrar()) }}</p>
+          <p class="text-xs text-slate-600">
+            No consta recepción en RH de estos meses. Si ya los entregaste, solicita verificar el registro.
+          </p>
+        } @else if (datos.ultimo_mes_cerrado > 0) {
+          <p class="text-emerald-800">Sin listas pendientes de registro entre los meses cerrados evaluados.</p>
+        } @else {
+          <p class="text-slate-600">Este año aún no tiene meses cerrados.</p>
+        }
+        @if (datos.resumen.requieren_atencion.length; as total) {
+          <p class="text-amber-900">
+            <strong>Hay {{ total }} {{ total === 1 ? 'mes que requiere' : 'meses que requieren' }} revisión</strong>
+            <span class="block text-xs">{{ nombresMeses(datos.resumen.requieren_atencion) }}</span>
+          </p>
+        }
+      </div>
+      <ul aria-label="Meses del historial" class="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6 xl:grid-cols-12">
+        @for (mes of datos.meses; track mes.mes) {
+          <li class="min-w-0">
+            <button type="button" (click)="onMonthChange(mes.mes)"
+              [attr.aria-pressed]="selectedMonth() === mes.mes"
+              [attr.title]="descripcionMes(mes)"
+              class="flex min-h-14 w-full cursor-pointer flex-col items-center justify-center rounded-lg border border-slate-200 px-1 py-1.5 text-xs text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-emerald-700"
+              [class.bg-emerald-50]="selectedMonth() === mes.mes"
+              [class.ring-1]="selectedMonth() === mes.mes"
+              [class.ring-emerald-700]="selectedMonth() === mes.mes">
+              <span class="font-semibold">{{ monthsCatalog[mes.mes - 1].label }}</span>
+              <span class="sr-only">{{ descripcionMes(mes) }}</span>
+              <span aria-hidden="true" class="min-h-4 font-bold"
+                [class.text-emerald-700]="mes.estado_control === 'RECIBIDA'"
+                [class.text-amber-800]="indicadorMes(mes) === '!'">{{ indicadorMes(mes) }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
   <!-- Aviso de alcance local de edición del formulario -->
   <div
     id="rh-asistencia-local-edit-notice"
@@ -352,6 +413,15 @@
           </div>
         }
 
+        @if (listaRecibida(); as recibida) {
+          <div id="rh-asistencia-aviso-recibida" role="status"
+            class="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900">
+            <p class="font-semibold">RH ya registró la recepción de tu lista de {{ nombreMes(recibida.mes) }} de {{ selectedYear() }}.</p>
+            @if (recibida.origen_registro === 'MIGRACION_HISTORICA_EXCEL' && !recibida.fecha_recepcion) {
+              <p class="mt-1 text-xs">Recepción histórica registrada; fecha original no disponible.</p>
+            }
+          </div>
+        }
         <!-- Botón de descarga DOCX -->
         <div class="mt-5">
           <button

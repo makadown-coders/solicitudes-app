@@ -920,6 +920,12 @@ export class RhService {
     );
   }
 
+  obtenerMiHistorialAsistencia(anio: number): Promise<RhMiHistorialAsistenciaResponse> {
+    return firstValueFrom(this.http.get<RhMiHistorialAsistenciaResponse>(
+      `${this.baseUrl}/mi-asistencia/historial`, { params: { anio } }
+    ));
+  }
+
   /**
    * Consulta personal de solo lectura de vacaciones del empleado autenticado (`GET /api/rh/mi-vacaciones`).
    * Nunca envía `persona_id` ni `user_id`; la identidad se resuelve exclusivamente en el backend.
@@ -1785,6 +1791,28 @@ export interface RhOrgPuestosResponse {
     estado: string;
   };
   items: RhOrgPuestoDto[];
+}
+
+export interface RhMiHistorialAsistenciaMes {
+  mes: number;
+  estado_control: RhAsistenciaEstadoControl | null;
+  elegibilidad: 'EVALUABLE' | 'NO_CORRESPONDE' | 'INCIERTA';
+  origen_registro: 'CAPTURA_SISTEMA' | 'MIGRACION_HISTORICA_EXCEL' | null;
+  fecha_recepcion: string | null;
+  es_mes_cerrado: boolean;
+  requiere_atencion: boolean;
+}
+
+export interface RhMiHistorialAsistenciaResponse {
+  anio: number;
+  ultimo_mes_cerrado: number;
+  meses: RhMiHistorialAsistenciaMes[];
+  resumen: {
+    sin_recepcion_registrada: number[];
+    requieren_atencion: number[];
+    no_corresponden: number[];
+    recibidas: number[];
+  };
 }
 
 export type RhAsistenciaEstadoControl =
