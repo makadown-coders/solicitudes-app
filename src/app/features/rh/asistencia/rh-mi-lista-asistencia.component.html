@@ -570,6 +570,14 @@
         </dl>
 
         <!-- Vista previa en dos bloques semanales igual que las dos secciones del documento Word -->
+        <ng-template #indicadorVacaciones let-dia>
+          @if (diasConVacaciones().has(dia)) {
+            <span data-calendar-vacation
+              class="max-w-full break-words rounded-md bg-emerald-50 px-2 py-0.5 text-center text-[11px] font-semibold text-emerald-800">
+              Vacaciones
+            </span>
+          }
+        </ng-template>
         <div
           id="rh-asistencia-calendar-preview"
           class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2"
@@ -584,7 +592,7 @@
                 <div
                   [attr.data-calendar-day]="day.day"
                   [attr.data-shaded]="day.isShaded"
-                  class="flex items-center justify-between px-3 py-1.5 text-xs"
+                  class="flex items-center justify-between gap-2 px-3 py-1.5 text-xs"
                   [ngClass]="{
                     'bg-slate-200/85 font-semibold text-slate-800': day.isShaded,
                     'bg-white text-slate-700': !day.isShaded
@@ -597,7 +605,7 @@
                     <span>{{ day.dayName }}</span>
                   </div>
 
-                  <div class="text-right">
+                  <div class="flex min-w-0 flex-col items-end gap-0.5 text-right">
                     @if (day.isHoliday) {
                       <span
                         class="inline-flex items-center rounded-md border border-[#006341]/30 bg-white px-2 py-0.5 text-[11px] font-semibold text-[#006341]"
@@ -614,6 +622,7 @@
                         Hábil
                       </span>
                     }
+                    <ng-container *ngTemplateOutlet="indicadorVacaciones; context: { $implicit: day.day }"></ng-container>
                   </div>
                 </div>
               }
@@ -630,7 +639,7 @@
                 <div
                   [attr.data-calendar-day]="day.day"
                   [attr.data-shaded]="day.isShaded"
-                  class="flex items-center justify-between px-3 py-1.5 text-xs"
+                  class="flex items-center justify-between gap-2 px-3 py-1.5 text-xs"
                   [ngClass]="{
                     'bg-slate-200/85 font-semibold text-slate-800': day.isShaded,
                     'bg-white text-slate-700': !day.isShaded
@@ -643,7 +652,7 @@
                     <span>{{ day.dayName }}</span>
                   </div>
 
-                  <div class="text-right">
+                  <div class="flex min-w-0 flex-col items-end gap-0.5 text-right">
                     @if (day.isHoliday) {
                       <span
                         class="inline-flex items-center rounded-md border border-[#006341]/30 bg-white px-2 py-0.5 text-[11px] font-semibold text-[#006341]"
@@ -660,6 +669,7 @@
                         Hábil
                       </span>
                     }
+                    <ng-container *ngTemplateOutlet="indicadorVacaciones; context: { $implicit: day.day }"></ng-container>
                   </div>
                 </div>
               }

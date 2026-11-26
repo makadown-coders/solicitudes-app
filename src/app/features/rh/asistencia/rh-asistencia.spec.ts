@@ -213,15 +213,21 @@ describe('RhAsistenciaCalendarService & RhAsistenciaDocxService (Microintervenci
   it('5. Carga la plantilla institucional real (.docx), sustituye nombre, puesto, adscripción, jornada, horario, mes y año, recorta días en febrero, aplica sombreado y conserva los membretes oficiales', async () => {
     expect(RH_ASISTENCIA_TEMPLATE_PATH).toBe('/rh/asistencia/template-membretado-2026.docx');
 
-    const blob = await docxService.generateAttendanceDocxFromParams({
-      nombre: 'PERSONA TRABAJADORA INSTITUCIONAL UNO',
-      puesto: 'MÉDICO ESPECIALISTA A',
-      adscripcion: 'HOSPITAL GENERAL MEXICALI (BCIMB000001)',
-      jornada: 'JORNADA ACUMULADA',
-      horario: '07:00 – 19:00 HRS',
+    const datos = {
+      nombre: 'maría josé muñoz peña',
+      puesto: 'médico especialista',
+      adscripcion: 'coordinación de atención',
+      jornada: 'jornada acumulada',
+      horario: '07:00 – 19:00 hrs',
       mes: 2,
       anio: 2026,
-    });
+      observacionesPorFecha: Object.freeze({ '2026-02-03': 'Vacaciones' }),
+    };
+    const opciones = docxService.resolveGenerateOptions(Object.freeze(datos));
+    const encabezadoOriginal = { ...opciones.placeholders };
+    const blob = await docxService.generateAttendanceDocx(opciones);
+    expect(opciones.placeholders).toEqual(encabezadoOriginal);
+    expect(datos.nombre).toBe('maría josé muñoz peña');
 
     expect(blob).toBeInstanceOf(Blob);
     expect(blob.type).toBe(
@@ -252,13 +258,13 @@ describe('RhAsistenciaCalendarService & RhAsistenciaDocxService (Microintervenci
     const metaRows = getDirectChildrenByTagName(tables[0], 'tr');
     const row0Cells = getDirectChildrenByTagName(metaRows[0], 'tc');
     expect(readCellConcatenatedText(row0Cells[1])).toBe(
-      'PERSONA TRABAJADORA INSTITUCIONAL UNO'
+      'MARÍA JOSÉ MUÑOZ PEÑA'
     );
     expect(readCellConcatenatedText(row0Cells[3])).toBe('FEBRERO');
     expect(readCellConcatenatedText(row0Cells[5])).toBe('2026');
 
     const row1Cells = getDirectChildrenByTagName(metaRows[1], 'tc');
-    expect(readCellConcatenatedText(row1Cells[1])).toBe('MÉDICO ESPECIALISTA A');
+    expect(readCellConcatenatedText(row1Cells[1])).toBe('MÉDICO ESPECIALISTA');
 
     // Verificar que los dos párrafos con texto de row1Cells[3] contienen Jornada y Horario separados sin perder la estructura
     const row1Cell3Paragraphs = getDirectChildrenByTagName(row1Cells[3], 'p').filter(
@@ -270,7 +276,7 @@ describe('RhAsistenciaCalendarService & RhAsistenciaDocxService (Microintervenci
 
     const row2Cells = getDirectChildrenByTagName(metaRows[2], 'tc');
     expect(readCellConcatenatedText(row2Cells[1])).toBe(
-      'HOSPITAL GENERAL MEXICALI (BCIMB000001)'
+      'COORDINACIÓN DE ATENCIÓN'
     );
 
     // Tabla 1: Días del mes (Febrero 2026 = 28 días + 2 filas de encabezado = 30 filas totales)
@@ -283,6 +289,7 @@ describe('RhAsistenciaCalendarService & RhAsistenciaDocxService (Microintervenci
     const day1Row = daysRows[1];
     const day2Row = daysRows[2];
     const day3Row = daysRows[3];
+    expect(readCellConcatenatedText(getDirectChildrenByTagName(day3Row, 'tc')[5])).toBe('Vacaciones');
 
     const day1Shd = getDirectChildrenByTagName(day1Row, 'tc')[0].getElementsByTagNameNS(
       W_NS,

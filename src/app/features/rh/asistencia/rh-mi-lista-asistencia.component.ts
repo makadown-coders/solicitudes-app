@@ -96,6 +96,9 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
   private secuenciaHistorial = 0;
   private secuenciaVacaciones = 0;
   readonly fechasVacaciones = signal<string[]>([]);
+  readonly diasConVacaciones = computed(() => new Set(
+    this.fechasVacaciones().map((fecha) => Number(fecha.slice(-2)))
+  ));
   readonly estadoVacaciones = signal<'cargando' | 'listo' | 'error'>('cargando');
   readonly vacacionesEnDiasSombreados = computed(() => {
     const sombreados = new Set(this.calendarSummary().days.filter((dia) => dia.isShaded).map((dia) => dia.day));

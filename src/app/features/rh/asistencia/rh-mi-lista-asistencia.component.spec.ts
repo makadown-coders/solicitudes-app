@@ -136,7 +136,7 @@ describe('Historial personal de asistencia', () => {
     void componente.onDownloadDocx();
     expect(descargar).not.toHaveBeenCalled();
     vacaciones.and.callFake((anio: number, mes: number) => Promise.resolve({
-      anio, mes, fechas: ['2028-02-01', '2028-02-06', '2028-02-29', '2028-02-29', '2028-02-30', '2028-03-01'],
+      anio, mes, fechas: ['2028-02-01', '2028-02-06', '2028-02-07', '2028-02-29', '2028-02-29', '2028-02-30', '2028-03-01'],
     }));
     componente.onYearChange(2028);
     componente.onMonthChange(2);
@@ -146,14 +146,47 @@ describe('Historial personal de asistencia', () => {
     fixture.detectChanges();
     expect(vacaciones.calls.allArgs()).toEqual([[2026, 7], [2028, 7], [2028, 2]]);
     expect(root.textContent).toContain('días sombreados: 2028-02-06');
+    const indicadores = Array.from(root.querySelectorAll('[data-calendar-vacation]'));
+    expect(indicadores.map((el) => el.closest('[data-calendar-day]')?.getAttribute('data-calendar-day')))
+      .toEqual(['1', '6', '7', '29']);
+    for (const [dia, clasificacion, sombreado] of [
+      [1, 'Hábil', 'false'], [6, 'Fin de semana', 'true'], [7, 'Descanso general', 'true'],
+    ] as const) {
+      const fila = root.querySelector(`[data-calendar-day="${dia}"]`)!;
+      expect(fila.textContent).toContain(clasificacion);
+      expect(fila.textContent).toContain('Vacaciones');
+      expect(fila.getAttribute('data-shaded')).toBe(sombreado);
+    }
     void componente.onDownloadDocx();
     flushMicrotasks();
     expect(descargar).toHaveBeenCalledOnceWith(jasmine.objectContaining({
       anio: 2028, mes: 2, observacionesPorFecha: {
-        '2028-02-01': 'Vacaciones', '2028-02-06': 'Vacaciones', '2028-02-29': 'Vacaciones',
+        '2028-02-01': 'Vacaciones', '2028-02-06': 'Vacaciones',
+        '2028-02-07': 'Vacaciones', '2028-02-29': 'Vacaciones',
       },
     }));
     expect(vacaciones.calls.count()).toBe(3);
+  }));
+
+  it('limpia la vista previa al cambiar periodo y mantiene el periodo vigente ante respuestas tardías', fakeAsync(() => {
+    vacaciones.and.resolveTo({ anio: 2026, mes: 7, fechas: ['2026-07-07'] });
+    const { componente, fixture, root } = crear();
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(root.querySelectorAll('[data-calendar-vacation]').length).toBe(1);
+    let resolver!: (value: unknown) => void;
+    vacaciones.and.returnValue(new Promise((resolve) => { resolver = resolve; }));
+    componente.onMonthChange(8);
+    fixture.detectChanges();
+    expect(root.querySelector('[data-calendar-vacation]')).toBeNull();
+    vacaciones.and.resolveTo({ anio: 2027, mes: 8, fechas: [] });
+    componente.onYearChange(2027);
+    flushMicrotasks();
+    resolver({ anio: 2026, mes: 8, fechas: ['2026-08-09'] });
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(root.querySelector('[data-calendar-vacation]')).toBeNull();
+    expect(vacaciones.calls.allArgs()).toEqual([[2026, 7], [2026, 8], [2027, 8]]);
   }));
 
   it('permite omitir explícitamente tras un error y reintentar sin recordar la decisión', fakeAsync(() => {
@@ -163,6 +196,7 @@ describe('Historial personal de asistencia', () => {
     flushMicrotasks();
     fixture.detectChanges();
     expect(root.textContent).toContain('No pudimos consultar tus vacaciones para este mes.');
+    expect(root.querySelector('[data-calendar-vacation]')).toBeNull();
     expect(root.textContent).toContain('Revisa las observaciones antes de imprimir.');
     void componente.onDownloadDocx();
     expect(descargar).not.toHaveBeenCalled();
@@ -180,6 +214,7 @@ describe('Historial personal de asistencia', () => {
   }));
 
   it('ajusta la cuadrícula a 375 px', fakeAsync(() => {
+    vacaciones.and.resolveTo({ anio: 2026, mes: 7, fechas: ['2026-07-07', '2026-07-25'] });
     const { fixture, root } = crear();
     flushMicrotasks();
     fixture.detectChanges();
@@ -197,6 +232,16 @@ describe('Historial personal de asistencia', () => {
       doc.body.append(copy);
       expect(frame.contentWindow!.getComputedStyle(copy).gridTemplateColumns.split(' ').length).toBe(3);
       expect(copy.children.length).toBe(12);
+      const calendario = doc.importNode(root.querySelector('#rh-asistencia-calendar-preview')!, true);
+      doc.body.append(calendario);
+      expect(frame.contentWindow!.getComputedStyle(calendario).gridTemplateColumns.split(' ').length).toBe(1);
+      for (const bloque of Array.from(calendario.children)) {
+        const etiqueta = bloque.querySelector('[data-calendar-vacation]')!;
+        const fila = etiqueta.closest('[data-calendar-day]')!.getBoundingClientRect();
+        const rect = etiqueta.getBoundingClientRect();
+        expect(rect.width).toBeGreaterThan(0);
+        expect(rect.right).toBeLessThanOrEqual(fila.right);
+      }
       expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(375);
     } finally {
       frame.remove();

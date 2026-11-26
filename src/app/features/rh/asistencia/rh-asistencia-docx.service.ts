@@ -214,6 +214,7 @@ export class RhAsistenciaDocxService {
     tableEl: Element,
     placeholders: RhAsistenciaDocumentPlaceholders
   ): void {
+    const mayusculas = (valor: string) => valor.toLocaleUpperCase('es-MX');
     const rows = this.getDirectChildrenByTagName(tableEl, 'tr');
     if (rows.length < 3) {
       throw new Error(
@@ -224,28 +225,28 @@ export class RhAsistenciaDocxService {
     // Fila 0: [Nombre:, VALOR_NOMBRE, Mes:, VALOR_MES, Año:, VALOR_ANIO]
     const row0Cells = this.getDirectChildrenByTagName(rows[0], 'tc');
     if (row0Cells.length >= 6) {
-      this.setCellText(row0Cells[1], placeholders.nombre);
-      this.setCellText(row0Cells[3], placeholders.mes);
+      this.setCellText(row0Cells[1], mayusculas(placeholders.nombre));
+      this.setCellText(row0Cells[3], mayusculas(placeholders.mes));
       this.setCellText(row0Cells[5], placeholders.anio);
     }
 
     // Fila 1: [Puesto:, VALOR_PUESTO, Jornada:/Horario:, VALOR_JORNADA / VALOR_HORARIO]
     const row1Cells = this.getDirectChildrenByTagName(rows[1], 'tc');
     if (row1Cells.length >= 2) {
-      this.setCellText(row1Cells[1], placeholders.puesto);
+      this.setCellText(row1Cells[1], mayusculas(placeholders.puesto));
     }
     if (row1Cells.length >= 4) {
       this.setJornadaHorarioCellText(
         row1Cells[3],
-        placeholders.jornada,
-        placeholders.horario
+        mayusculas(placeholders.jornada),
+        mayusculas(placeholders.horario)
       );
     }
 
     // Fila 2: [Adscripción:, VALOR_ADSCRIPCION]
     const row2Cells = this.getDirectChildrenByTagName(rows[2], 'tc');
     if (row2Cells.length >= 2) {
-      this.setCellText(row2Cells[1], placeholders.adscripcion);
+      this.setCellText(row2Cells[1], mayusculas(placeholders.adscripcion));
     }
   }
 
