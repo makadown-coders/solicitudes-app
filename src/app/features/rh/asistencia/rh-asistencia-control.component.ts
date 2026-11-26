@@ -166,6 +166,18 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
   readonly items = signal<RhAsistenciaSeguimientoItemDto[]>([]);
   readonly total = signal<number>(0);
   readonly resumen = signal<RhAsistenciaResumenMensualDto | null>(null);
+  private readonly consultaMensual = computed(() => ({
+    anio: this.selectedAnio(),
+    mes: this.selectedMes(),
+    unidadId: this.selectedUnidadId(),
+    situacion: this.selectedSituacion(),
+    estado: this.selectedEstado() || null,
+    q: this.searchQuery().trim() || null,
+    page: this.page(),
+    pageSize: this.pageSize(),
+  }));
+  private consultaMensualCargada: ReturnType<typeof this.consultaMensual> | null = null;
+  protected consultaModal: ReturnType<typeof this.consultaMensual> | null = null;
 
   // Control de concurrencia y doble envío
   readonly busyPersonaId = signal<number | null>(null);
@@ -312,6 +324,10 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
     if (this.vista() === 'anual') {
       ++this.requestSeq;
       this.buscando.set(true);
+    } else {
+      ++this.requestSeq;
+      this.invalidarConsultaMensual();
+      this.loading.set(true);
     }
     if (this.searchTimer) {
       clearTimeout(this.searchTimer);
@@ -373,13 +389,17 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
     return this.ingresoPosterior(persona, celda) ? ESTADOS_MATRIZ.NO_APLICA : ESTADOS_MATRIZ.VACIA;
   }
 
+  esRecepcionHistoricaProtegida(registro: Pick<RhAsistenciaSeguimientoItemDto, 'estado_control' | 'origen_registro'>): boolean {
+    return registro.estado_control === 'RECIBIDA' && registro.origen_registro === 'MIGRACION_HISTORICA_EXCEL';
+  }
+
   detalleCelda(persona: RhAsistenciaPersonaAnual, celda: RhAsistenciaCeldaAnual): string {
     const unidad = this.unidades.find(({ id }) => id === celda.unidad_medica_id);
     const referencia = unidad?.nombre ?? (celda.unidad_medica_id === null
       ? 'Unidad mensual sin determinar' : `Unidad mensual #${celda.unidad_medica_id}`);
     const motivo = this.motivosCatalogo.find(({ value }) => value === celda.motivo_excepcion);
     const estado = this.estadoCelda(persona, celda);
-    const etiqueta = estado === ESTADOS_MATRIZ.RECIBIDA && celda.origen_registro === 'MIGRACION_HISTORICA_EXCEL'
+    const etiqueta = this.esRecepcionHistoricaProtegida(celda)
       ? 'Recibida histórica' : estado.label;
     const ingreso = estado === ESTADOS_MATRIZ.NO_APLICA && celda.estado_control !== 'NO_APLICA'
       ? 'Ingreso posterior al mes' : null;
@@ -394,7 +414,10 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
   abrirCelda(persona: RhAsistenciaPersonaAnual, celda: RhAsistenciaCeldaAnual, dialogo: HTMLDialogElement): void {
     if (!this.canAdminister || this.loading() || this.buscando() || this.guardandoCelda()) return;
     if (this.estadoCelda(persona, celda) === ESTADOS_MATRIZ.NO_APLICA) return;
-    const target = { persona, celda, anio: this.selectedAnio() };
+    const consulta = this.filtrosConsultaAnual();
+    if (JSON.stringify(consulta) !== this.filtrosMatrizCargados ||
+        !this.matriz().includes(persona) || !persona.meses.includes(celda)) return;
+    const target = { persona, celda, anio: consulta.anio };
     if (this.puedeRecibir(persona, celda)) {
       void this.guardarMarca(target);
       return;
@@ -422,7 +445,8 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
   retirarMarca(dialogo: HTMLDialogElement): void {
     const target = this.celdaSeleccionada();
     const motivo = this.motivoRetiro().trim();
-    if (!dialogo.open || target?.celda.estado_control !== 'RECIBIDA' || !motivo) return;
+    if (!dialogo.open || target?.celda.estado_control !== 'RECIBIDA' ||
+        this.esRecepcionHistoricaProtegida(target.celda) || !motivo) return;
     void this.guardarMarca(target, { dialogo, motivo });
   }
 
@@ -430,47 +454,44 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
     target: NonNullable<ReturnType<typeof this.celdaSeleccionada>>,
     retiro?: { dialogo: HTMLDialogElement; motivo: string }
   ): Promise<void> {
-    if (!this.canAdminister || this.guardandoCelda()) return;
+    const clave = JSON.stringify(this.filtrosConsultaAnual());
+    const secuencia = this.requestSeq;
+    if (!this.canAdminister || this.vista() !== 'anual' || this.guardandoCelda() ||
+        this.loading() || this.buscando() || clave !== this.filtrosMatrizCargados ||
+        target.anio !== this.selectedAnio() || !this.matriz().includes(target.persona) ||
+        !target.persona.meses.includes(target.celda)) return;
+    const sigueVigente = () => this.vista() === 'anual' && secuencia === this.requestSeq &&
+      clave === JSON.stringify(this.filtrosConsultaAnual());
     this.guardandoCelda.set(true);
     this.errorCelda.set(null);
     this.errorMessage.set(null);
     this.feedbackSuccess.set(null);
     const { persona, celda, anio } = target;
+    const personaId = persona.persona_id;
+    const mes = celda.mes;
     try {
       const resultado = retiro
-        ? await this.rhService.actualizarEstadoAsistencia(persona.persona_id, anio, celda.mes, {
+        ? await this.rhService.actualizarEstadoAsistencia(personaId, anio, mes, {
           estado: 'PENDIENTE', motivo_administrativo: retiro.motivo,
         })
         : await this.rhService.confirmarRecepcionAsistencia(
-        persona.persona_id, anio, celda.mes,
+        personaId, anio, mes,
         celda.control_id === null ? { unidad_medica_id: celda.unidad_medica_id } : {}
       );
       retiro?.dialogo.close();
+      if (!sigueVigente()) return;
       this.feedbackSuccess.set(retiro ? `Marca retirada para ${persona.nombre_completo}.`
         : resultado.idempotente ? 'La recepción ya estaba registrada.' : `Recepción confirmada para ${persona.nombre_completo}.`);
-      if (resultado.idempotente && !retiro) {
-        // El PATCH no devuelve la procedencia. Consultarla antes de mostrar la celda.
-        this.matriz.set([]);
-      } else {
-        const registro = resultado.registro;
-        this.matriz.update((filas) => filas.map((fila) => fila.persona_id !== persona.persona_id ? fila : {
-          ...fila,
-          meses: fila.meses.map((mes) => mes.mes !== celda.mes ? mes : {
-            ...mes,
-            estado_control: registro.estado,
-            situacion_seguimiento: 'REGISTRO_EXPLICITO',
-            origen_registro: mes.origen_registro ?? 'CAPTURA_SISTEMA',
-            control_id: registro.id,
-            unidad_medica_id: registro.unidad_medica_id,
-            fecha_recepcion: registro.fecha_recepcion,
-            excepcion_administrativa: registro.excepcion_administrativa,
-            motivo_excepcion: registro.motivo_excepcion,
-          }),
-        }));
-      }
+      // Solo el GET confirma cómo quedó la matriz, incluida la procedencia del registro.
+      this.filtrosMatrizCargados = '';
+      this.matriz.set([]);
       await this.loadSeguimiento();
     } catch (err: unknown) {
       if (err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403)) this.unauthorized.emit();
+      if (!sigueVigente()) {
+        retiro?.dialogo.close();
+        return;
+      }
       if (retiro) this.errorCelda.set(this.extractErrorMessage(err, 'No fue posible retirar la marca.'));
       else this.errorMessage.set(this.extractErrorMessage(err, 'No fue posible registrar la recepción.'));
     } finally {
@@ -478,48 +499,70 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
     }
   }
 
+  private invalidarConsultaMensual(): void {
+    this.consultaMensualCargada = null;
+    this.items.set([]);
+    this.resumen.set(null);
+    if (this.modalOpen() && !this.modalSubmitting()) this.closeModal();
+  }
+
+  private contextoAccionMensual(item: RhAsistenciaSeguimientoItemDto) {
+    const consulta = this.consultaMensualCargada;
+    if (!this.canAdminister || this.vista() !== 'mensual' || this.loading() ||
+        this.busyPersonaId() !== null || this.modalSubmitting() ||
+        consulta !== this.consultaMensual() || !this.items().includes(item) ||
+        this.esRecepcionHistoricaProtegida(item)) return null;
+    return consulta;
+  }
+
+  private filtrosConsultaAnual() {
+    return {
+      anio: this.selectedAnio(),
+      unidadId: this.selectedUnidadId(),
+      situacion: this.selectedSituacion(),
+      q: this.searchQuery().trim() || null,
+      page: this.page(),
+      pageSize: this.pageSize(),
+    };
+  }
+
   async loadSeguimiento(): Promise<void> {
     const anual = this.vista() === 'anual';
     if (anual && !this.canAdminister) return;
     const seq = ++this.requestSeq;
+    if (!anual) this.invalidarConsultaMensual();
     this.loading.set(true);
     this.errorMessage.set(null);
 
     try {
-      const filtros = {
-        anio: this.selectedAnio(),
-        unidadId: this.selectedUnidadId(),
-        situacion: this.selectedSituacion(),
-        q: this.searchQuery().trim() || null,
-        page: this.page(),
-        pageSize: this.pageSize(),
-      };
       if (anual) {
+        const filtros = this.filtrosConsultaAnual();
         const clave = JSON.stringify(filtros);
         if (clave !== this.filtrosMatrizCargados) this.matriz.set([]);
         const resp = await this.rhService.getAsistenciaMatrizAnual(filtros);
         if (seq !== this.requestSeq) return;
-        this.filtrosMatrizCargados = clave;
         this.matriz.set(resp.items);
         this.total.set(resp.total);
         this.pageSize.set(resp.pageSize);
+        this.filtrosMatrizCargados = JSON.stringify(this.filtrosConsultaAnual());
         return;
       }
-      const resp = await this.rhService.getAsistenciaSeguimiento({
-        ...filtros, mes: this.selectedMes(), estado: this.selectedEstado() || null,
-      });
+      const consulta = this.consultaMensual();
+      const resp = await this.rhService.getAsistenciaSeguimiento(consulta);
 
-      if (seq !== this.requestSeq) {
+      if (seq !== this.requestSeq || consulta !== this.consultaMensual()) {
         return; // Descartar respuesta obsoleta
       }
 
-      this.items.set(resp.items ?? []);
+      this.consultaMensualCargada = consulta;
+      this.items.set((resp.items ?? []).map((item) => ({ ...item })));
       this.total.set(resp.total ?? 0);
       this.resumen.set(resp.resumen ?? null);
     } catch (err: unknown) {
       if (seq !== this.requestSeq) {
         return;
       }
+      if (!anual) this.total.set(0);
       if (err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403)) {
         this.unauthorized.emit();
       }
@@ -540,7 +583,8 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
    * solicita motivo administrativo en modal para evitar sobrescritura silenciosa.
    */
   async onConfirmarRecepcion(item: RhAsistenciaSeguimientoItemDto): Promise<void> {
-    if (!this.canAdminister || this.busyPersonaId() !== null) {
+    const consulta = this.contextoAccionMensual(item);
+    if (!consulta || this.modalOpen()) {
       return;
     }
 
@@ -556,8 +600,8 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
     try {
       const resp = await this.rhService.confirmarRecepcionAsistencia(
         item.persona_id,
-        this.selectedAnio(),
-        this.selectedMes(),
+        consulta.anio,
+        consulta.mes,
         {
           unidad_medica_id: item.unidad_medica_id,
           adscripcion_laboral_id: item.adscripcion_laboral_id,
@@ -582,9 +626,11 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
   }
 
   openModal(mode: RhAsistenciaModalMode, item: RhAsistenciaSeguimientoItemDto): void {
-    if (!this.canAdminister) {
+    const consulta = this.contextoAccionMensual(item);
+    if (!consulta) {
       return;
     }
+    this.consultaModal = consulta;
     this.modalMode.set(mode);
     this.modalTarget.set(item);
     this.modalError.set(null);
@@ -604,6 +650,7 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
   }
 
   closeModal(): void {
+    this.consultaModal = null;
     this.modalOpen.set(false);
     this.modalTarget.set(null);
     this.modalError.set(null);
@@ -611,11 +658,13 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
   }
 
   async submitModal(): Promise<void> {
-    if (!this.canAdminister || this.modalSubmitting()) {
+    if (!this.modalOpen() || this.modalSubmitting()) {
       return;
     }
     const target = this.modalTarget();
-    if (!target) {
+    const consulta = this.consultaModal;
+    if (!target || !consulta || this.contextoAccionMensual(target) !== consulta) {
+      this.closeModal();
       return;
     }
 
@@ -660,8 +709,8 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
       if (mode === 'CONFIRMAR_CON_MOTIVO') {
         await this.rhService.confirmarRecepcionAsistencia(
           target.persona_id,
-          this.selectedAnio(),
-          this.selectedMes(),
+          consulta.anio,
+          consulta.mes,
           {
             unidad_medica_id: target.unidad_medica_id,
             adscripcion_laboral_id: target.adscripcion_laboral_id,
@@ -674,8 +723,8 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
         const estadoDestino = mode === 'CORREGIR' ? this.modalNuevoEstado() : mode;
         await this.rhService.actualizarEstadoAsistencia(
           target.persona_id,
-          this.selectedAnio(),
-          this.selectedMes(),
+          consulta.anio,
+          consulta.mes,
           {
             estado: estadoDestino,
             motivo_excepcion: estadoDestino === 'NO_APLICA' ? (motivoExcepcion as RhAsistenciaMotivoExcepcion) : null,
@@ -694,8 +743,13 @@ export class RhAsistenciaControlComponent implements OnInit, OnChanges, OnDestro
       if (err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403)) {
         this.unauthorized.emit();
       }
-      this.modalError.set(this.extractErrorMessage(err, 'No fue posible guardar el cambio administrativo.'));
       this.modalSubmitting.set(false);
+      if (this.contextoAccionMensual(target) !== consulta) {
+        this.closeModal();
+        this.errorMessage.set(this.extractErrorMessage(err, 'No fue posible guardar el cambio administrativo.'));
+        return;
+      }
+      this.modalError.set(this.extractErrorMessage(err, 'No fue posible guardar el cambio administrativo.'));
     }
   }
 

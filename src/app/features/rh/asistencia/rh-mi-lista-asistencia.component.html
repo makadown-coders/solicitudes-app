@@ -37,9 +37,18 @@
 
   <section aria-labelledby="rh-asistencia-historial-titulo"
     [attr.aria-busy]="cargandoHistorial()" class="mt-4 rounded-xl border border-slate-200 p-3 sm:p-4">
-    <h3 id="rh-asistencia-historial-titulo" class="text-sm font-bold text-slate-900">
-      Historial de recepciones · {{ selectedYear() }}
-    </h3>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h3 id="rh-asistencia-historial-titulo" class="text-sm font-bold text-slate-900">
+        Historial de recepciones · {{ selectedYear() }}
+      </h3>
+      <button id="rh-asistencia-actualizar-historial" type="button"
+        (click)="!cargandoHistorial() && cargarHistorial()" [disabled]="cargandoHistorial()"
+        class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
+        <lucide-icon [img]="icons.refreshCw" [class.animate-spin]="cargandoHistorial()"
+          class="h-3.5 w-3.5 shrink-0" aria-hidden="true"></lucide-icon>
+        Actualizar historial
+      </button>
+    </div>
     @if (cargandoHistorial()) {
       <p role="status" class="mt-2 text-sm text-slate-600">Consultando tu historial…</p>
     } @else if (errorHistorial()) {
@@ -47,7 +56,7 @@
         <p role="alert" class="text-sm text-slate-700">
           No se pudo consultar tu historial. Puedes seguir generando tu lista.
         </p>
-        <button type="button" (click)="cargarHistorial()"
+        <button type="button" (click)="!cargandoHistorial() && cargarHistorial()"
           class="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold hover:bg-slate-100 focus-visible:outline-2">
           Reintentar
         </button>

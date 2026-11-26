@@ -310,7 +310,9 @@
         <h3 id="rh-asis-recepcion-titulo" class="text-lg font-bold text-slate-900">{{ meses[target.celda.mes - 1].label }} de {{ target.anio }}</h3>
         <p class="mt-2 break-words text-sm font-semibold text-slate-900">{{ target.persona.nombre_completo }}</p>
         <p class="mt-1 text-sm text-slate-700">{{ detalleCelda(target.persona, target.celda) }}</p>
-        @if (target.celda.estado_control === 'RECIBIDA') {
+        @if (esRecepcionHistoricaProtegida(target.celda)) {
+          <p class="mt-3 text-sm font-semibold text-indigo-800">Recepción histórica protegida</p>
+        } @else if (target.celda.estado_control === 'RECIBIDA') {
           <p class="mt-3 text-sm text-slate-700">Al retirar la marca, el mes quedará pendiente.</p>
           <label for="rh-asis-motivo-retiro" class="mt-3 block text-sm font-semibold">Motivo administrativo</label>
           <textarea id="rh-asis-motivo-retiro" rows="2" required
@@ -325,7 +327,7 @@
             class="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-100 focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-50">Cancelar</button>
           <button type="button" [disabled]="guardandoCelda()" (click)="abrirEnMensual(dialogoRecepcion)"
             class="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-100 focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-50">Abrir en control mensual</button>
-          @if (target.celda.estado_control === 'RECIBIDA') {
+          @if (target.celda.estado_control === 'RECIBIDA' && !esRecepcionHistoricaProtegida(target.celda)) {
             <button type="button" [disabled]="guardandoCelda() || !motivoRetiro().trim()" (click)="retirarMarca(dialogoRecepcion)"
               class="cursor-pointer rounded-lg bg-emerald-800 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-900 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
               {{ guardandoCelda() ? 'Retirando…' : 'Confirmar retiro' }}
@@ -343,9 +345,11 @@
         <span>Consultando seguimiento mensual...</span>
       </div>
     } @else if (items().length === 0) {
+      @if (!errorMessage()) {
       <div class="p-8 text-center text-sm text-slate-600">
         No se encontraron trabajadores con los filtros seleccionados.
       </div>
+      }
     } @else {
       <!-- Vista escritorio (tabla compacta) -->
       <div class="hidden overflow-x-auto md:block">
@@ -381,7 +385,7 @@
                     class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold"
                     [ngClass]="badge.classes"
                   >
-                    {{ badge.label }}
+                    @if (esRecepcionHistoricaProtegida(item)) { ✓ Recibida histórica } @else { {{ badge.label }} }
                   </span>
                   @if (badge.isCalculated) {
                     <div class="mt-0.5 text-[10px] text-slate-500">Situación informativa</div>
@@ -406,6 +410,9 @@
                 </td>
                 @if (canAdminister) {
                   <td class="px-4 py-3 text-right">
+                    @if (esRecepcionHistoricaProtegida(item)) {
+                      <span class="text-xs font-medium text-indigo-800">Recepción histórica protegida</span>
+                    } @else {
                     <div class="inline-flex flex-wrap items-center justify-end gap-1.5">
                       @if (item.estado_control !== 'RECIBIDA') {
                         <button
@@ -445,6 +452,7 @@
                         </button>
                       }
                     </div>
+                    }
                   </td>
                 }
               </tr>
@@ -467,7 +475,7 @@
                 class="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold"
                 [ngClass]="badge.classes"
               >
-                {{ badge.label }}
+                @if (esRecepcionHistoricaProtegida(item)) { ✓ Recibida histórica } @else { {{ badge.label }} }
               </span>
             </div>
             <div class="text-xs text-slate-600">
@@ -483,7 +491,9 @@
                 }
               </div>
             }
-            @if (canAdminister) {
+            @if (esRecepcionHistoricaProtegida(item)) {
+              <p class="text-xs font-medium text-indigo-800">Recepción histórica protegida</p>
+            } @else if (canAdminister) {
               <div class="flex flex-wrap gap-1.5 pt-1">
                 @if (item.estado_control !== 'RECIBIDA') {
                   <button
@@ -613,6 +623,9 @@
               }
             </h3>
             <p class="mt-0.5 text-xs text-slate-600">{{ target.nombre_completo }}</p>
+            @if (consultaModal; as periodo) {
+              <p class="text-xs text-slate-600">{{ meses[periodo.mes - 1].label }} de {{ periodo.anio }}</p>
+            }
           </div>
           <button
             type="button"

@@ -112,20 +112,78 @@ describe('Historial personal de asistencia', () => {
     expect(root.textContent).toContain('Hay 4 meses que requieren revisión');
   }));
 
-  it('ignora la respuesta anterior y mantiene la descarga disponible ante un error', fakeAsync(() => {
+  it('actualiza el historial con un solo GET y conserva el formulario, el periodo y vacaciones', fakeAsync(() => {
+    const { fixture, root, componente } = crear();
+    flushMicrotasks();
+    componente.onMonthChange(9);
+    flushMicrotasks();
+    componente.draftNombre.set('Nombre editado');
+    componente.draftPuesto.set('Puesto editado');
+    componente.draftAdscripcion.set('Unidad editada');
+    componente.draftJornada.set('Jornada editada');
+    componente.draftHorario.set('Horario editado');
+    fixture.detectChanges();
+    expect(root.textContent).toContain('Tienes 3 listas pendientes de registro');
+    const llamadasVacaciones = vacaciones.calls.count();
     let resolver!: (value: RhMiHistorialAsistenciaResponse) => void;
     historial.and.returnValue(new Promise((resolve) => { resolver = resolve; }));
+    const boton = root.querySelector<HTMLButtonElement>('#rh-asistencia-actualizar-historial')!;
+    boton.click();
+    boton.click();
+    fixture.detectChanges();
+    expect(boton.disabled).toBeTrue();
+    expect(root.textContent).toContain('Consultando tu historial');
+    expect(historial.calls.allArgs()).toEqual([[2026], [2026]]);
+    const respuesta = datos();
+    respuesta.meses[8].estado_control = 'RECIBIDA';
+    respuesta.meses[8].origen_registro = 'CAPTURA_SISTEMA';
+    respuesta.resumen.recibidas.push(9);
+    respuesta.resumen.sin_recepcion_registrada = [5, 10];
+    respuesta.resumen.requieren_atencion = [3, 7, 8];
+    resolver(respuesta);
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(boton.disabled).toBeFalse();
+    expect(root.textContent).toContain('Tienes 2 listas pendientes de registro');
+    expect(root.textContent).toContain('Hay 3 meses que requieren revisión');
+    expect(root.textContent).toContain('RH ya registró la recepción de tu lista de septiembre de 2026.');
+    const septiembre = root.querySelectorAll('ul[aria-label="Meses del historial"] button')[8];
+    expect(septiembre.lastElementChild?.textContent?.trim()).toBe('✓');
+    expect(septiembre.getAttribute('aria-pressed')).toBe('true');
+    expect(componente.selectedYear()).toBe(2026);
+    expect(componente.selectedMonth()).toBe(9);
+    expect([componente.draftNombre(), componente.draftPuesto(), componente.draftAdscripcion(),
+      componente.draftJornada(), componente.draftHorario()]).toEqual([
+      'Nombre editado', 'Puesto editado', 'Unidad editada', 'Jornada editada', 'Horario editado',
+    ]);
+    expect(vacaciones.calls.count()).toBe(llamadasVacaciones);
+  }));
+
+  it('ignora una actualización tardía al cambiar de año, conserva la descarga y permite reintentar', fakeAsync(() => {
     const { fixture, root, componente } = crear();
+    flushMicrotasks();
+    fixture.detectChanges();
+    let resolver!: (value: RhMiHistorialAsistenciaResponse) => void;
+    historial.and.returnValue(new Promise((resolve) => { resolver = resolve; }));
+    root.querySelector<HTMLButtonElement>('#rh-asistencia-actualizar-historial')!.click();
     historial.and.rejectWith(new Error('Error simulado'));
     componente.onYearChange(2027);
     flushMicrotasks();
     resolver(datos());
     flushMicrotasks();
     fixture.detectChanges();
-    expect(historial.calls.allArgs()).toEqual([[2026], [2027]]);
+    expect(historial.calls.allArgs()).toEqual([[2026], [2026], [2027]]);
     expect(root.textContent).toContain('No se pudo consultar tu historial');
     expect(root.querySelector('ul[aria-label="Meses del historial"]')).toBeNull();
     expect(root.querySelector<HTMLButtonElement>('#rh-asistencia-download-btn')?.disabled).toBeFalse();
+    historial.and.resolveTo(datos(2027));
+    Array.from(root.querySelectorAll<HTMLButtonElement>('button'))
+      .find((boton) => boton.textContent?.trim() === 'Reintentar')!.click();
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(historial.calls.mostRecent().args).toEqual([2027]);
+    expect(componente.historial()?.anio).toBe(2027);
+    expect(root.textContent).not.toContain('No se pudo consultar tu historial');
   }));
 
   it('usa las fechas consolidadas del periodo, valida días y descarta respuestas obsoletas', fakeAsync(() => {
