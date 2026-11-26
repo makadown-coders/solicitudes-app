@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Consulta, Fila, Informe, Modalidad, Ventana } from '../../../models/SurtimientoPrimerNivel';
 import { SurtimientoPrimerNivelService } from '../../../services/surtimiento-primer-nivel.service';
+import { agregarHojasProgramaticas } from './surtimiento-excel-programas';
 
 @Component({standalone:true,imports:[CommonModule,FormsModule,RouterLink],templateUrl:'./surtimiento.component.html',styleUrl:'./surtimiento.component.css'})
 export class SurtimientoComponent {
@@ -161,6 +162,10 @@ export class SurtimientoComponent {
       }));
       sheet['!cols']=(nombre==='COBERTURA_POR_UNIDAD'?[20,20,38,18,20,14,14,14,14,22,34]:[18,55,20,20,20,23,34]).map(wch=>({wch}));
     }
+    const fechaGeneracion = new Intl.DateTimeFormat('es-MX', {
+      dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Tijuana',
+    }).format(new Date());
+    agregarHojasProgramaticas(x, libro, r, this.pedidosFiltrados(), nombreModalidad, fechaGeneracion);
     x.writeFile(libro,'Surtimiento-Primer-Nivel-'+(r.modalidad==='ULTIMOS_30_DIAS'?'ultimos-30-dias':this.mes)+'.xlsx');
   }
 }

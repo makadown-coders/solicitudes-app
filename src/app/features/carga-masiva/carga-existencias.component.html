@@ -1,9 +1,9 @@
 <div class="p-6 mx-auto max-w-4xl space-y-6">
-  <h1 class="text-2xl font-bold text-green-800">📦 Carga de existencias temporales (SAS / SALUS)</h1>
+  <h1 class="text-2xl font-bold text-green-800">📦 Carga de existencias temporales</h1>
 
   <label class="flex items-center gap-2 text-sm">
     <input type="checkbox" [(ngModel)]="resetTable" />
-    Limpiar tabla antes de subir (TRUNCATE)
+    Borrar todas las existencias antes de subir
   </label>
 
   <!-- SAS -->
@@ -18,6 +18,30 @@
       <p class="mt-2 text-xs italic">{{ fileNameSAS }} seleccionado(s)</p>
     }
   </div>
+
+  <section class="p-5 bg-white rounded-lg shadow border">
+    <h2 class="text-lg font-semibold">🏥 FARMACIAS</h2>
+    <hr class="my-2" />
+    <input type="file" id="fileFarmacias" multiple accept=".xls,.xlsx" [disabled]="farmaciaLeyendo || isUploading"
+      class="sr-only peer" (change)="onFileFarmacias($event)" />
+    <label for="fileFarmacias"
+      class="px-4 py-2 text-white bg-emerald-600 cursor-pointer rounded hover:bg-emerald-700 peer-focus-visible:outline peer-disabled:cursor-not-allowed peer-disabled:opacity-50">
+      Seleccionar archivo(s)
+    </label>
+    @if (farmaciaArchivos.length) {
+      <p class="mt-2 text-xs italic">{{ farmaciaArchivos.length }} archivo(s) seleccionado(s)</p>
+    }
+    @if (farmaciaArchivos.length || farmaciaError) {
+      <button type="button" [disabled]="farmaciaLeyendo || isUploading" (click)="limpiarFarmacias()"
+        class="cursor-pointer text-sm underline hover:text-green-800 disabled:opacity-50">Quitar archivos</button>
+    }
+    @if (farmaciaLeyendo) {
+      <p role="status">Leyendo archivos…</p>
+    }
+    @if (farmaciaError) {
+      <p role="alert" class="text-sm text-red-700">{{ farmaciaError }}</p>
+    }
+  </section>
 
   <!-- SALUS -->
   <div class="p-5 bg-white rounded-lg shadow border">

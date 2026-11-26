@@ -59,6 +59,7 @@ export interface RhAsistenciaDocumentPlaceholders {
  * de «Mi lista de asistencia».
  */
 export interface RhAsistenciaGenerateParams {
+  observacionesPorFecha?: Readonly<Record<string, string>>;
   nombre: string;
   puesto: string;
   adscripcion?: string | null;

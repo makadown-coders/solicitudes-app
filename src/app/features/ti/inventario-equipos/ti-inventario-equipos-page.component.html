@@ -1,0 +1,251 @@
+<section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+  <!-- Encabezado de sección -->
+  <div class="flex flex-col gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-center gap-3">
+      <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#006341]/10 text-[#006341]">
+        <lucide-icon [img]="icons.device" class="h-5 w-5" aria-hidden="true"></lucide-icon>
+      </span>
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Inventario de equipos informáticos</h2>
+        <p class="text-xs text-slate-500">
+          Consulta, búsqueda, filtrado y registro de dispositivos TI por unidad médica.
+        </p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        (click)="loadItems()"
+        [disabled]="loading()"
+        class="inline-flex min-h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+      >
+        <lucide-icon [img]="icons.refresh" [class.animate-spin]="loading()" class="h-4 w-4"></lucide-icon>
+        <span>Actualizar</span>
+      </button>
+      <button
+        id="ti-inventario-add-btn"
+        type="button"
+        (click)="openCreateModal()"
+        class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-[#004f34]"
+      >
+        <lucide-icon [img]="icons.plus" class="h-4 w-4"></lucide-icon>
+        <span>Agregar equipo</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mensajes de estado -->
+  @if (errorMsg()) {
+    <div class="mt-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <lucide-icon [img]="icons.alert" class="h-4 w-4 shrink-0"></lucide-icon>
+      <span>{{ errorMsg() }}</span>
+    </div>
+  }
+  @if (successMsg()) {
+    <div class="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+      <lucide-icon [img]="icons.check" class="h-4 w-4 shrink-0"></lucide-icon>
+      <span>{{ successMsg() }}</span>
+    </div>
+  }
+
+  <!-- Barra de filtros -->
+  <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-12">
+    <div class="relative md:col-span-4">
+      <lucide-icon
+        [img]="icons.search"
+        class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+      ></lucide-icon>
+      <input
+        type="text"
+        [ngModel]="q()"
+        (ngModelChange)="onSearchInput($event)"
+        (keyup.enter)="loadItems(true)"
+        placeholder="Buscar por serie, marca, modelo, unidad, persona, lugar o MAC..."
+        class="w-full rounded-xl border border-gray-300 py-2 pl-9 pr-9 text-sm text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+      />
+      @if (q()) {
+        <button
+          type="button"
+          (click)="q.set(''); loadItems(true)"
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+          aria-label="Limpiar búsqueda"
+        >
+          <lucide-icon [img]="icons.clear" class="h-4 w-4"></lucide-icon>
+        </button>
+      }
+    </div>
+
+    <div class="md:col-span-3">
+      <ng-select
+        [ngModel]="unidadMedicaId()"
+        (ngModelChange)="unidadMedicaId.set($event); loadItems(true)"
+        [items]="unidades()"
+        bindLabel="nombre"
+        bindValue="id"
+        [typeahead]="unidadSearch$"
+        [loading]="loadingUnidades()"
+        placeholder="Todas las unidades médicas"
+        notFoundText="Sin resultados"
+        loadingText="Buscando..."
+        [clearable]="true"
+      ></ng-select>
+    </div>
+
+    <div class="md:col-span-2">
+      <select
+        [ngModel]="tipoId()"
+        (ngModelChange)="tipoId.set($event); loadItems(true)"
+        class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-[#006341] focus:outline-none"
+      >
+        <option [ngValue]="null">Todos los tipos</option>
+        @for (t of tipos(); track t.id) {
+          <option [ngValue]="t.id">{{ t.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="md:col-span-2">
+      <select
+        [ngModel]="estadoId()"
+        (ngModelChange)="estadoId.set($event); loadItems(true)"
+        class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-[#006341] focus:outline-none"
+      >
+        <option [ngValue]="null">Todos los estados</option>
+        @for (e of estados(); track e.id) {
+          <option [ngValue]="e.id">{{ e.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="flex items-center gap-2 md:col-span-1">
+      @if (hasActiveFilters()) {
+        <button
+          type="button"
+          (click)="clearFilters()"
+          class="inline-flex w-full items-center justify-center gap-1 rounded-xl border border-gray-300 px-2.5 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+          title="Limpiar filtros"
+        >
+          <lucide-icon [img]="icons.clear" class="h-4 w-4"></lucide-icon>
+          <span class="md:hidden">Limpiar</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Tabla de resultados -->
+  <div class="mt-5 overflow-x-auto rounded-xl border border-gray-200">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <tr>
+          <th class="px-4 py-3">Tipo</th>
+          <th class="px-4 py-3">Marca / Modelo</th>
+          <th class="px-4 py-3">Serie</th>
+          <th class="px-4 py-3">Unidad médica</th>
+          <th class="px-4 py-3">Responsable / Lugar</th>
+          <th class="px-4 py-3">Estado</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 bg-white">
+        @if (loading() && !items().length) {
+          <tr>
+            <td colspan="6" class="px-4 py-10 text-center text-slate-500">
+              <lucide-icon [img]="icons.loader" class="mr-2 inline h-5 w-5 animate-spin"></lucide-icon>
+              Cargando equipos...
+            </td>
+          </tr>
+        } @else if (!items().length) {
+          <tr>
+            <td colspan="6" class="px-4 py-10 text-center text-slate-500">
+              No se encontraron equipos con los filtros seleccionados.
+            </td>
+          </tr>
+        } @else {
+          @for (row of items(); track row.id) {
+            <tr class="transition hover:bg-slate-50">
+              <td class="px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">
+                {{ row.tipo || row.tipo_dispositivo || '—' }}
+              </td>
+              <td class="px-4 py-3 text-slate-700">
+                <div class="font-medium">{{ row.marca || '—' }}</div>
+                <div class="text-xs text-slate-500">{{ row.modelo || '—' }}</div>
+              </td>
+              <td class="px-4 py-3 font-mono text-xs text-slate-700 whitespace-nowrap">
+                {{ row.serial || '—' }}
+              </td>
+              <td class="px-4 py-3 text-slate-700">
+                {{ row.unidad_medica || ('Unidad #' + row.unidad_medica_id) }}
+              </td>
+              <td class="px-4 py-3 text-slate-700">
+                @if (row.asignacion_dispositivo_id == null) {
+                  <span class="text-xs italic text-slate-400">Sin asignación vigente</span>
+                } @else {
+                  <div class="font-medium">{{ row.persona_nombre_completo || 'Sin asignar' }}</div>
+                  @if (row.lugar_especifico) {
+                    <div class="text-xs text-slate-500">{{ row.lugar_especifico }}</div>
+                  }
+                }
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap">
+                <span
+                  [class]="estadoBadgeClass(row.estado_dispositivo)"
+                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                >
+                  {{ row.estado_dispositivo || 'Sin asignación vigente' }}
+                </span>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginación -->
+  <div class="mt-4 flex flex-col items-center justify-between gap-3 text-xs text-slate-600 sm:flex-row">
+    <div class="flex items-center gap-2">
+      <span>Mostrando página {{ page() }} de {{ totalPages() }} ({{ total() }} equipos en total)</span>
+      <select
+        [ngModel]="pageSize()"
+        (ngModelChange)="onPageSizeChange($event)"
+        class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs"
+      >
+        @for (sz of pageSizeOptions; track sz) {
+          <option [value]="sz">{{ sz }} / pág.</option>
+        }
+      </select>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        (click)="changePage(-1)"
+        [disabled]="page() <= 1 || loading()"
+        class="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 font-semibold hover:bg-slate-50 disabled:opacity-40"
+      >
+        <lucide-icon [img]="icons.prev" class="h-4 w-4"></lucide-icon>
+        <span>Anterior</span>
+      </button>
+      <button
+        type="button"
+        (click)="changePage(1)"
+        [disabled]="page() >= totalPages() || loading()"
+        class="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 font-semibold hover:bg-slate-50 disabled:opacity-40"
+      >
+        <span>Siguiente</span>
+        <lucide-icon [img]="icons.next" class="h-4 w-4"></lucide-icon>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- Modal de alta de equipo -->
+@if (showCreateModal()) {
+  <app-equipo-form-modal
+    [tipos]="tipos()"
+    [saving]="creating()"
+    [errorMsg]="createError()"
+    (closed)="closeCreateModal()"
+    (saved)="onCreateEquipo($event)"
+  />
+}

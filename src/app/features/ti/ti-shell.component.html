@@ -105,6 +105,20 @@
           <lucide-icon [img]="icons.personas" class="h-4 w-4" aria-hidden="true"></lucide-icon>
           <span>Personas</span>
         </a>
+
+        <a
+          id="ti-nav-inventario-equipos"
+          routerLink="/ti/inventario-equipos"
+          routerLinkActive="bg-[#006341] text-white border-[#006341] shadow-xs"
+          #rlaInventario="routerLinkActive"
+          [class.bg-slate-50]="!rlaInventario.isActive"
+          [class.text-slate-700]="!rlaInventario.isActive"
+          [class.border-gray-200]="!rlaInventario.isActive"
+          class="inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition hover:border-[#006341]/40 focus:outline-none focus:ring-2 focus:ring-[#006341] focus:ring-offset-1"
+        >
+          <lucide-icon [img]="icons.inventario" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+          <span>Inventario de equipos</span>
+        </a>
       </nav>
     </header>
 

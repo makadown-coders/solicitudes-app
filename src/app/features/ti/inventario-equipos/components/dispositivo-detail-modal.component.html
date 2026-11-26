@@ -1,0 +1,680 @@
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[1px]"
+  (click)="closed.emit()"
+>
+  <div
+    class="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Encabezado -->
+    <div class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 bg-slate-50 px-6 py-4">
+      <div class="min-w-0">
+        @if (detail(); as d) {
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="rounded-full bg-[#006341]/10 px-2.5 py-0.5 text-xs font-semibold text-[#006341]">
+              {{ d.tipo_dispositivo || 'Equipo' }}
+            </span>
+            <span class="text-xs font-mono text-slate-500">ID #{{ d.id }}</span>
+          </div>
+          <h2 class="mt-1 truncate text-lg font-bold text-slate-900">
+            {{ (d.marca || '') + ' ' + (d.modelo || '') || 'Sin marca/modelo' }}
+          </h2>
+          <p class="text-xs text-slate-600">
+            Serie: <span class="font-mono font-medium">{{ d.serial || '—' }}</span>
+            · Unidad: <span class="font-medium">{{ d.unidad_medica || '—' }}</span>
+          </p>
+        } @else {
+          <h2 class="text-lg font-bold text-slate-900">Detalle del equipo</h2>
+        }
+      </div>
+
+      <div class="flex items-center gap-3">
+        @if (detail(); as d) {
+          <div class="flex items-center gap-1.5">
+            <label class="text-xs font-semibold text-slate-600">Estado:</label>
+            <select
+              [ngModel]="d.asignacion_actual?.estado_dispositivo_id ?? ''"
+              (ngModelChange)="onQuickEstadoChange($event)"
+              [disabled]="saving()"
+              class="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:border-[#006341] focus:outline-none"
+            >
+              @for (e of estados; track e.id) {
+                <option [value]="e.id">{{ e.nombre }}</option>
+              }
+            </select>
+          </div>
+        }
+        <button
+          type="button"
+          (click)="closed.emit()"
+          class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
+          aria-label="Cerrar"
+        >
+          <lucide-icon [img]="icons.close" class="h-5 w-5"></lucide-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Pestañas -->
+    <div class="flex flex-wrap gap-1 border-b border-gray-200 bg-white px-6 pt-3">
+      <button
+        type="button"
+        (click)="selectTab('resumen')"
+        [class.border-[#006341]]="activeTab() === 'resumen'"
+        [class.text-[#006341]]="activeTab() === 'resumen'"
+        [class.border-transparent]="activeTab() !== 'resumen'"
+        [class.text-slate-600]="activeTab() !== 'resumen'"
+        class="border-b-2 px-3 py-2 text-sm font-semibold transition hover:text-[#006341]"
+      >
+        Resumen
+      </button>
+      <button
+        type="button"
+        (click)="selectTab('monitores')"
+        [class.border-[#006341]]="activeTab() === 'monitores'"
+        [class.text-[#006341]]="activeTab() === 'monitores'"
+        [class.border-transparent]="activeTab() !== 'monitores'"
+        [class.text-slate-600]="activeTab() !== 'monitores'"
+        class="inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-semibold transition hover:text-[#006341]"
+      >
+        <lucide-icon [img]="icons.monitor" class="h-4 w-4"></lucide-icon>
+        <span>Monitores ({{ detail()?.monitores?.length ?? 0 }})</span>
+      </button>
+      <button
+        type="button"
+        (click)="selectTab('perifericos')"
+        [class.border-[#006341]]="activeTab() === 'perifericos'"
+        [class.text-[#006341]]="activeTab() === 'perifericos'"
+        [class.border-transparent]="activeTab() !== 'perifericos'"
+        [class.text-slate-600]="activeTab() !== 'perifericos'"
+        class="inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-semibold transition hover:text-[#006341]"
+      >
+        <lucide-icon [img]="icons.periferico" class="h-4 w-4"></lucide-icon>
+        <span>Periféricos ({{ detail()?.perifericos?.length ?? 0 }})</span>
+      </button>
+      <button
+        type="button"
+        (click)="selectTab('historial')"
+        [class.border-[#006341]]="activeTab() === 'historial'"
+        [class.text-[#006341]]="activeTab() === 'historial'"
+        [class.border-transparent]="activeTab() !== 'historial'"
+        [class.text-slate-600]="activeTab() !== 'historial'"
+        class="inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-semibold transition hover:text-[#006341]"
+      >
+        <lucide-icon [img]="icons.history" class="h-4 w-4"></lucide-icon>
+        <span>Historial</span>
+      </button>
+    </div>
+
+    <!-- Cuerpo con scroll -->
+    <div class="flex-1 overflow-y-auto p-6">
+      @if (errorMsg()) {
+        <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {{ errorMsg() }}
+        </div>
+      }
+
+      @if (loading()) {
+        <div class="flex items-center justify-center py-12 text-slate-500">
+          <lucide-icon [img]="icons.loader" class="mr-2 h-5 w-5 animate-spin"></lucide-icon>
+          <span>Cargando información del equipo...</span>
+        </div>
+      } @else if (detail(); as d) {
+        <!-- TAB 1: RESUMEN -->
+        @if (activeTab() === 'resumen') {
+          <div class="space-y-6">
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                (click)="openEditBasic()"
+                class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#006341] hover:text-[#006341]"
+              >
+                <lucide-icon [img]="icons.edit" class="h-4 w-4"></lucide-icon>
+                <span>Editar equipo y MACs</span>
+              </button>
+              <button
+                type="button"
+                (click)="openAsignacion()"
+                class="inline-flex items-center gap-2 rounded-xl bg-[#006341] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[#004f34]"
+              >
+                <lucide-icon [img]="icons.assign" class="h-4 w-4"></lucide-icon>
+                <span>Cambiar responsable / lugar</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div class="rounded-xl border border-gray-200 bg-slate-50 p-4">
+                <h3 class="text-xs font-bold uppercase tracking-wide text-slate-500">Datos del equipo</h3>
+                <dl class="mt-3 space-y-2 text-sm">
+                  <div class="flex justify-between gap-2">
+                    <dt class="text-slate-500">Marca / Modelo</dt>
+                    <dd class="font-medium text-slate-900">{{ (d.marca || '—') + ' / ' + (d.modelo || '—') }}</dd>
+                  </div>
+                  <div class="flex justify-between gap-2">
+                    <dt class="text-slate-500">Número de serie</dt>
+                    <dd class="font-mono font-medium text-slate-900">{{ d.serial || '—' }}</dd>
+                  </div>
+                  <div class="flex justify-between gap-2">
+                    <dt class="text-slate-500">IP / Conexión</dt>
+                    <dd class="font-mono text-slate-900">{{ d.ip || '—' }} · {{ d.conexion || '—' }}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div class="rounded-xl border border-gray-200 bg-slate-50 p-4">
+                <h3 class="text-xs font-bold uppercase tracking-wide text-slate-500">Asignación vigente</h3>
+                <dl class="mt-3 space-y-2 text-sm">
+                  <div class="flex justify-between gap-2">
+                    <dt class="text-slate-500">Unidad</dt>
+                    <dd class="text-right font-medium text-slate-900">{{ d.unidad_medica || '—' }}</dd>
+                  </div>
+                  <div class="flex justify-between gap-2">
+                    <dt class="text-slate-500">Responsable</dt>
+                    <dd class="text-right font-medium text-slate-900">
+                      {{ d.asignacion_actual?.persona_nombre_completo || d.asignacion_actual?.persona || 'Sin asignar' }}
+                    </dd>
+                  </div>
+                  <div class="flex justify-between gap-2">
+                    <dt class="text-slate-500">Lugar específico</dt>
+                    <dd class="text-right font-medium text-slate-900">
+                      {{ d.asignacion_actual?.lugar_especifico || '—' }}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+
+            <!-- Direcciones MAC -->
+            <div class="rounded-xl border border-gray-200 p-4">
+              <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                <lucide-icon [img]="icons.network" class="h-4 w-4"></lucide-icon>
+                <span>Interfaces de red (MAC)</span>
+              </div>
+              @if (nicList().length === 0) {
+                <p class="mt-2 text-sm text-slate-500">Sin direcciones MAC registradas.</p>
+              } @else {
+                <div class="mt-3 flex flex-wrap gap-2">
+                  @for (nic of nicList(); track $index) {
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-slate-100 px-3 py-1 font-mono text-xs text-slate-800">
+                      <span class="font-sans text-[11px] font-semibold uppercase text-[#006341]">{{ nic.kind || nic.iface_name || 'nic' }}</span>
+                      <span>{{ nic.mac_norm || nic.mac }}</span>
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Observaciones -->
+            <div class="rounded-xl border border-gray-200 p-4">
+              <h3 class="text-xs font-bold uppercase tracking-wide text-slate-500">Observaciones</h3>
+              <p class="mt-2 whitespace-pre-wrap text-sm text-slate-700">
+                {{ d.observaciones || 'Sin observaciones.' }}
+              </p>
+            </div>
+          </div>
+        }
+
+        <!-- TAB 2: MONITORES -->
+        @if (activeTab() === 'monitores') {
+          <div>
+            <div class="mb-4 flex items-center justify-between">
+              <h3 class="text-sm font-bold text-slate-800">Monitores asociados</h3>
+              <button
+                type="button"
+                (click)="openMonitorForm()"
+                class="inline-flex items-center gap-1.5 rounded-xl bg-[#006341] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#004f34]"
+              >
+                <lucide-icon [img]="icons.plus" class="h-4 w-4"></lucide-icon>
+                <span>Agregar monitor</span>
+              </button>
+            </div>
+
+            @if (!d.monitores?.length) {
+              <p class="rounded-xl border border-dashed border-gray-300 py-8 text-center text-sm text-slate-500">
+                No hay monitores registrados para este equipo.
+              </p>
+            } @else {
+              <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                    <tr>
+                      <th class="px-4 py-2.5">Serie</th>
+                      <th class="px-4 py-2.5">Marca</th>
+                      <th class="px-4 py-2.5">Modelo</th>
+                      <th class="px-4 py-2.5">Principal</th>
+                      <th class="px-4 py-2.5 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100 bg-white">
+                    @for (m of d.monitores; track m.id) {
+                      <tr>
+                        <td class="px-4 py-2.5 font-mono text-xs">{{ m.serial || '—' }}</td>
+                        <td class="px-4 py-2.5">{{ m.marca || '—' }}</td>
+                        <td class="px-4 py-2.5">{{ m.modelo || '—' }}</td>
+                        <td class="px-4 py-2.5">
+                          @if (m.es_principal) {
+                            <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">Sí</span>
+                          } @else {
+                            <span class="text-xs text-slate-400">No</span>
+                          }
+                        </td>
+                        <td class="px-4 py-2.5 text-right">
+                          <button type="button" (click)="openMonitorForm(m)" class="mr-2 text-slate-500 hover:text-[#006341]" title="Editar">
+                            <lucide-icon [img]="icons.edit" class="h-4 w-4"></lucide-icon>
+                          </button>
+                          <button type="button" (click)="confirmDeleteMonitor(m)" class="text-slate-500 hover:text-red-600" title="Eliminar">
+                            <lucide-icon [img]="icons.trash" class="h-4 w-4"></lucide-icon>
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- TAB 3: PERIFÉRICOS -->
+        @if (activeTab() === 'perifericos') {
+          <div>
+            <div class="mb-4 flex items-center justify-between">
+              <h3 class="text-sm font-bold text-slate-800">Periféricos asociados</h3>
+              <button
+                type="button"
+                (click)="openPerifericoForm()"
+                class="inline-flex items-center gap-1.5 rounded-xl bg-[#006341] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#004f34]"
+              >
+                <lucide-icon [img]="icons.plus" class="h-4 w-4"></lucide-icon>
+                <span>Agregar periférico</span>
+              </button>
+            </div>
+
+            @if (!d.perifericos?.length) {
+              <p class="rounded-xl border border-dashed border-gray-300 py-8 text-center text-sm text-slate-500">
+                No hay periféricos registrados para este equipo.
+              </p>
+            } @else {
+              <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                    <tr>
+                      <th class="px-4 py-2.5">Tipo</th>
+                      <th class="px-4 py-2.5">Serie</th>
+                      <th class="px-4 py-2.5">Marca</th>
+                      <th class="px-4 py-2.5">Modelo</th>
+                      <th class="px-4 py-2.5 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100 bg-white">
+                    @for (p of d.perifericos; track p.id) {
+                      <tr>
+                        <td class="px-4 py-2.5 font-medium">{{ p.tipo_nombre || p.tipo || ('Tipo #' + p.tipo_id) }}</td>
+                        <td class="px-4 py-2.5 font-mono text-xs">{{ p.serial || '—' }}</td>
+                        <td class="px-4 py-2.5">{{ p.marca || '—' }}</td>
+                        <td class="px-4 py-2.5">{{ p.modelo || '—' }}</td>
+                        <td class="px-4 py-2.5 text-right">
+                          <button type="button" (click)="openPerifericoForm(p)" class="mr-2 text-slate-500 hover:text-[#006341]" title="Editar">
+                            <lucide-icon [img]="icons.edit" class="h-4 w-4"></lucide-icon>
+                          </button>
+                          <button type="button" (click)="confirmDeletePeriferico(p)" class="text-slate-500 hover:text-red-600" title="Eliminar">
+                            <lucide-icon [img]="icons.trash" class="h-4 w-4"></lucide-icon>
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- TAB 4: HISTORIAL -->
+        @if (activeTab() === 'historial') {
+          <div class="space-y-4">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+              <div class="flex flex-wrap items-end gap-2">
+                <div>
+                  <label class="mb-1 block text-xs font-semibold text-slate-600">Desde</label>
+                  <input
+                    type="date"
+                    [ngModel]="historialFrom()"
+                    (ngModelChange)="historialFrom.set($event); loadHistorial(true)"
+                    class="rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs"
+                  />
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs font-semibold text-slate-600">Hasta</label>
+                  <input
+                    type="date"
+                    [ngModel]="historialTo()"
+                    (ngModelChange)="historialTo.set($event); loadHistorial(true)"
+                    class="rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                (click)="exportHistorialCsv()"
+                [disabled]="!historial().length"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                <lucide-icon [img]="icons.download" class="h-4 w-4"></lucide-icon>
+                <span>Exportar CSV</span>
+              </button>
+            </div>
+
+            @if (historialLoading()) {
+              <div class="py-8 text-center text-sm text-slate-500">Cargando bitácora...</div>
+            } @else if (!historial().length) {
+              <p class="rounded-xl border border-dashed border-gray-300 py-8 text-center text-sm text-slate-500">
+                Sin movimientos registrados en el rango seleccionado.
+              </p>
+            } @else {
+              <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200 text-xs">
+                  <thead class="bg-slate-50 text-left font-semibold uppercase text-slate-500">
+                    <tr>
+                      <th class="px-3 py-2">Desde</th>
+                      <th class="px-3 py-2">Hasta</th>
+                      <th class="px-3 py-2">Responsable / Lugar</th>
+                      <th class="px-3 py-2">Estado</th>
+                      <th class="px-3 py-2 text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100 bg-white">
+                    @for (h of historial(); track h.id) {
+                      <tr>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ (h.desde || h.fecha_asignacion) | date:'dd/MM/yyyy HH:mm' }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">
+                          @if (h.hasta || h.fecha_retiro) {
+                            {{ (h.hasta || h.fecha_retiro) | date:'dd/MM/yyyy HH:mm' }}
+                          } @else {
+                            <span class="font-semibold text-emerald-700">Vigente</span>
+                          }
+                        </td>
+                        <td class="px-3 py-2">
+                          <div class="font-medium text-slate-800">{{ h.persona || 'Sin asignar' }}</div>
+                          @if (h.lugar_especifico) {
+                            <div class="text-slate-500">{{ h.lugar_especifico }}</div>
+                          }
+                        </td>
+                        <td class="px-3 py-2">{{ h.estado_dispositivo || '—' }}</td>
+                        <td class="px-3 py-2 text-right">
+                          @if (h.hasta || h.fecha_retiro) {
+                            <button
+                              type="button"
+                              (click)="confirmRevert(h)"
+                              class="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:border-[#006341] hover:text-[#006341]"
+                            >
+                              <lucide-icon [img]="icons.revert" class="h-3.5 w-3.5"></lucide-icon>
+                              <span>Revertir</span>
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Paginación historial -->
+              <div class="flex items-center justify-between text-xs text-slate-600">
+                <span>Total: {{ historialTotal() }} registros</span>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="changeHistorialPage(-1)"
+                    [disabled]="historialPage() <= 1"
+                    class="rounded-lg border border-gray-300 p-1 hover:bg-slate-50 disabled:opacity-40"
+                  >
+                    <lucide-icon [img]="icons.prev" class="h-4 w-4"></lucide-icon>
+                  </button>
+                  <span>Página {{ historialPage() }} de {{ historialTotalPages() }}</span>
+                  <button
+                    type="button"
+                    (click)="changeHistorialPage(1)"
+                    [disabled]="historialPage() >= historialTotalPages()"
+                    class="rounded-lg border border-gray-300 p-1 hover:bg-slate-50 disabled:opacity-40"
+                  >
+                    <lucide-icon [img]="icons.next" class="h-4 w-4"></lucide-icon>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+</div>
+
+<!-- SUB-MODAL: EDITAR BÁSICO + MACs -->
+@if (showEditBasic()) {
+  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" (click)="showEditBasic.set(false)">
+    <div class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
+      <h3 class="text-base font-bold text-slate-900">Editar equipo e interfaces MAC</h3>
+      <form [formGroup]="editBasicForm" (ngSubmit)="saveEditBasic()" class="mt-4 space-y-4">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label class="mb-1 block text-xs font-semibold text-slate-700">Serie</label>
+            <input formControlName="serial" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold text-slate-700">Marca</label>
+            <input formControlName="marca" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold text-slate-700">Modelo</label>
+            <input formControlName="modelo" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold text-slate-700">IP</label>
+            <input formControlName="ip" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold text-slate-700">Conexión</label>
+            <input formControlName="conexion" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="mb-1 block text-xs font-semibold text-slate-700">Observaciones</label>
+            <textarea rows="2" formControlName="observaciones" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></textarea>
+          </div>
+        </div>
+
+        <!-- Gestión de MACs -->
+        <div class="rounded-xl border border-gray-200 bg-slate-50 p-3">
+          <label class="block text-xs font-semibold text-slate-700">Direcciones MAC</label>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <input
+              type="text"
+              [ngModel]="newMac()"
+              (ngModelChange)="newMac.set($event)"
+              [ngModelOptions]="{ standalone: true }"
+              placeholder="Ej. AA:BB:CC:DD:EE:FF"
+              class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-mono text-xs"
+            />
+            <select
+              [ngModel]="newMacKind()"
+              (ngModelChange)="newMacKind.set($event)"
+              [ngModelOptions]="{ standalone: true }"
+              class="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs"
+            >
+              <option value="ethernet">Ethernet</option>
+              <option value="wifi">Wi-Fi</option>
+              <option value="mgmt">Mgmt</option>
+              <option value="bt">Bluetooth</option>
+              <option value="other">Otro</option>
+            </select>
+            <button
+              type="button"
+              (click)="addMac()"
+              class="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
+            >
+              Agregar
+            </button>
+          </div>
+          @if (macError()) {
+            <p class="mt-1 text-xs text-red-600">{{ macError() }}</p>
+          }
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            @for (nic of editNics(); track $index) {
+              <span class="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 font-mono text-xs border border-gray-200">
+                <span class="font-sans text-[10px] font-bold uppercase text-[#006341]">{{ nic.kind || 'nic' }}</span>
+                <span>{{ nic.mac_norm || nic.mac }}</span>
+                <button type="button" (click)="removeMac($index)" class="ml-1 text-slate-400 hover:text-red-600">×</button>
+              </span>
+            }
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" (click)="showEditBasic.set(false)" class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancelar</button>
+          <button type="submit" [disabled]="saving()" class="rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004f34]">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- SUB-MODAL: CAMBIAR ASIGNACIÓN -->
+@if (showAsignacion()) {
+  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" (click)="showAsignacion.set(false)">
+    <div class="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
+      <h3 class="text-base font-bold text-slate-900">Cambiar asignación del equipo</h3>
+      <form [formGroup]="asignacionForm" (ngSubmit)="saveAsignacion()" class="mt-4 space-y-4">
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Unidad médica <span class="text-red-600">*</span></label>
+          <ng-select
+            formControlName="unidad_medica_id"
+            [items]="unidades()"
+            bindLabel="nombre"
+            bindValue="id"
+            [typeahead]="unidadSearch$"
+            [loading]="loadingUnidades()"
+            placeholder="Buscar unidad médica..."
+          ></ng-select>
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Persona responsable</label>
+          <ng-select
+            formControlName="persona_id"
+            [items]="personas()"
+            bindLabel="nombre_completo"
+            bindValue="id"
+            [typeahead]="personaSearch$"
+            [loading]="loadingPersonas()"
+            placeholder="Buscar persona (opcional)..."
+            [clearable]="true"
+          ></ng-select>
+        </div>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label class="mb-1 block text-xs font-semibold text-slate-700">Estado</label>
+            <select formControlName="estado_dispositivo_id" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+              <option [ngValue]="null">Sin cambio</option>
+              @for (e of estados; track e.id) {
+                <option [ngValue]="e.id">{{ e.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-semibold text-slate-700">Fecha de asignación</label>
+            <input type="date" formControlName="fecha_asignacion" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+          </div>
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Lugar específico</label>
+          <input formControlName="lugar_especifico" placeholder="Ej. Consultorio 3, Archivo Clínico (si se deja vacío con persona vacía se asigna 'sin asignar')" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" (click)="showAsignacion.set(false)" class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancelar</button>
+          <button type="submit" [disabled]="asignacionForm.invalid || saving()" class="rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004f34]">Guardar asignación</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- SUB-MODAL: MONITOR -->
+@if (showMonitorForm()) {
+  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" (click)="showMonitorForm.set(false)">
+    <div class="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
+      <h3 class="text-base font-bold text-slate-900">{{ editingMonitorId() ? 'Editar monitor' : 'Agregar monitor' }}</h3>
+      <form [formGroup]="monitorForm" (ngSubmit)="saveMonitor()" class="mt-4 space-y-3">
+        @if (monitorError()) {
+          <p class="text-xs text-red-600">{{ monitorError() }}</p>
+        }
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Serie</label>
+          <input formControlName="serial" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Marca</label>
+          <input formControlName="marca" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Modelo</label>
+          <input formControlName="modelo" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+        </div>
+        <label class="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" formControlName="es_principal" class="h-4 w-4 rounded border-gray-300 text-[#006341]" />
+          <span>Monitor principal</span>
+        </label>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" (click)="showMonitorForm.set(false)" class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancelar</button>
+          <button type="submit" [disabled]="saving()" class="rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004f34]">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- SUB-MODAL: PERIFÉRICO -->
+@if (showPerifericoForm()) {
+  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" (click)="showPerifericoForm.set(false)">
+    <div class="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
+      <h3 class="text-base font-bold text-slate-900">{{ editingPerifericoId() ? 'Editar periférico' : 'Agregar periférico' }}</h3>
+      <form [formGroup]="perifericoForm" (ngSubmit)="savePeriferico()" class="mt-4 space-y-3">
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Tipo de periférico <span class="text-red-600">*</span></label>
+          <select formControlName="tipo_id" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+            <option [ngValue]="null">Seleccione...</option>
+            @for (tp of tiposPeriferico(); track tp.id) {
+              <option [ngValue]="tp.id">{{ tp.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Serie</label>
+          <input formControlName="serial" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Marca</label>
+          <input formControlName="marca" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Modelo</label>
+          <input formControlName="modelo" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" (click)="showPerifericoForm.set(false)" class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancelar</button>
+          <button type="submit" [disabled]="perifericoForm.invalid || saving()" class="rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004f34]">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- MODAL DE CONFIRMACIÓN REUTILIZABLE -->
+@if (confirmState(); as c) {
+  <app-confirmacion-modal
+    [titulo]="c.titulo"
+    [mensaje]="c.mensaje"
+    [textoConfirmar]="c.textoConfirmar"
+    textoCancelar="Cancelar"
+    (confirmar)="executeConfirm()"
+    (cancelar)="confirmState.set(null)"
+  />
+}

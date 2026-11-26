@@ -37,10 +37,12 @@ import {
   RhUnidadAutorizada,
 } from '../../../services/rh.service';
 
+import { RhUnidadAutocompleteComponent } from '../shared/rh-unidad-autocomplete.component';
+
 @Component({
   selector: 'app-rh-comisiones-laborales',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule, RhUnidadAutocompleteComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rh-comisiones-laborales.component.html',
 })

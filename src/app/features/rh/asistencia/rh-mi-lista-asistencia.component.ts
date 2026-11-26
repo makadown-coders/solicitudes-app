@@ -26,6 +26,9 @@ import {
   RhAdscripcionEstadoVigencia,
   RhMiContextoAdscripcionPropia,
   RhMiContextoResponse,
+  RhMiHistorialAsistenciaMes,
+  RhMiHistorialAsistenciaResponse,
+  RhService,
 } from '../../../services/rh.service';
 import { RhAsistenciaCalendarService } from './rh-asistencia-calendar.service';
 import { RhAsistenciaDocxService } from './rh-asistencia-docx.service';
@@ -52,6 +55,7 @@ export const RH_ASISTENCIA_AVAILABLE_YEARS: ReadonlyArray<number> = [
 export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
   private readonly calendarService = inject(RhAsistenciaCalendarService);
   private readonly docxService = inject(RhAsistenciaDocxService);
+  private readonly rhService = inject(RhService);
 
   @Input({ required: true }) contexto: RhMiContextoResponse | null = null;
 
@@ -86,6 +90,28 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
   /** Periodo seleccionado (inicializado dinámicamente al mes y año actuales dentro del rango soportado) */
   readonly selectedYear = signal<number>(this.resolveInitialYear());
   readonly selectedMonth = signal<number>(this.resolveInitialMonth());
+  readonly historial = signal<RhMiHistorialAsistenciaResponse | null>(null);
+  readonly cargandoHistorial = signal(false);
+  readonly errorHistorial = signal(false);
+  private secuenciaHistorial = 0;
+  private secuenciaVacaciones = 0;
+  readonly fechasVacaciones = signal<string[]>([]);
+  readonly diasConVacaciones = computed(() => new Set(
+    this.fechasVacaciones().map((fecha) => Number(fecha.slice(-2)))
+  ));
+  readonly estadoVacaciones = signal<'cargando' | 'listo' | 'error'>('cargando');
+  readonly vacacionesEnDiasSombreados = computed(() => {
+    const sombreados = new Set(this.calendarSummary().days.filter((dia) => dia.isShaded).map((dia) => dia.day));
+    return this.fechasVacaciones().filter((fecha) => sombreados.has(Number(fecha.slice(-2))));
+  });
+
+  readonly listaRecibida = computed(() => this.historial()?.meses.find(
+    (mes) => mes.mes === this.selectedMonth() && mes.estado_control === 'RECIBIDA'
+  ));
+  readonly mesesPorRegistrar = computed(() => {
+    const resumen = this.historial()?.resumen;
+    return resumen?.sin_recepcion_registrada.filter((mes) => !resumen.requieren_atencion.includes(mes)) ?? [];
+  });
 
   /** Estado de generación y mensajes del documento Word */
   readonly isGenerating = signal(false);
@@ -180,6 +206,13 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
    * (invocado al cambiar/limpiar contexto, cerrar sesión o destruir el componente).
    */
   clearState(): void {
+    ++this.secuenciaVacaciones;
+    this.fechasVacaciones.set([]);
+    this.estadoVacaciones.set('cargando');
+    ++this.secuenciaHistorial;
+    this.historial.set(null);
+    this.cargandoHistorial.set(false);
+    this.errorHistorial.set(false);
     this.contextoSig.set(null);
     this.selectedAdscripcionId.set(null);
     this.draftNombre.set('');
@@ -215,6 +248,8 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
     }
 
     this.contextoSig.set(ctx);
+    void this.cargarVacaciones();
+    void this.cargarHistorial();
     this.clearFeedbackMessages();
 
     this.draftNombre.set((ctx.persona?.nombre_completo ?? '').trim());
@@ -326,18 +361,93 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
 
   onMonthChange(rawValue: string | number): void {
     const month = Number(rawValue);
-    if (Number.isInteger(month) && month >= 1 && month <= 12) {
+    if (Number.isInteger(month) && month >= 1 && month <= 12 && month !== this.selectedMonth()) {
       this.selectedMonth.set(month);
       this.clearFeedbackMessages();
+      void this.cargarVacaciones();
     }
   }
 
   onYearChange(rawValue: string | number): void {
     const year = Number(rawValue);
-    if (Number.isInteger(year) && this.availableYears.includes(year)) {
+    if (Number.isInteger(year) && this.availableYears.includes(year) && year !== this.selectedYear()) {
       this.selectedYear.set(year);
       this.clearFeedbackMessages();
+      void this.cargarHistorial();
+      void this.cargarVacaciones();
     }
+  }
+
+  async cargarVacaciones(): Promise<void> {
+    if (!this.contextoSig()) return;
+    const secuencia = ++this.secuenciaVacaciones;
+    const { year: anio, month: mes, daysInMonth } = this.calendarSummary();
+    this.fechasVacaciones.set([]);
+    this.estadoVacaciones.set('cargando');
+    try {
+      const respuesta = await this.rhService.obtenerMisFechasVacacionales(anio, mes);
+      if (secuencia !== this.secuenciaVacaciones) return;
+      if (respuesta.anio !== anio || respuesta.mes !== mes || !Array.isArray(respuesta.fechas)) {
+        this.estadoVacaciones.set('error');
+        return;
+      }
+      const prefijo = `${anio}-${String(mes).padStart(2, '0')}-`;
+      this.fechasVacaciones.set([...new Set(respuesta.fechas.filter((fecha) => {
+        if (typeof fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fecha) || !fecha.startsWith(prefijo)) return false;
+        const dia = Number(fecha.slice(-2));
+        return dia >= 1 && dia <= daysInMonth;
+      }))]);
+      this.estadoVacaciones.set('listo');
+    } catch {
+      if (secuencia === this.secuenciaVacaciones) this.estadoVacaciones.set('error');
+    }
+  }
+
+  async cargarHistorial(): Promise<void> {
+    if (!this.contextoSig()) return;
+    const secuencia = ++this.secuenciaHistorial;
+    const anio = this.selectedYear();
+    this.historial.set(null);
+    this.cargandoHistorial.set(true);
+    this.errorHistorial.set(false);
+    try {
+      const historial = await this.rhService.obtenerMiHistorialAsistencia(anio);
+      if (secuencia !== this.secuenciaHistorial) return;
+      this.historial.set(historial);
+    } catch {
+      if (secuencia === this.secuenciaHistorial) this.errorHistorial.set(true);
+    } finally {
+      if (secuencia === this.secuenciaHistorial) this.cargandoHistorial.set(false);
+    }
+  }
+
+  nombreMes(mes: number): string {
+    return this.monthsCatalog[mes - 1]?.label.toLocaleLowerCase('es-MX') ?? '';
+  }
+
+  nombresMeses(meses: number[]): string {
+    return new Intl.ListFormat('es-MX').format(meses.map((mes) => this.nombreMes(mes)));
+  }
+
+  indicadorMes(mes: RhMiHistorialAsistenciaMes): string {
+    if (mes.estado_control === 'RECIBIDA') return '✓';
+    if (mes.estado_control === 'NO_APLICA' || mes.elegibilidad === 'NO_CORRESPONDE') return 'N/A';
+    if (mes.estado_control === 'OBSERVADA' || mes.estado_control === 'ENTREGADA_DECLARADA') return '!';
+    return '';
+  }
+
+  descripcionMes(mes: RhMiHistorialAsistenciaMes): string {
+    switch (mes.estado_control) {
+      case 'RECIBIDA':
+        return 'Recepción registrada' + (mes.requiere_atencion ? '; requiere revisión' : '');
+      case 'NO_APLICA': return 'No corresponde';
+      case 'OBSERVADA': return 'Lista observada; requiere revisión';
+      case 'ENTREGADA_DECLARADA': return 'Entrega declarada; pendiente de confirmación por RH';
+    }
+    if (mes.elegibilidad === 'NO_CORRESPONDE') return 'No corresponde';
+    if (!mes.es_mes_cerrado) return 'Periodo sin cerrar';
+    if (mes.elegibilidad === 'INCIERTA') return 'Información laboral insuficiente para determinar si corresponde';
+    return 'Sin recepción registrada';
   }
 
   formatAdscripcionOptionLabel(item: RhMiContextoAdscripcionPropia): string {
@@ -384,8 +494,8 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
     return `${day}/${month}/${year}`;
   }
 
-  async onDownloadDocx(): Promise<void> {
-    if (this.isGenerating()) {
+  async onDownloadDocx(omitirVacaciones = false): Promise<void> {
+    if (this.isGenerating() || this.estadoVacaciones() !== (omitirVacaciones ? 'error' : 'listo')) {
       return;
     }
 
@@ -419,6 +529,9 @@ export class RhMiListaAsistenciaComponent implements OnChanges, OnDestroy {
         horario: this.draftHorario().trim() || null,
         mes: this.selectedMonth(),
         anio: this.selectedYear(),
+        ...(this.fechasVacaciones().length && !omitirVacaciones ? {
+          observacionesPorFecha: Object.fromEntries(this.fechasVacaciones().map((fecha) => [fecha, 'Vacaciones'])),
+        } : {}),
       });
       this.lastDownloadedFile.set(fileName);
     } catch (err: unknown) {

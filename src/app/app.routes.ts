@@ -295,10 +295,10 @@ export const routes: Routes = [
         title: 'Solicitado vs. surtido SAS'
       },
       {
-        path: 'abasto-por-programas',
-        loadComponent: () => import('./features/dashboard-abasto/abasto-por-programas/abasto-por-programas.component')
-          .then(m => m.AbastoPorProgramasComponent),
-        title: 'Dashboard Abasto - Abasto por Programas'
+        path: 'solicitado-vs-surtido-segundo-nivel',
+        loadComponent: () => import('./features/dashboard-abasto/concentrado-segundo-nivel/concentrado-segundo-nivel.component')
+          .then(m => m.ConcentradoSegundoNivelComponent),
+        title: 'Concentrado de Segundo Nivel'
       },
       {
         path: 'concentrado-primer-nivel',
@@ -363,6 +363,13 @@ export const routes: Routes = [
       .then(m => m.RhShellComponent),
   },
   {
+    path: 'rh-admin/migracion-asistencias-2026',
+    title: 'RH · Conciliación temporal de asistencias 2026',
+    canActivate: [authGuard, rhAccessGuard],
+    loadComponent: () => import('./features/rh/asistencia/rh-migracion-asistencias-2026.component')
+      .then(m => m.RhMigracionAsistencias2026Component),
+  },
+  {
     path: 'ti',
     title: 'Administración TI',
     canActivate: [authGuard, tiAdminGlobalGuard],
@@ -381,6 +388,12 @@ export const routes: Routes = [
         title: 'Administración TI · Personas',
         loadComponent: () => import('./features/ti/personas/ti-personas-page.component')
           .then(m => m.TiPersonasPageComponent),
+      },
+      {
+        path: 'inventario-equipos',
+        title: 'Administración TI · Inventario de Equipos',
+        loadComponent: () => import('./features/ti/inventario-equipos/ti-inventario-equipos-page.component')
+          .then(m => m.TiInventarioEquiposPageComponent),
       },
     ],
   },

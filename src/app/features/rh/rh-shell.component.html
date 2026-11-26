@@ -158,6 +158,21 @@
               <lucide-icon [img]="icons.briefcase" class="h-4 w-4" aria-hidden="true"></lucide-icon>
               <span>Estructura organizacional</span>
             </button>
+
+            <button
+              id="rh-admin-tab-asistencia"
+              type="button"
+              (click)="setAdminTab('asistencia')"
+              class="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition"
+              [ngClass]="
+                activeAdminTab() === 'asistencia'
+                  ? 'bg-[#006341] text-white shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100'
+              "
+            >
+              <lucide-icon [img]="icons.checkCircle" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+              <span>Control de asistencias</span>
+            </button>
           </nav>
         }
 
@@ -170,6 +185,13 @@
           <app-rh-organigrama-admin
             (unauthorized)="onPadronUnauthorized()"
           ></app-rh-organigrama-admin>
+        } @else if (activeAdminTab() === 'asistencia' && canManagePadronInstitucional()) {
+          <app-rh-asistencia-control
+            [unidades]="unidadesAutorizadas()"
+            [defaultUnidadId]="defaultUnidadAsistenciaId()"
+            [canAdminister]="canManagePadronInstitucional()"
+            (unauthorized)="onPadronUnauthorized()"
+          ></app-rh-asistencia-control>
         } @else {
         <!-- Sección de contexto de alcance y selección de unidad de trabajo -->
         <section

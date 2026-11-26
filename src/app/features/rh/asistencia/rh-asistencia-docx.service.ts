@@ -13,6 +13,7 @@ const SHADED_DAY_HEX = 'A6A6A6'; // Gris institucional para sábados, domingos y
 export const RH_ASISTENCIA_TEMPLATE_PATH = '/rh/asistencia/template-membretado-2026.docx';
 
 export interface RhAsistenciaDocxGenerateOptions {
+  observacionesPorFecha?: RhAsistenciaGenerateParams['observacionesPorFecha'];
   calendar: RhAsistenciaMonthCalendarSummary;
   placeholders: RhAsistenciaDocumentPlaceholders;
 }
@@ -80,7 +81,7 @@ export class RhAsistenciaDocxService {
       adscripcion,
     };
 
-    return { calendar, placeholders };
+    return { calendar, placeholders, observacionesPorFecha: params.observacionesPorFecha };
   }
 
   /**
@@ -159,7 +160,7 @@ export class RhAsistenciaDocxService {
     this.updateMetadataTable(metadataTable, options.placeholders);
 
     // 2. Actualizar Tabla 1 (Filas de días 1..31, recortar meses cortos y sombrear inhábiles)
-    this.updateDaysTable(xmlDoc, daysTable, options.calendar);
+    this.updateDaysTable(xmlDoc, daysTable, options.calendar, options.observacionesPorFecha);
 
     const serializer = new XMLSerializer();
     const updatedDocXml = serializer.serializeToString(xmlDoc);
@@ -213,6 +214,7 @@ export class RhAsistenciaDocxService {
     tableEl: Element,
     placeholders: RhAsistenciaDocumentPlaceholders
   ): void {
+    const mayusculas = (valor: string) => valor.toLocaleUpperCase('es-MX');
     const rows = this.getDirectChildrenByTagName(tableEl, 'tr');
     if (rows.length < 3) {
       throw new Error(
@@ -223,28 +225,28 @@ export class RhAsistenciaDocxService {
     // Fila 0: [Nombre:, VALOR_NOMBRE, Mes:, VALOR_MES, Año:, VALOR_ANIO]
     const row0Cells = this.getDirectChildrenByTagName(rows[0], 'tc');
     if (row0Cells.length >= 6) {
-      this.setCellText(row0Cells[1], placeholders.nombre);
-      this.setCellText(row0Cells[3], placeholders.mes);
+      this.setCellText(row0Cells[1], mayusculas(placeholders.nombre));
+      this.setCellText(row0Cells[3], mayusculas(placeholders.mes));
       this.setCellText(row0Cells[5], placeholders.anio);
     }
 
     // Fila 1: [Puesto:, VALOR_PUESTO, Jornada:/Horario:, VALOR_JORNADA / VALOR_HORARIO]
     const row1Cells = this.getDirectChildrenByTagName(rows[1], 'tc');
     if (row1Cells.length >= 2) {
-      this.setCellText(row1Cells[1], placeholders.puesto);
+      this.setCellText(row1Cells[1], mayusculas(placeholders.puesto));
     }
     if (row1Cells.length >= 4) {
       this.setJornadaHorarioCellText(
         row1Cells[3],
-        placeholders.jornada,
-        placeholders.horario
+        mayusculas(placeholders.jornada),
+        mayusculas(placeholders.horario)
       );
     }
 
     // Fila 2: [Adscripción:, VALOR_ADSCRIPCION]
     const row2Cells = this.getDirectChildrenByTagName(rows[2], 'tc');
     if (row2Cells.length >= 2) {
-      this.setCellText(row2Cells[1], placeholders.adscripcion);
+      this.setCellText(row2Cells[1], mayusculas(placeholders.adscripcion));
     }
   }
 
@@ -287,7 +289,8 @@ export class RhAsistenciaDocxService {
   private updateDaysTable(
     xmlDoc: Document,
     tableEl: Element,
-    calendar: RhAsistenciaMonthCalendarSummary
+    calendar: RhAsistenciaMonthCalendarSummary,
+    observacionesPorFecha?: RhAsistenciaGenerateParams['observacionesPorFecha']
   ): void {
     const rows = this.getDirectChildrenByTagName(tableEl, 'tr');
     if (rows.length < 33) {
@@ -329,9 +332,9 @@ export class RhAsistenciaDocxService {
         }
       }
 
-      // Mantener la columna OBSERVACIONES (celda índice 5) con espacio duro para impresión
       if (cells.length >= 6) {
-        this.setCellText(cells[5], '\u00A0');
+        const fecha = `${calendar.year}-${String(calendar.month).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`;
+        this.setCellText(cells[5], observacionesPorFecha?.[fecha] || '\u00A0');
       }
     }
   }

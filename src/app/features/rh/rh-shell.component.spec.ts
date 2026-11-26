@@ -175,6 +175,31 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     location = TestBed.inject(Location);
   });
 
+  function responderHistorialPersonal(): void {
+    for (const req of httpMock.match((r) =>
+      r.method === 'GET' && r.url.endsWith('/api/rh/mi-vacaciones/fechas')
+    )) {
+      expect(req.request.params.keys().sort()).toEqual(['anio', 'mes']);
+      req.flush({
+        anio: Number(req.request.params.get('anio')), mes: Number(req.request.params.get('mes')), fechas: [],
+      });
+    }
+    for (const req of httpMock.match((r) =>
+      r.method === 'GET' && r.url.endsWith('/api/rh/mi-asistencia/historial')
+    )) {
+      expect(req.request.params.keys()).toEqual(['anio']);
+      req.flush({
+        anio: Number(req.request.params.get('anio')),
+        ultimo_mes_cerrado: 0,
+        meses: Array.from({ length: 12 }, (_, i) => ({
+          mes: i + 1, estado_control: null, elegibilidad: 'INCIERTA', origen_registro: null,
+          fecha_recepcion: null, es_mes_cerrado: false, requiere_atencion: false,
+        })),
+        resumen: { sin_recepcion_registrada: [], requieren_atencion: [], no_corresponden: [], recibidas: [] },
+      });
+    }
+  }
+
   afterEach(() => {
     // Asegurar que nunca se creen personas nuevas ni se emitan PUT/DELETE a /api/rh
     httpMock.expectNone(
@@ -185,6 +210,7 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     for (const req of httpMock.match((r) => r.url.endsWith('/api/rh/mi-vacaciones'))) {
       req.flush({ periodos: [], kardex: null });
     }
+    responderHistorialPersonal();
     httpMock.verify();
     localStorage.clear();
   });
@@ -3532,6 +3558,7 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     expect(inputJornada.value).toBe('LUNES A VIERNES');
     expect(inputHorario.value).toBe('08:00 – 17:00 HRS');
 
+    responderHistorialPersonal();
     // 11 y 19. Edición local en el formulario no dispara ningún PATCH/POST/GET administrativo al backend
     inputPuesto.value = 'Analista Administrativo Estatal';
     inputPuesto.dispatchEvent(new Event('input'));
@@ -3718,6 +3745,8 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     // En 2026 (confirmado por Circular IB-UAF-CRH-0003-2026) el aviso desaparece
     selectYear.value = '2026';
     selectYear.dispatchEvent(new Event('change'));
+    responderHistorialPersonal();
+    await portalFixture.whenStable();
     portalFixture.detectChanges();
     expect(portalEl.querySelector('#rh-asistencia-unconfirmed-calendar-notice')).toBeNull();
     expect(portalEl.querySelector('#rh-asistencia-kpi-total-days')?.textContent?.trim()).toBe('28');
