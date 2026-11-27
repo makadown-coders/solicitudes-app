@@ -20,8 +20,8 @@
       <div class="hospital-search">
         <label for="unidad">Hospital</label>
         <div class="hospital-search-field">
-          <span class="search-icon" aria-hidden="true">⌕</span>
-          <input id="unidad" type="search" autocomplete="off"
+          <span class="ui-search-icon search-icon" aria-hidden="true">⌕</span>
+          <input class="ui-search-input" id="unidad" type="search" autocomplete="off"
             [ngModel]="busquedaHospital()" (ngModelChange)="busquedaHospital.set($event)"
             placeholder="Buscar por nombre o CLUES">
         </div>

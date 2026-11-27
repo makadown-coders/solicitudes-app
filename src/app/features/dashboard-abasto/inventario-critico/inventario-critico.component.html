@@ -73,7 +73,7 @@
       </thead>
       <tbody>
         @for (a of articulosFiltrados; track a) {
-          <tr class="cursor-pointer" (click)="abrirModal(a)">
+          <tr class="cursor-pointer hover:bg-emerald-50/60" (click)="abrirModal(a)">
             <td class="px-2 py-1">{{ a.clave }}</td>
             <td class="px-2 py-1">{{ a.descripcion }}</td>
             <td class="px-2 py-1">{{ a.emitidas }}</td>

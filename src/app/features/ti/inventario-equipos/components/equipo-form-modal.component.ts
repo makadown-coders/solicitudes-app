@@ -17,11 +17,12 @@ import { AlertCircle, Loader2, LucideAngularModule, MonitorSmartphone, X } from 
 import { Subject, catchError, debounceTime, distinctUntilChanged, from, of, switchMap } from 'rxjs';
 import { DispositivoCreate, TipoDispositivo } from '../../../../models/ti-inventario.models';
 import { TiPersonasService, TiUnidadMedicaItem } from '../../../../services/ti-personas.service';
+import { ConfirmacionModalComponent } from '../../../../shared/confirmacion-modal/confirmacion-modal.component';
 
 @Component({
   selector: 'app-equipo-form-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, NgSelectModule, LucideAngularModule],
+  imports: [CommonModule, ReactiveFormsModule, NgSelectModule, LucideAngularModule, ConfirmacionModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './equipo-form-modal.component.html',
 })
@@ -47,6 +48,7 @@ export class EquipoFormModalComponent implements OnInit {
   readonly unidades = signal<TiUnidadMedicaItem[]>([]);
   readonly loadingUnidades = signal(false);
   readonly unidadSearch$ = new Subject<string>();
+  readonly confirmarDescarte = signal(false);
 
   readonly form = this.fb.group({
     unidad_medica_id: [null as number | null, Validators.required],
@@ -58,6 +60,7 @@ export class EquipoFormModalComponent implements OnInit {
     conexion: [''],
     observaciones: [''],
   });
+  private readonly valoresIniciales = this.form.getRawValue();
 
   ngOnInit(): void {
     this.loadUnidades('');
@@ -92,8 +95,25 @@ export class EquipoFormModalComponent implements OnInit {
       });
   }
 
+  solicitarCierre(): void {
+    if (this.saving || this.confirmarDescarte()) return;
+    const valores = this.form.getRawValue();
+    const normalizar = (valor: string | number | null) => typeof valor === 'string' ? valor.trim() : valor;
+    const cambios = (Object.keys(valores) as (keyof typeof valores)[]).some(
+      (campo) => normalizar(valores[campo]) !== normalizar(this.valoresIniciales[campo]),
+    );
+    if (cambios) this.confirmarDescarte.set(true);
+    else this.closed.emit();
+  }
+
+  descartarCambios(): void {
+    if (this.saving || !this.confirmarDescarte()) return;
+    this.confirmarDescarte.set(false);
+    this.closed.emit();
+  }
+
   onSubmit(): void {
-    if (this.form.invalid || this.saving) {
+    if (this.form.invalid || this.saving || this.confirmarDescarte()) {
       this.form.markAllAsTouched();
       return;
     }

@@ -16,10 +16,10 @@
         <label class="block flex-1">
           <span class="sr-only">Buscar en resultados</span>
           <div class="relative">
-            <lucide-angular [img]="SearchIcon" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></lucide-angular>
+            <lucide-angular [img]="SearchIcon" class="ui-search-icon text-slate-400"></lucide-angular>
             <input
               type="text"
-              class="w-full rounded-xl border border-slate-300 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+              class="ui-search-input w-full rounded-xl border border-slate-300 bg-slate-50 py-2.5 pr-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
               placeholder="CLUES, nombre de unidad o clave CNIS"
               [ngModel]="filtroTexto()"
               (ngModelChange)="onFiltroTextoChange($event)" />

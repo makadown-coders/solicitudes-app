@@ -313,10 +313,10 @@
                 <div class="relative flex items-center">
                   <lucide-icon
                     [img]="icons.search"
-                    class="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400"
+                    class="ui-search-icon text-slate-400"
                     aria-hidden="true"
                   ></lucide-icon>
-                  <input
+<input
                     id="rh-unidad-trabajo-input"
                     type="text"
                     name="unidadTrabajoSearch"
@@ -335,7 +335,7 @@
                     (keydown)="onUnidadSearchKeyDown($event)"
                     (blur)="onUnidadSearchBlur()"
                     placeholder="Buscar unidad de trabajo por nombre o CLUES (ej. OFICINA CENTRAL, HOSPITAL, BCIMB…)"
-                    class="min-h-11 w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 read-only:bg-slate-50 read-only:text-slate-700"
+                    class="ui-search-input min-h-11 w-full rounded-xl border border-gray-300 bg-white py-2.5 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 read-only:bg-slate-50 read-only:text-slate-700"
                   />
                   @if (!isSingleCluesUnitLocked() && (unidadSearchDraft() || selectedUnidadId() !== null)) {
                     <button
@@ -572,7 +572,7 @@
                     <div class="relative flex items-center">
                       <lucide-icon
                         [img]="icons.search"
-                        class="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400"
+                        class="ui-search-icon text-slate-400"
                         aria-hidden="true"
                       ></lucide-icon>
                       <input
@@ -584,7 +584,7 @@
                         (ngModelChange)="onPersonalSearchInput($event)"
                         placeholder="Ej. Dra. Ana Gómez o MAT-1001…"
                         maxlength="200"
-                        class="min-h-11 w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-24 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+                        class="ui-search-input min-h-11 w-full rounded-xl border border-gray-300 bg-white py-2.5 pr-24 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
                       />
                       @if (personalSearchDraft() || hasActivePersonalSearch()) {
                         <button
@@ -1008,12 +1008,12 @@
                     <div class="relative flex items-center">
                       <lucide-icon
                         [img]="loadingCandidatas() ? icons.loader : icons.search"
-                        class="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400"
+                        class="ui-search-icon text-slate-400"
                         [class.animate-spin]="loadingCandidatas()"
                         aria-hidden="true"
                       ></lucide-icon>
 
-                      <input
+<input
                         id="rh-vincular-persona-input"
                         type="text"
                         name="candidataSearch"
@@ -1033,7 +1033,7 @@
                         (blur)="onCandidataSearchBlur()"
                         placeholder="Escribe el nombre o matrícula para buscar…"
                         maxlength="200"
-                        class="min-h-11 w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 disabled:bg-slate-100"
+                        class="ui-search-input min-h-11 w-full rounded-xl border border-gray-300 bg-white py-2.5 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20 disabled:bg-slate-100"
                       />
 
                       @if (candidataSearchDraft() || selectedCandidata() !== null) {

@@ -14,19 +14,11 @@ export class TiCatalogosService {
   private readonly base = environment.apiUrl.replace(/\/+$/, '');
 
   tiposDispositivo(): Observable<TipoDispositivo[]> {
-    return this.http.get<TipoDispositivo[]>(`${this.base}/catalogos/tipos-dispositivo`);
+    return this.http.get<TipoDispositivo[]>(`${this.base}/ti/catalogos/tipos-dispositivo`);
   }
 
   estadosDispositivo(): Observable<EstadoDispositivo[]> {
-    return this.http.get<EstadoDispositivo[]>(`${this.base}/catalogos/estados-dispositivo`).pipe(
-      catchError(() =>
-        of([
-          { id: 1, nombre: 'En Uso' },
-          { id: 2, nombre: 'En Reparacion' },
-          { id: 3, nombre: 'En Resguardo' },
-        ])
-      )
-    );
+    return this.http.get<EstadoDispositivo[]>(`${this.base}/ti/catalogos/estados-dispositivo`);
   }
 
   tiposPeriferico(): Observable<TipoPeriferico[]> {

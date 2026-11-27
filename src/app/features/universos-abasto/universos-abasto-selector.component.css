@@ -5,22 +5,17 @@
 
 .hospital-search-field {
   position: relative;
+  margin-top: 6px;
 }
 
 .hospital-search-field input {
   min-height: 50px;
-  padding-left: 42px;
+  margin-top: 0;
   font-size: 1rem;
 }
 
 .search-icon {
-  position: absolute;
-  z-index: 1;
-  top: 50%;
-  left: 15px;
-  transform: translateY(-50%);
   color: #087f5b;
-  font-size: 1.25rem;
 }
 
 .search-help {

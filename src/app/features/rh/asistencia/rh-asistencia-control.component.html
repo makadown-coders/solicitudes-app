@@ -133,7 +133,7 @@
         <div class="relative mt-1">
           <lucide-icon
             [img]="icons.search"
-            class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400"
+            class="ui-search-icon text-slate-400"
             aria-hidden="true"
           ></lucide-icon>
           <input
@@ -142,7 +142,7 @@
             [ngModel]="searchQuery()"
             (ngModelChange)="onSearchInput($event)"
             placeholder="Nombre completo..."
-            class="w-full rounded-xl border border-gray-300 bg-white py-2 pr-8 pl-9 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]/30"
+            class="ui-search-input w-full rounded-xl border border-gray-300 bg-white py-2 pr-8 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#006341] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006341]/30"
           />
           @if (searchQuery()) {
             <button

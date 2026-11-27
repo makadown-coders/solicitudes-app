@@ -25,14 +25,14 @@
           Buscar clave
         </label>
         <div class="relative mt-1">
-          <div class="absolute inset-y-0 left-0 flex items-center justify-center w-10 text-gray-400 pointer-events-none">
-            <lucide-angular [img]="SearchIcon" class="h-4 w-4"></lucide-angular>
+          <div class="contents text-gray-400">
+            <lucide-angular [img]="SearchIcon" class="ui-search-icon" aria-hidden="true"></lucide-angular>
           </div>
           <input
             id="dashboard-estatal-search"
             type="search"
             autocomplete="off"
-            class="py-2 pl-10 pr-3 h-10 w-full text-sm leading-5 bg-white rounded-xl border-gray-300 border focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            class="ui-search-input py-2 pr-3 h-10 w-full text-sm leading-5 bg-white rounded-xl border-gray-300 border focus:outline-none focus:ring-2 focus:ring-emerald-500"
             placeholder="Captura clave CNIS o descripción"
             [ngModel]="searchText()"
             (ngModelChange)="onSearchChange($event)">
