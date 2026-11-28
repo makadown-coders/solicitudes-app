@@ -151,3 +151,8 @@ input.ui-search-input {
 .animate-loading-bar {
   animation: loading-bar 1.5s linear infinite;
 }
+
+/* El anfitrión global de ng-fast-toast está fuera del organigrama. */
+body:has(app-rh-organigrama-admin :is(dialog[open], [aria-modal="true"])) ng-fast-toast {
+  display: none;
+}

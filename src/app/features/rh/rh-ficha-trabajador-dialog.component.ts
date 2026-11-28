@@ -1,18 +1,23 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
+  ElementRef,
   EventEmitter,
   inject,
   Input,
+  Injector,
   OnChanges,
   OnDestroy,
   Output,
   SimpleChanges,
   signal,
+  viewChild,
 } from '@angular/core';
+import { NgFastToastService } from 'ng-fast-toast';
 import { FormsModule } from '@angular/forms';
 import {
   AlertCircle,
@@ -33,12 +38,14 @@ import {
 } from 'lucide-angular';
 import {
   RhService,
+  RhSupervisionDirecta,
   RhTrabajadorFichaLaboral,
   RhTrabajadorFichaPersonal,
   RhTrabajadorFichaResponse,
   RhUpdateAdscripcionLaboralPayload,
   RhUpdatePersonaIdentificacionPayload,
 } from '../../services/rh.service';
+import { etiquetasSupervision, RhSupervisionDirectaDialogComponent } from './rh-supervision-directa-dialog.component';
 import {
   formatRhHorarioRango,
   RH_HORARIO_SUGERENCIAS,
@@ -95,12 +102,44 @@ function normalizeNullableText(raw: string): string | null {
 @Component({
   selector: 'app-rh-ficha-trabajador-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, RhSupervisionDirectaDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rh-ficha-trabajador-dialog.component.html',
 })
 export class RhFichaTrabajadorDialogComponent implements OnChanges, OnDestroy {
   private readonly rhService = inject(RhService);
+  private readonly toast = inject(NgFastToastService);
+  private readonly injector = inject(Injector);
+  private readonly botonSupervision = viewChild<ElementRef<HTMLButtonElement>>('botonSupervision');
+  readonly supervisionFicha = signal<RhTrabajadorFichaResponse | null>(null);
+  readonly supervisionGuardada = signal<RhSupervisionDirecta | null>(null);
+  readonly etiquetasSupervision = etiquetasSupervision;
+  @Input() permiteAdministrarSupervision = false;
+
+  get puedeAdministrarSupervision(): boolean {
+    return this.permiteAdministrarSupervision && this.ficha?.unidad.id === 177 &&
+      this.ficha.laboral.unidad_medica_id === 177 && this.ficha.personal.persona_id > 0;
+  }
+
+  abrirSupervision(): void {
+    if (this.puedeAdministrarSupervision && this.ficha && !this.isBusySaving &&
+        !this.editMode() && !this.editIdentificacionMode()) {
+      this.supervisionFicha.set(this.ficha);
+    }
+  }
+
+  cerrarSupervision(resultado: RhSupervisionDirecta | null): void {
+    this.supervisionFicha.set(null);
+    if (resultado) {
+      this.supervisionGuardada.set(resultado);
+      this.toast.success({
+        title: 'Jefatura actualizada',
+        content: `${resultado.nombre_trabajador} · ${this.etiquetasSupervision[resultado.estado]}`,
+        duration: 2.5,
+      });
+    }
+    afterNextRender(() => this.botonSupervision()?.nativeElement.focus(), { injector: this.injector });
+  }
 
   @Input({ required: true }) open = false;
   @Input() loading = false;
@@ -596,6 +635,14 @@ export class RhFichaTrabajadorDialogComponent implements OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (!this.open || !this.puedeAdministrarSupervision ||
+        (this.supervisionFicha() && this.supervisionFicha()?.personal.persona_id !== this.ficha?.personal.persona_id)) {
+      this.supervisionFicha.set(null);
+    }
+    if (!this.open || this.supervisionGuardada()?.persona_supervisada_id !== this.ficha?.personal.persona_id ||
+        this.supervisionGuardada()?.unidad_medica_id !== this.ficha?.unidad.id) {
+      this.supervisionGuardada.set(null);
+    }
     if (changes['open'] && !this.open) {
       this.resetEditMode();
       this.resetIdentificacionEditMode();

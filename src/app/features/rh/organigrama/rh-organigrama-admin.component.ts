@@ -1,18 +1,20 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
+  ElementRef,
   inject,
   OnInit,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   AlertCircle,
-  CheckCircle2,
   ChevronDown,
   ChevronRight,
   GitBranch,
@@ -26,7 +28,10 @@ import {
   Search,
   X,
 } from 'lucide-angular';
-import { RhOrgPuestoDto, RhService } from '../../../services/rh.service';
+import { RhOrgOcupacion, RhOrgPuestoDto, RhService } from '../../../services/rh.service';
+import { RhOrgOcupacionComponent } from './rh-org-ocupacion.component';
+import { rhOrgEtiquetaOcupacion } from './rh-org-ocupacion-labels';
+import { NgFastToastService } from 'ng-fast-toast';
 
 export interface RhOrgFlatNode {
   puesto: RhOrgPuestoDto;
@@ -40,14 +45,41 @@ export interface RhOrgFlatNode {
 @Component({
   selector: 'app-rh-organigrama-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, RhOrgOcupacionComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rh-organigrama-admin.component.html',
+  styles: [`
+    .org-puesto {
+      padding-inline-start: calc(0.75rem + var(--org-depth, 0) * clamp(0.375rem, 1.4vw, 1.25rem));
+    }
+    .org-puesto-seleccionado {
+      outline: 2px solid #047857;
+      outline-offset: -2px;
+    }
+    .org-nivel { background-color: #f1f5f9; }
+    .org-nivel[data-nivel="1"] { background-color: #d1fae5; }
+    .org-nivel[data-nivel="2"] { background-color: #e0f2fe; }
+    .org-nivel[data-nivel="3"] { background-color: #fef3c7; }
+    .org-nivel[data-nivel="4"] { background-color: #ede9fe; }
+    .org-nivel[data-nivel="5"] { background-color: #ccfbf1; }
+    .org-nivel[data-nivel="6"] { background-color: #ffe4e6; }
+    .org-nivel[data-nivel="7"] { background-color: #ecfccb; }
+    .org-nivel[data-nivel="8"] { background-color: #e0e7ff; }
+    .org-nivel[data-nivel="9"] { background-color: #ffedd5; }
+    .org-nivel[data-nivel="10"] { background-color: #fae8ff; }
+  `],
 })
 export class RhOrganigramaAdminComponent implements OnInit {
   private readonly rhService = inject(RhService);
+  private readonly toast = inject(NgFastToastService);
+  private readonly documento = inject(DOCUMENT);
+  private readonly destroyRef = inject(DestroyRef);
+  private observarToasts?: MutationObserver;
+  private readonly toastsAdaptados = new WeakSet<ShadowRoot>();
 
   readonly unauthorized = output<void>();
+  readonly revisarAdscripcion = output<string>();
+  readonly etiquetaOcupacion = rhOrgEtiquetaOcupacion;
 
   readonly icons = {
     network: Network,
@@ -56,7 +88,6 @@ export class RhOrganigramaAdminComponent implements OnInit {
     refresh: RefreshCw,
     loader: Loader2,
     alert: AlertCircle,
-    checkCircle: CheckCircle2,
     chevronRight: ChevronRight,
     chevronDown: ChevronDown,
     plus: Plus,
@@ -70,7 +101,65 @@ export class RhOrganigramaAdminComponent implements OnInit {
   readonly items = signal<RhOrgPuestoDto[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
-  readonly successBanner = signal<string | null>(null);
+  readonly anuncioExito = signal<{ texto: string; alterno: boolean } | null>(null);
+
+  private notificarExito(title: string, content: string): void {
+    if (this.destroyRef.destroyed) return;
+    this.adaptarAnfitrionToast();
+    this.toast.success({ title, content, duration: 2.5 });
+    this.anuncioExito.update((previo) => ({ texto: `${title}. ${content}`, alterno: !previo?.alterno }));
+  }
+
+  private adaptarAnfitrionToast(): void {
+    if (this.observarToasts) return;
+    const anfitrion = this.documento.querySelector('ng-fast-toast')?.shadowRoot;
+    if (!anfitrion) return;
+
+    // ng-fast-toast encapsula cada tarjeta y su botón en Shadow DOM sin CSS parts.
+    for (const toast of anfitrion.querySelectorAll('toast-root')) {
+      if (toast.shadowRoot) this.toastsAdaptados.add(toast.shadowRoot);
+    }
+    this.observarToasts = new MutationObserver(() => {
+      for (const toast of anfitrion.querySelectorAll('toast-root')) {
+        const tarjeta = toast.shadowRoot;
+        const cerrar = tarjeta?.querySelector<HTMLElement>('section:last-child > error-icon');
+        if (!tarjeta || !cerrar || this.toastsAdaptados.has(tarjeta)) continue;
+        this.toastsAdaptados.add(tarjeta);
+        const estilos = this.documento.createElement('style');
+        estilos.textContent = `
+          :host > div { max-width: calc(100vw - 2rem); overflow-wrap: anywhere; pointer-events: auto; }
+          :host section:last-child > error-icon { opacity: 1; }
+          :host error-icon:focus-visible { outline: 2px solid #047857; outline-offset: 2px; }
+          @media (prefers-reduced-motion: reduce) {
+            :host > div { animation: none !important; transform: none !important; transition: none !important; }
+            :host .toast-exit-right { opacity: 0; }
+            :host circle-progress { visibility: hidden; }
+          }
+        `;
+        tarjeta.appendChild(estilos);
+        cerrar.setAttribute('role', 'button');
+        cerrar.setAttribute('aria-label', 'Cerrar notificación');
+        cerrar.tabIndex = 0;
+        cerrar.addEventListener('keydown', (evento) => {
+          if (evento.key === 'Enter' || evento.key === ' ') {
+            evento.preventDefault();
+            cerrar.click();
+          }
+        });
+      }
+    });
+    this.observarToasts.observe(anfitrion, { childList: true, subtree: true });
+    this.destroyRef.onDestroy(() => this.observarToasts?.disconnect());
+  }
+  private readonly buscadorPuestos = viewChild.required<ElementRef<HTMLInputElement>>('buscadorPuestos');
+  private readonly objetivoOcupacion = signal<{
+    puesto: RhOrgPuestoDto;
+    ruta: string[];
+    padre: string;
+    disparador: HTMLButtonElement;
+  } | null>(null);
+  readonly ocupacionId = computed(() => this.objetivoOcupacion()?.puesto.id ?? null);
+  private cargaSeq = 0;
 
   readonly searchQuery = signal('');
   readonly expandedIds = signal<Record<number, boolean>>({});
@@ -103,6 +192,43 @@ export class RhOrganigramaAdminComponent implements OnInit {
     }
     return map;
   });
+
+  readonly ocupacionSeleccionada = computed(() => {
+    const objetivo = this.objetivoOcupacion();
+    return objetivo && {
+      ...objetivo,
+      puesto: this.byId()[objetivo.puesto.id] ?? objetivo.puesto,
+    };
+  });
+
+  abrirOcupacion(puesto: RhOrgPuestoDto, disparador: HTMLButtonElement): void {
+    if (this.objetivoOcupacion()) return;
+    const ruta: string[] = [];
+    const vistos = new Set<number>();
+    const puestos = this.byId();
+    let actual: RhOrgPuestoDto | undefined = puesto;
+    while (actual && !vistos.has(actual.id)) {
+      vistos.add(actual.id);
+      ruta.unshift(actual.denominacion);
+      actual = actual.puesto_padre_id === null ? undefined : puestos[actual.puesto_padre_id];
+    }
+    this.objetivoOcupacion.set({ puesto, ruta, padre: this.getNombrePuesto(puesto.puesto_padre_id), disparador });
+  }
+
+  cerrarOcupacion(): void {
+    const disparador = this.objetivoOcupacion()?.disparador;
+    this.objetivoOcupacion.set(null);
+    (disparador?.isConnected ? disparador : this.buscadorPuestos().nativeElement).focus();
+  }
+
+  ocupacionGuardada(ocupacion: RhOrgOcupacion): void {
+    this.items.update((puestos) => puestos.map((puesto) => puesto.id === ocupacion.puesto_id
+      ? { ...puesto, estado_ocupacion: ocupacion.estado, persona_id: ocupacion.persona_id,
+        nombre_ocupante: ocupacion.nombre_ocupante }
+      : puesto));
+    this.notificarExito('Ocupación actualizada', `${ocupacion.denominacion} · ${this.etiquetaOcupacion(ocupacion.estado)}`);
+    void this.cargar();
+  }
 
   readonly childrenByParentId = computed<Map<number | null, RhOrgPuestoDto[]>>(() => {
     const map = new Map<number | null, RhOrgPuestoDto[]>();
@@ -195,10 +321,12 @@ export class RhOrganigramaAdminComponent implements OnInit {
   }
 
   async cargar(): Promise<void> {
+    const seq = ++this.cargaSeq;
     this.loading.set(true);
     this.error.set(null);
     try {
-      const res = await this.rhService.listOrganigramaPuestos();
+      const res = await this.rhService.listOrganigramaPuestos(true);
+      if (seq !== this.cargaSeq) return;
       this.versionClave.set(res.version.clave);
       this.versionNombre.set(res.version.nombre);
       const list = Array.isArray(res.items) ? res.items : [];
@@ -215,13 +343,14 @@ export class RhOrganigramaAdminComponent implements OnInit {
         this.expandedIds.set(initExp);
       }
     } catch (err) {
+      if (seq !== this.cargaSeq) return;
       if (err instanceof HttpErrorResponse && err.status === 401) {
         this.unauthorized.emit();
         return;
       }
       this.error.set(this.extractError(err, 'No se pudo consultar la estructura organizacional.'));
     } finally {
-      this.loading.set(false);
+      if (seq === this.cargaSeq) this.loading.set(false);
     }
   }
 
@@ -300,7 +429,7 @@ export class RhOrganigramaAdminComponent implements OnInit {
           orden_visual: Math.max(0, Number(this.draftOrdenVisual()) || 0),
           observaciones: this.draftObservaciones().trim() || null,
         });
-        this.successBanner.set(`Puesto "${denom}" agregado correctamente.`);
+        this.notificarExito('Puesto agregado', denom);
       } else {
         await this.rhService.actualizarOrganigramaPuesto(target.id, {
           denominacion: denom,
@@ -309,7 +438,7 @@ export class RhOrganigramaAdminComponent implements OnInit {
           orden_visual: Math.max(0, Number(this.draftOrdenVisual()) || 0),
           observaciones: this.draftObservaciones().trim() || null,
         });
-        this.successBanner.set(`Puesto "${denom}" actualizado correctamente.`);
+        this.notificarExito('Puesto actualizado', denom);
       }
       this.formDialogMode.set(null);
       this.formTargetPuesto.set(null);
@@ -344,7 +473,7 @@ export class RhOrganigramaAdminComponent implements OnInit {
     try {
       await this.rhService.cambiarDependenciaOrganigramaPuesto(target.id, newPadreId);
       this.depTarget.set(null);
-      this.successBanner.set(`Dependencia de "${target.denominacion}" actualizada correctamente.`);
+      this.notificarExito('Dependencia actualizada', target.denominacion);
       await this.cargar();
     } catch (err) {
       this.depError.set(this.extractError(err, 'No se pudo cambiar la dependencia jerárquica.'));
@@ -359,11 +488,7 @@ export class RhOrganigramaAdminComponent implements OnInit {
     this.error.set(null);
     try {
       await this.rhService.cambiarEstadoOrganigramaPuesto(puesto.id, !puesto.activo);
-      this.successBanner.set(
-        !puesto.activo
-          ? `Puesto "${puesto.denominacion}" habilitado.`
-          : `Puesto "${puesto.denominacion}" deshabilitado.`
-      );
+      this.notificarExito(puesto.activo ? 'Puesto deshabilitado' : 'Puesto habilitado', puesto.denominacion);
       await this.cargar();
     } catch (err) {
       this.error.set(this.extractError(err, 'No se pudo actualizar el estado del puesto.'));

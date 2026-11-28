@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,6 +11,58 @@ import {
   OrigenCapturaPrimerNivel,
 } from '../../../models/ConcentradoPrimerNivelModels';
 import { ConcentradoPrimerNivelService } from '../../../services/concentrado-primer-nivel.service';
+
+const ZONA_HORARIA_TIJUANA = 'America/Tijuana';
+const FECHA_ISO_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function obtenerHoyTijuana(ahora: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA_HORARIA_TIJUANA,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(ahora);
+}
+
+function parseFechaIso(iso: string): { year: number; month: number; day: number; utcMs: number } | null {
+  const match = FECHA_ISO_REGEX.exec(iso);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const utcMs = Date.UTC(year, month - 1, day);
+  const check = new Date(utcMs);
+  if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) {
+    return null;
+  }
+  return { year, month, day, utcMs };
+}
+
+function formatearFechaIso(year: number, month: number, day: number): string {
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function sumarDiasIso(iso: string, dias: number): string {
+  const parsed = parseFechaIso(iso);
+  if (!parsed) return iso;
+  const target = new Date(parsed.utcMs + dias * 86400000);
+  return formatearFechaIso(target.getUTCFullYear(), target.getUTCMonth() + 1, target.getUTCDate());
+}
+
+function restarUnMesCalendario(iso: string): string {
+  const parsed = parseFechaIso(iso);
+  if (!parsed) return iso;
+  const targetYear = parsed.month === 1 ? parsed.year - 1 : parsed.year;
+  const targetMonth = parsed.month === 1 ? 12 : parsed.month - 1;
+  const diasEnMesObjetivo = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
+  return formatearFechaIso(targetYear, targetMonth, Math.min(parsed.day, diasEnMesObjetivo));
+}
+
+function formatearFechaMx(iso: string): string {
+  const parsed = parseFechaIso(iso);
+  if (!parsed) return iso;
+  return `${String(parsed.day).padStart(2, '0')}/${String(parsed.month).padStart(2, '0')}/${parsed.year}`;
+}
 
 const VACIO: ConcentradoPrimerNivelResponse = {
   mode: 'concentrado-primer-nivel', window: { months: 1 }, page: 1, pageSize: 25, total: 0,
@@ -32,6 +84,18 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
   readonly loading = signal(false);
   readonly exporting = signal(false);
   readonly exportingDistribucion = signal(false);
+  readonly modalMatrizAbierto = signal(false);
+  readonly hoyTijuana = signal(obtenerHoyTijuana());
+  readonly desdeMatriz = signal('');
+  readonly hastaMatriz = signal('');
+  readonly minDesdeMatriz = computed(() => restarUnMesCalendario(this.hoyTijuana()));
+  readonly minHastaMatriz = computed(() => {
+    const desde = this.desdeMatriz();
+    const base = parseFechaIso(desde) ? sumarDiasIso(desde, 1) : sumarDiasIso(this.minDesdeMatriz(), 1);
+    return base > this.hoyTijuana() ? this.hoyTijuana() : base;
+  });
+  readonly errorRangoMatriz = computed(() => this.validarRangoMatriz(this.desdeMatriz(), this.hastaMatriz(), this.hoyTijuana()));
+  readonly rangoMatrizValido = computed(() => !this.errorRangoMatriz());
   readonly error = signal('');
   readonly months = signal(1);
   readonly jurisdiccion = signal('');
@@ -121,11 +185,67 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
     } finally { this.exporting.set(false); }
   }
 
-  async exportarMatrizDistribucion(): Promise<void> {
+  abrirModalMatrizDistribucion(): void {
+    if (this.exportingDistribucion()) return;
+    const hoy = obtenerHoyTijuana();
+    this.hoyTijuana.set(hoy);
+    this.desdeMatriz.set(sumarDiasIso(hoy, -14));
+    this.hastaMatriz.set(hoy);
+    this.modalMatrizAbierto.set(true);
+  }
+
+  cerrarModalMatrizDistribucion(): void {
+    if (this.exportingDistribucion()) return;
+    this.modalMatrizAbierto.set(false);
+  }
+
+  async confirmarMatrizDistribucion(): Promise<void> {
+    if (this.exportingDistribucion()) return;
+    const hoy = obtenerHoyTijuana();
+    this.hoyTijuana.set(hoy);
+    const desde = this.desdeMatriz().trim();
+    const hasta = this.hastaMatriz().trim();
+    if (this.validarRangoMatriz(desde, hasta, hoy)) return;
+    this.modalMatrizAbierto.set(false);
+    await this.exportarMatrizDistribucion(desde, hasta);
+  }
+
+  private validarRangoMatriz(desde: string, hasta: string, hoy: string): string {
+    if (!parseFechaIso(desde) || !parseFechaIso(hasta)) {
+      return 'Selecciona fechas válidas en Desde y Hasta.';
+    }
+    const minDesde = restarUnMesCalendario(hoy);
+    if (desde < minDesde) {
+      return `La fecha Desde no puede ser anterior al ${formatearFechaMx(minDesde)}.`;
+    }
+    if (desde > hoy || hasta > hoy) {
+      return `No se permiten fechas posteriores a hoy (${formatearFechaMx(hoy)}).`;
+    }
+    if (desde >= hasta) {
+      return 'La fecha Desde debe ser anterior a Hasta.';
+    }
+    return '';
+  }
+
+  private formatearFechaHoraTijuana(iso: string): string {
+    const fecha = new Date(iso);
+    if (Number.isNaN(fecha.getTime())) return iso;
+    return new Intl.DateTimeFormat('es-MX', {
+      timeZone: ZONA_HORARIA_TIJUANA,
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(fecha);
+  }
+
+  async exportarMatrizDistribucion(desde: string, hasta: string): Promise<void> {
     if (this.exportingDistribucion()) return;
     this.exportingDistribucion.set(true); this.error.set('');
     try {
-      const out = await this.service.matrizDistribucion(this.months());
+      const out = await this.service.matrizDistribucion(desde, hasta);
       const workbook = new ExcelJS.Workbook();
       const hojas: Array<{ jurisdiccion: JurisdiccionDistribucionPrimerNivel; nombre: string }> = [
         { jurisdiccion: 'ENSENADA', nombre: 'Ensenada' },
@@ -137,17 +257,19 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
         this.crearHojaDistribucion(workbook, out, hoja.jurisdiccion, hoja.nombre);
       }
 
+      const desdeFmt = formatearFechaMx(out.window.desde);
+      const hastaFmt = formatearFechaMx(out.window.hasta);
       workbook.creator = 'Concentrado de Primer Nivel';
       workbook.created = new Date(out.generadoEn);
-      workbook.title = `Matriz provisional de distribución de Primer Nivel - últimos ${out.window.months} meses`;
+      workbook.title = `Matriz provisional de distribución de Primer Nivel - Solicitudes Wishlist capturadas del ${desdeFmt} al ${hastaFmt}`;
       workbook.subject = 'Necesidades registradas; no acredita autorización, surtimiento o entrega.';
-      const stamp = new Date().toISOString().slice(0, 10).replaceAll('-', '');
+      const stamp = obtenerHoyTijuana().replaceAll('-', '');
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const enlace = document.createElement('a');
       enlace.href = url;
-      enlace.download = `matriz_distribucion_primer_nivel_${out.window.months}m_${stamp}.xlsx`;
+      enlace.download = `matriz_distribucion_primer_nivel_${out.window.desde.replaceAll('-', '')}_${out.window.hasta.replaceAll('-', '')}_${stamp}.xlsx`;
       enlace.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -176,8 +298,21 @@ export class ConcentradoPrimerNivelComponent implements OnInit {
       porClave.set(item.clave, actual);
     }
 
-    const filaRutas: Array<string | number> = [`Periodo: últimos ${out.window.months} meses`, 'PROVISIONAL', '', 'RUTA'];
-    const filaClues: Array<string | number> = ['', '', '', 'CLUES'];
+    const desdeFmt = formatearFechaMx(out.window.desde);
+    const hastaFmt = formatearFechaMx(out.window.hasta);
+    const generadoFmt = this.formatearFechaHoraTijuana(out.generadoEn);
+    const filaRutas: Array<string | number> = [
+      `Solicitudes Wishlist capturadas del ${desdeFmt} al ${hastaFmt}`,
+      'PROVISIONAL',
+      `Días naturales: ${out.window.dias}`,
+      'RUTA',
+    ];
+    const filaClues: Array<string | number> = [
+      `Desde: ${desdeFmt} | Hasta: ${hastaFmt}`,
+      `Generado: ${generadoFmt}`,
+      '',
+      'CLUES',
+    ];
     const filaEncabezados: Array<string | number> = ['No.', 'CLAVE', 'DESCRIPCION', 'TIPO'];
     for (const unidad of unidades) {
       filaRutas.push(unidad.ruta);

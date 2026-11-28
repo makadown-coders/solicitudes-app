@@ -115,21 +115,6 @@
             class="flex flex-wrap items-center gap-2 rounded-2xl border border-gray-200 bg-white p-2 shadow-xs"
           >
             <button
-              id="rh-admin-tab-unidad"
-              type="button"
-              (click)="setAdminTab('unidad')"
-              class="inline-flex min-h-10 items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition"
-              [ngClass]="
-                activeAdminTab() === 'unidad'
-                  ? 'bg-[#006341] text-white shadow-xs'
-                  : 'text-slate-700 hover:bg-slate-100'
-              "
-            >
-              <lucide-icon [img]="icons.building" class="h-4 w-4" aria-hidden="true"></lucide-icon>
-              <span>Personal por unidad</span>
-            </button>
-
-            <button
               id="rh-admin-tab-padron"
               type="button"
               (click)="setAdminTab('padron')"
@@ -142,6 +127,21 @@
             >
               <lucide-icon [img]="icons.users" class="h-4 w-4" aria-hidden="true"></lucide-icon>
               <span>Plantilla institucional</span>
+            </button>
+
+            <button
+              id="rh-admin-tab-unidad"
+              type="button"
+              (click)="setAdminTab('unidad')"
+              class="inline-flex min-h-10 items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition"
+              [ngClass]="
+                activeAdminTab() === 'unidad'
+                  ? 'bg-[#006341] text-white shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100'
+              "
+            >
+              <lucide-icon [img]="icons.building" class="h-4 w-4" aria-hidden="true"></lucide-icon>
+              <span>Personal por unidad</span>
             </button>
 
             <button
@@ -184,6 +184,7 @@
         } @else if (activeAdminTab() === 'organigrama' && canManagePadronInstitucional()) {
           <app-rh-organigrama-admin
             (unauthorized)="onPadronUnauthorized()"
+            (revisarAdscripcion)="abrirAdscripcionOrganigrama($event)"
           ></app-rh-organigrama-admin>
         } @else if (activeAdminTab() === 'asistencia' && canManagePadronInstitucional()) {
           <app-rh-asistencia-control
@@ -205,7 +206,7 @@
                 Selección de unidad de trabajo
               </h2>
               <p class="mt-0.5 text-xs text-slate-500">
-                Selecciona la unidad de trabajo autorizada para consultar y operar la información de Recursos Humanos.
+                Aquí se registra la adscripción laboral de cada trabajador a una unidad. Es un requisito para asignarlo a determinados puestos del organigrama.
               </p>
             </div>
 
@@ -1503,6 +1504,7 @@
 
         <!-- Diálogo: Ficha individual protegida del trabajador (RH-2B.4D, RH-2B.4F, RH-2B.4H.1 y RH-2B.4H.2) -->
         <app-rh-ficha-trabajador-dialog
+          [permiteAdministrarSupervision]="canManagePadronInstitucional()"
           [open]="fichaOpen()"
           [loading]="fichaLoading()"
           [error]="fichaError()"

@@ -178,6 +178,25 @@ export interface RhTrabajadorFichaResponse {
   permisos: RhTrabajadorFichaPermisos;
 }
 
+export interface RhSupervisionDirecta {
+  unidad_medica_id: number;
+  persona_supervisada_id: number;
+  nombre_trabajador: string;
+  estado: 'PENDIENTE' | 'SIN_JEFE_ASIGNADO' | 'ASIGNADO';
+  persona_supervisora_id: number | null;
+  nombre_supervisor: string | null;
+  actualizado_en: string | null;
+  revision: string | null;
+  puesto_estructural: { puesto_id: number; denominacion: string; puesto_padre_id: number | null } | null;
+  sugerencia: { persona_id: number; nombre_completo: string; puesto_id: number; denominacion: string } | null;
+}
+
+export interface RhCambioSupervisionDirecta {
+  persona_supervisora_id: number | null;
+  motivo: string;
+  revision_esperada: string | null;
+}
+
 /**
  * Payload parcial aceptado por `PATCH /api/rh/unidades/:unidadId/personal/:adscripcionId/laboral`.
  * Solo se incluyen las propiedades efectivamente modificadas por el operador.
@@ -717,6 +736,19 @@ const ALLOWED_UPDATE_PERSONA_GENERAL_KEYS: ReadonlyArray<keyof RhUpdatePersonaGe
 
 @Injectable({ providedIn: 'root' })
 export class RhService {
+  obtenerSupervisionDirecta(unidadId: number, personaId: number): Promise<RhSupervisionDirecta> {
+    return firstValueFrom(this.http.get<RhSupervisionDirecta>(
+      `${this.baseUrl}/unidades/${unidadId}/personas/${personaId}/supervision-directa`
+    ));
+  }
+
+  actualizarSupervisionDirecta(
+    unidadId: number, personaId: number, cambio: RhCambioSupervisionDirecta
+  ): Promise<RhSupervisionDirecta> {
+    return firstValueFrom(this.http.patch<RhSupervisionDirecta>(
+      `${this.baseUrl}/unidades/${unidadId}/personas/${personaId}/supervision-directa`, cambio
+    ));
+  }
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl.replace(/\/+$/, '')}/rh`;
 
@@ -757,7 +789,7 @@ export class RhService {
     return await firstValueFrom(
       this.http.get<RhPersonalUnidadPagedResponse>(
         `${this.baseUrl}/unidades/${unidadId}/personal`,
-        { params: httpParams }
+        { params: params.situacion ? httpParams.set('situacion', params.situacion) : httpParams }
       )
     );
   }
@@ -1370,10 +1402,24 @@ export class RhService {
   // RH-ORG-04: Administración visual del organigrama institucional (RH GLOBAL)
   // ===========================================================================
 
-  async listOrganigramaPuestos(): Promise<RhOrgPuestosResponse> {
+  async listOrganigramaPuestos(incluirOcupacion = false): Promise<RhOrgPuestosResponse> {
     return await firstValueFrom(
-      this.http.get<RhOrgPuestosResponse>(`${this.baseUrl}/organigrama/puestos`)
+      this.http.get<RhOrgPuestosResponse>(`${this.baseUrl}/organigrama/puestos`, {
+        params: incluirOcupacion ? { incluirOcupacion: 'true' } : {},
+      })
     );
+  }
+
+  obtenerOcupacionOrganigrama(puestoId: number): Promise<RhOrgOcupacion> {
+    return firstValueFrom(this.http.get<RhOrgOcupacion>(
+      `${this.baseUrl}/organigrama/puestos/${puestoId}/ocupacion`
+    ));
+  }
+
+  actualizarOcupacionOrganigrama(puestoId: number, cambio: RhOrgCambioOcupacion): Promise<RhOrgOcupacion> {
+    return firstValueFrom(this.http.patch<RhOrgOcupacion>(
+      `${this.baseUrl}/organigrama/puestos/${puestoId}/ocupacion`, cambio
+    ));
   }
 
   async crearOrganigramaPuesto(payload: {
@@ -1782,7 +1828,31 @@ export interface RhMiVacacionesResponse {
   kardex: RhVacacionKardexResponse | null;
 }
 
+export type RhOrgEstadoOcupacion = 'OCUPADO' | 'VACANTE' | 'SIN_VINCULAR';
+
+export interface RhOrgOcupacion {
+  puesto_id: number;
+  denominacion: string;
+  puesto_padre_id: number | null;
+  unidad_medica_id: number;
+  estado: RhOrgEstadoOcupacion;
+  persona_id: number | null;
+  nombre_ocupante: string | null;
+  puesto_laboral_referencia: string | null;
+  actualizado_en: string | null;
+}
+
+export interface RhOrgCambioOcupacion {
+  estado: RhOrgEstadoOcupacion;
+  persona_id: number | null;
+  revision_esperada: string | null;
+  motivo: string;
+}
+
 export interface RhOrgPuestoDto {
+  estado_ocupacion?: RhOrgEstadoOcupacion;
+  persona_id?: number | null;
+  nombre_ocupante?: string | null;
   id: number;
   version_id: number;
   puesto_padre_id: number | null;
