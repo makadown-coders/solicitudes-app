@@ -26,10 +26,10 @@ export class ConcentradoPrimerNivelService {
     ));
   }
 
-  matrizDistribucion(months: number): Promise<MatrizDistribucionPrimerNivelResponse> {
+  matrizDistribucion(desde: string, hasta: string): Promise<MatrizDistribucionPrimerNivelResponse> {
     return firstValueFrom(this.http.get<MatrizDistribucionPrimerNivelResponse>(
       `${environment.apiUrl}/solicitudes/primer-nivel/concentrado/matriz-distribucion`,
-      { params: new HttpParams().set('months', String(months)) }
+      { params: new HttpParams().set('desde', desde).set('hasta', hasta) }
     ));
   }
 

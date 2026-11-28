@@ -223,34 +223,47 @@ describe('RhAsistenciaControlComponent (RH-ASIS-04)', () => {
     expect(rhServiceMock.confirmarRecepcionAsistencia).not.toHaveBeenCalled();
   }));
 
-  it('retira una marca histórica como PENDIENTE solo después de confirmar con motivo', fakeAsync(() => {
-    const { componente, celda, boton, dialogo, fixture, respuesta } = prepararMatriz();
+  it('mantiene la palomita histórica y abre solo una consulta sin retiro', fakeAsync(() => {
+    const { componente, celda, boton, dialogo } = prepararMatriz();
+    expect(celda(3).textContent?.trim()).toBe('✓');
     celda(3).click();
     expect(dialogo.textContent).toContain('Recibida histórica');
+    expect(dialogo.textContent).toContain('Recepción histórica protegida');
+    expect(boton('Confirmar retiro', dialogo)).toBeUndefined();
+    expect(dialogo.querySelector('textarea')).toBeNull();
+    componente.motivoRetiro.set('Intento sintético');
+    componente.retirarMarca(dialogo);
+    expect(rhServiceMock.actualizarEstadoAsistencia).not.toHaveBeenCalled();
+    expect(componente.matriz()[0].meses[2].estado_control).toBe('RECIBIDA');
+  }));
+
+  it('retira una marca ordinaria como PENDIENTE solo después de confirmar con motivo', fakeAsync(() => {
+    const { componente, celda, boton, dialogo, fixture, respuesta } = prepararMatriz();
+    celda(2).click();
     expect(boton('Confirmar retiro', dialogo).disabled).toBeTrue();
     boton('Cancelar', dialogo).click();
     expect(rhServiceMock.actualizarEstadoAsistencia).not.toHaveBeenCalled();
-    celda(3).click();
+    celda(2).click();
     const [persona] = respuesta.items;
-    const historica = persona.meses[2];
-    const pendiente = { ...historica, estado_control: 'PENDIENTE' as const };
+    const ordinaria = persona.meses[1];
+    const pendiente = { ...ordinaria, estado_control: 'PENDIENTE' as const };
     rhServiceMock.getAsistenciaMatrizAnual.and.resolveTo({
-      ...respuesta, items: [{ ...persona, meses: persona.meses.map((mes) => mes.mes === 3 ? pendiente : mes) }],
+      ...respuesta, items: [{ ...persona, meses: persona.meses.map((mes) => mes.mes === 2 ? pendiente : mes) }],
     });
     rhServiceMock.actualizarEstadoAsistencia.and.resolveTo({
-      registro: { id: historica.control_id, estado: 'PENDIENTE' },
+      registro: { id: ordinaria.control_id, estado: 'PENDIENTE' },
       estado_anterior: 'RECIBIDA', idempotente: false, evento_auditoria: 'RH_ASISTENCIA_RECEPCION_CORREGIDA',
     } as Awaited<ReturnType<RhService['actualizarEstadoAsistencia']>>);
     componente.motivoRetiro.set(' Corrección documentada ');
     fixture.detectChanges();
     boton('Confirmar retiro', dialogo).click();
     componente.retirarMarca(dialogo);
-    expect(rhServiceMock.actualizarEstadoAsistencia).toHaveBeenCalledOnceWith(1, componente.selectedAnio(), 3, {
+    expect(rhServiceMock.actualizarEstadoAsistencia).toHaveBeenCalledOnceWith(1, componente.selectedAnio(), 2, {
       estado: 'PENDIENTE', motivo_administrativo: 'Corrección documentada',
     });
     flushMicrotasks();
-    expect(componente.matriz()[0].meses[2].origen_registro).toBe('MIGRACION_HISTORICA_EXCEL');
-    expect(componente.matriz()[0].meses[2].estado_control).toBe('PENDIENTE');
+    expect(componente.matriz()[0].meses[1].origen_registro).toBe('CAPTURA_SISTEMA');
+    expect(componente.matriz()[0].meses[1].estado_control).toBe('PENDIENTE');
     expect(dialogo.open).toBeFalse();
   }));
 
@@ -294,6 +307,86 @@ describe('RhAsistenciaControlComponent (RH-ASIS-04)', () => {
     expect(rhServiceMock.getAsistenciaMatrizAnual.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({
       page: 2, unidadId: 10, situacion: 'ACTIVOS',
     }));
+  }));
+
+  for (const [filtro, cambiar] of [
+    ['año', (c: RhAsistenciaControlComponent) => c.onAnioChange(2025)],
+    ['unidad', (c: RhAsistenciaControlComponent) => c.onUnidadChange(25)],
+    ['página', (c: RhAsistenciaControlComponent) => c.goToPage(2)],
+    ['búsqueda', (c: RhAsistenciaControlComponent) => { c.onSearchInput('Sintética'); tick(300); }],
+    ['situación', (c: RhAsistenciaControlComponent) => c.onSituacionChange('BAJAS')],
+  ] as const) {
+    it(`ignora el PATCH tardío después de cambiar ${filtro}`, fakeAsync(() => {
+      const { componente, celda, fixture } = prepararMatriz();
+      componente.onAnioChange(2026);
+      flushMicrotasks();
+      fixture.detectChanges();
+      let terminar!: (resultado: Awaited<ReturnType<RhService['confirmarRecepcionAsistencia']>>) => void;
+      rhServiceMock.confirmarRecepcionAsistencia.and.returnValue(new Promise((resolve) => { terminar = resolve; }));
+      celda(1).click();
+      cambiar(componente);
+      flushMicrotasks();
+      const filas = componente.matriz();
+      const consultas = rhServiceMock.getAsistenciaMatrizAnual.calls.count();
+      terminar({ idempotente: false } as Awaited<ReturnType<RhService['confirmarRecepcionAsistencia']>>);
+      flushMicrotasks();
+      expect(componente.matriz()).toBe(filas);
+      expect(componente.matriz()[0].meses[0].estado_control).toBeNull();
+      expect(rhServiceMock.getAsistenciaMatrizAnual.calls.count()).toBe(consultas);
+      expect(rhServiceMock.confirmarRecepcionAsistencia).toHaveBeenCalledOnceWith(1, 2026, 1, jasmine.any(Object));
+      expect(componente.guardandoCelda()).toBeFalse();
+      expect(componente.loading()).toBeFalse();
+    }));
+  }
+
+  it('un error PATCH tardío no sustituye los resultados ni el aviso de la consulta nueva', fakeAsync(() => {
+    const { componente, celda } = prepararMatriz();
+    let rechazar!: (error: Error) => void;
+    rhServiceMock.confirmarRecepcionAsistencia.and.returnValue(new Promise((_, reject) => { rechazar = reject; }));
+    celda(1).click();
+    componente.onUnidadChange(25);
+    flushMicrotasks();
+    const filas = componente.matriz();
+    rechazar(new Error('Fallo tardío de recepción'));
+    flushMicrotasks();
+    expect(componente.matriz()).toBe(filas);
+    expect(componente.errorMessage()).toBeNull();
+    expect(componente.guardandoCelda()).toBeFalse();
+  }));
+
+  it('deja la matriz vacía si la recarga posterior a la recepción falla', fakeAsync(() => {
+    const { componente, celda } = prepararMatriz();
+    rhServiceMock.confirmarRecepcionAsistencia.and.resolveTo(
+      { idempotente: false } as Awaited<ReturnType<RhService['confirmarRecepcionAsistencia']>>
+    );
+    rhServiceMock.getAsistenciaMatrizAnual.and.rejectWith(new Error('Fallo al recargar'));
+    celda(1).click();
+    flushMicrotasks();
+    expect(componente.matriz()).toEqual([]);
+    expect(componente.errorMessage()).toContain('Fallo al recargar');
+    expect(componente.feedbackSuccess()).toContain('Recepción confirmada');
+    expect(componente.loading()).toBeFalse();
+    expect(componente.guardandoCelda()).toBeFalse();
+  }));
+
+  it('muestra la recepción histórica mensual y oculta las acciones en tabla y tarjetas', fakeAsync(() => {
+    rhServiceMock.getAsistenciaSeguimiento.and.resolveTo(makeResponse([makeItem({
+      estado_control: 'RECIBIDA', origen_registro: 'MIGRACION_HISTORICA_EXCEL',
+      tiene_registro_control: true, control_id: 17,
+    })]));
+    const fixture = TestBed.createComponent(RhAsistenciaControlComponent);
+    fixture.detectChanges();
+    flushMicrotasks();
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+    expect(root.textContent?.match(/✓ Recibida histórica/g)?.length).toBe(2);
+    expect(root.textContent?.match(/Recepción histórica protegida/g)?.length).toBe(2);
+    expect(root.textContent).not.toMatch(/\b(Observar|Corregir|Confirmar recepción)\b/);
+    const comp = fixture.componentInstance;
+    comp.openModal('CORREGIR', comp.items()[0]);
+    void comp.onConfirmarRecepcion(comp.items()[0]);
+    expect(comp.modalOpen()).toBeFalse();
+    expect(rhServiceMock.confirmarRecepcionAsistencia).not.toHaveBeenCalled();
   }));
 
   it('carga mes actual (Baja California), resumen, sin registro y elegibilidad incierta', async () => {
@@ -358,8 +451,8 @@ describe('RhAsistenciaControlComponent (RH-ASIS-04)', () => {
     await fixture.whenStable();
 
     const comp = fixture.componentInstance;
-    const p1 = comp.onConfirmarRecepcion(item);
-    const p2 = comp.onConfirmarRecepcion(item); // doble envío ignorado
+    const p1 = comp.onConfirmarRecepcion(comp.items()[0]);
+    const p2 = comp.onConfirmarRecepcion(comp.items()[0]); // doble envío ignorado
     expect(rhServiceMock.confirmarRecepcionAsistencia).toHaveBeenCalledTimes(1);
 
     resolveMutation({ registro: { estado: 'RECIBIDA' }, estado_anterior: null, idempotente: false, evento_auditoria: 'RH_ASISTENCIA_RECEPCION_CONFIRMADA' });
@@ -368,7 +461,7 @@ describe('RhAsistenciaControlComponent (RH-ASIS-04)', () => {
 
     // Error de recepción
     rhServiceMock.confirmarRecepcionAsistencia.and.rejectWith(new Error('Fallo de red'));
-    await comp.onConfirmarRecepcion(item);
+    await comp.onConfirmarRecepcion(comp.items()[0]);
     expect(comp.errorMessage()).toContain('Fallo de red');
   });
 
@@ -380,7 +473,7 @@ describe('RhAsistenciaControlComponent (RH-ASIS-04)', () => {
       estado_control: 'RECIBIDA',
       situacion_seguimiento: 'REGISTRO_EXPLICITO',
     });
-    rhServiceMock.getAsistenciaSeguimiento.and.resolveTo(makeResponse([itemRecibida]));
+    rhServiceMock.getAsistenciaSeguimiento.and.resolveTo(makeResponse([itemRecibida, makeItem({ persona_id: 12 })]));
     rhServiceMock.actualizarEstadoAsistencia.and.resolveTo({
       registro: { id: 50, persona_id: 11, anio: 2026, mes: 11, unidad_medica_id: 10, adscripcion_laboral_id: 101, estado: 'PENDIENTE', fecha_recepcion: null, recibido_por: null, observaciones: null, excepcion_administrativa: false, motivo_excepcion: null, generado_docx_en: null, generaciones_docx_count: 0, entrega_declarada_en: null, actualizado_en: '' },
       estado_anterior: 'RECIBIDA',
@@ -395,19 +488,19 @@ describe('RhAsistenciaControlComponent (RH-ASIS-04)', () => {
     const comp = fixture.componentInstance;
 
     // OBSERVADA sin observaciones -> error
-    comp.openModal('OBSERVADA', makeItem({ persona_id: 12 }));
+    comp.openModal('OBSERVADA', comp.items()[1]);
     comp.modalObservaciones.set('');
     await comp.submitModal();
     expect(comp.modalError()).toContain('observaciones');
 
     // NO_APLICA sin motivo -> error
-    comp.openModal('NO_APLICA', makeItem({ persona_id: 12 }));
+    comp.openModal('NO_APLICA', comp.items()[1]);
     comp.modalMotivoExcepcion.set('');
     await comp.submitModal();
     expect(comp.modalError()).toContain('motivo de excepción');
 
     // CORREGIR sin motivo administrativo -> error
-    comp.openModal('CORREGIR', itemRecibida);
+    comp.openModal('CORREGIR', comp.items()[0]);
     comp.modalNuevoEstado.set('PENDIENTE');
     comp.modalMotivoAdmin.set('');
     await comp.submitModal();
@@ -417,8 +510,94 @@ describe('RhAsistenciaControlComponent (RH-ASIS-04)', () => {
     comp.modalMotivoAdmin.set('Captura en mes equivocado');
     await comp.submitModal();
     expect(rhServiceMock.actualizarEstadoAsistencia).toHaveBeenCalledTimes(1);
+    expect(rhServiceMock.actualizarEstadoAsistencia).toHaveBeenCalledWith(
+      11, comp.selectedAnio(), comp.selectedMes(), jasmine.objectContaining({ estado: 'PENDIENTE' })
+    );
     expect(comp.modalOpen()).toBeFalse();
   });
+
+  it('invalida filas y modal al cambiar de agosto a septiembre, incluso si falla el GET', fakeAsync(() => {
+    const persona = makeItem({ persona_id: 41 });
+    rhServiceMock.getAsistenciaSeguimiento.and.resolveTo(makeResponse([persona]));
+    const fixture = TestBed.createComponent(RhAsistenciaControlComponent);
+    const comp = fixture.componentInstance;
+    comp.selectedAnio.set(2026);
+    comp.selectedMes.set(8);
+    fixture.detectChanges();
+    flushMicrotasks();
+    const anterior = comp.items()[0];
+    comp.openModal('OBSERVADA', anterior);
+    comp.modalObservaciones.set('Observación de prueba');
+    expect(comp.modalOpen()).toBeTrue();
+
+    let rechazar!: (error: unknown) => void;
+    rhServiceMock.getAsistenciaSeguimiento.and.returnValue(new Promise((_, reject) => { rechazar = reject; }));
+    comp.onMesChange(9);
+    fixture.detectChanges();
+    expect(comp.modalOpen()).toBeFalse();
+    expect(comp.items()).toEqual([]);
+    expect(fixture.nativeElement.textContent).not.toContain(anterior.nombre_completo);
+    void comp.submitModal();
+    void comp.onConfirmarRecepcion(anterior);
+    rechazar(new HttpErrorResponse({ status: 500 }));
+    flushMicrotasks();
+    expect(comp.errorMessage()).toBeTruthy();
+    expect(comp.items()).toEqual([]);
+    comp.openModal('CORREGIR', anterior);
+    expect(comp.modalOpen()).toBeFalse();
+    expect(rhServiceMock.actualizarEstadoAsistencia).not.toHaveBeenCalled();
+    expect(rhServiceMock.confirmarRecepcionAsistencia).not.toHaveBeenCalled();
+  }));
+
+  it('mantiene el año y mes de una recepción en curso y descarta filas tardías', fakeAsync(() => {
+    const persona = makeItem({ persona_id: 41 });
+    rhServiceMock.getAsistenciaSeguimiento.and.resolveTo(makeResponse([persona]));
+    const fixture = TestBed.createComponent(RhAsistenciaControlComponent);
+    const comp = fixture.componentInstance;
+    comp.selectedAnio.set(2026);
+    comp.selectedMes.set(8);
+    fixture.detectChanges();
+    flushMicrotasks();
+    const anterior = comp.items()[0];
+    let terminar!: (value: Awaited<ReturnType<RhService['confirmarRecepcionAsistencia']>>) => void;
+    rhServiceMock.confirmarRecepcionAsistencia.and.returnValue(new Promise((resolve) => { terminar = resolve; }));
+    void comp.onConfirmarRecepcion(anterior);
+
+    let tardia!: (value: RhAsistenciaSeguimientoResponse) => void;
+    rhServiceMock.getAsistenciaSeguimiento.and.returnValue(new Promise((resolve) => { tardia = resolve; }));
+    comp.onAnioChange(2027);
+    expect(comp.items()).toEqual([]);
+    void comp.onConfirmarRecepcion(anterior);
+    rhServiceMock.getAsistenciaSeguimiento.and.resolveTo(makeResponse([persona]));
+    comp.onMesChange(9);
+    flushMicrotasks();
+    tardia(makeResponse([makeItem({ persona_id: 500 })]));
+    flushMicrotasks();
+    expect(comp.items()[0].persona_id).toBe(41);
+    expect(rhServiceMock.confirmarRecepcionAsistencia).toHaveBeenCalledOnceWith(41, 2026, 8, jasmine.any(Object));
+    terminar({ registro: { estado: 'RECIBIDA' }, idempotente: false } as Awaited<ReturnType<RhService['confirmarRecepcionAsistencia']>>);
+    flushMicrotasks();
+    void comp.onConfirmarRecepcion(anterior);
+    expect(rhServiceMock.confirmarRecepcionAsistencia).toHaveBeenCalledTimes(1);
+    void comp.onConfirmarRecepcion(comp.items()[0]);
+    expect(rhServiceMock.confirmarRecepcionAsistencia).toHaveBeenCalledWith(41, 2027, 9, jasmine.any(Object));
+    flushMicrotasks();
+  }));
+
+  it('invalida acciones en el intervalo de debounce de la búsqueda mensual', fakeAsync(() => {
+    rhServiceMock.getAsistenciaSeguimiento.and.resolveTo(makeResponse([makeItem()]));
+    const fixture = TestBed.createComponent(RhAsistenciaControlComponent);
+    fixture.detectChanges();
+    flushMicrotasks();
+    const comp = fixture.componentInstance;
+    const anterior = comp.items()[0];
+    comp.onSearchInput('Otra persona');
+    void comp.onConfirmarRecepcion(anterior);
+    expect(comp.items()).toEqual([]);
+    expect(rhServiceMock.confirmarRecepcionAsistencia).not.toHaveBeenCalled();
+    tick(300);
+    expect(rhServiceMock.getAsistenciaSeguimiento.calls.mostRecent().args[0].q).toBe('Otra persona');
+  }));
 
   it('descarta respuestas HTTP obsoletas y oculta acciones si canAdminister es false', async () => {
     let resolveFirst!: (val: RhAsistenciaSeguimientoResponse) => void;

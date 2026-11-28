@@ -134,7 +134,11 @@ export class RhShellComponent implements OnInit, OnDestroy {
   readonly selectedUnidadId = signal<number | null>(null);
 
   /** Pestaña interna de administración RH: 'unidad', 'padron', 'organigrama' o 'asistencia' (solo RH GLOBAL) */
-  readonly activeAdminTab = signal<'unidad' | 'padron' | 'organigrama' | 'asistencia'>('unidad');
+  private readonly adminTabSeleccionada = signal<'unidad' | 'padron' | 'organigrama' | 'asistencia' | null>(null);
+  readonly activeAdminTab = computed(() =>
+    this.adminTabSeleccionada() ?? (this.canManagePadronInstitucional() ? 'padron' : 'unidad')
+  );
+  private unidadInicialResuelta = false;
 
   /** Estado del autocompletado de unidad de trabajo */
   readonly unidadSearchDraft = signal('');
@@ -343,10 +347,11 @@ export class RhShellComponent implements OnInit, OnDestroy {
 
   setAdminTab(tab: 'unidad' | 'padron' | 'organigrama' | 'asistencia'): void {
     if ((tab === 'padron' || tab === 'organigrama' || tab === 'asistencia') && !this.canManagePadronInstitucional()) {
-      this.activeAdminTab.set('unidad');
+      this.adminTabSeleccionada.set('unidad');
       return;
     }
-    this.activeAdminTab.set(tab);
+    this.adminTabSeleccionada.set(tab);
+    if (tab === 'unidad') this.preseleccionarUnidadEstatal();
     if (tab === 'asistencia' && !this.operatorUnidadResolved) {
       void this.resolverUnidadReferenciaOperador();
     }
@@ -632,6 +637,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
         this.selectedUnidadId.set(null);
         this.unidadSearchDraft.set('');
         this.resetPersonalFilterAndState();
+        this.preseleccionarUnidadEstatal();
       }
     } catch (err: unknown) {
       if (seq !== this.requestSeq) {
@@ -681,6 +687,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
   }
 
   onUnidadSearchInput(value: string): void {
+    this.unidadInicialResuelta = true;
     this.unidadSearchDraft.set(value);
     const selected = this.selectedUnidad();
     if (selected && value.trim() !== selected.nombre) {
@@ -749,6 +756,7 @@ export class RhShellComponent implements OnInit, OnDestroy {
     if (!authorized) {
       return;
     }
+    this.unidadInicialResuelta = true;
 
     const prevId = this.selectedUnidadId();
     this.selectedUnidadId.set(authorized.id);
@@ -766,10 +774,29 @@ export class RhShellComponent implements OnInit, OnDestroy {
     void this.cargarPersonalUnidad();
   }
 
+  private preseleccionarUnidadEstatal(): void {
+    if (this.unidadInicialResuelta || this.activeAdminTab() !== 'unidad' ||
+        !this.canManagePadronInstitucional() || this.serverScope() !== 'GLOBAL') return;
+    const estatal = this.unidadesAutorizadas().find((unidad) => unidad.id === 177);
+    if (!this.selectedUnidadId() && estatal) this.selectUnidad(estatal);
+  }
+
+  abrirAdscripcionOrganigrama(nombre: string): void {
+    if (!this.canManagePadronInstitucional()) return;
+    this.adminTabSeleccionada.set('unidad');
+    const estatal = this.unidadesAutorizadas().find((unidad) => unidad.id === 177);
+    if (!estatal) return;
+    this.selectUnidad(estatal);
+    this.openVincularDialog();
+    this.candidataSearchDraft.set(nombre);
+    void this.ejecutarBusquedaCandidatas();
+  }
+
   clearUnidadSelection(): void {
     if (this.isSingleCluesUnitLocked()) {
       return;
     }
+    this.unidadInicialResuelta = true;
     this.selectedUnidadId.set(null);
     this.unidadSearchDraft.set('');
     this.unidadSuggestOpen.set(false);

@@ -222,11 +222,72 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
     return validAt;
   }
 
-  function createComponent(): void {
+  function createComponent(abrirUnidadSinSeleccion = true): void {
     fixture = TestBed.createComponent(RhShellComponent);
     component = fixture.componentInstance;
+    if (abrirUnidadSinSeleccion) {
+      component.setAdminTab('unidad');
+      component.clearUnidadSelection();
+    }
     fixture.detectChanges();
   }
+
+  it('inicia en Plantilla, ordena las secciones y precarga 177 una vez para RH GLOBAL', async () => {
+    setupSession(rhGlobalUser);
+    createComponent(false);
+    httpMock.expectOne(rhUnidadesUrl).flush({ scope: 'GLOBAL', unidades: mockUnidadesGlobal });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(component.activeAdminTab()).toBe('padron');
+    const arbol = fixture.nativeElement as HTMLElement;
+    expect(Array.from(arbol.querySelectorAll('#rh-admin-internal-tabs button')).map((boton) => boton.id))
+      .toEqual(['rh-admin-tab-padron', 'rh-admin-tab-unidad', 'rh-admin-tab-organigrama', 'rh-admin-tab-asistencia']);
+    expect(arbol.textContent).toContain('Después de registrar a una persona');
+    httpMock.expectOne((r) => r.url.endsWith('/rh/personas')).flush({ items: [], page: 1, pageSize: 20, total: 0 });
+    const cargarPersonal = (id: number, q?: string) => {
+      const unidad = mockUnidadesGlobal.find((item) => item.id === id)!;
+      const req = httpMock.expectOne((r) => r.url.endsWith(`/unidades/${id}/personal`));
+      expect(req.request.params.get('q')).toBe(q ?? null);
+      req.flush({ unidad, items: [], page: 1, pageSize: 20, total: 0 });
+    };
+    (arbol.querySelector('#rh-admin-tab-unidad') as HTMLButtonElement).click();
+    expect(component.selectedUnidadId()).toBe(177);
+    cargarPersonal(177);
+    const otra = mockUnidadesGlobal.find((item) => item.id !== 177)!;
+    component.selectUnidad(otra);
+    cargarPersonal(otra.id);
+    const recarga = component.cargarUnidadesAutorizadas();
+    httpMock.expectOne(rhUnidadesUrl).flush({ scope: 'GLOBAL', unidades: mockUnidadesGlobal });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    cargarPersonal(otra.id);
+    await recarga;
+    expect(component.selectedUnidadId()).toBe(otra.id);
+    component.clearUnidadSelection();
+    component.setAdminTab('unidad');
+    expect(component.selectedUnidadId()).toBeNull();
+    component.abrirAdscripcionOrganigrama('Persona Sintética');
+    expect(component.activeAdminTab()).toBe('unidad');
+    cargarPersonal(177);
+    const candidatas = httpMock.expectOne((r) => r.url === rhCandidatasUrl(177));
+    expect(candidatas.request.params.get('q')).toBe('Persona Sintética');
+    candidatas.flush({ items: [], page: 1, pageSize: 20, total: 0 });
+    expect(component.vincularOpen()).toBeTrue();
+    fixture.detectChanges();
+    expect(arbol.textContent).toContain('Aquí se registra la adscripción laboral');
+  });
+
+  it('conserva la unidad autorizada de RH CLUES aunque Coordinación Estatal sea la unidad predeterminada global', async () => {
+    setupSession(rhCluesSingleUser);
+    createComponent(false);
+    httpMock.expectOne(rhUnidadesUrl).flush({ scope: 'CLUES', unidades: [mockUnidadesGlobal[0]] });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    httpMock.expectOne((r) => r.url === rhPersonalUrl(10)).flush({
+      unidad: mockUnidadesGlobal[0], items: [], page: 1, pageSize: 20, total: 0,
+    });
+    expect(component.activeAdminTab()).toBe('unidad');
+    expect(component.selectedUnidadId()).toBe(10);
+    httpMock.expectNone((r) => r.url === rhPersonalUrl(177));
+  });
 
   function runRhAccessGuard(url = '/rh-admin'): Promise<boolean | UrlTree> {
     const dummyRoute = {} as ActivatedRouteSnapshot;
@@ -3162,6 +3223,8 @@ describe('RhShellComponent, RhEmployeePortalComponent & rhAccessGuard (Microinte
         unidades: mockUnidadesGlobal,
       });
     }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    httpMock.expectOne((r) => r.url.endsWith('/rh/personas')).flush({ items: [], page: 1, pageSize: 20, total: 0 });
     await fixture.whenStable();
     fixture.detectChanges();
 

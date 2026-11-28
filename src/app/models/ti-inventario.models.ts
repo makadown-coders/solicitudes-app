@@ -105,6 +105,9 @@ export interface Periferico {
 
 export interface DispositivoAsignacion {
   id: number;
+  nombre_completo?: string | null;
+  persona_unidad_medica_id?: number | null;
+  estado_nombre?: string | null;
   dispositivo_id?: number;
   unidad_medica_id?: number | null;
   unidad_medica?: string | null;
@@ -152,17 +155,18 @@ export interface AsignacionBitacoraRow {
   fecha_retiro?: string | null;
 }
 
-export interface DispositivoUpdateBasicPayload {
-  serial: string;
-  marca: string;
-  modelo: string;
-  ip: string;
-  conexion: string;
-  observaciones: string;
-  nics: NicItem[];
+export const CAMPOS_TECNICOS_DISPOSITIVO = ['serial', 'marca', 'modelo', 'ip', 'conexion', 'observaciones'] as const;
+export type CampoTecnicoDispositivo = typeof CAMPOS_TECNICOS_DISPOSITIVO[number];
+export type ValoresTecnicosDispositivo = Partial<Record<CampoTecnicoDispositivo, string | null>>;
+
+export interface DispositivoUpdateBasicPayload extends ValoresTecnicosDispositivo {
+  nics?: NicItem[] | null;
+  clear_fields?: CampoTecnicoDispositivo[];
+  expected_values?: ValoresTecnicosDispositivo;
 }
 
 export interface CambiarAsignacionPayload {
+  asignacion_vigente_esperada_id?: number | null;
   unidad_medica_id?: number | null;
   persona_id: number | null;
   lugar_especifico: string | null;

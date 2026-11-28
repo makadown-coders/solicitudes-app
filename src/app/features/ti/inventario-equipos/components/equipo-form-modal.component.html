@@ -1,10 +1,12 @@
 <div
   class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[1px]"
-  (click)="!saving && closed.emit()"
+  [inert]="confirmarDescarte()"
 >
   <div
     class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-xl"
-    (click)="$event.stopPropagation()"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Agregar equipo informático"
   >
     <!-- Encabezado -->
     <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
@@ -21,7 +23,7 @@
       </div>
       <button
         type="button"
-        (click)="closed.emit()"
+        (click)="solicitarCierre()"
         [disabled]="saving"
         class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
         aria-label="Cerrar"
@@ -40,10 +42,10 @@
       }
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <!-- Unidad médica -->
+        <!-- Unidad -->
         <div class="sm:col-span-2">
           <label class="mb-1 block text-xs font-semibold text-slate-700">
-            Unidad médica <span class="text-red-600">*</span>
+            Unidad <span class="text-red-600">*</span>
           </label>
           <ng-select
             formControlName="unidad_medica_id"
@@ -52,7 +54,7 @@
             bindValue="id"
             [typeahead]="unidadSearch$"
             [loading]="loadingUnidades()"
-            placeholder="Buscar unidad médica por nombre o CLUES..."
+            placeholder="Buscar unidad por nombre o CLUES..."
             notFoundText="No se encontraron unidades"
             loadingText="Buscando unidades..."
             [clearable]="true"
@@ -69,7 +71,7 @@
             </ng-template>
           </ng-select>
           @if (form.controls.unidad_medica_id.touched && form.controls.unidad_medica_id.invalid) {
-            <p class="mt-1 text-xs text-red-600">Seleccione una unidad médica válida de la lista.</p>
+            <p class="mt-1 text-xs text-red-600">Seleccione una unidad válida de la lista.</p>
           }
         </div>
 
@@ -163,7 +165,7 @@
       <div class="mt-6 flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
         <button
           type="button"
-          (click)="closed.emit()"
+          (click)="solicitarCierre()"
           [disabled]="saving"
           class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
         >
@@ -185,3 +187,16 @@
     </form>
   </div>
 </div>
+
+@if (confirmarDescarte()) {
+  <div class="fixed inset-0 z-[70] [&_.confirm-overlay]:pointer-events-none [&_.confirm-dialog]:pointer-events-auto [&_.confirm-dialog_button:first-child]:bg-green-800 [&_.confirm-dialog_button:first-child]:text-white [&_.confirm-dialog_button:first-child:hover]:bg-green-900 [&_.confirm-dialog_button:last-child]:bg-white [&_.confirm-dialog_button:last-child]:text-red-700 [&_.confirm-dialog_button:last-child:hover]:bg-red-50">
+    <app-confirmacion-modal
+      titulo="¿Descartar los cambios?"
+      mensaje="Tienes cambios sin guardar. Si cierras este formulario, perderás la información capturada."
+      textoCancelar="Continuar editando"
+      textoConfirmar="Descartar cambios"
+      (cancelar)="confirmarDescarte.set(false)"
+      (confirmar)="descartarCambios()"
+    />
+  </div>
+}

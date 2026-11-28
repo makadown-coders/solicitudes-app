@@ -1,4 +1,6 @@
-@if (open) {
+@if (supervisionFicha(); as contexto) {
+  <app-rh-supervision-directa-dialog [ficha]="contexto" (cerrar)="cerrarSupervision($event)" />
+} @else if (open) {
   <div
     id="rh-ficha-dialog-backdrop"
     role="dialog"
@@ -89,6 +91,21 @@
             }
           </div>
         } @else if (ficha; as data) {
+          @if (puedeAdministrarSupervision) {
+            <div class="flex flex-wrap items-center gap-3">
+              <button #botonSupervision type="button" id="rh-ficha-supervision" aria-haspopup="dialog"
+                [disabled]="isBusySaving || editMode() || editIdentificacionMode()" (click)="abrirSupervision()"
+                class="min-h-10 cursor-pointer rounded-xl border border-emerald-700 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
+                Administrar jefe directo
+              </button>
+              @if (supervisionGuardada(); as actual) {
+                <p role="status" class="break-words text-sm text-slate-700">
+                  {{ etiquetasSupervision[actual.estado] }}
+                  @if (actual.nombre_supervisor) { · {{ actual.nombre_supervisor }} }
+                </p>
+              }
+            </div>
+          }
           @if (saveLaboralSuccess; as successMsg) {
             <div
               id="rh-ficha-laboral-success-banner"

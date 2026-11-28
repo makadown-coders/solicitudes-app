@@ -51,8 +51,8 @@
         }
         <label class="relative block mt-7">
           <span class="sr-only">Buscar Centro de Salud</span>
-          <lucide-angular [img]="SearchIcon" class="absolute left-4 top-1/2 w-5 h-5 text-slate-400 pointer-events-none -translate-y-1/2"></lucide-angular>
-          <input type="search" class="pl-13 pr-4 w-full h-14 text-base rounded-2xl border-slate-300 shadow-sm outline-none border focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+          <lucide-angular [img]="SearchIcon" class="ui-search-icon text-slate-400"></lucide-angular>
+          <input type="search" class="ui-search-input pr-4 w-full h-14 text-base rounded-2xl border-slate-300 shadow-sm outline-none border focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
             placeholder="Buscar Centro de Salud o CLUES..." autocomplete="off" [value]="terminoUnidad()" (input)="buscarUnidad($any($event.target).value)" />
         </label>
         @if (terminoUnidad().trim().length > 1 && !unidadesEncontradas().length) {
@@ -97,8 +97,8 @@
         @if (modoBusqueda() !== 'programa') {
         <label class="relative block mt-4 sm:mt-5">
           <span class="sr-only">Buscar medicamento o material</span>
-          <lucide-angular [img]="SearchIcon" class="absolute left-4 top-1/2 w-5 h-5 text-slate-400 pointer-events-none -translate-y-1/2"></lucide-angular>
-          <input type="search" class="pl-13 pr-4 placeholder:text-slate-400 w-full h-14 text-base bg-white rounded-2xl border-slate-300 shadow-sm outline-none border transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+          <lucide-angular [img]="SearchIcon" class="ui-search-icon text-slate-400"></lucide-angular>
+          <input type="search" class="ui-search-input pr-4 placeholder:text-slate-400 w-full h-14 text-base bg-white rounded-2xl border-slate-300 shadow-sm outline-none border transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
             [placeholder]="modoBusqueda() === 'aps' ? 'Ej. ibuprofeno, metformina, loratadina…' : 'Buscar descripción o clave CNIS…'"
             autocomplete="off" [value]="terminoBusqueda()" (input)="buscar($any($event.target).value)" />
         </label>

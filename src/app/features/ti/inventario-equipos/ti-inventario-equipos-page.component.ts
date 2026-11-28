@@ -1,17 +1,20 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
   inject,
+  Injector,
   OnInit,
   signal,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { NgSelectModule } from '@ng-select/ng-select';
+import { NgSelectComponent, NgSelectModule } from '@ng-select/ng-select';
 import {
   AlertCircle,
   CheckCircle2,
@@ -36,6 +39,9 @@ import { TiCatalogosService } from '../../../services/ti-catalogos.service';
 import { TiDispositivosService } from '../../../services/ti-dispositivos.service';
 import { TiPersonasService, TiUnidadMedicaItem } from '../../../services/ti-personas.service';
 import { EquipoFormModalComponent } from './components/equipo-form-modal.component';
+import { DispositivoDetailModalComponent } from './components/dispositivo-detail-modal.component';
+
+const DEFAULT_UNIDAD_MEDICA_ID = 177;
 
 @Component({
   selector: 'app-ti-inventario-equipos-page',
@@ -46,6 +52,7 @@ import { EquipoFormModalComponent } from './components/equipo-form-modal.compone
     NgSelectModule,
     LucideAngularModule,
     EquipoFormModalComponent,
+    DispositivoDetailModalComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ti-inventario-equipos-page.component.html',
@@ -55,6 +62,7 @@ export class TiInventarioEquiposPageComponent implements OnInit {
   private readonly catalogosSvc = inject(TiCatalogosService);
   private readonly tiPersonasSvc = inject(TiPersonasService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
 
   readonly icons = {
     device: MonitorSmartphone,
@@ -70,6 +78,7 @@ export class TiInventarioEquiposPageComponent implements OnInit {
   };
 
   readonly items = signal<DispositivoRowEx[]>([]);
+  readonly selectedDevice = signal<DispositivoRowEx | null>(null);
   readonly total = signal(0);
   readonly loading = signal(false);
   readonly errorMsg = signal<string | null>(null);
@@ -78,6 +87,7 @@ export class TiInventarioEquiposPageComponent implements OnInit {
   // Filtros y paginación
   readonly q = signal('');
   readonly unidadMedicaId = signal<number | null>(null);
+  private readonly unidadSelect = viewChild<NgSelectComponent>('unidadSelect');
   readonly tipoId = signal<number | null>(null);
   readonly estadoId = signal<number | null>(null);
   readonly page = signal(1);
@@ -95,8 +105,12 @@ export class TiInventarioEquiposPageComponent implements OnInit {
   // Catálogos y búsqueda remota de unidades
   readonly tipos = signal<TipoDispositivo[]>([]);
   readonly estados = signal<EstadoDispositivo[]>([]);
+  readonly tiposError = signal<string | null>(null);
+  readonly estadosError = signal<string | null>(null);
   readonly unidades = signal<TiUnidadMedicaItem[]>([]);
   readonly loadingUnidades = signal(false);
+  readonly initializingUnidad = signal(true);
+  readonly unidadInicialError = signal<string | null>(null);
   readonly unidadSearch$ = new Subject<string>();
 
   // Búsqueda reactiva con debounce y protección contra respuestas fuera de orden
@@ -111,8 +125,7 @@ export class TiInventarioEquiposPageComponent implements OnInit {
   ngOnInit(): void {
     this.setupStreams();
     this.loadCatalogos();
-    this.loadUnidades('');
-    this.loadItems();
+    this.initializeUnidad();
   }
 
   private setupStreams(): void {
@@ -153,6 +166,8 @@ export class TiInventarioEquiposPageComponent implements OnInit {
             })
             .pipe(
               catchError(() => {
+                this.items.set([]);
+                this.total.set(0);
                 this.errorMsg.set('No se pudo cargar el inventario de equipos.');
                 this.loading.set(false);
                 return of(null);
@@ -163,6 +178,11 @@ export class TiInventarioEquiposPageComponent implements OnInit {
       )
       .subscribe((res) => {
         if (!res) return;
+        if (!res.items?.length && this.page() > 1) {
+          this.page.update((page) => page - 1);
+          this.loadItems();
+          return;
+        }
         this.items.set(res.items ?? []);
         this.total.set(res.total ?? 0);
         this.loading.set(false);
@@ -173,25 +193,54 @@ export class TiInventarioEquiposPageComponent implements OnInit {
     this.catalogosSvc
       .tiposDispositivo()
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (list) => this.tipos.set(list ?? []) });
+      .subscribe({
+        next: (list) => this.tipos.set(list ?? []),
+        error: () => this.tiposError.set('No se pudieron cargar los tipos de dispositivo.'),
+      });
 
     this.catalogosSvc
       .estadosDispositivo()
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (list) => this.estados.set(list ?? []) });
+      .subscribe({
+        next: (list) => this.estados.set(list ?? []),
+        error: () => this.estadosError.set('No se pudieron cargar los estados de dispositivo.'),
+      });
   }
 
-  private loadUnidades(q: string): void {
-    this.loadingUnidades.set(true);
-    from(this.tiPersonasSvc.buscarUnidades({ q, page: 1, pageSize: 25 }))
-      .pipe(
-        catchError(() => of({ items: [], page: 1, pageSize: 25, total: 0 })),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe((res) => {
-        this.unidades.set(res.items ?? []);
-        this.loadingUnidades.set(false);
-      });
+  private async initializeUnidad(): Promise<void> {
+    const pageSize = 100;
+    let initialOptions: TiUnidadMedicaItem[] = [];
+    try {
+      for (let page = 1; ; page++) {
+        const result = await this.tiPersonasSvc.buscarUnidades({ page, pageSize });
+        if (this.destroyRef.destroyed) return;
+        if (page === 1) initialOptions = result.items.slice(0, 25);
+
+        const unidad = result.items.find((item) => item.id === DEFAULT_UNIDAD_MEDICA_ID);
+        if (unidad) {
+          this.unidadMedicaId.set(unidad.id);
+          this.unidades.set(initialOptions.some((item) => item.id === unidad.id)
+            ? initialOptions
+            : [unidad, ...initialOptions]);
+          afterNextRender(() => {
+            if (this.unidadMedicaId() === unidad.id) this.unidadSelect()?.writeValue(unidad.id);
+          }, { injector: this.injector });
+          return;
+        }
+        if (result.items.length === 0 || page * result.pageSize >= result.total) break;
+      }
+    } catch {
+      // Si falla una página del catálogo, conservar las opciones ya recuperadas.
+    } finally {
+      if (!this.destroyRef.destroyed) {
+        if (this.unidadMedicaId() === null) {
+          this.unidades.set(initialOptions);
+          this.unidadInicialError.set('No se pudo recuperar la unidad predeterminada. Puede seleccionar otra unidad.');
+        }
+        this.initializingUnidad.set(false);
+        this.loadItems(true);
+      }
+    }
   }
 
   onSearchInput(value: string): void {
@@ -199,7 +248,15 @@ export class TiInventarioEquiposPageComponent implements OnInit {
     this.qSearch$.next(value);
   }
 
+  onUnidadChange(unidad: TiUnidadMedicaItem | null | undefined): void {
+    const id = unidad?.id ?? null;
+    if (id === this.unidadMedicaId()) return;
+    this.unidadMedicaId.set(id);
+    this.loadItems(true);
+  }
+
   loadItems(resetPage = false): void {
+    if (this.initializingUnidad()) return;
     if (resetPage) this.page.set(1);
     this.loadTrigger$.next();
   }
@@ -207,6 +264,7 @@ export class TiInventarioEquiposPageComponent implements OnInit {
   clearFilters(): void {
     this.q.set('');
     this.unidadMedicaId.set(null);
+    this.unidadSelect()?.writeValue(null);
     this.tipoId.set(null);
     this.estadoId.set(null);
     this.loadItems(true);
@@ -268,6 +326,16 @@ export class TiInventarioEquiposPageComponent implements OnInit {
     if (n.includes('resguardo')) return 'bg-sky-100 text-sky-800';
     if (n.includes('baja')) return 'bg-red-100 text-red-800';
     return 'bg-slate-100 text-slate-700';
+  }
+
+  onAsignacionActualizada(): void {
+    this.showSuccess('Asignación actualizada correctamente.');
+    this.loadItems();
+  }
+
+  onDatosTecnicosActualizados(): void {
+    this.showSuccess('Datos técnicos actualizados correctamente.');
+    this.loadItems();
   }
 
   private showSuccess(msg: string): void {

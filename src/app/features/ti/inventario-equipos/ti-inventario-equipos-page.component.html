@@ -8,7 +8,7 @@
       <div>
         <h2 class="text-lg font-bold text-slate-900">Inventario de equipos informáticos</h2>
         <p class="text-xs text-slate-500">
-          Consulta, búsqueda, filtrado y registro de dispositivos TI por unidad médica.
+          Consulta, búsqueda, filtrado y registro de dispositivos TI por unidad.
         </p>
       </div>
     </div>
@@ -17,7 +17,7 @@
       <button
         type="button"
         (click)="loadItems()"
-        [disabled]="loading()"
+        [disabled]="loading() || initializingUnidad()"
         class="inline-flex min-h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
       >
         <lucide-icon [img]="icons.refresh" [class.animate-spin]="loading()" class="h-4 w-4"></lucide-icon>
@@ -42,6 +42,11 @@
       <span>{{ errorMsg() }}</span>
     </div>
   }
+  @for (message of [tiposError(), estadosError(), unidadInicialError()]; track $index) {
+    @if (message) {
+      <p role="alert" class="mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{{ message }}</p>
+    }
+  }
   @if (successMsg()) {
     <div class="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
       <lucide-icon [img]="icons.check" class="h-4 w-4 shrink-0"></lucide-icon>
@@ -51,10 +56,11 @@
 
   <!-- Barra de filtros -->
   <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-12">
-    <div class="relative md:col-span-4">
+    <div class="relative self-start md:col-span-4">
       <lucide-icon
         [img]="icons.search"
-        class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+        class="ui-search-icon text-slate-400"
+        aria-hidden="true"
       ></lucide-icon>
       <input
         type="text"
@@ -62,7 +68,7 @@
         (ngModelChange)="onSearchInput($event)"
         (keyup.enter)="loadItems(true)"
         placeholder="Buscar por serie, marca, modelo, unidad, persona, lugar o MAC..."
-        class="w-full rounded-xl border border-gray-300 py-2 pl-9 pr-9 text-sm text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
+        class="ui-search-input w-full rounded-xl border border-gray-300 py-2 pr-9 text-sm text-slate-800 focus:border-[#006341] focus:outline-none focus:ring-2 focus:ring-[#006341]/20"
       />
       @if (q()) {
         <button
@@ -78,14 +84,15 @@
 
     <div class="md:col-span-3">
       <ng-select
-        [ngModel]="unidadMedicaId()"
-        (ngModelChange)="unidadMedicaId.set($event); loadItems(true)"
+        #unidadSelect="ngSelect"
+        (change)="onUnidadChange($event)"
         [items]="unidades()"
         bindLabel="nombre"
         bindValue="id"
         [typeahead]="unidadSearch$"
-        [loading]="loadingUnidades()"
-        placeholder="Todas las unidades médicas"
+        [loading]="loadingUnidades() || initializingUnidad()"
+        [readonly]="initializingUnidad()"
+        placeholder="Todas las unidades"
         notFoundText="Sin resultados"
         loadingText="Buscando..."
         [clearable]="true"
@@ -141,13 +148,13 @@
           <th class="px-4 py-3">Tipo</th>
           <th class="px-4 py-3">Marca / Modelo</th>
           <th class="px-4 py-3">Serie</th>
-          <th class="px-4 py-3">Unidad médica</th>
+          <th class="px-4 py-3">Unidad</th>
           <th class="px-4 py-3">Responsable / Lugar</th>
           <th class="px-4 py-3">Estado</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100 bg-white">
-        @if (loading() && !items().length) {
+        @if ((loading() || initializingUnidad()) && !items().length) {
           <tr>
             <td colspan="6" class="px-4 py-10 text-center text-slate-500">
               <lucide-icon [img]="icons.loader" class="mr-2 inline h-5 w-5 animate-spin"></lucide-icon>
@@ -162,9 +169,13 @@
           </tr>
         } @else {
           @for (row of items(); track row.id) {
-            <tr class="transition hover:bg-slate-50">
+            <tr>
               <td class="px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">
-                {{ row.tipo || row.tipo_dispositivo || '—' }}
+                <button type="button" class="cursor-pointer rounded-sm text-left text-[#006341] underline underline-offset-2 hover:bg-emerald-50 hover:text-[#004f34] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#006341]"
+                  (click)="selectedDevice.set(row)"
+                  [attr.aria-label]="'Consultar detalle del equipo ' + row.id">
+                  {{ row.tipo || row.tipo_dispositivo || 'Consultar equipo' }}
+                </button>
               </td>
               <td class="px-4 py-3 text-slate-700">
                 <div class="font-medium">{{ row.marca || '—' }}</div>
@@ -244,8 +255,19 @@
   <app-equipo-form-modal
     [tipos]="tipos()"
     [saving]="creating()"
-    [errorMsg]="createError()"
+    [errorMsg]="createError() ?? tiposError()"
     (closed)="closeCreateModal()"
     (saved)="onCreateEquipo($event)"
+  />
+}
+
+@if (selectedDevice(); as row) {
+  <app-dispositivo-detail-modal
+    [dispositivoId]="row.id"
+    [listRow]="row"
+    [estados]="estados()"
+    (closed)="selectedDevice.set(null)"
+    (updated)="onAsignacionActualizada()"
+    (datosTecnicosActualizados)="onDatosTecnicosActualizados()"
   />
 }

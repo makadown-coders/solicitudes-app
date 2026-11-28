@@ -1,17 +1,23 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   EventEmitter,
   inject,
   Input,
+  Injector,
   OnInit,
   Output,
   signal,
+  viewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { NgSelectModule } from '@ng-select/ng-select';
+import { NgSelectComponent, NgSelectModule } from '@ng-select/ng-select';
 import {
   ArrowLeftRight,
   ChevronLeft,
@@ -29,16 +35,22 @@ import {
   Trash2,
   X,
 } from 'lucide-angular';
-import { Subject, debounceTime, distinctUntilChanged, from, switchMap } from 'rxjs';
+import { Subject, catchError, debounceTime, from, of, switchMap } from 'rxjs';
 import {
   AsignacionBitacoraRow,
+  CambiarAsignacionPayload,
+  CAMPOS_TECNICOS_DISPOSITIVO,
+  CampoTecnicoDispositivo,
   DispositivoDetail,
+  DispositivoRowEx,
+  DispositivoUpdateBasicPayload,
   EstadoDispositivo,
   Monitor,
   NicItem,
   NicKind,
   Periferico,
   TipoPeriferico,
+  ValoresTecnicosDispositivo,
   normalizeMac,
 } from '../../../../models/ti-inventario.models';
 import { TiCatalogosService } from '../../../../services/ti-catalogos.service';
@@ -67,16 +79,20 @@ type DetailTab = 'resumen' | 'monitores' | 'perifericos' | 'historial';
   templateUrl: './dispositivo-detail-modal.component.html',
 })
 export class DispositivoDetailModalComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
   private readonly fb = inject(FormBuilder);
   private readonly dispositivosSvc = inject(TiDispositivosService);
   private readonly catalogosSvc = inject(TiCatalogosService);
   private readonly tiPersonasSvc = inject(TiPersonasService);
 
   @Input({ required: true }) dispositivoId!: number;
+  @Input() listRow?: DispositivoRowEx;
   @Input() estados: EstadoDispositivo[] = [];
 
   @Output() closed = new EventEmitter<void>();
   @Output() updated = new EventEmitter<void>();
+  @Output() datosTecnicosActualizados = new EventEmitter<void>();
 
   readonly icons = {
     close: X,
@@ -99,6 +115,12 @@ export class DispositivoDetailModalComponent implements OnInit {
   readonly saving = signal(false);
   readonly errorMsg = signal<string | null>(null);
   readonly detail = signal<DispositivoDetail | null>(null);
+  readonly editingEnabled = false;
+  readonly historyEnabled = false;
+  readonly currentAssignment = computed(() => {
+    const assignment = this.detail()?.asignacion_actual;
+    return assignment?.fecha_retiro == null ? assignment ?? null : null;
+  });
   readonly activeTab = signal<DetailTab>('resumen');
   readonly tiposPeriferico = signal<TipoPeriferico[]>([]);
 
@@ -125,6 +147,17 @@ export class DispositivoDetailModalComponent implements OnInit {
 
   // Sub-modal: Editar básico + MACs
   readonly showEditBasic = signal(false);
+  readonly editBasicError = signal<string | null>(null);
+  readonly editBasicSuccess = signal(false);
+  readonly editBasicConflict = signal(false);
+  readonly editBasicConsultando = signal(false);
+  readonly datosTecnicosActuales = signal<DispositivoDetail | null>(null);
+  private editBasicOriginal: ValoresTecnicosDispositivo = {};
+  readonly camposTecnicos = CAMPOS_TECNICOS_DISPOSITIVO;
+  readonly etiquetasTecnicas: Record<CampoTecnicoDispositivo, string> = {
+    serial: 'Serie', marca: 'Marca', modelo: 'Modelo', ip: 'IP',
+    conexion: 'Conexión', observaciones: 'Observaciones',
+  };
   readonly editNics = signal<NicItem[]>([]);
   readonly newMac = signal('');
   readonly newMacKind = signal<NicKind>('ethernet');
@@ -141,6 +174,14 @@ export class DispositivoDetailModalComponent implements OnInit {
 
   // Sub-modal: Cambiar asignación
   readonly showAsignacion = signal(false);
+  readonly asignacionError = signal<string | null>(null);
+  readonly asignacionSuccess = signal<string | null>(null);
+  readonly asignacionEnConflicto = signal(false);
+  readonly unidadSeleccionada = signal<TiUnidadMedicaItem | null>(null);
+  readonly personaSeleccionada = signal<TiPersonaLite | null>(null);
+  private readonly unidadAsignacionSelect = viewChild<NgSelectComponent>('unidadAsignacionSelect');
+  private readonly personaAsignacionSelect = viewChild<NgSelectComponent>('personaAsignacionSelect');
+  private asignacionOriginal: CambiarAsignacionPayload | null = null;
   readonly unidades = signal<TiUnidadMedicaItem[]>([]);
   readonly loadingUnidades = signal(false);
   readonly unidadSearch$ = new Subject<string>();
@@ -151,8 +192,7 @@ export class DispositivoDetailModalComponent implements OnInit {
   readonly asignacionForm = this.fb.group({
     unidad_medica_id: [null as number | null, Validators.required],
     persona_id: [null as number | null],
-    estado_dispositivo_id: [null as number | null],
-    fecha_asignacion: [this.todayIsoDate()],
+    estado_dispositivo_id: [null as number | null, Validators.required],
     lugar_especifico: [''],
   });
 
@@ -182,28 +222,32 @@ export class DispositivoDetailModalComponent implements OnInit {
     titulo: string;
     mensaje: string;
     textoConfirmar: string;
+    textoCancelar?: string;
     action: () => void;
   } | null>(null);
 
   ngOnInit(): void {
     this.loadDetail();
-    this.catalogosSvc.tiposPeriferico().subscribe((list) => this.tiposPeriferico.set(list));
     this.setupSearchStreams();
+    if (this.editingEnabled) {
+      this.catalogosSvc.tiposPeriferico().subscribe((list) => this.tiposPeriferico.set(list));
+    }
   }
 
   private setupSearchStreams(): void {
     this.unidadSearch$
       .pipe(
         debounceTime(250),
-        distinctUntilChanged(),
         switchMap((term) => {
           this.loadingUnidades.set(true);
-          return from(this.tiPersonasSvc.buscarUnidades({ q: term, page: 1, pageSize: 25 }));
-        })
+          return from(this.tiPersonasSvc.buscarUnidades({ q: term, page: 1, pageSize: 25 }))
+            .pipe(catchError(() => of(null)));
+        }),
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
         next: (res) => {
-          this.unidades.set(res.items ?? []);
+          if (res) this.unidades.set(this.incluirSeleccion(res.items, this.unidadSeleccionada()));
           this.loadingUnidades.set(false);
         },
         error: () => this.loadingUnidades.set(false),
@@ -212,37 +256,46 @@ export class DispositivoDetailModalComponent implements OnInit {
     this.personaSearch$
       .pipe(
         debounceTime(250),
-        distinctUntilChanged(),
         switchMap((term) => {
           this.loadingPersonas.set(true);
-          return from(this.tiPersonasSvc.listarPersonas({ q: term, page: 1, pageSize: 25 }));
-        })
+          return from(this.tiPersonasSvc.listarPersonas({ q: term, page: 1, pageSize: 25 }))
+            .pipe(catchError(() => of(null)));
+        }),
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
         next: (res) => {
-          this.personas.set(res.items ?? []);
+          if (res) {
+            const actual = this.personaSeleccionada();
+            const encontrada = res.items.find((persona) => persona.id === actual?.id);
+            if (encontrada) this.personaSeleccionada.set(encontrada);
+            this.personas.set(this.incluirSeleccion(res.items, this.personaSeleccionada()));
+          }
           this.loadingPersonas.set(false);
         },
         error: () => this.loadingPersonas.set(false),
       });
   }
 
-  loadDetail(): void {
+  loadDetail(reabrirAsignacion = false): void {
     this.loading.set(true);
     this.errorMsg.set(null);
-    this.dispositivosSvc.getById(this.dispositivoId).subscribe({
+    this.dispositivosSvc.getById(this.dispositivoId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.detail.set(d);
         this.loading.set(false);
+        if (reabrirAsignacion && this.showAsignacion()) this.openAsignacion();
       },
       error: () => {
         this.errorMsg.set('No se pudo cargar el detalle del dispositivo.');
+        if (reabrirAsignacion) this.asignacionError.set('No se pudieron consultar los datos actuales. El formulario conserva lo capturado.');
         this.loading.set(false);
       },
     });
   }
 
   selectTab(tab: DetailTab): void {
+    if (tab === 'historial' && !this.historyEnabled) return;
     this.activeTab.set(tab);
     if (tab === 'historial' && !this.historialLoaded) {
       this.historialLoaded = true;
@@ -282,7 +335,16 @@ export class DispositivoDetailModalComponent implements OnInit {
   // --- Editar básico + MACs ---
   openEditBasic(): void {
     const d = this.detail();
-    if (!d) return;
+    if (!d || this.loading() || this.saving()) return;
+    this.precargarDatosTecnicos(d);
+    this.showEditBasic.set(true);
+  }
+
+  private precargarDatosTecnicos(d: DispositivoDetail): void {
+    this.editBasicOriginal = {
+      serial: d.serial ?? null, marca: d.marca ?? null, modelo: d.modelo ?? null,
+      ip: d.ip ?? null, conexion: d.conexion ?? null, observaciones: d.observaciones ?? null,
+    };
     this.editBasicForm.reset({
       serial: d.serial ?? '',
       marca: d.marca ?? '',
@@ -291,11 +353,10 @@ export class DispositivoDetailModalComponent implements OnInit {
       conexion: d.conexion ?? '',
       observaciones: d.observaciones ?? '',
     });
-    this.editNics.set([...this.nicList()]);
-    this.newMac.set('');
-    this.newMacKind.set('ethernet');
-    this.macError.set(null);
-    this.showEditBasic.set(true);
+    this.editBasicError.set(null);
+    this.editBasicSuccess.set(false);
+    this.editBasicConflict.set(false);
+    this.datosTecnicosActuales.set(null);
   }
 
   addMac(): void {
@@ -326,120 +387,255 @@ export class DispositivoDetailModalComponent implements OnInit {
     this.editNics.update((list) => list.filter((_, i) => i !== index));
   }
 
+  private cambiosDatosTecnicos(): DispositivoUpdateBasicPayload {
+    const valores = this.editBasicForm.getRawValue();
+    const cambios: DispositivoUpdateBasicPayload = {};
+    const expected_values: ValoresTecnicosDispositivo = {};
+    const clear_fields: CampoTecnicoDispositivo[] = [];
+    for (const campo of this.camposTecnicos) {
+      const original = this.editBasicOriginal[campo] ?? null;
+      const capturado = valores[campo];
+      const nuevo = capturado.trim();
+      if (capturado === (original ?? '') || nuevo === (original ?? '') || (nuevo !== '' && nuevo === original?.trim())) continue;
+      expected_values[campo] = original;
+      if (nuevo === '') clear_fields.push(campo);
+      else cambios[campo] = nuevo;
+    }
+    if (clear_fields.length) cambios.clear_fields = clear_fields;
+    if (Object.keys(expected_values).length) cambios.expected_values = expected_values;
+    return cambios;
+  }
+
+  tieneCambiosDatosTecnicos(): boolean {
+    return this.cambiosDatosTecnicos().expected_values !== undefined;
+  }
+
+  consultarDatosTecnicos(): void {
+    if (!this.editBasicConflict() || this.editBasicConsultando()) return;
+    this.editBasicConsultando.set(true);
+    this.dispositivosSvc.getById(this.dispositivoId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (d) => {
+        this.editBasicConsultando.set(false);
+        this.detail.set(d);
+        this.datosTecnicosActuales.set(d);
+      },
+      error: () => {
+        this.editBasicConsultando.set(false);
+        this.editBasicError.set('No se pudieron consultar los datos actuales. Se conservó lo capturado.');
+      },
+    });
+  }
+
+  usarDatosTecnicosActuales(): void {
+    const actuales = this.datosTecnicosActuales();
+    if (actuales) this.precargarDatosTecnicos(actuales);
+  }
+
+  cerrarEditBasic(): void {
+    if (!this.showEditBasic() || this.editBasicConsultando()) return;
+    this.solicitarCierreFormulario(this.tieneCambiosDatosTecnicos(), () => this.showEditBasic.set(false));
+  }
+
+  cerrarAsignacion(): void {
+    if (!this.showAsignacion()) return;
+    this.solicitarCierreFormulario(this.cambioBorradorAsignacion(), () => this.showAsignacion.set(false));
+  }
+
+  cerrarDetalle(): void {
+    if (this.saving() || this.showEditBasic() || this.showAsignacion() || this.confirmState()) return;
+    this.closed.emit();
+  }
+
+  private solicitarCierreFormulario(cambios: boolean, cerrar: () => void): void {
+    if (this.saving() || this.confirmState()) return;
+    if (!cambios) {
+      cerrar();
+      return;
+    }
+    this.confirmState.set({
+      titulo: '¿Descartar los cambios?',
+      mensaje: 'Tienes cambios sin guardar. Si cierras este formulario, perderás la información capturada.',
+      textoCancelar: 'Continuar editando',
+      textoConfirmar: 'Descartar cambios',
+      action: () => {
+        if (!this.saving()) cerrar();
+      },
+    });
+  }
+
   saveEditBasic(): void {
     const d = this.detail();
-    if (!d || this.saving()) return;
-
-    // Auto-agregar MAC pendiente si es válida (regla de ti-admin)
-    if (this.newMac().trim()) {
-      const norm = normalizeMac(this.newMac().trim());
-      if (norm) {
-        this.addMac();
-      } else {
-        this.macError.set('Corrija o limpie la dirección MAC pendiente antes de guardar.');
-        return;
-      }
-    }
-
-    const v = this.editBasicForm.getRawValue();
+    if (!d || !this.showEditBasic() || this.saving() || this.confirmState() || this.editBasicConflict() || this.editBasicForm.invalid) return;
+    const payload = this.cambiosDatosTecnicos();
+    if (!payload.expected_values) return;
     this.saving.set(true);
-    this.dispositivosSvc
-      .updateBasic(d.id, {
-        serial: v.serial.trim(),
-        marca: v.marca.trim(),
-        modelo: v.modelo.trim(),
-        ip: v.ip.trim(),
-        conexion: v.conexion.trim(),
-        observaciones: v.observaciones.trim(),
-        nics: this.editNics(),
-      })
-      .subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.showEditBasic.set(false);
-          this.loadDetail();
-          this.updated.emit();
-        },
-        error: () => {
-          this.saving.set(false);
-          this.errorMsg.set('No se pudo guardar la edición del dispositivo.');
-        },
-      });
+    this.editBasicError.set(null);
+    this.dispositivosSvc.updateBasic(d.id, payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.showEditBasic.set(false);
+        this.editBasicSuccess.set(true);
+        this.loadDetail();
+        this.datosTecnicosActualizados.emit();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.saving.set(false);
+        if (err.status === 409) {
+          this.editBasicConflict.set(true);
+          this.editBasicError.set('Otro usuario modificó los datos técnicos. Consulte los valores actuales antes de continuar.');
+          return;
+        }
+        const mensaje = err.error?.error;
+        this.editBasicError.set(typeof mensaje === 'string' && err.status < 500
+          ? mensaje : 'No se pudo guardar la edición del dispositivo. Intente nuevamente.');
+      },
+    });
   }
 
   // --- Cambiar asignación ---
   openAsignacion(): void {
     const d = this.detail();
-    if (!d) return;
-    const cur = d.asignacion_actual;
+    if (!d || this.loading() || this.saving()) return;
+    const cur = this.currentAssignment();
+    const unidad = {
+      id: d.unidad_medica_id,
+      nombre: this.nombreUnidad(d.unidad_medica_id),
+    };
+    const persona = cur?.persona_id == null ? null : {
+      id: cur.persona_id,
+      nombre_completo: cur.nombre_completo ?? `Persona #${cur.persona_id}`,
+      unidad_medica_id: cur.persona_unidad_medica_id,
+    };
 
     this.asignacionForm.reset({
-      unidad_medica_id: d.unidad_medica_id,
-      persona_id: cur?.persona_id ?? null,
+      unidad_medica_id: unidad.id,
+      persona_id: persona?.id ?? null,
       estado_dispositivo_id: cur?.estado_dispositivo_id ?? null,
-      fecha_asignacion: this.todayIsoDate(),
       lugar_especifico: cur?.lugar_especifico ?? '',
     });
-
-    from(this.tiPersonasSvc.buscarUnidades({ q: d.unidad_medica ?? '', page: 1, pageSize: 25 })).subscribe((r) => {
-      const items = [...(r.items ?? [])];
-      if (d.unidad_medica_id && !items.some((u) => u.id === d.unidad_medica_id)) {
-        items.unshift({ id: d.unidad_medica_id, nombre: d.unidad_medica ?? `Unidad #${d.unidad_medica_id}` });
-      }
-      this.unidades.set(items);
-    });
-
-    from(
-      this.tiPersonasSvc.listarPersonas({ q: cur?.persona_nombre_completo ?? cur?.persona ?? '', page: 1, pageSize: 25 })
-    ).subscribe((r) => {
-      const items = [...(r.items ?? [])];
-      if (cur?.persona_id && !items.some((p) => p.id === cur.persona_id)) {
-        items.unshift({
-          id: cur.persona_id,
-          nombre_completo: cur.persona_nombre_completo ?? cur.persona ?? `Persona #${cur.persona_id}`,
-        });
-      }
-      this.personas.set(items);
-    });
-
+    this.asignacionOriginal = this.payloadAsignacion();
+    this.unidadSeleccionada.set(unidad);
+    this.personaSeleccionada.set(persona);
+    this.unidades.set([unidad]);
+    this.personas.set(persona ? [persona] : []);
+    this.asignacionError.set(null);
+    this.asignacionSuccess.set(null);
+    this.asignacionEnConflicto.set(false);
     this.showAsignacion.set(true);
+    this.unidadSearch$.next('');
+    this.personaSearch$.next(persona?.nombre_completo ?? '');
+    afterNextRender(() => {
+      if (!this.showAsignacion()) return;
+      this.unidadAsignacionSelect()?.writeValue(this.unidadSeleccionada()?.id ?? null);
+      this.personaAsignacionSelect()?.writeValue(this.personaSeleccionada()?.id ?? null);
+    }, { injector: this.injector });
+  }
+
+  cambiarUnidadAsignacion(unidad?: TiUnidadMedicaItem): void {
+    this.unidadSeleccionada.set(unidad ?? null);
+    this.asignacionForm.controls.unidad_medica_id.setValue(unidad?.id ?? null);
+  }
+
+  cambiarPersonaAsignacion(persona?: TiPersonaLite): void {
+    this.personaSeleccionada.set(persona ?? null);
+    this.asignacionForm.controls.persona_id.setValue(persona?.id ?? null);
+  }
+
+  private incluirSeleccion<T extends { id: number }>(items: T[], seleccionado: T | null): T[] {
+    return seleccionado && !items.some((item) => item.id === seleccionado.id)
+      ? [seleccionado, ...items] : items;
+  }
+
+  private nombreUnidad(id: number): string {
+    const d = this.detail();
+    return (d?.unidad_medica_id === id ? d.unidad_medica : null)
+      || (this.listRow?.unidad_medica_id === id ? this.listRow.unidad_medica : null)
+      || `Unidad #${id}`;
+  }
+
+  private payloadAsignacion(): CambiarAsignacionPayload {
+    const v = this.asignacionForm.getRawValue();
+    return {
+      unidad_medica_id: v.unidad_medica_id,
+      persona_id: v.persona_id,
+      lugar_especifico: v.lugar_especifico?.trim() || (v.persona_id == null ? 'sin asignar' : null),
+      estado_dispositivo_id: v.estado_dispositivo_id,
+      asignacion_vigente_esperada_id: this.currentAssignment()?.id ?? null,
+    };
+  }
+
+  tieneCambiosAsignacion(): boolean {
+    return this.currentAssignment() === null || !this.asignacionOriginal || this.cambioBorradorAsignacion();
+  }
+
+  private cambioBorradorAsignacion(): boolean {
+    const original = this.asignacionOriginal;
+    const nuevo = this.payloadAsignacion();
+    return !!original && (nuevo.unidad_medica_id !== original.unidad_medica_id
+      || nuevo.persona_id !== original.persona_id
+      || nuevo.lugar_especifico !== original.lugar_especifico
+      || nuevo.estado_dispositivo_id !== original.estado_dispositivo_id);
+  }
+
+  estadosIncluyen(id: number): boolean {
+    return this.estados.some((estado) => estado.id === id);
   }
 
   saveAsignacion(): void {
     const d = this.detail();
-    if (!d || this.asignacionForm.invalid || this.saving()) {
-      this.asignacionForm.markAllAsTouched();
+    if (!d || !this.showAsignacion() || this.loading() || this.saving() || this.confirmState()
+        || this.asignacionEnConflicto() || this.asignacionForm.invalid || !this.tieneCambiosAsignacion()) return;
+    const payload = this.payloadAsignacion();
+    if (payload.unidad_medica_id === d.unidad_medica_id) {
+      this.enviarAsignacion(d.id, payload);
       return;
     }
-    const v = this.asignacionForm.getRawValue();
-    const personaId = v.persona_id ? Number(v.persona_id) : null;
-    let lugar = (v.lugar_especifico ?? '').trim();
-    if (!personaId && !lugar) {
-      lugar = 'sin asignar';
-    }
 
+    const destino = this.unidadSeleccionada();
+    if (!destino) return;
+    const responsable = this.personaSeleccionada();
+    let aviso = 'El equipo quedará sin responsable.';
+    if (responsable) {
+      const unidadResponsable = responsable.unidad_medica_id;
+      const compatibilidad = unidadResponsable === destino.id
+        ? 'Pertenece a la unidad destino.'
+        : unidadResponsable != null
+          ? 'Pertenece a una unidad distinta de la unidad destino.'
+          : 'Su unidad de adscripción no está disponible para verificarla.';
+      aviso = `Se conservará como responsable a ${responsable.nombre_completo}. ${compatibilidad} Puede cancelar para cambiarlo.`;
+    }
+    this.confirmState.set({
+      titulo: 'Confirmar traslado',
+      mensaje: `Origen: ${this.nombreUnidad(d.unidad_medica_id)}. Destino: ${destino.nombre}. ${aviso}`,
+      textoConfirmar: 'Confirmar traslado',
+      action: () => this.enviarAsignacion(d.id, payload),
+    });
+  }
+
+  private enviarAsignacion(id: number, payload: CambiarAsignacionPayload): void {
+    if (this.saving() || !this.showAsignacion() || this.asignacionEnConflicto()) return;
     this.saving.set(true);
-    this.dispositivosSvc
-      .cambiarAsignacion(d.id, {
-        unidad_medica_id: Number(v.unidad_medica_id),
-        persona_id: personaId,
-        lugar_especifico: lugar || null,
-        estado_dispositivo_id: v.estado_dispositivo_id ? Number(v.estado_dispositivo_id) : null,
-        fecha_asignacion: v.fecha_asignacion ? new Date(v.fecha_asignacion).toISOString() : undefined,
-      })
-      .subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.showAsignacion.set(false);
-          this.loadDetail();
-          if (this.historialLoaded) this.loadHistorial();
-          this.updated.emit();
-        },
-        error: () => {
-          this.saving.set(false);
-          this.errorMsg.set('No se pudo actualizar la asignación.');
-        },
-      });
+    this.asignacionError.set(null);
+    this.dispositivosSvc.cambiarAsignacion(id, payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.showAsignacion.set(false);
+        this.asignacionSuccess.set('Asignación actualizada correctamente.');
+        this.loadDetail();
+        this.updated.emit();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.saving.set(false);
+        if (err.status === 409 && err.error?.codigo !== 'UNIDAD_INCONSISTENTE') {
+          this.asignacionEnConflicto.set(true);
+          this.asignacionError.set('Otro usuario modificó el equipo. Consulte los datos actuales antes de guardar.');
+          return;
+        }
+        const mensaje = err.error?.error;
+        this.asignacionError.set(typeof mensaje === 'string' && err.status < 500
+          ? mensaje : 'No se pudo actualizar la asignación. Intente nuevamente.');
+      },
+    });
   }
 
   // --- Monitores ---
@@ -641,9 +837,4 @@ export class DispositivoDetailModalComponent implements OnInit {
     state?.action();
   }
 
-  private todayIsoDate(): string {
-    const d = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  }
 }

@@ -73,7 +73,12 @@ export type JurisdiccionDistribucionPrimerNivel = 'ENSENADA' | 'MEXICALI' | 'TIJ
 
 export type MatrizDistribucionPrimerNivelResponse = {
   mode: 'matriz-distribucion-primer-nivel';
-  window: { months: number };
+  window: {
+    desde: string;
+    hasta: string;
+    dias: number;
+    zonaHoraria: 'America/Tijuana';
+  };
   generadoEn: string;
   snapshotExistencias: string | null;
   unidades: Array<{

@@ -1,10 +1,11 @@
 <div
   class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[1px]"
-  (click)="closed.emit()"
+  [inert]="showEditBasic() || showAsignacion() || !!confirmState()"
 >
   <div
     class="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
-    (click)="$event.stopPropagation()"
+    role="dialog"
+    aria-label="Detalle del equipo"
   >
     <!-- Encabezado -->
     <div class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 bg-slate-50 px-6 py-4">
@@ -12,16 +13,16 @@
         @if (detail(); as d) {
           <div class="flex flex-wrap items-center gap-2">
             <span class="rounded-full bg-[#006341]/10 px-2.5 py-0.5 text-xs font-semibold text-[#006341]">
-              {{ d.tipo_dispositivo || 'Equipo' }}
+              {{ d.tipo_dispositivo || listRow?.tipo || listRow?.tipo_dispositivo || ('Tipo #' + d.tipo_dispositivo_id) }}
             </span>
             <span class="text-xs font-mono text-slate-500">ID #{{ d.id }}</span>
           </div>
           <h2 class="mt-1 truncate text-lg font-bold text-slate-900">
-            {{ (d.marca || '') + ' ' + (d.modelo || '') || 'Sin marca/modelo' }}
+            {{ ((d.marca || '') + ' ' + (d.modelo || '')).trim() || 'Sin marca/modelo' }}
           </h2>
           <p class="text-xs text-slate-600">
             Serie: <span class="font-mono font-medium">{{ d.serial || '—' }}</span>
-            · Unidad: <span class="font-medium">{{ d.unidad_medica || '—' }}</span>
+            · Unidad actual: <span class="font-medium">{{ d.unidad_medica || (listRow?.unidad_medica_id === d.unidad_medica_id ? listRow?.unidad_medica : null) || ('Unidad #' + d.unidad_medica_id) }}</span>
           </p>
         } @else {
           <h2 class="text-lg font-bold text-slate-900">Detalle del equipo</h2>
@@ -29,6 +30,7 @@
       </div>
 
       <div class="flex items-center gap-3">
+        @if (editingEnabled) {
         @if (detail(); as d) {
           <div class="flex items-center gap-1.5">
             <label class="text-xs font-semibold text-slate-600">Estado:</label>
@@ -44,9 +46,11 @@
             </select>
           </div>
         }
+        }
         <button
           type="button"
-          (click)="closed.emit()"
+          (click)="cerrarDetalle()"
+          [disabled]="saving() || showEditBasic() || showAsignacion() || !!confirmState()"
           class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
           aria-label="Cerrar"
         >
@@ -92,6 +96,7 @@
         <lucide-icon [img]="icons.periferico" class="h-4 w-4"></lucide-icon>
         <span>Periféricos ({{ detail()?.perifericos?.length ?? 0 }})</span>
       </button>
+      @if (historyEnabled) {
       <button
         type="button"
         (click)="selectTab('historial')"
@@ -104,10 +109,17 @@
         <lucide-icon [img]="icons.history" class="h-4 w-4"></lucide-icon>
         <span>Historial</span>
       </button>
+      }
     </div>
 
     <!-- Cuerpo con scroll -->
     <div class="flex-1 overflow-y-auto p-6">
+      @if (editBasicSuccess()) {
+        <p role="status" class="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Datos técnicos actualizados correctamente.</p>
+      }
+      @if (asignacionSuccess(); as mensaje) {
+        <p role="status" class="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ mensaje }}</p>
+      }
       @if (errorMsg()) {
         <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {{ errorMsg() }}
@@ -130,17 +142,17 @@
                 class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#006341] hover:text-[#006341]"
               >
                 <lucide-icon [img]="icons.edit" class="h-4 w-4"></lucide-icon>
-                <span>Editar equipo y MACs</span>
+                <span>Editar datos técnicos</span>
               </button>
+            </div>
               <button
                 type="button"
                 (click)="openAsignacion()"
                 class="inline-flex items-center gap-2 rounded-xl bg-[#006341] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[#004f34]"
               >
                 <lucide-icon [img]="icons.assign" class="h-4 w-4"></lucide-icon>
-                <span>Cambiar responsable / lugar</span>
+                <span>Cambiar asignación</span>
               </button>
-            </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div class="rounded-xl border border-gray-200 bg-slate-50 p-4">
@@ -163,24 +175,30 @@
 
               <div class="rounded-xl border border-gray-200 bg-slate-50 p-4">
                 <h3 class="text-xs font-bold uppercase tracking-wide text-slate-500">Asignación vigente</h3>
+                @if (currentAssignment(); as assignment) {
                 <dl class="mt-3 space-y-2 text-sm">
-                  <div class="flex justify-between gap-2">
-                    <dt class="text-slate-500">Unidad</dt>
-                    <dd class="text-right font-medium text-slate-900">{{ d.unidad_medica || '—' }}</dd>
-                  </div>
                   <div class="flex justify-between gap-2">
                     <dt class="text-slate-500">Responsable</dt>
                     <dd class="text-right font-medium text-slate-900">
-                      {{ d.asignacion_actual?.persona_nombre_completo || d.asignacion_actual?.persona || 'Sin asignar' }}
+                      {{ assignment.persona_id != null ? (assignment.nombre_completo || 'Persona') + ' (#' + assignment.persona_id + ')' : 'Sin responsable' }}
                     </dd>
                   </div>
                   <div class="flex justify-between gap-2">
                     <dt class="text-slate-500">Lugar específico</dt>
                     <dd class="text-right font-medium text-slate-900">
-                      {{ d.asignacion_actual?.lugar_especifico || '—' }}
+                      {{ assignment.lugar_especifico || '—' }}
+                    </dd>
+                  </div>
+                  <div class="flex justify-between gap-2">
+                    <dt class="text-slate-500">Estado</dt>
+                    <dd class="text-right font-medium text-slate-900">
+                      {{ assignment.estado_nombre || (assignment.estado_dispositivo_id != null ? 'Estado #' + assignment.estado_dispositivo_id : 'Sin estado') }}
                     </dd>
                   </div>
                 </dl>
+                } @else {
+                  <p class="mt-3 text-sm text-slate-600">Sin asignación vigente.</p>
+                }
               </div>
             </div>
 
@@ -196,8 +214,8 @@
                 <div class="mt-3 flex flex-wrap gap-2">
                   @for (nic of nicList(); track $index) {
                     <span class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-slate-100 px-3 py-1 font-mono text-xs text-slate-800">
-                      <span class="font-sans text-[11px] font-semibold uppercase text-[#006341]">{{ nic.kind || nic.iface_name || 'nic' }}</span>
-                      <span>{{ nic.mac_norm || nic.mac }}</span>
+                      <span class="font-sans text-[11px] font-semibold uppercase text-[#006341]">{{ nic.iface_name || nic.kind || 'NIC' }}</span>
+                      <span>{{ nic.mac || nic.mac_norm || '—' }}</span>
                     </span>
                   }
                 </div>
@@ -219,6 +237,7 @@
           <div>
             <div class="mb-4 flex items-center justify-between">
               <h3 class="text-sm font-bold text-slate-800">Monitores asociados</h3>
+              @if (editingEnabled) {
               <button
                 type="button"
                 (click)="openMonitorForm()"
@@ -227,6 +246,7 @@
                 <lucide-icon [img]="icons.plus" class="h-4 w-4"></lucide-icon>
                 <span>Agregar monitor</span>
               </button>
+              }
             </div>
 
             @if (!d.monitores?.length) {
@@ -242,7 +262,9 @@
                       <th class="px-4 py-2.5">Marca</th>
                       <th class="px-4 py-2.5">Modelo</th>
                       <th class="px-4 py-2.5">Principal</th>
-                      <th class="px-4 py-2.5 text-right">Acciones</th>
+                      @if (editingEnabled) {
+                        <th class="px-4 py-2.5 text-right">Acciones</th>
+                      }
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-100 bg-white">
@@ -258,6 +280,7 @@
                             <span class="text-xs text-slate-400">No</span>
                           }
                         </td>
+                        @if (editingEnabled) {
                         <td class="px-4 py-2.5 text-right">
                           <button type="button" (click)="openMonitorForm(m)" class="mr-2 text-slate-500 hover:text-[#006341]" title="Editar">
                             <lucide-icon [img]="icons.edit" class="h-4 w-4"></lucide-icon>
@@ -266,6 +289,7 @@
                             <lucide-icon [img]="icons.trash" class="h-4 w-4"></lucide-icon>
                           </button>
                         </td>
+                        }
                       </tr>
                     }
                   </tbody>
@@ -280,6 +304,7 @@
           <div>
             <div class="mb-4 flex items-center justify-between">
               <h3 class="text-sm font-bold text-slate-800">Periféricos asociados</h3>
+              @if (editingEnabled) {
               <button
                 type="button"
                 (click)="openPerifericoForm()"
@@ -288,6 +313,7 @@
                 <lucide-icon [img]="icons.plus" class="h-4 w-4"></lucide-icon>
                 <span>Agregar periférico</span>
               </button>
+              }
             </div>
 
             @if (!d.perifericos?.length) {
@@ -303,7 +329,9 @@
                       <th class="px-4 py-2.5">Serie</th>
                       <th class="px-4 py-2.5">Marca</th>
                       <th class="px-4 py-2.5">Modelo</th>
-                      <th class="px-4 py-2.5 text-right">Acciones</th>
+                      @if (editingEnabled) {
+                        <th class="px-4 py-2.5 text-right">Acciones</th>
+                      }
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-100 bg-white">
@@ -313,6 +341,7 @@
                         <td class="px-4 py-2.5 font-mono text-xs">{{ p.serial || '—' }}</td>
                         <td class="px-4 py-2.5">{{ p.marca || '—' }}</td>
                         <td class="px-4 py-2.5">{{ p.modelo || '—' }}</td>
+                        @if (editingEnabled) {
                         <td class="px-4 py-2.5 text-right">
                           <button type="button" (click)="openPerifericoForm(p)" class="mr-2 text-slate-500 hover:text-[#006341]" title="Editar">
                             <lucide-icon [img]="icons.edit" class="h-4 w-4"></lucide-icon>
@@ -321,6 +350,7 @@
                             <lucide-icon [img]="icons.trash" class="h-4 w-4"></lucide-icon>
                           </button>
                         </td>
+                        }
                       </tr>
                     }
                   </tbody>
@@ -331,7 +361,7 @@
         }
 
         <!-- TAB 4: HISTORIAL -->
-        @if (activeTab() === 'historial') {
+        @if (historyEnabled && activeTab() === 'historial') {
           <div class="space-y-4">
             <div class="flex flex-wrap items-end justify-between gap-3">
               <div class="flex flex-wrap items-end gap-2">
@@ -450,13 +480,40 @@
   </div>
 </div>
 
-<!-- SUB-MODAL: EDITAR BÁSICO + MACs -->
+<!-- SUB-MODAL: EDITAR DATOS TÉCNICOS -->
 @if (showEditBasic()) {
-  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" (click)="showEditBasic.set(false)">
-    <div class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
-      <h3 class="text-base font-bold text-slate-900">Editar equipo e interfaces MAC</h3>
+  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" [inert]="!!confirmState()">
+    <div role="dialog" aria-modal="true" aria-label="Editar datos técnicos" class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+      <h3 class="text-base font-bold text-slate-900">Editar datos técnicos</h3>
+      <p class="mt-1 text-xs text-slate-600">Deje vacío un campo para eliminar su valor.</p>
+      @if (editBasicError(); as mensaje) {
+        <p role="alert" class="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-800">{{ mensaje }}</p>
+      }
+      @if (editBasicConflict()) {
+        <button type="button" [disabled]="editBasicConsultando()" (click)="consultarDatosTecnicos()"
+          class="mt-2 rounded px-2 py-1 text-sm font-semibold text-[#006341] hover:bg-emerald-50">
+          {{ editBasicConsultando() ? 'Consultando…' : 'Consultar datos actuales' }}
+        </button>
+        @if (datosTecnicosActuales(); as actuales) {
+          <div class="mt-3 rounded-lg border border-gray-200 p-3 text-sm">
+            <h4 class="font-semibold text-slate-800">Valores actuales</h4>
+            <dl class="mt-2 space-y-1">
+              @for (campo of camposTecnicos; track campo) {
+                <div class="grid grid-cols-[7rem_minmax(0,1fr)] gap-2">
+                  <dt class="text-slate-500">{{ etiquetasTecnicas[campo] }}</dt>
+                  <dd class="break-words">{{ actuales[campo] || '—' }}</dd>
+                </div>
+              }
+            </dl>
+            <button type="button" [disabled]="editBasicConsultando()" (click)="usarDatosTecnicosActuales()"
+              class="mt-2 rounded px-2 py-1 text-sm font-semibold text-[#006341] hover:bg-emerald-50">
+              Reemplazar lo capturado con los datos actuales
+            </button>
+          </div>
+        }
+      }
       <form [formGroup]="editBasicForm" (ngSubmit)="saveEditBasic()" class="mt-4 space-y-4">
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <fieldset [disabled]="saving()" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label class="mb-1 block text-xs font-semibold text-slate-700">Serie</label>
             <input formControlName="serial" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
@@ -481,9 +538,10 @@
             <label class="mb-1 block text-xs font-semibold text-slate-700">Observaciones</label>
             <textarea rows="2" formControlName="observaciones" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></textarea>
           </div>
-        </div>
+        </fieldset>
 
         <!-- Gestión de MACs -->
+        @if (editingEnabled) {
         <div class="rounded-xl border border-gray-200 bg-slate-50 p-3">
           <label class="block text-xs font-semibold text-slate-700">Direcciones MAC</label>
           <div class="mt-2 flex flex-wrap gap-2">
@@ -528,10 +586,11 @@
             }
           </div>
         </div>
+        }
 
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" (click)="showEditBasic.set(false)" class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancelar</button>
-          <button type="submit" [disabled]="saving()" class="rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004f34]">Guardar</button>
+          <button type="button" [disabled]="saving() || editBasicConsultando()" (click)="cerrarEditBasic()" class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancelar</button>
+          <button type="submit" [disabled]="saving() || editBasicConflict() || editBasicForm.invalid || !tieneCambiosDatosTecnicos()" class="rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004f34] disabled:opacity-50">Guardar</button>
         </div>
       </form>
     </div>
@@ -540,26 +599,39 @@
 
 <!-- SUB-MODAL: CAMBIAR ASIGNACIÓN -->
 @if (showAsignacion()) {
-  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" (click)="showAsignacion.set(false)">
-    <div class="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
+  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" [inert]="!!confirmState()">
+    <div role="dialog" aria-modal="true" aria-label="Cambiar asignación" class="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
       <h3 class="text-base font-bold text-slate-900">Cambiar asignación del equipo</h3>
+      @if (asignacionError(); as mensaje) {
+        <p role="alert" class="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-800">{{ mensaje }}</p>
+      }
+      @if (asignacionEnConflicto()) {
+        <button type="button" [disabled]="loading()" (click)="loadDetail(true)"
+          class="mt-2 rounded px-2 py-1 text-sm font-semibold text-[#006341] hover:bg-emerald-50">
+          Consultar datos actuales y restablecer el formulario
+        </button>
+      }
       <form [formGroup]="asignacionForm" (ngSubmit)="saveAsignacion()" class="mt-4 space-y-4">
         <div>
-          <label class="mb-1 block text-xs font-semibold text-slate-700">Unidad médica <span class="text-red-600">*</span></label>
+          <label class="mb-1 block text-xs font-semibold text-slate-700">Unidad <span class="text-red-600">*</span></label>
           <ng-select
-            formControlName="unidad_medica_id"
+            #unidadAsignacionSelect="ngSelect"
+            (change)="cambiarUnidadAsignacion($event)"
+            [readonly]="saving() || loading()"
             [items]="unidades()"
             bindLabel="nombre"
             bindValue="id"
             [typeahead]="unidadSearch$"
             [loading]="loadingUnidades()"
-            placeholder="Buscar unidad médica..."
+            placeholder="Buscar unidad..."
           ></ng-select>
         </div>
         <div>
           <label class="mb-1 block text-xs font-semibold text-slate-700">Persona responsable</label>
           <ng-select
-            formControlName="persona_id"
+            #personaAsignacionSelect="ngSelect"
+            (change)="cambiarPersonaAsignacion($event)"
+            [readonly]="saving() || loading()"
             [items]="personas()"
             bindLabel="nombre_completo"
             bindValue="id"
@@ -569,19 +641,20 @@
             [clearable]="true"
           ></ng-select>
         </div>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
           <div>
             <label class="mb-1 block text-xs font-semibold text-slate-700">Estado</label>
             <select formControlName="estado_dispositivo_id" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
-              <option [ngValue]="null">Sin cambio</option>
+              <option [ngValue]="null">Seleccione un estado</option>
+              @if (currentAssignment(); as vigente) {
+                @if (vigente.estado_dispositivo_id != null && !estadosIncluyen(vigente.estado_dispositivo_id)) {
+                  <option [ngValue]="vigente.estado_dispositivo_id">{{ vigente.estado_nombre || ('Estado #' + vigente.estado_dispositivo_id) }}</option>
+                }
+              }
               @for (e of estados; track e.id) {
                 <option [ngValue]="e.id">{{ e.nombre }}</option>
               }
             </select>
-          </div>
-          <div>
-            <label class="mb-1 block text-xs font-semibold text-slate-700">Fecha de asignación</label>
-            <input type="date" formControlName="fecha_asignacion" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
           </div>
         </div>
         <div>
@@ -589,8 +662,8 @@
           <input formControlName="lugar_especifico" placeholder="Ej. Consultorio 3, Archivo Clínico (si se deja vacío con persona vacía se asigna 'sin asignar')" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" />
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" (click)="showAsignacion.set(false)" class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancelar</button>
-          <button type="submit" [disabled]="asignacionForm.invalid || saving()" class="rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004f34]">Guardar asignación</button>
+          <button type="button" [disabled]="saving()" (click)="cerrarAsignacion()" class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancelar</button>
+          <button type="submit" [disabled]="asignacionForm.invalid || saving() || loading() || asignacionEnConflicto() || !tieneCambiosAsignacion()" class="rounded-xl bg-[#006341] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004f34] disabled:opacity-50">Guardar asignación</button>
         </div>
       </form>
     </div>
@@ -598,7 +671,7 @@
 }
 
 <!-- SUB-MODAL: MONITOR -->
-@if (showMonitorForm()) {
+@if (editingEnabled && showMonitorForm()) {
   <div class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" (click)="showMonitorForm.set(false)">
     <div class="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
       <h3 class="text-base font-bold text-slate-900">{{ editingMonitorId() ? 'Editar monitor' : 'Agregar monitor' }}</h3>
@@ -632,7 +705,7 @@
 }
 
 <!-- SUB-MODAL: PERIFÉRICO -->
-@if (showPerifericoForm()) {
+@if (editingEnabled && showPerifericoForm()) {
   <div class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" (click)="showPerifericoForm.set(false)">
     <div class="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
       <h3 class="text-base font-bold text-slate-900">{{ editingPerifericoId() ? 'Editar periférico' : 'Agregar periférico' }}</h3>
@@ -669,12 +742,15 @@
 
 <!-- MODAL DE CONFIRMACIÓN REUTILIZABLE -->
 @if (confirmState(); as c) {
+  <div class="fixed inset-0 z-[70]"
+    [ngClass]="c.textoCancelar ? '[&_.confirm-overlay]:pointer-events-none [&_.confirm-dialog]:pointer-events-auto [&_.confirm-dialog_button:first-child]:bg-green-800 [&_.confirm-dialog_button:first-child]:text-white [&_.confirm-dialog_button:first-child:hover]:bg-green-900 [&_.confirm-dialog_button:last-child]:bg-white [&_.confirm-dialog_button:last-child]:text-red-700 [&_.confirm-dialog_button:last-child:hover]:bg-red-50' : ''">
   <app-confirmacion-modal
     [titulo]="c.titulo"
     [mensaje]="c.mensaje"
     [textoConfirmar]="c.textoConfirmar"
-    textoCancelar="Cancelar"
+    [textoCancelar]="c.textoCancelar ?? 'Cancelar'"
     (confirmar)="executeConfirm()"
     (cancelar)="confirmState.set(null)"
   />
+  </div>
 }
